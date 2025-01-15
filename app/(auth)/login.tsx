@@ -28,7 +28,6 @@ import { useAuth } from "@/contexts/auth";
 import { theme } from "@/constants/theme";
 import { Button } from "antd-mobile";
 import { Pressable } from "react-native-gesture-handler";
-import { supabase } from "@/lib/supabase";
 import AntDesign from '@expo/vector-icons/AntDesign';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -134,10 +133,7 @@ export default function Login() {
       setIsLoading(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+     await signIn(email, password)
 
       // Success haptic feedback
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -185,7 +181,7 @@ export default function Login() {
             <Image
               source={require("@/assets/images/icon.png")}
               style={styles.logo}
-            />{" "}
+            />
             <Text style={styles.title}>Elearn</Text>
           </View>
           <Text style={styles.subtitle}>Connectez vous pour continuer </Text>
@@ -209,7 +205,7 @@ export default function Login() {
             />
             {emailError ? (
               <Text style={styles.errorText}>{emailError}</Text>
-            ) : null}
+            ) : <Text style={styles.errorText}>{null}</Text>}
           </View>
 
           <View style={styles.inputContainer}>
@@ -240,12 +236,12 @@ export default function Login() {
             </View>
             {passwordError ? (
               <Text style={styles.errorText}>{passwordError}</Text>
-            ) : null}
+            ) : <Text style={styles.errorText}>{null}</Text>}
           </View>
 
           <TouchableOpacity
             style={styles.forgotPassword}
-            onPress={() => router.push("/forgot_password")}
+            onPress={() => router.push("/(auth)")}
           >
             <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
           </TouchableOpacity>
@@ -290,10 +286,9 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.color.primary[100],
+    backgroundColor: "#ffff",
   },
 
-  // style for the  logo view
   lo: {
     alignItems: "center",
     marginBottom: 20,
@@ -323,16 +318,16 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: "#666",
-    marginBottom: 32,
+    marginBottom: 15,
     textAlign: "center",
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 0,
   },
   label: {
     fontSize: 14,
     fontWeight: "500",
-    marginBottom: 8,
+    marginBottom: 5,
     color: "#333",
   },
   input: {
@@ -341,7 +336,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: theme.color.primary[50],
   },
   inputError: {
     borderColor: "#ff4d4f",
@@ -438,7 +432,7 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 5,
   },
   divider: {
     flex: 1,
