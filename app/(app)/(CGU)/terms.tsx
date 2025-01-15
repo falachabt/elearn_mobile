@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const schools = () => {
+const terms = () => {
   return (
     <View>
-      <Text>schools</Text>
+      <Text>terms</Text>
     </View>
   )
 }
 
-export default schools
+export default terms

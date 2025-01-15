@@ -1,6 +1,6 @@
 // app/(auth)/register.tsx
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,28 +14,43 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  GestureResponderEvent,
+  StatusBar,
 } from "react-native";
 
-import { StatusBar } from "expo-status-bar";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import * as Haptics from "expo-haptics";
 import { Pressable } from "react-native-gesture-handler";
+import OTPInput from "../../components/ui/OTPInput";
+import CustomMessage from "../../components/shared/CustomMessage";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function Register() {
+const register = () => {
   const router = useRouter();
-  const { signIn } = useAuth();
+  const { signUp, verifyOtp } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [attemptCount, setAttemptCount] = useState(0);
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const [otpError, setOtpError] = useState("");
+  const [isChecked, setIsChecked] = useState(false);
+  const [isOtpStep, setIsOtpStep] = useState(false);
+  const [isOtpValid, setIsOtpValid] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1); // 1: Email, 2: OTP
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("");
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -44,6 +59,7 @@ export default function Register() {
 
   // Refs for focus management
   const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   // Animate component mount
   React.useEffect(() => {
@@ -112,13 +128,44 @@ export default function Register() {
     return true;
   };
 
-  const handleLogin = async () => {
+  const validateConfirmPassword = (
+    password: string,
+    confirmPassword: string
+  ) => {
+    if (password !== confirmPassword) {
+      setConfirmPasswordError("Passwords do not match");
+      return false;
+    }
+    setConfirmPasswordError("");
+    return true;
+  };
+
+  interface MessageTypes {
+    error: 'error';
+    success: 'success';
+    warning: 'warning';
+    info: 'info';
+  }
+
+  const showMessage = (msg: string, type: keyof MessageTypes = "error"): void => {
+    setMessage(msg);
+    setMessageType(type);
+    setTimeout(() => {
+      setMessage("");
+    }, 3000);
+  };
+
+  const handleSignUp = async () => {
     try {
       // Validate fields
       const isEmailValid = validateEmail(email);
       const isPasswordValid = validatePassword(password);
+      const isConfirmPasswordValid = validateConfirmPassword(
+        password,
+        confirmPassword
+      );
 
-      if (!isEmailValid || !isPasswordValid) {
+      if (!isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
         shakeError();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
@@ -127,35 +174,97 @@ export default function Register() {
       setIsLoading(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      await signUp(email, password);
 
-      // Success haptic feedback
+      setOtpSent(true);
+      setIsOtpStep(true);
+      setCurrentStep(2);
+      startCountdown();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error: any) {
       setAttemptCount((prev) => prev + 1);
       shakeError();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-
-      // Handle specific error cases
-      if (error.message.includes("Invalid login")) {
-        Alert.alert(
-          "Échec de la connexion",
-          attemptCount >= 2
-            ? "Plusieurs tentatives de connexion ont échoué. Besoin de réinitialiser votre mot de passe ?"
-            : "Email ou mot de passe invalide. Veuillez réessayer."
-        );
-      } else {
-        Alert.alert(
-          "Erreur",
-          "Une erreur inattendue s'est produite. Veuillez réessayer."
-        );
+      if(error.message == "email exists"){
+        showMessage("Email already exists", "error")
       }
+      
+      Alert.alert(
+        "Erreur",
+        "Une erreur inattendue s'est produite. Veuillez réessayer."
+      );
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const startCountdown = () => {
+    setCountdown(60);
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === 1) {
+          clearInterval(interval);
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect( () => {
+    if(otp?.length === 6){
+      setIsOtpValid(true)
+    }else{
+      setIsOtpValid(false)
+    }
+  }, [otp] )
+
+  const handleVerifyOtp = async () => {
+    try {
+
+      setIsLoading(true);
+      await verifyOtp(email, otp, password);
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      Alert.alert("Error", "Failed to verify OTP. Please try again.");
+     
+    }
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+  };
+
+  const handleOtpChange = (text: string) => {
+    setOtp(text);
+    setIsOtpValid(text.length === 6);
+  };
+
+  const modifyEmail = () => {
+    setCurrentStep(1);
+    setIsOtpStep(false);
+    setOtp("");
+
+  }
+
+  const handleResendOtp = async () => {
+    try {
+      setIsLoading(true);
+      // Logic to resend OTP
+      await supabase.auth.signInWithOtp({ email });
+      setCountdown(60);
+      startCountdown();
+      Alert.alert("OTP Resent", "A new OTP has been sent to your email.");
+    } catch (error) {
+      Alert.alert("Error", "Failed to resend OTP. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleModifyEmail = (event: GestureResponderEvent) => {
+    setCurrentStep(1);
+    setIsOtpStep(false);
+    setOtp("");
   };
 
   return (
@@ -163,7 +272,7 @@ export default function Register() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <StatusBar style="dark" />
+      <StatusBar backgroundColor={theme.color.primary[500]} barStyle="dark-content" />
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
@@ -178,128 +287,216 @@ export default function Register() {
           ]}
         >
           <View style={styles.lo}>
-            <Image
+            {/* <Image
               source={require("@/assets/images/icon.png")}
               style={styles.logo}
-            />{" "}
-            <Text style={styles.title}>Elearn</Text>
+            /> */}
+            <Text style={styles.title}>
+              {" "}
+              {currentStep == 1 ? "Inscription" : "Confirmez votre email"}{" "}
+            </Text>
           </View>
-          <Text style={styles.subtitle}>Connectez vous pour continuer </Text>
+          <Text style={styles.subtitle}>
+            {currentStep == 1
+              ? "Inscrivez-vous pour continuer"
+              : "Entrez le code à 6 chiffre envoyé à votre adresse mail " +
+                email}{" "}
+          </Text>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={[styles.input, emailError && styles.inputError]}
-              placeholder="Enter your email"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (emailError) validateEmail(text);
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              returnKeyType="next"
-              onSubmitEditing={() => passwordRef.current?.focus()}
-              blurOnSubmit={false}
-            />
-            {emailError ? (
-              <Text style={styles.errorText}>{emailError}</Text>
-            ) : null}
-          </View>
+          {!isOtpStep ? (
+            <>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={[styles.input, emailError && styles.inputError]}
+                  placeholder="Enter your email"
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (emailError) validateEmail(text);
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                  blurOnSubmit={false}
+                />
+                {emailError ? (
+                  <Text style={styles.errorText}>{emailError}</Text>
+                ) : null}
+              </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                ref={passwordRef}
-                style={[styles.input, passwordError && styles.inputError]}
-                placeholder="Enter your password"
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (passwordError) validatePassword(text);
-                }}
-                secureTextEntry={!showPassword}
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <AntDesign name="eye" size={24} color="black" />
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Password</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    ref={passwordRef}
+                    style={[styles.input, passwordError && styles.inputError]}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      if (passwordError) validatePassword(text);
+                    }}
+                    secureTextEntry={!showPassword}
+                    returnKeyType="next"
+                    onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <AntDesign name="eye" size={24} color="black" />
+                    ) : (
+                      <AntDesign name="eyeo" size={24} color="black" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {passwordError ? (
+                  <Text style={styles.errorText}>{passwordError}</Text>
+                ) : null}
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Confirm Password</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    ref={confirmPasswordRef}
+                    style={[
+                      styles.input,
+                      confirmPasswordError && styles.inputError,
+                    ]}
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChangeText={(text) => {
+                      setConfirmPassword(text);
+                      if (confirmPasswordError)
+                        validateConfirmPassword(password, text);
+                    }}
+                    secureTextEntry={!showPassword}
+                    returnKeyType="done"
+                    // onSubmitEditing={handleSignUp}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <AntDesign name="eye" size={24} color="black" />
+                    ) : (
+                      <AntDesign name="eyeo" size={24} color="black" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {confirmPasswordError ? (
+                  <Text style={styles.errorText}>{confirmPasswordError}</Text>
+                ) : null}
+              </View>
+
+              <View style={styles.checkboxContainer}>
+                <TouchableOpacity
+                  style={styles.checkbox}
+                  onPress={() => setIsChecked(!isChecked)}
+                >
+                  {isChecked && (
+                    <AntDesign
+                      name="check"
+                      size={16}
+                      color={theme.color.primary[500]}
+                    />
+                  )}
+                </TouchableOpacity>
+                <Text style={styles.checkboxLabel}>
+                  I agree to the{" "}
+                  <Text
+                    style={styles.link}
+                    onPress={() => router.push("/(app)/(CGU)/terms")}
+                  >
+                    Terms and Conditions
+                  </Text>
+                </Text>
+              </View>
+
+              <Pressable onPress={handleSignUp} style={styles.signUpButton}>
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
                 ) : (
-                  <AntDesign name="eyeo" size={24} color="black" />
+                  <Text style={styles.signUpButtonText}>Inscription</Text>
                 )}
-              </TouchableOpacity>
-            </View>
-            {passwordError ? (
-              <Text style={styles.errorText}>{passwordError}</Text>
-            ) : null}
-          </View>
+              </Pressable>
 
-          <TouchableOpacity
-            style={styles.forgotPassword}
-            onPress={() => router.push("/forgot_password")}
-          >
-            <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
-          </TouchableOpacity>
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.divider} />
+              </View>
 
-          <Pressable onPress={handleLogin} style={styles.loginButton}>
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>Se connecter</Text>
-            )}
-          </Pressable>
+              <View style={styles.socialLoginContainer}>
+                <TouchableOpacity
+                  style={{ ...styles.socialButton, ...styles.googleButton }}
+                >
+                  <AntDesign name="google" size={24} color="white" />
+                  <Text style={styles.buttonText}>Google</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ ...styles.socialButton, ...styles.facebookButton }}
+                >
+                  <AntDesign name="facebook-square" size={24} color="white" />
+                  <Text style={styles.buttonText}>Facebook</Text>
+                </TouchableOpacity>
+              </View>
 
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.divider} />
-          </View>
-
-          <View style={styles.socialLoginContainer}>
-            <TouchableOpacity
-              style={{ ...styles.socialButton, ...styles.googleButton }}
-            >
-              <AntDesign name="google" size={24} color="white" />
-              <Text style={styles.buttonText}>Google</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ ...styles.socialButton, ...styles.facebookButton }}
-            >
-              <AntDesign name="facebook-square" size={24} color="white" />
-              <Text style={styles.buttonText}>Facebook</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>vous n'avez déjà un compte ? </Text>
-            <TouchableOpacity onPress={() => router.push("/login")}>
-              <Text style={styles.signupLink}>Connectez vous</Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.loginContainer}>
+                <Text style={styles.loginText}>Already have an account? </Text>
+                <TouchableOpacity onPress={() => router.push("/login")}>
+                  <Text style={styles.loginLink}>Log In</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.otpContainer}>
+                <OTPInput otp={otp} setOtp={setOtp} isOtpValid={isOtpValid} />
+                <View style={styles.countdownContainer}>
+                  <Text style={styles.countdownText}>00:30</Text>
+                  <TouchableOpacity onPress={handleResendOtp}>
+                    <Text style={styles.resendLink}>Renvoyer OTP</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  onPress={handleVerifyOtp}
+                  style={[styles.button, !isOtpValid && styles.buttonDisabled]}
+                  disabled={!isOtpValid}
+                >
+                  <Text style={styles.buttonText}>Vérifier</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleModifyEmail} style={styles.button}>
+                  <Text style={styles.buttonText}>Modifier Email</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
-}
+};
+
+export default register
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.color.primary[100],
+    backgroundColor: "#ffff",
   },
-
-  // style for the  logo view
   lo: {
     alignItems: "center",
     marginBottom: 20,
   },
-
   logo: {
     width: 100,
     height: 100,
@@ -327,6 +524,12 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     textAlign: "center",
   },
+  stepText: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 32,
+    textAlign: "center",
+  },
   inputContainer: {
     marginBottom: 20,
   },
@@ -342,7 +545,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: theme.color.primary[50],
+    backgroundColor: "#ffff",
   },
   inputError: {
     borderColor: "#ff4d4f",
@@ -360,81 +563,42 @@ const styles = StyleSheet.create({
     right: 12,
     top: 12,
   },
-  forgotPassword: {
-    alignSelf: "flex-end",
-    marginBottom: 24,
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
   },
-  forgotPasswordText: {
-    color: "#1677ff",
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: "#ddd",
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  checkboxLabel: {
     fontSize: 14,
-    textAlign: "center",
+    color: "#333",
   },
-  loginButton: {
+  link: {
+    color: theme.color.primary[500],
+    textDecorationLine: "underline",
+  },
+  signUpButton: {
     height: 40,
     borderRadius: 8,
     marginBottom: 16,
     backgroundColor: theme.color.primary["500"],
-    // Remove redundant display:"flex" since it's default
     justifyContent: "center",
     alignItems: "center",
-    // Remove alignContent and textAlign since they don't affect button content centering
   },
-  loginButtonText: {
+  signUpButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
-    textAlign: "center", // Add textAlign center to text itself
-    // Remove alignItems since it has no effect on Text component
-  },
-  signupContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 25,
-  },
-  signupText: {
-    color: "#666",
-    fontSize: 14,
-  },
-  signupLink: {
-    color: theme.color.primary[500],
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  socialLoginContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  socialButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center", // Changez la couleur pour Facebook si nécessaire
-    padding: 10,
-    borderRadius: 5,
-    marginHorizontal: 5,
-  },
-  buttonText: {
-    color: "white",
-    marginLeft: 10,
     textAlign: "center",
-  },
-  googleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#DB4437",
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 10,
-  },
-  facebookButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#3b5998",
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 10,
   },
   dividerContainer: {
     flexDirection: "row",
@@ -449,5 +613,116 @@ const styles = StyleSheet.create({
   dividerText: {
     marginHorizontal: 10,
     color: "#666",
+  },
+  socialLoginContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  socialButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+    borderRadius: 5,
+    marginHorizontal: 5,
+  },
+  buttonText: {
+    color: "white",
+    marginLeft: 10,
+    textAlign: "center",
+  },
+  googleButton: {
+    backgroundColor: "#DB4437",
+  },
+  facebookButton: {
+    backgroundColor: "#3b5998",
+  },
+  loginContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 25,
+  },
+  loginText: {
+    color: "#666",
+    fontSize: 14,
+  },
+  loginLink: {
+    color: theme.color.primary[500],
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  otpContainer: {
+    marginTop: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  otpTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  otpInput: {
+    borderWidth: 2,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    width: "80%",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  verifyButton: {
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: theme.color.primary["500"],
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  verifyButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  resendText: {
+    color: "#666",
+    fontSize: 14,
+  },
+  button: {
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: theme.color.primary["500"],
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  buttonDisabled: {
+    backgroundColor: "#ddd",
+  },
+  resendLink: {
+    color: theme.color.primary[500],
+    fontSize: 14,
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
+  countdownContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  countdownText: {
+    fontSize: 16,
+    color: "#666",
+    marginRight: 10,
+  },
+  buttonContainer: {
+    flexDirection: "column",
+    justifyContent: "space-between",
+    marginTop: 20,
   },
 });

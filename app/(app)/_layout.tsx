@@ -9,7 +9,7 @@ export default function AppLayout() {
 
   // Protect app routes
   if (!isLoading && !session) {
-    return <Redirect href="/(auth)/login" />
+    return <Redirect href="/(auth)" />
   }
 
   return (
