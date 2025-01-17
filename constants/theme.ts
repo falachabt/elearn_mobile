@@ -9,7 +9,8 @@ export const theme = {
       200: '#b8f29d',
       300: '#8fe666',
       400: '#6ed638',
-      500: '#57cc02', // Original primary color
+      // 500: '#57cc02', // Original primary color
+      500: '#4CAF50',
       600: '#45a502',
       700: '#377f02',
       800: '#2c6502',

@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth'
 
 const courses = () => {
-  const { session, signOut } = useAuth();
+  const { session, signOut, user } = useAuth();
   console.log("session")
   return (
     <View style={styles.container}>
@@ -25,7 +25,7 @@ const courses = () => {
           {session?.user.email} good
         </ThemedText>
         <ThemedText style={styles.metadataText}>
-          {JSON.stringify(session?.user?.user_metadata)} good
+           good
         </ThemedText>
       </Link>
     </View>

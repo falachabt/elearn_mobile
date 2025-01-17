@@ -12,13 +12,16 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 
 export default function AuthLayout() {
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, user } = useAuth();
   const colorScheme = useColorScheme();
   
 
   // If user is authenticated, redirect to main app
   if (!isLoading && session) {
-    return <Redirect href={"/(app)" as any} />
+     if(user?.onboarding_done){
+       return <Redirect href={"/(app)" as any} />
+     }
+    //  return  <Redirect href={"/(auth)/onboarding"} /> 
   }
 
   return (
