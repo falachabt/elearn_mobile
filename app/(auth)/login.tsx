@@ -15,13 +15,8 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { useRouter } from "expo-router";
-
+import { Redirect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import Ionicons from '@expo/vector-icons/Ionicons';
-
-// import { Button, ActivityIndicator } from '@ant-design/react-native'
-
 
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/contexts/auth";
@@ -137,6 +132,7 @@ export default function Login() {
 
       // Success haptic feedback
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      return  <Redirect href={"/(app)"} /> 
     } catch (error: any) {
       setAttemptCount((prev) => prev + 1);
       shakeError();
@@ -151,6 +147,7 @@ export default function Login() {
             : "Email ou mot de passe invalide. Veuillez réessayer."
         );
       } else {
+        console.log(error)
         Alert.alert("Erreur", "Une erreur inattendue s'est produite. Veuillez réessayer.");
       }
     } finally {

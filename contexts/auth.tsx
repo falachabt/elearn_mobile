@@ -3,9 +3,12 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import axios from 'axios'
+import { Accounts, tables } from '@/types/type'
+import { useRouter } from 'expo-router'
 
 type AuthContextType = {
   session: Session | null
+  user: Accounts | null
   isLoading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
@@ -17,7 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [user , setUser]=useState(null)
+  const [user , setUser]=useState<Accounts | null>(null)
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -28,20 +31,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async(_event, session) => {
       setSession(session);
 
-
+      
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    let subscription: any;
+
+    const fetchUser = async () => {
+      try {
+        console.log("email", session?.user?.email)
+        const { data, error } = await supabase.from("accounts").select("*").eq("email", session?.user?.email).single();
+        if(error) {
+          console.error("Error fetching user:", error);
+          return;
+        }
+        if(data) {
+          setUser(data);
+        }
+      } catch (err) {
+        console.error("Error in fetchUser:", err);
+      }
+    }
+
+    if(session?.user?.email) {
+      fetchUser();
+      
+      // Subscribe to realtime changes
+      subscription = supabase
+        .channel('accounts_changes')
+        .on('postgres_changes', 
+          {
+            event: '*',
+            schema: 'public',
+            table: 'accounts',
+            filter: `email=eq.${session.user.email}`
+          }, 
+          (payload) => {
+            // console.log('Change received!', payload)
+            if (payload.new) {
+              setUser(payload.new as Accounts)
+            }
+          }
+        )
+        .subscribe()
+    } else {
+      setUser(null);
+    }
+
+    // Cleanup subscription
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription)
+      }
+    }
+  }, [session])
+
   const signIn = async (email: string, password: string) => {
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
+    console.log("error",error)
     console.log("signInError", error)
     if (error) throw error
   }
@@ -119,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const value = {
+    user,
     session,
     isLoading,
     signIn,

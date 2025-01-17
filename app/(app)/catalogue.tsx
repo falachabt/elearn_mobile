@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const terms = () => {
+const catalogue = () => {
   return (
     <View>
-      <Text>terms</Text>
+      <Text>catalogue</Text>
     </View>
   )
 }
 
-export default terms
+export default catalogue

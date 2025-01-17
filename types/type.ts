@@ -789,6 +789,9 @@ export interface LearningPaths {
   content: Json | null;
   /** the learning path id */
   id: string;
+  course_count: number | null;
+  quiz_count: number | null;
+  total_duration: number | null;
 }
 export interface LearningPathsInput {
   created_at?: Date;
@@ -805,10 +808,13 @@ export interface LearningPathsInput {
   content?: Json | null;
   /** the learning path id */
   id?: string;
+  course_count?: number | null;
+  quiz_count?: number | null;
+  total_duration?: number | null;
 }
 const learning_paths = {
   tableName: 'learning_paths',
-  columns: ['created_at', 'title', 'description', 'status', 'last_modified_at', 'start_at', 'end_at', 'image', 'duration', 'students', 'groups', 'content', 'id'],
+  columns: ['created_at', 'title', 'description', 'status', 'last_modified_at', 'start_at', 'end_at', 'image', 'duration', 'students', 'groups', 'content', 'id', 'course_count', 'quiz_count', 'total_duration'],
   requiredForInsert: [],
   primaryKey: 'id',
   foreignKeys: {},
