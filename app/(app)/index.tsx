@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   currentCourseCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: theme.border.radius.small,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   playIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: theme.border.radius.small,
     backgroundColor: theme.color.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.primary[500],
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: theme.border.radius.small,
   },
   continueText: {
     color: '#FFFFFF',
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   goalCard: {
     width: GOAL_CARD_WIDTH,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: theme.border.radius.small,
     padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   goalIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: theme.border.radius.small,
     backgroundColor: `${theme.color.primary[500]}15`,
     justifyContent: 'center',
     alignItems: 'center',
@@ -307,7 +307,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: '500',
     color: '#1A1A1A',
-    marginBottom: 12,
     height: 32,
   },
   goalProgressBar: {
@@ -340,7 +339,7 @@ const styles = StyleSheet.create({
   pathCard: {
     width: PATH_CARD_WIDTH,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: theme.border.radius.small,
     marginRight: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -360,7 +359,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: theme.border.radius.small,
   },
   levelText: {
     color: '#FFFFFF',
