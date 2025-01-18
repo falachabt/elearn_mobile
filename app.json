@@ -12,6 +12,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.ezadrive.elearn",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -36,6 +38,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "7d5dd0db-20aa-4d48-8efe-e66031ebf960"
+      }
     }
   }
 }

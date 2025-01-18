@@ -17,7 +17,9 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
+        <Link href={"/(app)"} >
         <ThemedText type="title">Welcome!</ThemedText>
+        </Link> 
        
         <HelloWave />
       </ThemedView>

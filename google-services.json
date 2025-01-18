@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "308270925920",
+    "project_id": "elearn5",
+    "storage_bucket": "elearn5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:308270925920:android:b41bca4735875db2d5db05",
+        "android_client_info": {
+          "package_name": "com.ezadrive.elearn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfdyzsdxvjhbxs2SRTEYd4k0NBsbC4DrM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
