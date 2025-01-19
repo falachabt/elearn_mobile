@@ -23,6 +23,7 @@ interface ProgramCardProps {
   quizCount: number;
   concoursName: string;
   schoolName: string;
+  isSelected: boolean;
   onSelect: () => void;
 }
 
@@ -44,11 +45,11 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
   concoursName,
   schoolName,
   onSelect,
+  isSelected
 }) => {
-  const [isSelected, setIsSelected] = useState(false);
 
   const handleSelect = () => {
-    setIsSelected(!isSelected);
+    // setIsSelected(!isSelected);
     onSelect();
   };
 

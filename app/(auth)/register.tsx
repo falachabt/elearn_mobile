@@ -412,7 +412,7 @@ const register = () => {
                   I agree to the{" "}
                   <Text
                     style={styles.link}
-                    onPress={() => router.push("/(app)/(CGU)/terms")}
+                    onPress={() => router.push("/(app)/(CGU)/terms" as any)}
                   >
                     Terms and Conditions
                   </Text>

@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/auth'
-import { Stack, Tabs } from 'expo-router'
+import { Stack, Tabs, usePathname } from 'expo-router'
 import { Redirect } from 'expo-router'
 import React from 'react';
 import { Platform } from 'react-native';
@@ -12,16 +12,22 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 
 export default function AuthLayout() {
-  const { session, isLoading, user } = useAuth();
+  const { session, isLoading, user, signOut } = useAuth();
   const colorScheme = useColorScheme();
+  const pathname = usePathname();
+
+  console.log("pathname", pathname)
   
 
   // If user is authenticated, redirect to main app
   if (!isLoading && session) {
      if(user?.onboarding_done){
        return <Redirect href={"/(app)" as any} />
+     }else{
+       if(!pathname?.includes("/onboarding")){
+         return  <Redirect href={"/(auth)/onboarding"} /> 
+       }
      }
-    //  return  <Redirect href={"/(auth)/onboarding"} /> 
   }
 
   return (

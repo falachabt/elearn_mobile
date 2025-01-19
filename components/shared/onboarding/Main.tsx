@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { theme } from '@/constants/theme';
 import * as Animatable from 'react-native-animatable';
@@ -11,9 +11,11 @@ import { UserInfoFormProps } from './UserForm';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
 import { AccountsInput } from '@/types/type';
+import { ThemedText } from '@/components/ThemedText';
+import PaymentPage, { PaymentPageRef } from './Bill';
+import { NotchPayService } from '@/lib/notchpay';
 
 const { width } = Dimensions.get("window");
-
 
 
 const MainOnboarding = () => {
@@ -31,6 +33,13 @@ const MainOnboarding = () => {
     objectif: "",
     styleApprentissage: ""
   })
+  const [programs, setPrograms] = useState<string[]>([]);
+  const paymentPageRef = useRef<PaymentPageRef>(null);
+  
+
+  useEffect( () => {
+    console.log(programs)
+  }, [programs] )
 
   const stepsContent = [
     {
@@ -65,6 +74,11 @@ const MainOnboarding = () => {
       description: "Découvrez votre parcours personnalisé vers la réussite.",
       icon: "📚",
       showPrograms: true,
+    },
+    {
+      title: "Paiement",
+      description: "Finalisez votre inscription en effectuant le paiement",
+      icon: "💳",
     }
   ];
 
@@ -75,19 +89,32 @@ const MainOnboarding = () => {
         return;
       }
     }
-    if (step < 6) {
+
+    // For the payment step
+    if (step === 7) {
+      if (paymentPageRef.current) {
+        const isValid = await paymentPageRef.current.validateAndPay();
+        if (!isValid) {
+          return;
+        }
+      }
+      // Only proceed with completion if payment validation was successful
+      // const { data, error } = await supabase
+      //   .from("accounts")
+      //   .update({ onboarding_done: true })
+      //   .eq("email", user?.email);
+      // console.log(data, error);
+      console.log("Complete!");
+      return;
+    }
+
+    // Normal step progression
+    if (step < 7) {
       if (step === 4 && knowsProgram) {
         setStep(step + 2);
       } else {
         setStep(step + 1);
       }
-    } else {
-      const { data, error } = await supabase
-        .from("accounts")
-        .update({ onboarding_done: true })
-        .eq("email", user?.email);
-      console.log(data, error);
-      console.log("Complete!");
     }
   };
 
@@ -110,7 +137,29 @@ const MainOnboarding = () => {
       case 5:
         return <ProfileForm profile={profile} setProfile={setProfile} />;
       case 6:
-        return <Programs knowsProgram={knowsProgram} />;
+        return <Programs knowsProgram={knowsProgram} selectedPrograms={programs}  setSelectedPrograms={setPrograms} />;
+         case 7:
+        return <PaymentPage 
+          ref={paymentPageRef}
+          selectedProgramIds={programs} 
+          onPaymentSubmit={async (phone) => {
+            // Handle payment logic here
+            const notchpay = new NotchPayService("pk.qoIGxn6D2TV5WNAXk0kfeIe8aT8Jo99I7em5QD9axKbjshtLBJ2nsXJ6Y79mYJtCxjC6fJ3qi4AHQzNwkAGHrToq7LHoctOf9na5v0cKAJA8WUyUK4YvcHmqBoyZg");
+            await notchpay.initiateDirectCharge({
+              phone, 
+              channel : "cm.orange",
+              currency : "XAF",
+              amount : 50,
+              customer : {
+                email : "bennytenezeu@gmail.com"
+              }
+            })
+            console.log("Processing payment for:", phone);
+            
+            // Add your payment processing logic here
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate payment processing
+          }} 
+        />;
       default:
         return (
           <Animatable.View animation="fadeIn" duration={800} style={styles.defaultContent}>
@@ -147,19 +196,19 @@ const MainOnboarding = () => {
                 </TouchableOpacity>
               )}
       
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  styles.primaryButton,
-                  step === 4 && knowsProgram === null && styles.disabledButton,
-                ]}
-                onPress={handleNextStep}
-                disabled={step === 4 && knowsProgram === null}
-              >
-                <Text style={styles.buttonText}>
-                  {step === 5 ? "Commencer" : "Suivant"}
-                </Text>
-              </TouchableOpacity>
+      <TouchableOpacity
+  style={[
+    styles.button,
+    styles.primaryButton,
+    step === 4 && knowsProgram === null && styles.disabledButton,
+  ]}
+  onPress={handleNextStep}
+  disabled={step === 4 && knowsProgram === null}
+>
+  <Text style={styles.buttonText}>
+    {step === 7 ? "Payer" : "Suivant"}
+  </Text>
+</TouchableOpacity>
             </View>
     </View>
   );

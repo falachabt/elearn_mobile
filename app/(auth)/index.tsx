@@ -51,7 +51,7 @@ const StartPage = () => {
             </TouchableOpacity>
           </Link>
 
-          <Link href={"/(auth)/onboarding"} asChild>
+          <Link href={"/(auth)/register"} asChild>
             <TouchableOpacity style={styles.secondaryButton}>
               <Text style={styles.secondaryButtonText}>S'inscrire</Text>
             </TouchableOpacity>

@@ -6,7 +6,7 @@ const Onboarding = () => {
   const { session } = useAuth();
 
   if (!session) {
-    Redirect({ href: "/(auth)" });
+    Redirect({ href: "/(auth)/login" });
   }
 
   return <MainOnboarding />;
