@@ -38,13 +38,13 @@ export default function RootLayout() {
   return (
     <Provider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ animation : "slide_from_left", headerShown : false}} >
-          <Stack.Screen name="(tabs)"  />
-          <Stack.Screen name="(auth)"  />
-          <Stack.Screen name="(app)"  />
+        <Stack screenOptions={{ animation: "slide_from_left", headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(app)" />
           <Stack.Screen name="+not-found" />
         </Stack>
-        <StatusBar style="auto" backgroundColor={theme.color.primary[500]}  />
+        <StatusBar style="auto" backgroundColor={theme.color.primary[500]} />
       </ThemeProvider>
     </Provider>
   );

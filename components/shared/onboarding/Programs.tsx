@@ -1,17 +1,38 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { Text, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { theme } from '@/constants/theme';
 import * as Animatable from 'react-native-animatable';
 import ProgramCard from '../ProgramCard';
 import { supabase } from '@/lib/supabase';
 
-interface ProgramsProps {
-  knowsProgram: boolean;
+interface Program {
+  id: string;
+  price: number;
+  learning_path: {
+    title: string;
+    description: string;
+    course_count: number;
+    quiz_count: number;
+    status: string;
+    duration: string;
+    image: string;
+  };
+  concour: {
+    name: string;
+    schoolId: string;
+  };
 }
 
-const Programs: React.FC<ProgramsProps> = ({ knowsProgram }) => {
+interface ProgramsProps {
+  knowsProgram: boolean;
+  selectedPrograms: any[],
+  setSelectedPrograms: React.Dispatch<React.SetStateAction<string[]>>
+}
+
+const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, setSelectedPrograms }) => {
   const [programs, setPrograms] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [totalPrice, setTotalPrice] = useState<number>(0);
 
   useEffect(() => {
     async function fetchPrograms() {
@@ -29,6 +50,12 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram }) => {
     fetchPrograms();
   }, []);
 
+  useEffect(() => {
+    const selectedProgramDetails = programs.filter(program => selectedPrograms.includes(program.id));
+    const total = selectedProgramDetails.reduce((sum, program) => sum + program.price, 0);
+    setTotalPrice(total);
+  }, [selectedPrograms, programs]);
+
   const filteredPrograms = programs.filter(program =>
     program.learning_path.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -45,7 +72,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram }) => {
         <Text style={styles.programsTitle}>
           {knowsProgram ? "Choisissez votre programme" : "Programmes recommandés pour vous"}
         </Text>
-        {filteredPrograms.map((program, index) => (
+        {filteredPrograms.map((program: Program, index: number) => (
           <ProgramCard
             key={index}
             title={program.learning_path.title}
@@ -64,10 +91,20 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram }) => {
             quizCount={program.learning_path.quiz_count}
             concoursName={program.concour.name}
             schoolName={program.concour.schoolId}
-            onSelect={() => console.log(`Selected ${program.learning_path.title}`)}
+            isSelected={selectedPrograms.includes(program.id)}
+            onSelect={() => setSelectedPrograms((old: string[]) => {
+              if (old.includes(program.id)) {
+                return old.filter(id => id != program.id);
+              } else {
+                return [...old, program.id];
+              }
+            })}
           />
         ))}
       </ScrollView>
+      <View style={styles.totalPriceContainer}>
+        <Text style={styles.totalPriceText}>Total :  {totalPrice} FCFA</Text>
+      </View>
     </Animatable.View>
   );
 };
@@ -92,5 +129,15 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingHorizontal: theme.spacing.small,
     marginBottom: theme.spacing.medium,
+  },
+  totalPriceContainer: {
+    padding: theme.spacing.medium,
+    borderTopWidth: 1,
+    borderColor: theme.color.border,
+  },
+  totalPriceText: {
+    fontSize: theme.typography.fontSize.large,
+    fontWeight: "600",
+    color: theme.color.text,
   },
 });

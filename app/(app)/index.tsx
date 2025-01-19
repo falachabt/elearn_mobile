@@ -48,7 +48,7 @@ export default function Index() {
             <Text numberOfLines={1} style={styles.sectionTitle}>En cours</Text>
             <TouchableOpacity style={styles.seeAllButton}>
               <Text style={styles.seeAllText}>
-                <Link href={"/(app)/courses"} >
+                <Link href={"/(app)/learn"} >
                 Tout voir
                 </Link> 
                 </Text>

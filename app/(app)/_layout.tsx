@@ -42,6 +42,7 @@ export default function AppLayout() {
           tabBarItemStyle: styles.tabItem,
           tabBarButton: (props) => <CustomTabBarButton {...props} />,
           tabBarLabelStyle: styles.tabLabel,
+          
         }}
         screenListeners={{
           tabPress: (e) => {

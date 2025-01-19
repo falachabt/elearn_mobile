@@ -13,9 +13,12 @@ import useSWR from "swr";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/constants/theme";
 
-const CourseList = () => {
+interface CourseListProps {
+  pdId: string;
+}
+
+const CourseList: React.FC<CourseListProps> = ({ pdId }) => {
   const router = useRouter();
-  const { pdId } = useLocalSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
@@ -42,7 +45,7 @@ const CourseList = () => {
   );
 
   const { data: courses } = useSWR(
-    pdId ? `courses-${pdId}` : null,
+    pdId ? `program-courses-${pdId}` : null,
     async () => {
       const { data } = await supabase
         .from("course_learningpath")
@@ -61,6 +64,8 @@ const CourseList = () => {
       return data;
     }
   );
+
+  console.log("programId",pdId)
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -178,7 +183,7 @@ const CourseList = () => {
               key={courseItem.course?.id}
               style={styles.courseItem}
               onPress={() =>
-                router.push(`/course/${courseItem.course?.id}` as any)
+                router.push(`/(app)/learn/${pdId}/courses/${courseItem.course?.id}`)
               }
             >
               <View style={styles.courseContent}>

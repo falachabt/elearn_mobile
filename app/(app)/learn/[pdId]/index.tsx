@@ -48,28 +48,34 @@ import {
       });
       return progress;
     };
+
+
   
-    const { data: program } = useSWR(id ? `program-${id}` : null, async () => {
+    const { data: program } = useSWR(
+      id ? `program-${id}` : null,
+      async () => {
       const { data, error } = await supabase
         .from("learning_paths")
         .select(
-          `
+        `
+        *,
+        course_learningpath(*),
+        quiz_learningpath(*),
+        concours_learningpaths(
+          concour:concours(
           *,
-          course_learningpath(*),
-          quiz_learningpath(*),
-          concours_learningpaths(
-            concour:concours(
-              *,
-              school:schools(*)
-            )
+          school:schools(*)
           )
+        )
         `
         )
         .eq("id", id)
         .single();
       return data;
-    });
-  
+      },
+      // { refreshInterval: 1000 }
+    );
+
     // Get simulated progress
     const { courseProgress, quizProgress } = useSimulatedProgress();
   
@@ -227,6 +233,8 @@ import {
           },
           // ... autres cartes existantes
         ]);
+      }else{
+
       }
     }, [program, courseProgress, quizProgress, id]);
   

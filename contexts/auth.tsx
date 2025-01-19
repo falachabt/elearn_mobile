@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             filter: `email=eq.${session.user.email}`
           }, 
           (payload) => {
-            // console.log('Change received!', payload)
+            console.log('Change received!', payload)
             if (payload.new) {
               setUser(payload.new as Accounts)
             }
@@ -107,6 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { error, data } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
 
+
+
       if(type == "signup"){
         const { error : updateError } = await supabase.auth.updateUser({ data : { role : "student", type : "student" }});
         if(updateError){
@@ -121,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (session?.access_token) {
         // Set the JWT token in the default headers for future API requests
-        await axios.post('http://192.168.1.168:3000/api/mobile/auth/createAccount', 
+        await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount', 
           { email },
           {
             headers: {
@@ -154,6 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         );
       } catch (error) {
+        console.log(error)
         if (axios.isAxiosError(error) && error.response?.data?.error === "Email already exists in the system") {
           throw new Error('email exists');
         }
