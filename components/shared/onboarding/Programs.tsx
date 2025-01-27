@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Text, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Text, ScrollView, StyleSheet, TextInput, View, useColorScheme } from 'react-native';
 import { theme } from '@/constants/theme';
 import * as Animatable from 'react-native-animatable';
-import ProgramCard from '../ProgramCard';
+import {ProgramCard} from '../ProgramCard';
 import { supabase } from '@/lib/supabase';
+import { useCart } from '@/hooks/useCart';
 
 interface Program {
-  id: string;
+  id: number;
   price: number;
   learning_path: {
     title: string;
@@ -26,13 +27,17 @@ interface Program {
 interface ProgramsProps {
   knowsProgram: boolean;
   selectedPrograms: any[],
-  setSelectedPrograms: React.Dispatch<React.SetStateAction<string[]>>
+  setSelectedPrograms: React.Dispatch<React.SetStateAction<number[]>>
 }
 
 const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, setSelectedPrograms }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  
   const [programs, setPrograms] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [totalPrice, setTotalPrice] = useState<number>(0);
+  const { addToCart, removeFromCart } = useCart();
 
   useEffect(() => {
     async function fetchPrograms() {
@@ -51,25 +56,53 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
   }, []);
 
   useEffect(() => {
-    const selectedProgramDetails = programs.filter(program => selectedPrograms.includes(program.id));
-    const total = selectedProgramDetails.reduce((sum, program) => sum + program.price, 0);
+    const selectedProgramDetails = programs?.filter(program => selectedPrograms?.includes(program?.id));
+    const total = selectedProgramDetails?.reduce((sum, program) => sum + program?.price, 0);
     setTotalPrice(total);
   }, [selectedPrograms, programs]);
 
-  const filteredPrograms = programs.filter(program =>
-    program.learning_path.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const handleProgramSelect = async (program: Program) => {
+    try {
+      if (selectedPrograms?.includes(program?.id)) {
+        setSelectedPrograms(prev => prev.filter(id => id !== program?.id));
+        await removeFromCart(program?.id);
+      } else {
+        setSelectedPrograms(prev => [...prev, program?.id]);
+        await addToCart(program?.id, program?.price);
+      }
+    } catch (error) {
+      console.error('Error managing cart:', error);
+    }
+  };
+
+  const filteredPrograms = programs?.filter(program =>
+    program?.learning_path.title?.toLowerCase()?.includes(searchQuery?.toLowerCase())
   );
 
   return (
-    <Animatable.View animation="fadeInUp" duration={800} style={styles.programsContainer}>
+    <Animatable.View 
+      animation="fadeInUp" 
+      duration={800} 
+      style={[
+        styles.programsContainer,
+        isDark && styles.programsContainerDark
+      ]}
+    >
       <TextInput
-        style={styles.searchInput}
-        placeholder="Search programs..."
+        style={[
+          styles.searchInput,
+          isDark && styles.searchInputDark
+        ]}
+        placeholder="Rechercher des programmes..."
+        placeholderTextColor={isDark ? theme.color.gray[400] : theme.color.gray[500]}
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.programsTitle}>
+        <Text style={[
+          styles.programsTitle,
+          isDark && styles.programsTitleDark
+        ]}>
           {knowsProgram ? "Choisissez votre programme" : "Programmes recommandés pour vous"}
         </Text>
         {filteredPrograms.map((program: Program, index: number) => (
@@ -91,19 +124,22 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
             quizCount={program.learning_path.quiz_count}
             concoursName={program.concour.name}
             schoolName={program.concour.schoolId}
-            isSelected={selectedPrograms.includes(program.id)}
-            onSelect={() => setSelectedPrograms((old: string[]) => {
-              if (old.includes(program.id)) {
-                return old.filter(id => id != program.id);
-              } else {
-                return [...old, program.id];
-              }
-            })}
+            isSelected={selectedPrograms?.includes(program.id)}
+            onSelect={() => handleProgramSelect(program)}
+            isDark={isDark}
           />
         ))}
       </ScrollView>
-      <View style={styles.totalPriceContainer}>
-        <Text style={styles.totalPriceText}>Total :  {totalPrice} FCFA</Text>
+      <View style={[
+        styles.totalPriceContainer,
+        isDark && styles.totalPriceContainerDark
+      ]}>
+        <Text style={[
+          styles.totalPriceText,
+          isDark && styles.totalPriceTextDark
+        ]}>
+          Total : {totalPrice} FCFA
+        </Text>
       </View>
     </Animatable.View>
   );
@@ -114,13 +150,19 @@ export default Programs;
 const styles = StyleSheet.create({
   programsContainer: {
     flex: 1,
-    // padding: theme.spacing.medium
+    // backgroundColor: theme.color.background,
+  },
+  programsContainerDark: {
+    backgroundColor: theme.color.dark.background.primary,
   },
   programsTitle: {
     fontSize: theme.typography.fontSize.xlarge,
     fontWeight: "700",
     marginBottom: theme.spacing.large,
     color: theme.color.text,
+  },
+  programsTitleDark: {
+    color: theme.color.gray[50],
   },
   searchInput: {
     height: 40,
@@ -129,15 +171,29 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingHorizontal: theme.spacing.small,
     marginBottom: theme.spacing.medium,
+    backgroundColor: theme.color.gray[50],
+    color: theme.color.text,
+  },
+  searchInputDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+    borderColor: theme.color.gray[700],
+    color: theme.color.gray[50],
   },
   totalPriceContainer: {
     padding: theme.spacing.medium,
     borderTopWidth: 1,
     borderColor: theme.color.border,
   },
+  totalPriceContainerDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+    borderColor: theme.color.gray[700],
+  },
   totalPriceText: {
     fontSize: theme.typography.fontSize.large,
     fontWeight: "600",
     color: theme.color.text,
+  },
+  totalPriceTextDark: {
+    color: theme.color.gray[50],
   },
 });

@@ -1,47 +1,102 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
 import { theme } from '@/constants/theme';
 import * as Animatable from 'react-native-animatable';
 import { FontAwesome5 } from '@expo/vector-icons';
-
 
 interface PathChoiceProps {
   knowsProgram: boolean;
   setKnowsProgram: (value: boolean) => void;
 }
 
-const PathChoice: React.FC<PathChoiceProps> = ({ knowsProgram, setKnowsProgram }) => (
-  <Animatable.View animation="fadeInUp" duration={800} style={styles.pathChoiceContainer}>
-    <TouchableOpacity
-      style={[styles.choiceCard, knowsProgram === true && styles.choiceCardSelected]}
-      onPress={() => setKnowsProgram(true)}
-    >
-      <View style={styles.choiceIconContainer}>
-        <FontAwesome5 name="graduation-cap" size={32} color={theme.color.primary[500]} />
-      </View>
-      <Text style={styles.choiceTitle}>Je sais quel concours préparer</Text>
-      <Text style={styles.choiceDescription}>Je connais mon objectif et je souhaite démarrer ma préparation</Text>
-    </TouchableOpacity>
+const PathChoice: React.FC<PathChoiceProps> = ({ knowsProgram, setKnowsProgram }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
-    <TouchableOpacity
-      style={[styles.choiceCard, knowsProgram === false && styles.choiceCardSelected]}
-      onPress={() => setKnowsProgram(false)}
+  return (
+    <Animatable.View 
+      animation="fadeInUp" 
+      duration={800} 
+      style={[
+        styles.pathChoiceContainer,
+        isDark && styles.pathChoiceContainerDark
+      ]}
     >
-      <View style={styles.choiceIconContainer}>
-        <FontAwesome5 name="compass" size={32} color={theme.color.primary[500]} />
-      </View>
-      <Text style={styles.choiceTitle}>J'ai besoin de conseils</Text>
-      <Text style={styles.choiceDescription}>Je souhaite être guidé(e) dans le choix de mon concours</Text>
-    </TouchableOpacity>
-  </Animatable.View>
-);
+      <TouchableOpacity
+        style={[
+          styles.choiceCard,
+          isDark && styles.choiceCardDark,
+          knowsProgram === true && (isDark ? styles.choiceCardSelectedDark : styles.choiceCardSelected)
+        ]}
+        onPress={() => setKnowsProgram(true)}
+      >
+        <View style={[
+          styles.choiceIconContainer,
+          isDark && styles.choiceIconContainerDark
+        ]}>
+          <FontAwesome5 
+            name="graduation-cap" 
+            size={32} 
+            color={theme.color.primary[isDark ? 400 : 500]} 
+          />
+        </View>
+        <Text style={[
+          styles.choiceTitle,
+          isDark && styles.choiceTitleDark
+        ]}>
+          Je sais quel concours préparer
+        </Text>
+        <Text style={[
+          styles.choiceDescription,
+          isDark && styles.choiceDescriptionDark
+        ]}>
+          Je connais mon objectif et je souhaite démarrer ma préparation
+        </Text>
+      </TouchableOpacity>
 
-const styles = StyleSheet.create( {
- // Path Choice Styles
- pathChoiceContainer: {
+      <TouchableOpacity
+        style={[
+          styles.choiceCard,
+          isDark && styles.choiceCardDark,
+          knowsProgram === false && (isDark ? styles.choiceCardSelectedDark : styles.choiceCardSelected)
+        ]}
+        onPress={() => setKnowsProgram(false)}
+      >
+        <View style={[
+          styles.choiceIconContainer,
+          isDark && styles.choiceIconContainerDark
+        ]}>
+          <FontAwesome5 
+            name="compass" 
+            size={32} 
+            color={theme.color.primary[isDark ? 400 : 500]} 
+          />
+        </View>
+        <Text style={[
+          styles.choiceTitle,
+          isDark && styles.choiceTitleDark
+        ]}>
+          J'ai besoin de conseils
+        </Text>
+        <Text style={[
+          styles.choiceDescription,
+          isDark && styles.choiceDescriptionDark
+        ]}>
+          Je souhaite être guidé(e) dans le choix de mon concours
+        </Text>
+      </TouchableOpacity>
+    </Animatable.View>
+  );
+};
+
+const styles = StyleSheet.create({
+  pathChoiceContainer: {
     flex: 1,
     justifyContent: "center",
     padding: 20,
+  },
+  pathChoiceContainerDark: {
+    backgroundColor: theme.color.dark.background.primary,
   },
   choiceCard: {
     backgroundColor: "#F8F9FA",
@@ -51,9 +106,17 @@ const styles = StyleSheet.create( {
     borderWidth: 2,
     borderColor: "#E1E1E1",
   },
+  choiceCardDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+    borderColor: theme.color.gray[800],
+  },
   choiceCardSelected: {
     borderColor: theme.color.primary[500],
     backgroundColor: theme.color.primary[100],
+  },
+  choiceCardSelectedDark: {
+    borderColor: theme.color.primary[500],
+    backgroundColor: theme.color.primary[500],
   },
   choiceIconContainer: {
     width: 60,
@@ -64,16 +127,25 @@ const styles = StyleSheet.create( {
     alignItems: "center",
     marginBottom: 16,
   },
+  choiceIconContainerDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+  },
   choiceTitle: {
     fontSize: 20,
     fontWeight: "600",
     color: "#1A1A1A",
     marginBottom: 8,
   },
+  choiceTitleDark: {
+    color: theme.color.gray[50],
+  },
   choiceDescription: {
     fontSize: 16,
     color: "#666666",
     lineHeight: 24,
+  },
+  choiceDescriptionDark: {
+    color: theme.color.gray[300],
   },
 });
 

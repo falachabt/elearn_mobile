@@ -11,7 +11,7 @@ import {
 export class NotchPayService {
   private client: AxiosInstance;
   
-  constructor(publicKey: string, private secretKey?: string) {
+  constructor(publicKey: string = "pk.qoIGxn6D2TV5WNAXk0kfeIe8aT8Jo99I7em5QD9axKbjshtLBJ2nsXJ6Y79mYJtCxjC6fJ3qi4AHQzNwkAGHrToq7LHoctOf9na5v0cKAJA8WUyUK4YvcHmqBoyZg" , private secretKey?: string) {
     this.client = axios.create({
       baseURL: 'https://api.notchpay.co',
       headers: {
@@ -19,6 +19,10 @@ export class NotchPayService {
         'Content-Type': 'application/json'
       }
     });
+  }
+
+  get publicKey() {
+    return this.client.defaults.headers.Authorization;
   }
 
   /**
@@ -59,6 +63,18 @@ export class NotchPayService {
   async initializePayment(params: NotchPayInitializeParams): Promise<NotchPayResponse> {
     try {
       const response = await this.client.post<NotchPayResponse>('/payments', params);
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  /**
+   * Cancel a payment
+   */
+  async cancelPayment(reference: string) {
+    try {
+      const response = await this.client.delete(`/payments/${reference}`);
       return response.data;
     } catch (error) {
       this.handleError(error);

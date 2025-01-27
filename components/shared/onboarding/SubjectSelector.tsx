@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  useColorScheme,
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
@@ -17,9 +18,12 @@ interface SubjectSelectorProps {
 
 const SubjectSelector: React.FC<SubjectSelectorProps> = ({
   title,
-  selected,
+  selected = [], // Providing default value
   onSelect,
 }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
   const subjects = [
     'Mathématiques',
     'Physique',
@@ -32,60 +36,89 @@ const SubjectSelector: React.FC<SubjectSelectorProps> = ({
   ];
 
   const handleSelect = (subject: string) => {
-    if (selected.includes(subject)) {
+    if (!selected) {
+      onSelect([subject]);
+      return;
+    }
+
+    const isSelected = selected.includes(subject);
+    if (isSelected) {
       onSelect(selected.filter(s => s !== subject));
     } else if (selected.length < 3) {
       onSelect([...selected, subject]);
     }
   };
 
+  const isSubjectSelected = (subject: string): boolean => {
+    return Array.isArray(selected) && selected.includes(subject);
+  };
+
   return (
     <Animatable.View 
       animation="fadeIn" 
       duration={600} 
-      style={styles.container}
+      style={[
+        styles.container,
+        isDark && styles.containerDark
+      ]}
     >
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>Sélectionnez jusqu'à 3 matières</Text>
+        <Text style={[
+          styles.title,
+          isDark && styles.titleDark
+        ]}>
+          {title}
+        </Text>
+        <Text style={[
+          styles.subtitle,
+          isDark && styles.subtitleDark
+        ]}>
+          Sélectionnez jusqu'à 3 matières
+        </Text>
       </View>
       
       <View style={styles.chipGrid}>
-        {subjects.map((subject) => (
-          <Animatable.View
-            key={subject}
-            animation={selected.includes(subject) ? "bounceIn" : "fadeIn"}
-            duration={500}
-          >
-            <TouchableOpacity
-              onPress={() => handleSelect(subject)}
-              style={[
-                styles.chip,
-                selected.includes(subject) && styles.chipSelected,
-              ]}
-              activeOpacity={0.7}
+        {subjects.map((subject) => {
+          const isSelected = isSubjectSelected(subject);
+          
+          return (
+            <Animatable.View
+              key={subject}
+              animation={isSelected ? "bounceIn" : "fadeIn"}
+              duration={500}
             >
-              <View style={styles.chipContent}>
-                {selected.includes(subject) && (
-                  <FontAwesome5 
-                    name="check" 
-                    size={12} 
-                    color="#4A90E2" 
-                    style={styles.checkIcon} 
-                  />
-                )}
-                <Text 
-                  style={[
-                    styles.chipText,
-                    selected.includes(subject) && styles.chipTextSelected,
-                  ]}
-                >
-                  {subject}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </Animatable.View>
-        ))}
+              <TouchableOpacity
+                onPress={() => handleSelect(subject)}
+                style={[
+                  styles.chip,
+                  isDark && styles.chipDark,
+                  isSelected && (isDark ? styles.chipSelectedDark : styles.chipSelected),
+                ]}
+                activeOpacity={0.7}
+              >
+                <View style={styles.chipContent}>
+                  {isSelected && (
+                    <FontAwesome5 
+                      name="check" 
+                      size={12} 
+                      color={isDark ? theme.color.primary[400] : theme.color.primary[500]} 
+                      style={styles.checkIcon} 
+                    />
+                  )}
+                  <Text 
+                    style={[
+                      styles.chipText,
+                      isDark && styles.chipTextDark,
+                      isSelected && (isDark ? styles.chipTextSelectedDark : styles.chipTextSelected),
+                    ]}
+                  >
+                    {subject}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </Animatable.View>
+          );
+        })}
       </View>
     </Animatable.View>
   );
@@ -95,18 +128,27 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 16,
   },
+  containerDark: {
+    backgroundColor: theme.color.dark.background.primary,
+  },
   titleContainer: {
     marginBottom: 12,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: theme.color.gray[900],
     marginBottom: 4,
+  },
+  titleDark: {
+    color: theme.color.gray[50],
   },
   subtitle: {
     fontSize: 14,
-    color: '#666666',
+    color: theme.color.gray[600],
+  },
+  subtitleDark: {
+    color: theme.color.gray[400],
   },
   chipGrid: {
     flexDirection: 'row',
@@ -114,16 +156,24 @@ const styles = StyleSheet.create({
     marginHorizontal: -6,
   },
   chip: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.color.gray[100],
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     margin: 6,
     borderWidth: 1.5,
-    borderColor: '#E1E1E1',
+    borderColor: theme.color.gray[300],
+  },
+  chipDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+    borderColor: theme.color.gray[700],
   },
   chipSelected: {
     backgroundColor: theme.color.primary[100],
+    borderColor: theme.color.primary[500],
+  },
+  chipSelectedDark: {
+    backgroundColor: theme.color.primary[800],
     borderColor: theme.color.primary[500],
   },
   chipContent: {
@@ -135,11 +185,18 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 14,
-    color: '#666666',
+    color: theme.color.gray[600],
+  },
+  chipTextDark: {
+    color: theme.color.gray[300],
   },
   chipTextSelected: {
     color: theme.color.primary[900],
-    fontWeight: '900',
+    fontWeight: '600',
+  },
+  chipTextSelectedDark: {
+    color: theme.color.primary[100],
+    fontWeight: '600',
   },
 });
 
