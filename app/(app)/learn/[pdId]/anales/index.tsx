@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,182 +8,237 @@ import {
   TextInput,
   ActivityIndicator,
   useColorScheme,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { theme } from '@/constants/theme';
-import * as Animatable from 'react-native-animatable';
-import { ScrollView } from 'react-native-gesture-handler';
-import { supabase } from '@/lib/supabase';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { ScrollView } from "react-native-gesture-handler";
+import { supabase } from "@/lib/supabase";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { theme } from "@/constants/theme";
+import { useFileDownload } from "@/hooks/useFileDownload";
+import { ArchiveCard } from "@/components/ArchiveCard";
+import { useAuth } from "@/contexts/auth";
 
-const ArchiveCard = ({ item, isDark, onPress, onPin }) => (
-  <Animatable.View
-    animation="fadeIn"
-    duration={500}
-    style={[styles.card, isDark && styles.cardDark]}
-  >
-    <TouchableOpacity 
-      style={styles.cardContent}
-      activeOpacity={0.7}
-      onPress={onPress}
-    >
-      <View style={styles.iconContainer}>
-        <MaterialCommunityIcons
-          name="file-document-outline"
-          size={24}
-          color={theme.color.primary[500]}
-        />
-      </View>
-      
-      <View style={styles.cardDetails}>
-        <Text 
-          numberOfLines={1} 
-          style={[styles.cardTitle, isDark && styles.textDark]}
-        >
-          {item.name}
-        </Text>
-        
-        <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <MaterialCommunityIcons
-              name="folder-outline"
-              size={14}
-              color={isDark ? theme.color.gray[400] : theme.color.gray[600]}
-            />
-            <Text style={[styles.metaText, isDark && styles.metaTextDark]}>
-              {item.courses_categories?.name}
-            </Text>
-          </View>
-          
-          <View style={styles.metaItem}>
-            <MaterialCommunityIcons
-              name="calendar-outline"
-              size={14}
-              color={isDark ? theme.color.gray[400] : theme.color.gray[600]}
-            />
-            <Text style={[styles.metaText, isDark && styles.metaTextDark]}>
-              {new Date(item.session).toLocaleDateString()}
-            </Text>
-          </View>
+export interface Archive {
+  id: string;
+  name: string;
+  file_url: string;
+  session: string;
+  is_pinned: boolean;
+  local_path?: string;
+  file_type: "pdf" | "doc" | "other";
+  courses_categories?: {
+    id: string;
+    name: string;
+    description: string;
+  };
+}
 
-          <TouchableOpacity onPress={() => onPin(item.id)} style={styles.pinButton}>
-            <MaterialCommunityIcons
-              name={item.is_pinned ? "pin" : "pin-outline"}
-              size={20}
-              color={item.is_pinned ? theme.color.primary[500] : theme.color.gray[400]}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-      
-      <MaterialCommunityIcons
-        name="download-outline"
-        size={24}
-        color={theme.color.primary[500]}
-      />
-    </TouchableOpacity>
-  </Animatable.View>
-);
+export interface Category {
+  id: string;
+  name: string;
+  description: string;
+}
 
-const ArchivesList = () => {
+type PathData = {
+  concourId: number;
+  concours: {
+    name: string;
+  };
+};
+
+type FilterType = 'all' | 'pinned';
+
+export const ArchivesList = () => {
   const { pdId } = useLocalSearchParams();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
-  const [archives, setArchives] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [concoursName, setConcoursName] = useState('');
+  const [archives, setArchives] = useState<Archive[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [concoursName, setConcoursName] = useState("");
+  const { downloadState, checkIfFileExists, downloadFile } = useFileDownload();
   const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
+  const isDark = scheme === "dark";
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchData();
   }, [pdId]);
 
+  useEffect(() => {
+    // Check existing downloads for all archives
+    archives.forEach((archive) => {
+      checkIfFileExists(archive);
+    });
+  }, [archives, checkIfFileExists]);
+
   const fetchData = async () => {
     try {
-      // Get concourId and name from learningPath
-      const { data: pathData, error } = await supabase
-        .from('concours_learningpaths')
-        .select('concourId, concours (name)')
-        .eq('learningPathId', pdId)
-        .limit(1);
+      const {
+        data: pathData,
+        error: pathError,
+      }: { data: PathData | null; error: any } = await supabase
+        .from("concours_learningpaths")
+        .select(
+          `
+          concourId,
+          concours!inner (
+            name
+          )
+        `
+        )
+        .eq("learningPathId", pdId)
+        .limit(1)
+        .single();
 
+      if (pathError) throw pathError;
+      if (!pathData) throw new Error("Learning path not found");
 
+      setConcoursName(pathData.concours?.name);
 
-    console.log('pathData', pathData);
-    console.log('error', error);
-
-      if (!pathData) throw new Error('Learning path not found');
-
-      setConcoursName(pathData[0].concours.name);
-
-      // Fetch archives with their categories
       const { data: archivesData, error: archivesError } = await supabase
-        .from('concours_archives')
-        .select(`
+        .from("concours_archives")
+        .select(
+          `
           *,
           courses_categories (
             id,
             name,
             description
           )
-        `)
-        .eq('concour_id', pathData[0].concourId);
+        `
+        )
+        .eq("concour_id", pathData.concourId);
 
       if (archivesError) throw archivesError;
 
-      console.log('archivesData', archivesData);
-      console.log('archivesError', archivesError);
+      const { data: pinnedArchives, error: pinnedArchivesError } = await supabase
+        .from("user_pinned_archive")
+        .select("archive_id, is_pinned")
+        .in(
+          "archive_id",
+          archivesData ? archivesData.map((archive) => archive.id) : []
+        )
+        .eq("user_id", user?.id);
+
+      // Mettre à jour le statut épinglé pour chaque archive
+      archivesData.forEach((archive) => {
+        const pinnedArchive = pinnedArchives?.find(
+          (pa) => pa.archive_id === archive.id
+        );
+        archive.is_pinned = pinnedArchive?.is_pinned || false;
+      });
 
       // Get unique categories
-      const uniqueCategories = ['All', ...new Set(archivesData.map(
-        archive => archive.courses_categories?.name
-      ).filter(Boolean))];
+      const uniqueCategories = [
+        "Tout",
+        ...new Set(
+          archivesData
+            .map((archive) => archive.courses_categories?.name)
+            .filter(Boolean)
+        ),
+      ];
 
       setArchives(archivesData);
       setCategories(uniqueCategories);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePin = async (archiveId) => {
+  const handlePin = async (archiveId: string) => {
     try {
-      const archive = archives.find(a => a.id === archiveId);
-      const { error } = await supabase
-        .from('concours_archives')
-        .update({ is_pinned: !archive.is_pinned })
-        .eq('id', archiveId);
+      const archive = archives.find((a) => a.id === archiveId);
+      if (!archive) return;
+
+      const { data: existingPin, error: fetchError } = await supabase
+        .from("user_pinned_archive")
+        .select("archive_id, is_pinned")
+        .eq("archive_id", archiveId)
+        .eq("user_id", user?.id)
+        .single();
+
+      if (fetchError && fetchError.code !== "PGRST116") throw fetchError;
+
+      let error;
+      if (existingPin) {
+        const { error: updateError } = await supabase
+          .from("user_pinned_archive")
+          .update({ is_pinned: !existingPin.is_pinned })
+          .eq("archive_id", archiveId)
+          .eq("user_id", user?.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from("user_pinned_archive")
+          .insert({
+            archive_id: archiveId,
+            is_pinned: true,
+            user_id: user?.id,
+          });
+        error = insertError;
+      }
 
       if (error) throw error;
 
-      // Update local state
-      setArchives(archives.map(a => 
-        a.id === archiveId ? { ...a, is_pinned: !a.is_pinned } : a
-      ));
+      setArchives(
+        archives.map((a) =>
+          a.id === archiveId ? { ...a, is_pinned: !a.is_pinned } : a
+        )
+      );
     } catch (error) {
-      console.error('Error updating pin status:', error);
+      console.error("Error updating pin status:", error);
     }
   };
 
-  const filteredArchives = archives.filter(archive => {
-    const matchesSearch = archive.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || 
-      selectedCategory === 'All' || 
-      archive.courses_categories?.name === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const handleDownload = async (file: Archive) => {
+    const success = await downloadFile(file);
+    if (success) {
+      // Update UI or show success message
+    }
+  };
+
+  const handleView = (file: Archive) => {
+    router.push({
+      pathname: "/learn/[pdId]/anales/[filePath]/[fileId]",
+      params: {
+        pdId: String(pdId),
+        fileId: file.id || "",
+        filePath: downloadState[file.id]?.localPath || file.file_url || "",
+      },
+    });
+  };
+
+  const getFilteredArchives = () => {
+    return archives.filter((archive) => {
+      const matchesSearch = archive.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = 
+        !selectedCategory || 
+        selectedCategory === "Tout" || 
+        archive.courses_categories?.name === selectedCategory;
+      
+      const matchesFilter = filterType === 'all' || 
+        (filterType === 'pinned' && archive.is_pinned);
+
+      return matchesSearch && matchesCategory && matchesFilter;
+    });
+  };
 
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <MaterialCommunityIcons
             name="arrow-left"
             size={24}
@@ -195,35 +250,94 @@ const ArchivesList = () => {
         </Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContainer}
-        style={styles.categoriesScroll}
-      >
-        {categories.map((category) => (
+      {/* Filters */}
+      <View style={styles.filtersContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterButtonsContainer}
+        >
           <TouchableOpacity
-            key={category}
             style={[
-              styles.categoryChip,
-              selectedCategory === category && styles.selectedCategoryChip,
-              isDark && styles.categoryChipDark,
+              styles.filterButton,
+              isDark && styles.filterButtonDark,
+              filterType === 'all' && styles.filterButtonActive,
             ]}
-            onPress={() => setSelectedCategory(category)}
+            onPress={() => setFilterType('all')}
           >
+            <MaterialCommunityIcons
+              name="format-list-bulleted"
+              size={20}
+              color={filterType === 'all' ? '#FFFFFF' : (isDark ? theme.color.gray[400] : theme.color.gray[600])}
+            />
             <Text
               style={[
-                styles.categoryText,
-                selectedCategory === category && styles.selectedCategoryText,
-                isDark && styles.textDark,
+                styles.filterButtonText,
+                isDark && styles.filterButtonTextDark,
+                filterType === 'all' && styles.filterButtonTextActive,
               ]}
             >
-              {category}
+              Tout
             </Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
 
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              isDark && styles.filterButtonDark,
+              filterType === 'pinned' && styles.filterButtonActive,
+            ]}
+            onPress={() => setFilterType('pinned')}
+          >
+            <MaterialCommunityIcons
+              name="pin"
+              size={20}
+              color={filterType === 'pinned' ? '#FFFFFF' : (isDark ? theme.color.gray[400] : theme.color.gray[600])}
+            />
+            <Text
+              style={[
+                styles.filterButtonText,
+                isDark && styles.filterButtonTextDark,
+                filterType === 'pinned' && styles.filterButtonTextActive,
+              ]}
+            >
+              Épinglés
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        {/* Categories */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContainer}
+          style={styles.categoriesScroll}
+        >
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category}
+              style={[
+                styles.categoryChip,
+                isDark && styles.categoryChipDark,
+                selectedCategory === category && styles.selectedCategoryChip,
+              ]}
+              onPress={() => setSelectedCategory(category)}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === category && styles.selectedCategoryText,
+                  isDark && styles.textDark,
+                ]}
+              >
+                {category}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Search */}
       <View style={styles.searchContainer}>
         <View style={[styles.searchBox, isDark && styles.searchBoxDark]}>
           <MaterialCommunityIcons
@@ -232,8 +346,10 @@ const ArchivesList = () => {
             color={isDark ? theme.color.gray[400] : theme.color.gray[600]}
           />
           <TextInput
-            placeholder="Search archives..."
-            placeholderTextColor={isDark ? theme.color.gray[400] : theme.color.gray[600]}
+            placeholder="Rechercher dans les archives..."
+            placeholderTextColor={
+              isDark ? theme.color.gray[400] : theme.color.gray[600]
+            }
             style={[styles.searchInput, isDark && styles.textDark]}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -241,24 +357,27 @@ const ArchivesList = () => {
         </View>
       </View>
 
+      {/* Archives List */}
       {loading ? (
-        <ActivityIndicator 
-          size="large" 
-          color={theme.color.primary[500]} 
+        <ActivityIndicator
+          size="large"
+          color={theme.color.primary[500]}
           style={styles.loader}
         />
       ) : (
         <FlatList
-          data={filteredArchives}
+          data={getFilteredArchives()}
           renderItem={({ item }) => (
             <ArchiveCard
               item={item}
               isDark={isDark}
-              onPress={() => {/* Handle download */}}
               onPin={handlePin}
+              onDownload={handleDownload}
+              onView={handleView}
+              downloadState={downloadState[item.id] || {}}
             />
           )}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
@@ -270,14 +389,14 @@ const ArchivesList = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   containerDark: {
     backgroundColor: theme.color.dark.background.primary,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: theme.color.border,
@@ -287,17 +406,51 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: "600",
+    color: "#1A1A1A",
     flex: 1,
+  },
+  filtersContainer: {
+    paddingTop: 8,
+  },
+  filterButtonsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: theme.border.radius.small,
+    backgroundColor: theme.color.gray[100],
+    gap: 8,
+  },
+  filterButtonDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+  },
+  filterButtonActive: {
+    backgroundColor: theme.color.primary[500],
+  },
+  filterButtonText: {
+    fontSize: 14,
+    color: theme.color.gray[600],
+  },
+  filterButtonTextDark: {
+    color: theme.color.gray[400],
+  },
+  filterButtonTextActive: {
+    color: '#FFFFFF',
   },
   searchContainer: {
     padding: 16,
     paddingTop: 0,
   },
   searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: theme.color.gray[100],
     borderRadius: theme.border.radius.small,
     paddingHorizontal: 12,
@@ -310,14 +463,14 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 16,
-    color: '#1A1A1A',
+    color: "#1A1A1A",
   },
   categoriesScroll: {
     maxHeight: 60,
   },
   categoriesContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 0,
     height: 48,
   },
   categoryChip: {
@@ -329,6 +482,8 @@ const styles = StyleSheet.create({
     height: 40,
   },
   categoryChipDark: {
+    // Suite des styles...
+
     backgroundColor: theme.color.dark.background.secondary,
   },
   selectedCategoryChip: {
@@ -339,59 +494,10 @@ const styles = StyleSheet.create({
     color: theme.color.gray[600],
   },
   selectedCategoryText: {
-    color: '#FFFFFF',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: theme.border.radius.small,
-    borderWidth: 1,
-    borderColor: theme.color.border,
-    marginHorizontal: 16,
-    marginBottom: 12,
-  },
-  cardDark: {
-    backgroundColor: theme.color.dark.background.secondary,
-    borderColor: theme.color.dark.border,
-  },
-  cardContent: {
-    flexDirection: 'row',
-    padding: 12,
-    alignItems: 'center',
-  },
-  iconContainer: {
-    marginRight: 12,
-  },
-  cardDetails: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 12,
-    color: theme.color.gray[600],
-  },
-  metaTextDark: {
-    color: theme.color.gray[400],
-  },
-  pinButton: {
-    padding: 4,
+    color: "#FFFFFF",
   },
   textDark: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   listContainer: {
     flexGrow: 1,
@@ -399,8 +505,8 @@ const styles = StyleSheet.create({
   },
   loader: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 
