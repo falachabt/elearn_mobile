@@ -158,20 +158,6 @@ const ProgramDetails = () => {
           ),
         },
         {
-          id: "flashcards",
-          title: "Flashcards",
-          subtitle: "Mémorisez efficacement",
-          icon: (
-            <MaterialCommunityIcons
-              name="card-text-outline"
-              size={24}
-              color={isDark ? "#E879F9" : "#9C27B0"}
-            />
-          ),
-          route: `/program/${id}/flashcards`,
-          color: isDark ? "#E879F9" : "#9C27B0",
-        },
-        {
           id: "pastExams",
           title: "Annales",
           subtitle: "Sujets des années précédentes",
@@ -185,49 +171,63 @@ const ProgramDetails = () => {
           route: `/(app)/learn/${id}/anales`,
           color: isDark ? "#FBBF24" : "#FF9800",
         },
-        {
-          id: "leaderboard",
-          title: "Classement",
-          subtitle: "Votre position: 12/156",
-          icon: (
-            <MaterialCommunityIcons
-              name="trophy-outline"
-              size={24}
-              color={isDark ? "#FCA5A5" : "#F44336"}
-            />
-          ),
-          route: `/program/${id}/leaderboard`,
-          color: isDark ? "#FCA5A5" : "#F44336",
-          rightContent: (
-            <View style={[styles.rankIndicator, isDark && styles.rankIndicatorDark]}>
-              <ThemedText style={[styles.progressText, { color: isDark ? "#FCA5A5" : "#F44336" }]}>
-                Top 10%
-              </ThemedText>
-            </View>
-          ),
-        },
-        {
-          id: "statistics",
-          title: "Statistiques",
-          subtitle: "Suivez votre progression",
-          icon: <Ionicons name="stats-chart" size={24} color={isDark ? "#C4B5FD" : "#673AB7"} />,
-          route: `/program/${id}/statistics`,
-          color: isDark ? "#C4B5FD" : "#673AB7",
-        },
-        {
-          id: "documents",
-          title: "Constitution de dossier",
-          subtitle: "Gérez vos documents",
-          icon: (
-            <MaterialCommunityIcons
-              name="file-document-outline"
-              size={24}
-              color={isDark ? "#D6D3D1" : "#795548"}
-            />
-          ),
-          route: `/program/${id}/documents`,
-          color: isDark ? "#D6D3D1" : "#795548",
-        },
+        // {
+        //   id: "flashcards",
+        //   title: "Flashcards",
+        //   subtitle: "Mémorisez efficacement",
+        //   icon: (
+        //     <MaterialCommunityIcons
+        //       name="card-text-outline"
+        //       size={24}
+        //       color={isDark ? "#E879F9" : "#9C27B0"}
+        //     />
+        //   ),
+        //   route: `/(app)/learn/${id}/flashcards`,
+        //   color: isDark ? "#E879F9" : "#9C27B0",
+        // },
+        // {
+        //   id: "leaderboard",
+        //   title: "Classement",
+        //   subtitle: "Votre position: 12/156",
+        //   icon: (
+        //     <MaterialCommunityIcons
+        //       name="trophy-outline"
+        //       size={24}
+        //       color={isDark ? "#FCA5A5" : "#F44336"}
+        //     />
+        //   ),
+        //   route: `/program/${id}/leaderboard`,
+        //   color: isDark ? "#FCA5A5" : "#F44336",
+        //   rightContent: (
+        //     <View style={[styles.rankIndicator, isDark && styles.rankIndicatorDark]}>
+        //       <ThemedText style={[styles.progressText, { color: isDark ? "#FCA5A5" : "#F44336" }]}>
+        //         Top 10%
+        //       </ThemedText>
+        //     </View>
+        //   ),
+        // },
+        // {
+        //   id: "statistics",
+        //   title: "Statistiques",
+        //   subtitle: "Suivez votre progression",
+        //   icon: <Ionicons name="stats-chart" size={24} color={isDark ? "#C4B5FD" : "#673AB7"} />,
+        //   route: `/program/${id}/statistics`,
+        //   color: isDark ? "#C4B5FD" : "#673AB7",
+        // },
+        // {
+        //   id: "documents",
+        //   title: "Constitution de dossier",
+        //   subtitle: "Gérez vos documents",
+        //   icon: (
+        //     <MaterialCommunityIcons
+        //       name="file-document-outline"
+        //       size={24}
+        //       color={isDark ? "#D6D3D1" : "#795548"}
+        //     />
+        //   ),
+        //   route: `/program/${id}/documents`,
+        //   color: isDark ? "#D6D3D1" : "#795548",
+        // },
       ]);
     }
   }, [program, courseProgress, quizProgress, id, isDark]);
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E5E7EB",
   },
   headerDark: {
-    backgroundColor: "",
+    backgroundColor: theme.color.dark.background.secondary,
     borderBottomColor: "#374151",
   },
   headerImage: {

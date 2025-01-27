@@ -15,6 +15,7 @@ export default function LearnLayout() {
       {/* Render child routes */}
        <Stack.Screen name="courses/index" options={{ headerShown: false }} />
        <Stack.Screen name="quizzes/index" options={{ headerShown: false }} />
+       {/* <Stack.Screen name="flashcards/index" options={{ headerShown: false }} /> */}
     </Stack>
   )
 }
