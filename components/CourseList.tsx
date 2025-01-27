@@ -12,6 +12,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import useSWR from "swr";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/constants/theme";
+import CourseRowItem from "./shared/CourseRowItem";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 interface CourseListProps {
   pdId: string;
@@ -21,6 +23,8 @@ const CourseList: React.FC<CourseListProps> = ({ pdId }) => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   const { data: program } = useSWR(
     pdId ? `program-${pdId}` : null,
@@ -65,8 +69,6 @@ const CourseList: React.FC<CourseListProps> = ({ pdId }) => {
     }
   );
 
-  console.log("programId",pdId)
-
   // Extract unique categories
   const categories = useMemo(() => {
     if (!courses) return [];
@@ -93,33 +95,37 @@ const CourseList: React.FC<CourseListProps> = ({ pdId }) => {
   }, [courses, searchQuery, selectedCategory]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.programHeaderMain}>
-        <View style={styles.courseIcon}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
+      <View style={[styles.programHeaderMain, isDark && styles.programHeaderMainDark]}>
+        <View style={[styles.courseIcon, isDark && styles.courseIconDark]}>
           <MaterialCommunityIcons
             name="book-open-page-variant"
             size={24}
-            color="#4CAF50"
+            color={isDark ? "#6EE7B7" : "#4CAF50"}
           />
         </View>
-        <View style={styles.programHeader}>
-        <ThemedText style={styles.programName}>
-          Programme ING PolytechStandart
-        </ThemedText>
-        <ThemedText style={styles.schoolInfo}>
-          ing • <ThemedText style={styles.schoolName}>PolyTech</ThemedText>
-        </ThemedText>
-          </View> 
+        <View style={[styles.programHeader, isDark && styles.programHeaderDark]}>
+          <ThemedText style={[styles.programName, isDark && styles.programNameDark]}>
+            Programme ING PolytechStandart
+          </ThemedText>
+          <ThemedText style={[styles.schoolInfo, isDark && styles.schoolInfoDark]}>
+            ing • <ThemedText style={[styles.schoolName, isDark && styles.schoolNameDark]}>PolyTech</ThemedText>
+          </ThemedText>
+        </View>
       </View>
 
-      <View style={styles.searchBox}>
-        <MaterialCommunityIcons name="magnify" size={20} color="#6B7280" />
+      <View style={[styles.searchBox, isDark && styles.searchBoxDark]}>
+        <MaterialCommunityIcons 
+          name="magnify" 
+          size={20} 
+          color={isDark ? "#9CA3AF" : "#6B7280"} 
+        />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, isDark && styles.searchInputDark]}
           placeholder="Rechercher un cours..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#6B7280"
+          placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
         />
       </View>
 
@@ -132,13 +138,16 @@ const CourseList: React.FC<CourseListProps> = ({ pdId }) => {
           <Pressable
             style={[
               styles.categoryChip,
+              isDark && styles.categoryChipDark,
               selectedCategory === "all" && styles.selectedCategory,
+              selectedCategory === "all" && isDark && styles.selectedCategoryDark,
             ]}
             onPress={() => setSelectedCategory("all")}
           >
             <ThemedText
               style={[
                 styles.categoryText,
+                isDark && styles.categoryTextDark,
                 selectedCategory === "all" && styles.selectedCategoryText,
               ]}
             >
@@ -151,13 +160,16 @@ const CourseList: React.FC<CourseListProps> = ({ pdId }) => {
               key={category}
               style={[
                 styles.categoryChip,
+                isDark && styles.categoryChipDark,
                 selectedCategory === category && styles.selectedCategory,
+                selectedCategory === category && isDark && styles.selectedCategoryDark,
               ]}
               onPress={() => setSelectedCategory(category)}
             >
               <ThemedText
                 style={[
                   styles.categoryText,
+                  isDark && styles.categoryTextDark,
                   selectedCategory === category && styles.selectedCategoryText,
                 ]}
               >
@@ -168,58 +180,19 @@ const CourseList: React.FC<CourseListProps> = ({ pdId }) => {
         </ScrollView>
       </View>
 
-      <ThemedText style={styles.courseCount}>
+      <ThemedText style={[styles.courseCount, isDark && styles.courseCountDark]}>
         {filteredCourses.length} cours disponibles
       </ThemedText>
 
       <ScrollView style={styles.courseList}>
         {filteredCourses.map((courseItem) => {
-          const sections = courseItem.course?.courses_content?.length || 0;
-          const videos = courseItem.course?.course_videos?.length || 0;
-          const isCompleted = Math.random() < 0.5
-
           return (
-            <Pressable
-              key={courseItem.course?.id}
-              style={styles.courseItem}
-              onPress={() =>
-                router.push(`/(app)/learn/${pdId}/courses/${courseItem.course?.id}`)
-              }
-            >
-              <View style={styles.courseContent}>
-                <View style={styles.courseHeader}>
-                  <View style={isCompleted ? styles.courseIcon : styles.courseIconIncomplete}>
-                    <MaterialCommunityIcons
-                      name={ isCompleted ?"check" : "book" }
-                      size={24}
-                      color={ isCompleted ? "#4CAF50" : theme.color.gray[600] }
-                    />
-                  </View>
-                  <View style={styles.courseTitleContainer}>
-                    <ThemedText
-                      style={styles.courseTitle}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {courseItem.course?.name}
-                    </ThemedText>
-                    <ThemedText style={styles.courseMetrics}>
-                      {courseItem.course?.category?.name} • {sections} sections
-                      • {videos} vidéos
-                    </ThemedText>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={24}
-                    color="#9CA3AF"
-                  />
-                </View>
-
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: "30%" }]} />
-                </View>
-              </View>
-            </Pressable>
+            <CourseRowItem 
+              key={courseItem.course.id} 
+              courseItem={courseItem} 
+              pdId={pdId}
+              isDark={isDark} 
+            />
           );
         })}
       </ScrollView>
@@ -233,6 +206,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
     paddingBottom: 80,
   },
+  containerDark: {
+    backgroundColor: "#111827",
+  },
   programHeaderMain: {
     flexDirection: "row",
     paddingHorizontal: 16,
@@ -241,23 +217,49 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
+  programHeaderMainDark: {
+    backgroundColor: "#1F2937",
+    borderBottomColor: "#374151",
+  },
   programHeader: {
-    // paddingHorizontal: 16,
-    // paddingVertical: 12,
     backgroundColor: "#FFFFFF",
+  },
+  programHeaderDark: {
+    backgroundColor: "#1F2937",
+  },
+  courseIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#E8F5E9",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  courseIconDark: {
+    backgroundColor: "rgba(110, 231, 183, 0.1)",
   },
   programName: {
     fontSize: 19,
     fontWeight: "700",
     color: "#111827",
   },
+  programNameDark: {
+    color: "#FFFFFF",
+  },
   schoolInfo: {
     fontSize: 14,
     color: "#65B741",
     marginTop: 4,
   },
+  schoolInfoDark: {
+    color: "#6EE7B7",
+  },
   schoolName: {
     color: "#65B741",
+  },
+  schoolNameDark: {
+    color: "#6EE7B7",
   },
   searchBox: {
     flexDirection: "row",
@@ -268,11 +270,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
+  searchBoxDark: {
+    backgroundColor: "#374151",
+  },
   searchInput: {
     flex: 1,
     marginLeft: 8,
     fontSize: 16,
     color: "#111827",
+  },
+  searchInputDark: {
+    color: "#FFFFFF",
   },
   categoryWrapper: {
     height: 60,
@@ -291,12 +299,21 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.gray[200],
     justifyContent: "center",
   },
+  categoryChipDark: {
+    backgroundColor: "#374151",
+  },
   selectedCategory: {
     backgroundColor: "#65B741",
+  },
+  selectedCategoryDark: {
+    backgroundColor: "#059669",
   },
   categoryText: {
     fontSize: 14,
     color: "#4B5563",
+  },
+  categoryTextDark: {
+    color: "#D1D5DB",
   },
   selectedCategoryText: {
     color: "#FFFFFF",
@@ -308,6 +325,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: "#F3F4F6",
   },
+  courseCountDark: {
+    color: "#9CA3AF",
+    backgroundColor: "#1F2937",
+  },
   courseList: {
     flex: 1,
   },
@@ -316,69 +337,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
-  courseContent: {
-    padding: 16,
-  },
-  courseHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  courseIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: "#E8F5E9",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  courseIconIncomplete: {
-    width: 40,
-    height: 40,
-    backgroundColor: theme.color.gray[200],
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  courseTitleContainer: {
-    flex: 1,
-  },
-  courseTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#111827",
-    marginBottom: 4,
-    flexShrink: 1,
-  },
-  courseMetrics: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  courseBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 8,
-  },
-  courseBadgeText: {
-    fontSize: 12,
-    color: "#4B5563",
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 2,
-    overflow: "hidden",
-    marginTop: 12,
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#65B741",
-    borderRadius: 2,
-  },
+  courseItemDark: {
+    backgroundColor: "#1F2937",
+    borderBottomColor: "#374151",
+  }
 });
 
 export default CourseList;

@@ -1,17 +1,22 @@
-import React, { useState, useImperativeHandle, forwardRef } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, useColorScheme } from 'react-native';
 import { theme } from '@/constants/theme';
 import { TextInput } from 'react-native-gesture-handler';
 import { AccountsInput } from '@/types/type';
+import { useAuth } from '@/contexts/auth';
 
 export interface UserInfoFormProps {
   userInfo: AccountsInput | null;
-  setUserInfo: React.Dispatch<React.SetStateAction<AccountsInput | null>> ;
+  setUserInfo: React.Dispatch<React.SetStateAction<AccountsInput | null>>;
   title: string;
   description: string;
 }
 
 const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: UserInfoFormProps, ref) => {
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
+  const { user } = useAuth();
+  
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -35,6 +40,20 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
       valid = false;
     }
 
+    // Birthdate regex: DD/MM/YYYY format
+    // const birthdateRegex = /^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-(19|20)\d{2}$/;
+
+    // console.log("bd", userInfo?.birthdate);
+    // if (!userInfo?.birthdate || !birthdateRegex.test(String(userInfo.birthdate))) {
+    //   newErrors.birthdate = 'Format de date invalide (JJ-MM-AAAA)';
+    //   valid = false;
+    // }
+
+    if (!userInfo?.city) {
+      newErrors.city = 'La ville est requise';
+      valid = false;
+    }
+
     setErrors(newErrors);
     return valid;
   };
@@ -43,67 +62,218 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
     validate,
   }));
 
+  const updateUserInfo = (field: string, value: any) => {
+    setUserInfo(prev => prev ? { ...prev, [field]: value } : { [field]: value, authId: '', email: '' });
+  };
+
+  function convertDate(date: string) {
+    const dateString = String(date);
+    
+    return dateString.split('-').reverse().join('-');
+
+  }
+
+  useEffect(() => {
+    if (user?.birthdate) {
+      console.log(user.birthdate);
+      const dateString = String(user.birthdate);
+      const dateParts = dateString.split('-');
+      
+
+      updateUserInfo('birthdate', `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`);
+    }
+  }, [user]);
+
   return (
-    <View>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
+    <ScrollView style={[
+      styles.scrollView,
+      isDarkMode && styles.scrollViewDark
+    ]}>
+      <View style={[
+        styles.container,
+        isDarkMode && styles.containerDark
+      ]}>
+        <Text style={[
+          styles.title,
+          isDarkMode && styles.textDark
+        ]}>{title}</Text>
+        <Text style={[
+          styles.description,
+          isDarkMode && styles.textDark
+        ]}>{description}</Text>
 
-      <TextInput
-        style={[
-          styles.input,
-          focusedInput === 'firstName' && styles.inputFocused,
-          errors.firstName && styles.inputError
-        ]}
-        placeholder="Prénom"
-        value={userInfo?.firstname || ""}
-        onChangeText={(text) => setUserInfo(userInfo ? { ...userInfo, firstname: text } : {  firstname: text, email: '', authId: '' })}
-        onFocus={() => setFocusedInput('firstName')}
-        onBlur={() => setFocusedInput(null)}
-      />
-      {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
-
-      <TextInput
-        style={[
-          styles.input,
-          focusedInput === 'lastName' && styles.inputFocused,
-          errors.lastName && styles.inputError
-        ]}
-        placeholder="Nom de famille"
-        value={userInfo?.lastname || ""}
-        onChangeText={(text) => setUserInfo(userInfo ? { ...userInfo, lastname: text } : {  lastname: text, email: '', authId: '' })}
-        onFocus={() => setFocusedInput('lastName')}
-        onBlur={() => setFocusedInput(null)}
-      />
-      {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
-
-        <TextInput
-          style={[
-            styles.input,
-            focusedInput === 'phoneNumber' && styles.inputFocused,
-            errors.phoneNumber && styles.inputError
-          ]}
-          placeholder="Numéro de téléphone"
-          value={userInfo?.phone ? String(userInfo.phone) : "123456789"}
-          onChangeText={(text) => setUserInfo(userInfo ? { ...userInfo, phone: Number(text) } : {  phone: Number(text), email: '', authId: '' })}
-          keyboardType="default"  //todo: put numericor phone pad
+        {/* Basic Information */}
+        <View style={styles.section}>
+          <Text style={[
+            styles.sectionTitle,
+            isDarkMode && styles.textDark
+          ]}>Informations de base</Text>
           
-          onFocus={() => setFocusedInput('phoneNumber')}
-          onBlur={() => setFocusedInput(null)}
-        />
-        {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber}</Text>}
-    </View>
+          <View style={styles.inputContainer}>
+            <Text style={[
+              styles.label,
+              isDarkMode && styles.textDark
+            ]}>Prénom</Text>
+            <TextInput
+              style={[
+                styles.input,
+                isDarkMode && styles.inputDark,
+                focusedInput === 'firstName' && styles.inputFocused,
+                errors.firstName && styles.inputError
+              ]}
+              value={userInfo?.firstname || ""}
+              onChangeText={(text) => updateUserInfo('firstname', text)}
+              onFocus={() => setFocusedInput('firstName')}
+              onBlur={() => setFocusedInput(null)}
+            />
+            {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={[
+              styles.label,
+              isDarkMode && styles.textDark
+            ]}>Nom de famille</Text>
+            <TextInput
+              style={[
+                styles.input,
+                isDarkMode && styles.inputDark,
+                focusedInput === 'lastName' && styles.inputFocused,
+                errors.lastName && styles.inputError
+              ]}
+              value={userInfo?.lastname || ""}
+              onChangeText={(text) => updateUserInfo('lastname', text)}
+              onFocus={() => setFocusedInput('lastName')}
+              onBlur={() => setFocusedInput(null)}
+            />
+            {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
+          </View>
+
+          {/* <View style={styles.inputContainer}>
+            <Text style={[
+              styles.label,
+              isDarkMode && styles.textDark
+            ]}>Date de naissance</Text>
+            <TextInput
+              style={[
+                styles.input,
+                isDarkMode && styles.inputDark,
+                focusedInput === 'birthdate' && styles.inputFocused,
+                errors.birthdate && styles.inputError
+              ]}
+              defaultValue={user?.birthdate ? convertDate(String(user.birthdate)) : ""}
+              // value={userInfo?.birthdate ? String(userInfo.birthdate) : ""}
+              onChangeText={(text) => updateUserInfo('birthdate', text)}
+              onFocus={() => setFocusedInput('birthdate')}
+              onBlur={() => setFocusedInput(null)}
+              placeholder="JJ-MM-AAAA"
+              placeholderTextColor={isDarkMode ? theme.color.gray[400] : theme.color.gray[500]}
+            />
+            {errors.birthdate && <Text style={styles.errorText}>{errors.birthdate}</Text>}
+          </View> */}
+        </View>
+
+        {/* Contact Information */}
+        <View style={styles.section}>
+          <Text style={[
+            styles.sectionTitle,
+            isDarkMode && styles.textDark
+          ]}>Coordonnées</Text>
+          
+          <View style={styles.inputContainer}>
+            <Text style={[
+              styles.label,
+              isDarkMode && styles.textDark
+            ]}>Numéro de téléphone</Text>
+            <TextInput
+              style={[
+                styles.input,
+                isDarkMode && styles.inputDark,
+                focusedInput === 'phoneNumber' && styles.inputFocused,
+                errors.phoneNumber && styles.inputError
+              ]}
+              value={userInfo?.phone ? String(userInfo.phone) : ""}
+              onChangeText={(text) => updateUserInfo('phone', Number(text))}
+              keyboardType="phone-pad"
+              onFocus={() => setFocusedInput('phoneNumber')}
+              onBlur={() => setFocusedInput(null)}
+              maxLength={9}
+            />
+            {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber}</Text>}
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={[
+              styles.label,
+              isDarkMode && styles.textDark
+            ]}>Ville</Text>
+            <TextInput
+              style={[
+                styles.input,
+                isDarkMode && styles.inputDark,
+                focusedInput === 'city' && styles.inputFocused,
+                errors.city && styles.inputError
+              ]}
+              value={userInfo?.city || ""}
+              onChangeText={(text) => updateUserInfo('city', text)}
+              onFocus={() => setFocusedInput('city')}
+              onBlur={() => setFocusedInput(null)}
+            />
+            {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
+          </View>
+        </View>
+      </View>
+    </ScrollView>
   );
 });
 
 export default UserInfoForm;
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+    // backgroundColor: theme.color.background,
+  },
+  scrollViewDark: {
+    // backgroundColor: theme.color.dark.background.secondary,
+  },
+  container: {
+    // padding: theme.spacing.medium,
+  },
+  containerDark: {
+    // backgroundColor: theme.color.dark.background.secondary,
+  },
+  section: {
+    marginBottom: theme.spacing.large,
+  },
+  sectionTitle: {
+    fontSize: theme.typography.fontSize.medium,
+    fontWeight: '600',
+    marginBottom: theme.spacing.small,
+    color: theme.color.gray[700],
+  },
+  inputContainer: {
+    marginBottom: theme.spacing.medium,
+  },
+  label: {
+    fontSize: theme.typography.fontSize.small,
+    fontWeight: '500',
+    marginBottom: theme.spacing.small,
+    color: theme.color.gray[700],
+  },
   input: {
     borderWidth: theme.border.width.thin,
     borderColor: theme.color.gray[300],
-    padding: 10,
-    marginVertical: 8,
+    padding: theme.spacing.small,
     borderRadius: theme.border.radius.small,
+    fontSize: theme.typography.fontSize.medium,
+    backgroundColor: theme.color.gray[50],
+    color: theme.color.gray[900],
+  },
+  inputDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+    borderColor: theme.color.dark.background.tertiary,
+    color: theme.color.gray[50],
   },
   inputFocused: {
     borderColor: theme.color.primary[500],
@@ -113,14 +283,20 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: theme.color.error,
-    marginBottom: 3,
+    fontSize: theme.typography.fontSize.small,
+    marginTop: theme.spacing.small,
   },
   title: {
     fontSize: theme.typography.fontSize.xlarge,
     fontWeight: '700',
     marginBottom: theme.spacing.small,
+    color: theme.color.gray[900],
   },
   description: {
     marginBottom: theme.spacing.medium,
+    color: theme.color.gray[600],
+  },
+  textDark: {
+    color: theme.color.gray[50],
   },
 });

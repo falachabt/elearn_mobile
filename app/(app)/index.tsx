@@ -1,77 +1,82 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, useColorScheme } from 'react-native';
 import TopBar from '@/components/TopBar';
 import { theme } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/auth';
+import { useUser } from '@/contexts/useUserInfo';
+import LearningPaths from '@/components/shared/LearningPaths';
 
 const { width } = Dimensions.get('window');
 const HORIZONTAL_PADDING = 16;
 const CARD_MARGIN = 12;
 const GOAL_CARD_WIDTH = (width - 2 * HORIZONTAL_PADDING - 2 * CARD_MARGIN) / 3;
-const PATH_CARD_WIDTH = width * 0.7;
+const PATH_CARD_WIDTH = width * 0.6;
 
 export default function Index() {
   const { user } = useAuth();
-  const userName = "John Doe";
+  const { toDayXp, toDayExo, toDayTime, userPrograms, lastCourse } = useUser()
+  const colorScheme = useColorScheme();
+  const router = useRouter();
+  const isDarkMode = colorScheme === 'dark';
   const streaks = 0;
   const xp = 0;
 
   return (
-    <View style={styles.container}>
+    <View style={isDarkMode ? styles.containerDark : styles.container}>
       <TopBar
         userName={`${user?.firstname ?? ''} ${user?.lastname ?? ''}`.trim()}
         streaks={streaks}
         xp={xp}
-        onChangeProgram={ () => {} }
+        onChangeProgram={() => {}}
       />
 
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Welcome Header */}
-        <View style={styles.header}>
-          <Text numberOfLines={1} style={styles.welcomeTitle}>
-            Bonjour {user?.firstname} 👋
+      <View style={styles.header}>
+          <Text numberOfLines={1} style={isDarkMode ? styles.welcomeTitleDark : styles.welcomeTitle}>
+          {new Date().getHours() < 12 ? 'Bonjour' : 'Bonsoir'} {user?.firstname} 👋
+          
           </Text>
-          <Text numberOfLines={1} style={styles.welcomeSubtitle}>
+          <Text numberOfLines={1} style={isDarkMode ? styles.welcomeSubtitleDark : styles.welcomeSubtitle}>
             Prêt à continuer votre apprentissage ?
           </Text>
         </View>
-       
+
         {/* Current Course */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text numberOfLines={1} style={styles.sectionTitle}>En cours</Text>
+            <Text numberOfLines={1} style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}>En cours</Text>
             <TouchableOpacity style={styles.seeAllButton}>
               <Text style={styles.seeAllText}>
-                <Link href={"/(app)/learn"} >
-                Tout voir
-                </Link> 
-                </Text>
+                <Link href={"/(app)/learn"}>
+                  Tout voir
+                </Link>
+              </Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.currentCourseCard}>
+          <View style={isDarkMode ? styles.currentCourseCardDark : styles.currentCourseCard}>
             <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '60%' }]} />
+              <View style={[styles.progressFill, { width: `${lastCourse?.course_progress_summary?.[0]?.progress_percentage ?? 0}%` }]} />
             </View>
             <View style={styles.courseContent}>
               <View style={styles.playIconContainer}>
                 <MaterialCommunityIcons name="play" size={24} color="#FFF" />
               </View>
               <View style={styles.courseTitleContainer}>
-                <Text numberOfLines={1} style={styles.courseTitle}>
-                  Développement Mobile
+                <Text numberOfLines={1} style={isDarkMode ? styles.courseTitleDark : styles.courseTitle}>
+                  { lastCourse?.name ?? 'Aucun cours en cours' }
                 </Text>
-                <Text numberOfLines={1} style={styles.lessonProgress}>
-                  Leçon 3 • 60% complété
+                <Text numberOfLines={1} style={isDarkMode ? styles.lessonProgressDark : styles.lessonProgress}>
+                  Leçon { JSON.stringify(lastCourse?.courses_content?.order) } • {lastCourse?.course_progress_summary?.[0]?.progress_percentage ?? 0 } complété
                 </Text>
               </View>
-              <TouchableOpacity style={styles.continueButton}>
+              <TouchableOpacity style={styles.continueButton} onPress={ () => { router.push(`/(app)/learn/${lastCourse?.learning_path?.id}/courses/${lastCourse?.id}/lessons/${lastCourse?.current_section}`) } } >
                 <Text style={styles.continueText}>Continuer</Text>
               </TouchableOpacity>
             </View>
@@ -80,89 +85,61 @@ export default function Index() {
 
         {/* Daily Goals */}
         <View style={styles.section}>
-          <Text numberOfLines={1} style={styles.sectionTitle}>
+          <Text numberOfLines={1} style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}>
             Objectifs du jour
           </Text>
-          <View style={styles.goalsRow}>
+            <View style={styles.goalsRow}>
             {[
-              { icon: 'lightning-bolt', title: 'Minutes', current: 15, total: 30, unit: 'min' },
-              { icon: 'star', title: 'Points XP', current: 100, total: 150, unit: 'XP' },
-              { icon: 'medal', title: 'Exercices', current: 3, total: 5, unit: 'ex' }
-            ].map((goal, index) => (
-              <View key={index} style={styles.goalCard}>
+              { icon: 'lightning-bolt', title: 'Minutes', current: Number((toDayTime / (1000*60)).toFixed(1)), total: 60, unit: 'min' },
+              { icon: 'star', title: 'Points XP', current: toDayXp, total: 600, unit: 'XP' },
+              { icon: 'medal', title: 'Quiz', current: toDayExo, total: 6, unit: 'ex' }
+            ].map((goal, index) => {
+              const isGoalMet = goal.current >= goal.total;
+              return (
+              <View key={index} style={isDarkMode ? styles.goalCardDark : styles.goalCard}>
                 <View style={styles.goalIcon}>
-                  <MaterialCommunityIcons 
-                    name={goal.icon as any} 
-                    size={22} 
-                    color={theme.color.primary[500]} 
-                  />
+                <MaterialCommunityIcons
+                  name={goal.icon as any}
+                  size={22}
+                  color={isGoalMet ?   theme.color.primary[500] : theme.color.error}
+                />
                 </View>
-                <Text numberOfLines={2} style={styles.goalTitle}>
-                  {goal.title}
+                <Text numberOfLines={2} style={isDarkMode ? styles.goalTitleDark : styles.goalTitle}>
+                {goal.title}
                 </Text>
                 <View style={styles.goalProgressBar}>
-                  <View style={[styles.goalProgressFill, { 
-                    width: `${(goal.current/goal.total) * 100}%` 
-                  }]} />
+                <View style={[styles.goalProgressFill, {
+                  width: `${Math.min((goal.current / goal.total) * 100, 100)}%`, 
+                  backgroundColor: isGoalMet ? theme.color.primary[500] : theme.color.error
+                }]} />
                 </View>
                 <Text style={styles.goalMetrics}>
-                  <Text style={styles.currentValue}>{goal.current}</Text>
-                  <Text style={styles.totalValue}>/{goal.total} {goal.unit}</Text>
+                <Text style={[styles.currentValue, { color: isGoalMet ? theme.color.primary[500] : theme.color.error   }]}>
+                  {goal.current}
+                </Text>
+                <Text style={styles.totalValue}>/{goal.total} {goal.unit}</Text>
                 </Text>
               </View>
-            ))}
-          </View>
+              );
+            })}
+            </View>
         </View>
 
         {/* Learning Paths */}
         <View style={[styles.section, styles.lastSection]}>
           <View style={styles.sectionHeader}>
-            <Text numberOfLines={1} style={styles.sectionTitle}>
+            <Text numberOfLines={1} style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}>
               Parcours recommandés
             </Text>
             <TouchableOpacity style={styles.seeAllButton}>
-              <Text style={styles.seeAllText}>Tout voir</Text>
+              <Text style={styles.seeAllText}> <Link href={"/(app)/learn"}>
+                  Tout voir
+                </Link></Text>
             </TouchableOpacity>
           </View>
-          
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.pathsScroll}
-          >
-            {[
-              { title: 'Développement Frontend', duration: '8 semaines', level: 'Débutant' },
-              { title: 'React Native Avancé', duration: '6 semaines', level: 'Intermédiaire' }
-            ].map((path, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={[styles.pathCard, index === 0 && styles.firstPathCard]}
-              >
-                <View style={styles.levelTag}>
-                  <Text style={styles.levelText}>{path.level}</Text>
-                </View>
-                <Image
-                  source={{ uri: 'https://picsum.photos/400/240' }}
-                  style={styles.pathImage}
-                />
-                <View style={styles.pathDetails}>
-                  <Text numberOfLines={1} style={styles.pathTitle}>
-                    {path.title}
-                  </Text>
-                  <View style={styles.durationRow}>
-                    <MaterialCommunityIcons 
-                      name="clock-outline" 
-                      size={16} 
-                      color="#666" 
-                    />
-                    <Text numberOfLines={1} style={styles.duration}>
-                      {path.duration}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+
+          <LearningPaths programs={[...userPrograms, ...userPrograms]}  isDarkMode={isDarkMode} /> 
+
         </View>
       </ScrollView>
     </View>
@@ -173,6 +150,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  containerDark: {
+    flex: 1,
+    backgroundColor: theme.color.dark.background.primary,
   },
   content: {
     flex: 1,
@@ -191,9 +172,19 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 4,
   },
+  welcomeTitleDark: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
   welcomeSubtitle: {
     fontSize: 16,
     color: '#666',
+  },
+  welcomeSubtitleDark: {
+    fontSize: 16,
+    color: '#CCCCCC',
   },
   section: {
     marginBottom: 28,
@@ -212,6 +203,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1A1A1A',
   },
+  sectionTitleDark: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   seeAllButton: {
     paddingVertical: 4,
     paddingHorizontal: 8,
@@ -223,6 +219,16 @@ const styles = StyleSheet.create({
   },
   currentCourseCard: {
     backgroundColor: '#FFFFFF',
+    borderRadius: theme.border.radius.small,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  currentCourseCardDark: {
+    backgroundColor: theme.color.dark.background.secondary,
     borderRadius: theme.border.radius.small,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -263,9 +269,19 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 4,
   },
+  courseTitleDark: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
   lessonProgress: {
     fontSize: 14,
     color: '#666',
+  },
+  lessonProgressDark: {
+    fontSize: 14,
+    color: '#CCCCCC',
   },
   continueButton: {
     backgroundColor: theme.color.primary[500],
@@ -293,6 +309,17 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
   },
+  goalCardDark: {
+    width: GOAL_CARD_WIDTH,
+    backgroundColor: theme.color.dark.background.secondary,
+    borderRadius: theme.border.radius.small,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
   goalIcon: {
     width: 36,
     height: 36,
@@ -307,6 +334,13 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: '500',
     color: '#1A1A1A',
+    height: 32,
+  },
+  goalTitleDark: {
+    fontSize: 13,
+    lineHeight: 16,
+    fontWeight: '500',
+    color: '#FFFFFF',
     height: 32,
   },
   goalProgressBar: {
@@ -331,62 +365,5 @@ const styles = StyleSheet.create({
   totalValue: {
     color: '#666',
   },
-  pathsScroll: {
-    paddingLeft: HORIZONTAL_PADDING,
-    marginLeft: -HORIZONTAL_PADDING,
-    paddingRight: HORIZONTAL_PADDING,
-  },
-  pathCard: {
-    width: PATH_CARD_WIDTH,
-    backgroundColor: '#FFFFFF',
-    borderRadius: theme.border.radius.small,
-    marginRight: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  firstPathCard: {
-    marginLeft: 0,
-  },
-  levelTag: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    zIndex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: theme.border.radius.small,
-  },
-  levelText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  pathImage: {
-    width: '100%',
-    height: 140,
-    resizeMode: 'cover',
-  },
-  pathDetails: {
-    padding: 12,
-  },
-  pathTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  durationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  duration: {
-    fontSize: 14,
-    color: '#666',
-  },
+ 
 });

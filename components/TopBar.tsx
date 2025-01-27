@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
 import { MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { theme } from '@/constants/theme';
+import { useAuth } from '@/contexts/auth';
+import { Link } from 'expo-router';
 
 interface TopBarProps {
     userName: string;
@@ -11,17 +13,22 @@ interface TopBarProps {
 }
 
 const TopBar: React.FC<TopBarProps> = ({ userName, streaks, xp, onChangeProgram }) => {
+    const { user,  } = useAuth();
     return (
         <View style={styles.container}>
             {/* Profile and Stats Row */}
             <View style={styles.mainRow}>
                 <View style={styles.profileSection}>
+                <Link href={'/(app)/profile'} asChild >
                     <Image 
-                        source={{ uri: `https://avatars.dicebear.com/api/initials/${userName}.png` }} 
+                        // source={{ uri: `https://avatars.dicebear.com/api/initials/${userName}.png` }} 
+                        source={{ uri: user?.image?.url || "https://api.dicebear.com/9.x/initials/png?&seed="+userName }} 
                         style={styles.profileImage} 
-                    />
+                        />
+                        </Link> 
+
                     <View style={styles.userInfo}>
-                        <Text style={styles.userName}>{userName}</Text>
+                        <Text style={styles.userName}>{user?.firstname}</Text>
                         <Text style={styles.levelText}>Level 3</Text>
                     </View>
                 </View>
@@ -29,14 +36,15 @@ const TopBar: React.FC<TopBarProps> = ({ userName, streaks, xp, onChangeProgram 
                 <View style={styles.statsSection}>
                     <View style={styles.statItem}>
                         <MaterialCommunityIcons name="star" size={20} color="#FFD700" />
-                        <Text style={styles.statValue}>{xp}</Text>
+                        
+                        <Text style={styles.statValue}>{user?.user_xp?.total_xp || 0}</Text>
                     </View>
 
                     <View style={styles.statDivider} />
 
                     <View style={styles.statItem}>
                         <FontAwesome5 name="fire" size={20} color="#FF4500" />
-                        <Text style={styles.statValue}>{streaks}</Text>
+                        <Text style={styles.statValue}>{user?.user_streaks.current_streak}</Text>
                     </View>
 
                     <TouchableOpacity style={styles.programButton} onPress={onChangeProgram}>
@@ -46,11 +54,11 @@ const TopBar: React.FC<TopBarProps> = ({ userName, streaks, xp, onChangeProgram 
             </View>
 
             {/* Progress Bar */}
-            <View style={styles.progressContainer}>
+            {/* <View style={styles.progressContainer}>
                 <View style={styles.progressBar}>
                     <View style={[styles.progressFill, { width: '75%' }]} />
                 </View>
-            </View>
+            </View> */}
         </View>
     );
 };

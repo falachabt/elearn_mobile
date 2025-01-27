@@ -5,14 +5,14 @@ import { useGlobalSearchParams, useLocalSearchParams } from 'expo-router'
 import CourseList from '@/components/CourseList'
 
 const index = () => {
-  const {pdId} = useLocalSearchParams();
-  
-  console.log(pdId)
-  console.log(pdId)
+  const params = useGlobalSearchParams();
+  const pdId = params.pdId;
   const pdIdString = Array.isArray(pdId) ? pdId[0] : pdId;
+
+  console.log(params);
   return (
     <View style={{ flex: 1 }}>
-     <CourseList pdId = {pdIdString} /> 
+     <CourseList pdId = {String(pdId)} /> 
     </View>
   )
 }

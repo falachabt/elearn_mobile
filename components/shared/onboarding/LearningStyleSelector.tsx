@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
+  useColorScheme,
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
@@ -16,9 +16,12 @@ interface LearningStyleSelectorProps {
 }
 
 const LearningStyleSelector: React.FC<LearningStyleSelectorProps> = ({
-  selected,
+  selected = '', // Default value for null safety
   onSelect,
 }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
   const styles = [
     {
       id: 'visual',
@@ -44,78 +47,107 @@ const LearningStyleSelector: React.FC<LearningStyleSelectorProps> = ({
   ];
 
   return (
-    <View style={localStyles.container}>
-      <Text style={localStyles.title}>Votre Style d'Apprentissage</Text>
-      <Text style={localStyles.subtitle}>
+    <View style={[
+      localStyles.container,
+      isDark && localStyles.containerDark
+    ]}>
+      <Text style={[
+        localStyles.title,
+        isDark && localStyles.titleDark
+      ]}>
+        Votre Style d'Apprentissage
+      </Text>
+      <Text style={[
+        localStyles.subtitle,
+        isDark && localStyles.subtitleDark
+      ]}>
         Choisissez la méthode qui vous correspond le mieux
       </Text>
 
-      {styles.map((style, index) => (
-        <Animatable.View
-          key={style.id}
-          animation="fadeInUp"
-          delay={index * 100}
-          duration={500}
-        >
-          <TouchableOpacity
-            style={[
-              localStyles.card,
-              selected === style.id && localStyles.cardSelected,
-            ]}
-            onPress={() => onSelect(style.id)}
-            activeOpacity={0.7}
+      {styles.map((style, index) => {
+        const isSelected = selected === style.id;
+        
+        return (
+          <Animatable.View
+            key={style.id}
+            animation="fadeInUp"
+            delay={index * 100}
+            duration={500}
           >
-            <View style={[
-              localStyles.iconContainer,
-              selected === style.id && localStyles.iconContainerSelected,
-            ]}>
-              <FontAwesome5 
-                name={style.icon} 
-                size={24} 
-                color={selected === style.id ? theme.color.primary[800] : '#666666'} 
-              />
-            </View>
-
-            <View style={localStyles.contentContainer}>
-              <Text style={[
-                localStyles.styleTitle,
-                selected === style.id && localStyles.styleTitleSelected,
+            <TouchableOpacity
+              style={[
+                localStyles.card,
+                isDark && localStyles.cardDark,
+                isSelected && (isDark ? localStyles.cardSelectedDark : localStyles.cardSelected),
+              ]}
+              onPress={() => onSelect(style.id)}
+              activeOpacity={0.7}
+            >
+              <View style={[
+                localStyles.iconContainer,
+                isDark && localStyles.iconContainerDark,
+                isSelected && (isDark ? localStyles.iconContainerSelectedDark : localStyles.iconContainerSelected),
               ]}>
-                {style.title}
-              </Text>
-              
-              <Text style={localStyles.description}>
-                {style.description}
-              </Text>
-
-              <View style={localStyles.keywordsContainer}>
-                {style.keywords.map((keyword) => (
-                  <View
-                    key={keyword}
-                    style={[
-                      localStyles.keyword,
-                      selected === style.id && localStyles.keywordSelected,
-                    ]}
-                  >
-                    <Text style={[
-                      localStyles.keywordText,
-                      selected === style.id && localStyles.keywordTextSelected,
-                    ]}>
-                      {keyword}
-                    </Text>
-                  </View>
-                ))}
+                <FontAwesome5 
+                  name={style.icon} 
+                  size={24} 
+                  color={isSelected 
+                    ? isDark ? theme.color.primary[400] : theme.color.primary[800]
+                    : isDark ? theme.color.gray[400] : '#666666'} 
+                />
               </View>
-            </View>
 
-            {selected === style.id && (
-              <View style={localStyles.selectedIndicator}>
-                <FontAwesome5 name="check-circle" size={20} color={theme.color.primary[800]} />
+              <View style={localStyles.contentContainer}>
+                <Text style={[
+                  localStyles.styleTitle,
+                  isDark && localStyles.styleTitleDark,
+                  isSelected && (isDark ? localStyles.styleTitleSelectedDark : localStyles.styleTitleSelected),
+                ]}>
+                  {style.title}
+                </Text>
+                
+                <Text style={[
+                  localStyles.description,
+                  isDark && localStyles.descriptionDark
+                ]}>
+                  {style.description}
+                </Text>
+
+                <View style={localStyles.keywordsContainer}>
+                  {style.keywords.map((keyword) => (
+                    <View
+                      key={keyword}
+                      style={[
+                        localStyles.keyword,
+                        isDark && localStyles.keywordDark,
+                        isSelected && (isDark ? localStyles.keywordSelectedDark : localStyles.keywordSelected),
+                      ]}
+                    >
+                      <Text style={[
+                        localStyles.keywordText,
+                        isDark && localStyles.keywordTextDark,
+                        isSelected && (isDark ? localStyles.keywordTextSelectedDark : localStyles.keywordTextSelected),
+                      ]}>
+                        {keyword}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            )}
-          </TouchableOpacity>
-        </Animatable.View>
-      ))}
+
+              {isSelected && (
+                <View style={localStyles.selectedIndicator}>
+                  <FontAwesome5 
+                    name="check-circle" 
+                    size={20} 
+                    color={isDark ? theme.color.primary[400] : theme.color.primary[800]} 
+                  />
+                </View>
+              )}
+            </TouchableOpacity>
+          </Animatable.View>
+        );
+      })}
     </View>
   );
 };
@@ -124,41 +156,64 @@ const localStyles = StyleSheet.create({
   container: {
     marginVertical: 16,
   },
+  containerDark: {
+    backgroundColor: theme.color.dark.background.primary,
+  },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: theme.color.gray[900],
     marginBottom: 8,
+  },
+  titleDark: {
+    color: theme.color.gray[50],
   },
   subtitle: {
     fontSize: 14,
-    color: '#666666',
+    color: theme.color.gray[600],
     marginBottom: 20,
+  },
+  subtitleDark: {
+    color: theme.color.gray[400],
   },
   card: {
     flexDirection: 'row',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.color.gray[50],
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: '#E1E1E1',
+    borderColor: theme.color.gray[200],
+  },
+  cardDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+    borderColor: theme.color.gray[800],
   },
   cardSelected: {
     borderColor: theme.color.primary[500],
     backgroundColor: theme.color.primary[100],
   },
+  cardSelectedDark: {
+    borderColor: theme.color.primary[400],
+    backgroundColor: theme.color.primary[900],
+  },
   iconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'white',
+    backgroundColor: theme.color.gray[50],
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
+  iconContainerDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+  },
   iconContainerSelected: {
-    backgroundColor: '#EAF4FF',
+    backgroundColor: theme.color.primary[50],
+  },
+  iconContainerSelectedDark: {
+    backgroundColor: theme.color.primary[800],
   },
   contentContainer: {
     flex: 1,
@@ -166,17 +221,26 @@ const localStyles = StyleSheet.create({
   styleTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: theme.color.gray[900],
     marginBottom: 4,
+  },
+  styleTitleDark: {
+    color: theme.color.gray[50],
   },
   styleTitleSelected: {
     color: theme.color.primary[700],
   },
+  styleTitleSelectedDark: {
+    color: theme.color.primary[100],
+  },
   description: {
     fontSize: 14,
-    color: '#666666',
+    color: theme.color.gray[600],
     lineHeight: 20,
     marginBottom: 12,
+  },
+  descriptionDark: {
+    color: theme.color.gray[400],
   },
   keywordsContainer: {
     flexDirection: 'row',
@@ -184,22 +248,34 @@ const localStyles = StyleSheet.create({
     marginTop: 8,
   },
   keyword: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.gray[50],
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginRight: 8,
     marginBottom: 8,
   },
+  keywordDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+  },
   keywordSelected: {
     backgroundColor: theme.color.primary[800],
   },
+  keywordSelectedDark: {
+    backgroundColor: theme.color.primary[700],
+  },
   keywordText: {
     fontSize: 12,
-    color: '#666666',
+    color: theme.color.gray[600],
+  },
+  keywordTextDark: {
+    color: theme.color.gray[400],
   },
   keywordTextSelected: {
-    color: '#ffff',
+    color: theme.color.gray[50],
+  },
+  keywordTextSelectedDark: {
+    color: theme.color.gray[50],
   },
   selectedIndicator: {
     position: 'absolute',

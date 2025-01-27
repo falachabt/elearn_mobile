@@ -1,6 +1,5 @@
-import React from "react";
-import { router, Tabs, useNavigation } from "expo-router";
-import { Redirect } from "expo-router";
+import React, { ReactNode } from "react";
+import { router, Tabs, useNavigation, Redirect } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/auth";
 import {
@@ -9,18 +8,20 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  useColorScheme,
+  GestureResponderEvent,
+  AccessibilityState,
 } from "react-native";
 import { theme } from "@/constants/theme";
-import { StatusBar } from "expo-status-bar";
-import { ReactNode } from "react";
-import { GestureResponderEvent, AccessibilityState } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-
+import {  useSWRConfig } from "swr";
 
 export default function AppLayout() {
   const { session, isLoading, user } = useAuth();
   const navigation = useNavigation();
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
+  const { refreshInterval, mutate, cache, ...restConfig } = useSWRConfig()
 
   if (!isLoading && !session) {
     return <Redirect href="/(auth)" />;
@@ -31,30 +32,32 @@ export default function AppLayout() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "transparent" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? theme.color.dark.background.primary : "transparent" }}>
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: theme.color.primary[500],
           tabBarInactiveTintColor: "#94A3B8",
           tabBarShowLabel: true,
-          tabBarStyle: styles.tabBar,
+          tabBarStyle: isDarkMode ? styles.tabBarDark : styles.tabBar,
           tabBarItemStyle: styles.tabItem,
-          tabBarButton: (props) => <CustomTabBarButton {...props} />,
+          tabBarButton: (props) => <CustomTabBarButton {...props} isDarkMode={isDarkMode} />,
           tabBarLabelStyle: styles.tabLabel,
-          
         }}
         screenListeners={{
           tabPress: (e) => {
-            // Reset the navigation state when switching tabs
             const target = e.target?.split('-')[0];
-            console.log(target, e)
+            mutate("*")
+
+            if(target === 'index') {
+              mutate(`userPrograms-${user.id}`);
+            }
             if (target === 'learn') {
-              // Prevent default navigation
+              mutate("my-learning-paths")
               e.preventDefault();
-              // Navigate to the root of the program stack
               router.replace('/learn');
             }
+            
           },
         }}
       >
@@ -87,7 +90,7 @@ export default function AppLayout() {
         />
 
         <Tabs.Screen
-          name="catalogue"
+          name="(catalogue)"
           options={{
             title: "Catalogue",
             tabBarIcon: ({ color, size }) => (
@@ -114,18 +117,16 @@ export default function AppLayout() {
   );
 }
 
-// Rest of the code (CustomTabBarButton and styles) remains the same...
-
-// ... rest of the code (CustomTabBarButton and styles) remains the same
-
 function CustomTabBarButton({
   children,
   onPress,
   accessibilityState,
+  isDarkMode,
 }: {
   children: ReactNode;
   onPress?: (event: GestureResponderEvent) => void;
   accessibilityState?: AccessibilityState;
+  isDarkMode: boolean;
 }) {
   const isSelected = accessibilityState?.selected;
 
@@ -138,6 +139,7 @@ function CustomTabBarButton({
         style={[
           styles.tabButtonContent,
           isSelected && styles.tabButtonContentActive,
+          isDarkMode && styles.tabButtonContentDark,
         ]}
       >
         {children}
@@ -154,6 +156,25 @@ const styles = StyleSheet.create({
     right: 10,
     height: 65,
     backgroundColor: "#FFFFFF",
+    borderRadius: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    borderTopWidth: 0,
+    paddingBottom: 0,
+  },
+  tabBarDark: {
+    position: "absolute",
+    bottom: Platform.OS === "ios" ? 0 : 0,
+    left: 10,
+    right: 10,
+    height: 65,
+    backgroundColor: theme.color.dark.background.secondary,
     borderRadius: 2,
     shadowColor: "#000",
     shadowOffset: {
@@ -188,6 +209,9 @@ const styles = StyleSheet.create({
     width: "80%",
     height: "90%",
     borderRadius: theme.border.radius.small,
+  },
+  tabButtonContentDark: {
+    backgroundColor: theme.color.dark.background.secondary,
   },
   tabButtonActive: {
     position: "relative",

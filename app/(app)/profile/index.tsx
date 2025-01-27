@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -6,14 +6,14 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Image, 
-  Platform 
+  Platform, 
+  Modal 
 } from 'react-native';
 import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import TopBar from '@/components/TopBar';
 import { theme } from '@/constants/theme';
-
-const PRIMARY_COLOR = '#4CAF50'; // Green color from the image
+import { useAuth } from '@/contexts/auth';
 
 interface MenuItem {
   icon: JSX.Element;
@@ -22,14 +22,18 @@ interface MenuItem {
 }
 
 const Profile = () => {
+  const { user, signOut } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
   const userData = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    studentId: 'STU-2024-001',
-    xp: 2500,
-    streaks: 15,
-    completedCourses: 8,
-    achievements: 12
+    name: user?.firstname || 'John Doe',
+    email: user?.email || 'john.doe@example.com',
+    studentId: user?.authId || 'STU-2024-001',
+    xp:  2500,
+    streaks:  15,
+    completedCourses:  8,
+    achievements: Array.isArray(user?.achievements) ? user.achievements.length : (user?.achievements || 12)
   };
 
   const menuItems: MenuItem[] = [
@@ -83,6 +87,22 @@ const Profile = () => {
     </Link>
   );
 
+  const handleLogout = () => {
+    setIsModalVisible(true);
+  };
+
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
+    setIsModalVisible(false);
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <TopBar 
@@ -114,17 +134,17 @@ const Profile = () => {
         {/* Stats Section */}
         <View style={styles.statsContainer}>
           <StatCard 
-            icon={<MaterialCommunityIcons name="book-open-variant" size={24} color={PRIMARY_COLOR} />}
+            icon={<MaterialCommunityIcons name="book-open-variant" size={24}  />}
             value={userData.completedCourses}
             label="Cours"
           />
           <StatCard 
-            icon={<FontAwesome5 name="trophy" size={24} color={PRIMARY_COLOR} />}
+            icon={<FontAwesome5 name="trophy" size={24}  />}
             value={userData.achievements}
             label="Réalisations"
           />
           <StatCard 
-            icon={<Ionicons name="flame" size={24} color={PRIMARY_COLOR} />}
+            icon={<Ionicons name="flame" size={24}  />}
             value={userData.streaks}
             label="Série"
           />
@@ -136,7 +156,35 @@ const Profile = () => {
             <MenuItem key={index} item={item} />
           ))}
         </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} disabled={isLoggingOut}>
+          <Text style={styles.logoutButtonText}>Déconnexion</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Custom Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isModalVisible}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Confirmation</Text>
+            <Text style={styles.modalMessage}>Êtes-vous sûr de vouloir vous déconnecter ?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalButton} onPress={() => setIsModalVisible(false)}>
+                <Text style={styles.modalButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.modalButtonConfirm]} onPress={confirmLogout}>
+                <Text style={[styles.modalButtonText, styles.modalButtonConfirmText]}>Déconnecter</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -187,11 +235,11 @@ const styles = StyleSheet.create({
   },
   studentId: {
     fontSize: 14,
-    color: PRIMARY_COLOR,
+    color: theme.color.primary[500],
     marginTop: 4,
   },
   editButton: {
-    backgroundColor: PRIMARY_COLOR,
+    backgroundColor: theme.color.primary[500],
     borderRadius: theme.border.radius.small,
     paddingVertical: 12,
     marginTop: 16,
@@ -269,6 +317,66 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontSize: 16,
     color: '#1F2937',
+  },
+  logoutButton: {
+    backgroundColor: '#EF4444',
+    borderRadius: theme.border.radius.small,
+    paddingVertical: 12,
+    marginTop: 16,
+    marginBottom: 100,
+    alignItems: 'center',
+  },
+  logoutButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: theme.border.radius.medium,
+    padding: theme.spacing.large,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: theme.spacing.small,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: theme.spacing.medium,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: theme.border.radius.small,
+    marginHorizontal: 8,
+    backgroundColor: '#E5E7EB',
+  },
+  modalButtonConfirm: {
+    backgroundColor: '#EF4444',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  modalButtonConfirmText: {
+    color: '#FFFFFF',
   },
 });
 
