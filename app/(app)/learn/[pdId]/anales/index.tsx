@@ -67,6 +67,8 @@ export const ArchivesList = () => {
     fetchData();
   }, [pdId]);
 
+ 
+
   useEffect(() => {
     // Check existing downloads for all archives
     archives.forEach((archive) => {
@@ -90,7 +92,6 @@ export const ArchivesList = () => {
         `
         )
         .eq("learningPathId", pdId)
-        .limit(1)
         .single();
 
       if (pathError) throw pathError;

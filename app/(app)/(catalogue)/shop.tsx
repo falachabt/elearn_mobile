@@ -22,6 +22,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { ProgramCard } from "@/components/shared/catalogue/ProgramCard";
 import { ProgramDetails } from "@/components/shared/ProgramDetails";
+import { useAuth } from "@/contexts/auth";
 
 export interface Course {
   id: number;
@@ -53,9 +54,13 @@ export default function ShopPage() {
   const isDark = useColorScheme() === "dark";
   const router = useRouter();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const { user } = useAuth();
 
   const fetchCourses = async () => {
     try {
+      const { data : userProgarm , error : errorUserProgarm } = await supabase.from("user_program_enrollments").select(`program_id`).eq("user_id", user?.id);
+      console.log("user program", userProgarm);
+
       const { data, error } = await supabase
         .from("concours_learningpaths")
         .select(`
@@ -63,7 +68,8 @@ export default function ShopPage() {
           learning_path:learning_paths(*),
           concour:concours(name, school:schools(name))
         `)
-        .eq("isActive", true);
+        .eq("isActive", true)
+        .not("id", "in", `(${userProgarm?.map((item) => item.program_id).join(",")})` );
 
       if (error) throw error;
       setCourses(data);
@@ -212,6 +218,7 @@ export default function ShopPage() {
         onPress={() => {
           setSearchQuery('');
           setActiveFilter('all');
+          fetchCourses()
         }}
       >
         <Text style={styles.resetButtonText}>Réinitialiser la recherche</Text>

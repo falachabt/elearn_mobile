@@ -2,15 +2,18 @@ import { supabase } from '@/lib/supabase';
 
 export const CartService = {
   async getCurrentCart() {
+    const user = await supabase.auth.getUser();
     const { data: existingCart } = await supabase
       .from('carts')
       .select('*, items:cart_items(*)')
-      .eq('user_id', (await supabase.auth.getUser()).data?.user?.id)
+      .eq('user_id', user.data.user?.id)
       .eq('status', 'active')
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1);
 
 
-    if (!existingCart) {
+
+    if (!existingCart?.length) {
       const { data: newCart } = await supabase
         .from('carts')
         .insert({ user_id: (await supabase.auth.getUser()).data?.user?.id })
@@ -19,7 +22,7 @@ export const CartService = {
       return newCart;
     }
 
-    return existingCart;
+    return existingCart[0];
   },
 
   async addItem(programId: number, price: number) {

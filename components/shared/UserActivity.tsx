@@ -15,10 +15,15 @@ const UserActivityTracker: React.FC = () => {
     const { user } = useAuth();
 
     const isLearningPath = (path: string) => {
-        const courseLessonPattern = /^\/learn\/[^\/]+\/courses\/[^\/]+\/lessons\/[^\/]+$/;
-        const courseVideoPattern = /^\/learn\/[^\/]+\/courses\/[^\/]+\/videos\/[^\/]+$/;
-        const quizPattern = /^\/learn\/[^\/]+\/quizzes\/[^\/]+\/[^\/]+$/;
-        return courseLessonPattern.test(path) || quizPattern.test(path) || courseVideoPattern.test(path);
+        console.log("path", path);
+        const patterns = [
+            /^\/learn\/[^\/]+\/courses\/[^\/]+\/lessons\/[^\/]+$/, // accapter quand l'utilisateur est sur une leçon
+            /^\/learn\/[^\/]+\/courses\/[^\/]+\/videos\/[^\/]+$/, // accapter quand l'utilisateur est sur une video
+            /^\/learn\/[^\/]+\/quizzes\/[^\/]+\/[^\/]+$/, // accapter quand l'utilisateur est sur un quiz
+            /^\/learn\/[^\/]+\/anales\/[^\/]+\/.+$/, // accapter quand l'utilisateur est sur une ancienne epreuve
+            /^\/learn\/[^\/]+\/exercices\/[^\/]+$/ // accapter quand l'utilisateur est sur un exercice
+        ];
+        return patterns.some(pattern => pattern.test(path));
     };
 
     const startSession = async () => {

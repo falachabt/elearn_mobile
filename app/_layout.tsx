@@ -38,7 +38,7 @@ export default function RootLayout() {
   return (
     <Provider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ animation: "slide_from_left", headerShown: false }}>
+        <Stack  screenOptions={{ animation: "slide_from_left", headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(app)" />
