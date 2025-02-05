@@ -335,6 +335,7 @@ const styles = StyleSheet.create({
   pathImage: {
     width: '100%',
     height: 120,
+    objectFit: "cover",
     backgroundColor: theme.color.gray[600],
   },
   pathContent: {

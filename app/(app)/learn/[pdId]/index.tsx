@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabase";
 import TopBar from "@/components/TopBar";
 import { theme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useAuth } from "@/contexts/auth";
 
 interface ActionCard {
   id: string;
@@ -39,26 +40,27 @@ interface ActionCard {
 const ProgramDetails = () => {
   const local = useLocalSearchParams();
   const id = local.pdId;
+
+  
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { user } = useAuth();
+  const [courseProgress, setCourseProgress] = useState<{
+    completed: number;
+    percentage: number;
+  }>({ completed: 0, percentage: 0 });
+  const [quizProgress, setQuizProgress] = useState<{
+    completed: number;
+    percentage: number;
+  }>({ completed: 0, percentage: 0 });
 
-  // Simulate progress hooks
-  const useSimulatedProgress = () => {
-    const [progress, setProgress] = useState({
-      courseProgress: Math.floor(Math.random() * 100),
-      quizProgress: Math.floor(Math.random() * 100),
-    });
-    return progress;
-  };
 
-  const { data: program } = useSWR(
-    id ? `program-${id}` : null,
-    async () => {
-      const { data, error } = await supabase
-        .from("learning_paths")
-        .select(
-          `
+  const { data: programData } = useSWR(id ? `program-${id}` : null, async () => {
+    const { data, error } = await supabase
+      .from("learning_paths")
+      .select(
+        `
           *,
           course_learningpath(*),
           quiz_learningpath(*),
@@ -69,15 +71,94 @@ const ProgramDetails = () => {
             )
           )
           `
-        )
-        .eq("id", id)
-        .single();
-      return data;
+      )
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching program:", error);
+      return null;
     }
-  );
+
+    const { data: courseProgressData, error: courseProgressError } = await supabase
+      .from("course_progress_summary")
+      .select("*")
+      .eq("user_id", user?.id)
+      .in(
+        "course_id",
+        data?.course_learningpath?.map((c: any) => c.courseId) || []
+      );
+
+    const { data: quizData, error: quizError } = await supabase
+      .from("quiz_attempts")
+      .select("quiz_id, score, status")
+      .eq("user_id", user?.id)
+      .in(
+        "quiz_id",
+        data?.quiz_learningpath?.map((q: any) => q.quizId) || []
+      )
+      .eq("status", "completed")
+      .gte("score", 80);
+
+    if (courseProgressError || quizError) {
+      console.error("Error fetching progress:", courseProgressError || quizError);
+      return {
+        program: data,
+        courseProgress: {
+          completed: 0,
+          percentage: 0,
+        },
+        quizProgress: {
+          completed: 0,
+          percentage: 0,
+        },
+      };
+    }
+
+    const totalCourses = data?.course_learningpath?.length || 0;
+    const totalCourseProgress =
+      courseProgressData?.reduce((acc, course) => {
+        return acc + Math.min(course.progress_percentage, 100);
+      }, 0) || 0;
+
+    const courseProgress = totalCourses
+      ? (totalCourseProgress / (totalCourses * 100)) * 100
+      : 0;
+    const courseCompleted =
+      courseProgressData?.filter((course) => course.progress_percentage === 100).length ||
+      0;
+
+    const totalQuizzes = data?.quiz_learningpath?.length || 0;
+
+    const quizProgress =
+      totalQuizzes && quizData
+        ? (quizData.length / data?.quiz_learningpath?.length) * 100
+        : 0;
+
+    return {
+      program: data,
+      courseProgress: {
+        completed: courseCompleted,
+        percentage: courseProgress,
+      },
+      quizProgress: {
+        completed: quizData?.length || 0,
+        percentage: quizProgress,
+      },
+    };
+  }, { revalidateOnFocus: true, revalidateOnReconnect: true, refreshInterval: 10000 });
+
+  const program = programData?.program;
+
+  useEffect(() => {
+    if (programData) {
+      setCourseProgress(programData.courseProgress);
+      setQuizProgress(programData.quizProgress);
+    }
+  }, [programData]);
 
   // Get simulated progress
-  const { courseProgress, quizProgress } = useSimulatedProgress();
+  // const {  } = useSimulatedProgress();
 
   // Calculate counts and total progress
   const totalCourses = program?.course_learningpath?.length || 0;
@@ -86,7 +167,8 @@ const ProgramDetails = () => {
   const totalProgress = useMemo(() => {
     if (!totalCourses && !totalQuizzes) return 0;
     return Math.round(
-      (courseProgress * totalCourses + quizProgress * totalQuizzes) /
+      (courseProgress?.percentage * totalCourses +
+        quizProgress?.percentage * totalQuizzes) /
         (totalCourses + totalQuizzes)
     );
   }, [courseProgress, quizProgress, totalCourses, totalQuizzes]);
@@ -104,9 +186,9 @@ const ProgramDetails = () => {
           title: "Cours",
           subtitle: "Continuez votre apprentissage",
           progress: {
-            current: courseProgress,
+            current: courseProgress?.completed || 0,
             total: program.course_count || 0,
-            percentage: (courseProgress / (program.course_count || 1)) * 100,
+            percentage: courseProgress?.percentage,
           },
           icon: (
             <MaterialCommunityIcons
@@ -119,10 +201,18 @@ const ProgramDetails = () => {
           color: isDark ? "#6EE7B7" : "#4CAF50",
           rightContent: (
             <View style={styles.progressIndicator}>
-              <ThemedText style={[styles.progressText, isDark && styles.progressTextDark]}>
-                {courseProgress}/{program.course_count || 0}
+              <ThemedText
+                style={[styles.progressText, isDark && styles.progressTextDark]}
+              >
+                {courseProgress?.completed}/
+                {program.course_learningpath?.length || 0}
               </ThemedText>
-              <ThemedText style={[styles.progressLabel, isDark && styles.progressLabelDark]}>
+              <ThemedText
+                style={[
+                  styles.progressLabel,
+                  isDark && styles.progressLabelDark,
+                ]}
+              >
                 cours complétés
               </ThemedText>
             </View>
@@ -130,12 +220,12 @@ const ProgramDetails = () => {
         },
         {
           id: "practice",
-          title: "Quiz & Exercices",
+          title: "Quiz",
           subtitle: "Testez vos connaissances",
           progress: {
-            current: quizProgress,
-            total: program.quiz_count || 0,
-            percentage: (quizProgress / (program.quiz_count || 1)) * 100,
+            current: quizProgress?.completed || 0,
+            total: program.quiz_learningpathh?.length || 0,
+            percentage: quizProgress?.percentage,
           },
           icon: (
             <MaterialCommunityIcons
@@ -145,17 +235,40 @@ const ProgramDetails = () => {
             />
           ),
           route: `/(app)/learn/${id}/quizzes`,
+
           color: isDark ? "#60A5FA" : "#2196F3",
           rightContent: (
             <View style={styles.progressIndicator}>
-              <ThemedText style={[styles.progressText, isDark && styles.progressTextDark]}>
-                {quizProgress}/{program.quiz_count || 0}
+              <ThemedText
+                style={[styles.progressText, isDark && styles.progressTextDark]}
+              >
+                {quizProgress?.completed}/
+                {program.quiz_learningpath?.length || 0}
               </ThemedText>
-              <ThemedText style={[styles.progressLabel, isDark && styles.progressLabelDark]}>
+              <ThemedText
+                style={[
+                  styles.progressLabel,
+                  isDark && styles.progressLabelDark,
+                ]}
+              >
                 quiz complétés
               </ThemedText>
             </View>
           ),
+        },
+        {
+          id: "exos",
+          title: "Exercices de révision",
+          subtitle: "Mémorisez efficacement",
+          icon: (
+            <MaterialCommunityIcons
+              name="card-text-outline"
+              size={24}
+              color={isDark ? "#E879F9" : "#9C27B0"}
+            />
+          ),
+          route: `/(app)/learn/${id}/exercices`,
+          color: isDark ? "#E879F9" : "#9C27B0",
         },
         {
           id: "pastExams",
@@ -171,20 +284,7 @@ const ProgramDetails = () => {
           route: `/(app)/learn/${id}/anales`,
           color: isDark ? "#FBBF24" : "#FF9800",
         },
-        // {
-        //   id: "flashcards",
-        //   title: "Flashcards",
-        //   subtitle: "Mémorisez efficacement",
-        //   icon: (
-        //     <MaterialCommunityIcons
-        //       name="card-text-outline"
-        //       size={24}
-        //       color={isDark ? "#E879F9" : "#9C27B0"}
-        //     />
-        //   ),
-        //   route: `/(app)/learn/${id}/flashcards`,
-        //   color: isDark ? "#E879F9" : "#9C27B0",
-        // },
+
         // {
         //   id: "leaderboard",
         //   title: "Classement",
@@ -239,16 +339,23 @@ const ProgramDetails = () => {
     >
       <View style={styles.cardMain}>
         <View
-          style={[styles.iconContainer, { backgroundColor: card.color + (isDark ? "20" : "10") }]}
+          style={[
+            styles.iconContainer,
+            { backgroundColor: card.color + (isDark ? "20" : "10") },
+          ]}
         >
           {card.icon}
         </View>
         <View style={styles.cardContent}>
-          <ThemedText style={[styles.cardTitle, isDark && styles.cardTitleDark]}>
+          <ThemedText
+            style={[styles.cardTitle, isDark && styles.cardTitleDark]}
+          >
             {card.title}
           </ThemedText>
           {card.subtitle && (
-            <ThemedText style={[styles.cardSubtitle, isDark && styles.cardSubtitleDark]}>
+            <ThemedText
+              style={[styles.cardSubtitle, isDark && styles.cardSubtitleDark]}
+            >
               {card.subtitle}
             </ThemedText>
           )}
@@ -263,7 +370,7 @@ const ProgramDetails = () => {
               style={[
                 styles.progressFill,
                 {
-                  width: `${card.progress.percentage}%`,
+                  width: `${card.progress?.percentage}%`,
                   backgroundColor: card.color,
                 },
               ]}
@@ -278,28 +385,35 @@ const ProgramDetails = () => {
     <View style={[styles.container, isDark && styles.containerDark]}>
       {/* <TopBar userName="uu" xp={2} onChangeProgram={() => {}} streaks={0} /> */}
       <View style={[styles.header, isDark && styles.headerDark]}>
-          <Image
-            source={{
-              uri: `https://api.dicebear.com/9.x/thumbs/png?seed=${program?.title}`,
-            }}
-            style={styles.headerImage}
-          />
-          <View style={styles.headerContent}>
-            <ThemedText style={[styles.programTitle, isDark && styles.programTitleDark]}>
-              {program?.title}
-            </ThemedText>
-            <ThemedText style={[styles.concoursName, isDark && styles.concoursNameDark]}>
-              {program?.concours_learningpaths?.[0]?.concour?.name} .{" "}
-              {program?.concours_learningpaths?.[0]?.concour?.school?.name}
-            </ThemedText>
-          </View>
+        <Image
+          source={{
+            uri: `https://api.dicebear.com/9.x/thumbs/png?seed=${program?.title}`,
+          }}
+          style={styles.headerImage}
+        />
+        <View style={styles.headerContent}>
+          <ThemedText
+            style={[styles.programTitle, isDark && styles.programTitleDark]}
+          >
+            {program?.title}
+          </ThemedText>
+          <ThemedText
+            style={[styles.concoursName, isDark && styles.concoursNameDark]}
+          >
+            {program?.concours_learningpaths?.concour?.name}  .
+
+            {program?.concours_learningpaths?.concour?.school?.name}
+          </ThemedText>
         </View>
+      </View>
       <ScrollView
-        style={[styles.container, isDark && styles.containerDark, { marginBottom: 80 }]}
+        style={[
+          styles.container,
+          isDark && styles.containerDark,
+          { marginBottom: 80 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-     
-
         <View style={styles.cardsContainer}>
           {actionCards.map((card) => (
             <ActionCard key={card.id} card={card} />
@@ -322,7 +436,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     padding: 16,
     display: "flex",
-    flexDirection: "row", 
+    flexDirection: "row",
     gap: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",

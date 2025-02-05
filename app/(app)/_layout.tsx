@@ -43,7 +43,9 @@ export default function AppLayout() {
           tabBarItemStyle: styles.tabItem,
           tabBarButton: (props) => <CustomTabBarButton {...props} isDarkMode={isDarkMode} />,
           tabBarLabelStyle: styles.tabLabel,
+          
         }}
+        
         screenListeners={{
           tabPress: (e) => {
             const target = e.target?.split('-')[0];

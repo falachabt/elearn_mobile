@@ -60,8 +60,10 @@ export const useCart = () => {
 
   const addToCart = async (programId: number, price: number) => {
     try {
-      await CartService.addItem(programId, price);
+    const { data , error } =  await CartService.addItem(programId, price);
 
+    if(error) throw new Error('Erreur lors de l\'ajout au panier');
+    
       await mutate(CART_KEY);
     } catch (err) {
       throw new Error('Erreur lors de l\'ajout au panier');

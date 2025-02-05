@@ -8,6 +8,7 @@ export const unstable_settings = {
 export default function ProgramLayout() {
   return (
     <Stack
+    
    key={"learn"}
     initialRouteName="index"
       screenOptions={{
@@ -20,7 +21,7 @@ export default function ProgramLayout() {
         name="index" 
       />
       <Stack.Screen 
-        name="[pdId]" 
+        name="[pdId]"
       />
     </Stack>
   );
