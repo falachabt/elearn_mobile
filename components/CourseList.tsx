@@ -19,6 +19,8 @@ interface CourseListProps {
   pdId: string;
 }
 
+
+// TODO : Add loading skeleton for course list items and program header info and categories 
 const CourseList: React.FC<CourseListProps> = ({ pdId }) => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");

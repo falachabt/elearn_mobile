@@ -2,6 +2,9 @@
 import { supabase } from '@/lib/supabase';
 import { QuizQuestion, QuizAttempt, QuizResults } from '@/types/quiz.type';
 
+
+
+// TODO - on database increment the user total_xp
 export class QuizService {
     /**
      * Create a new quiz attempt

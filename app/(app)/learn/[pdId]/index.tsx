@@ -1,26 +1,14 @@
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  Pressable,
-  Image,
-  Platform,
-  Text,
-} from "react-native";
-import React, { useState, useMemo, useEffect } from "react";
-import { ThemedText } from "@/components/ThemedText";
-import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
-import {
-  useGlobalSearchParams,
-  useLocalSearchParams,
-  useRouter,
-} from "expo-router";
+import {Image, Platform, Pressable, ScrollView, StyleSheet, View,} from "react-native";
+import React, {useEffect, useMemo, useState} from "react";
+import {ThemedText} from "@/components/ThemedText";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {useLocalSearchParams, useRouter,} from "expo-router";
 import useSWR from "swr";
-import { supabase } from "@/lib/supabase";
-import TopBar from "@/components/TopBar";
-import { theme } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { useAuth } from "@/contexts/auth";
+import {supabase} from "@/lib/supabase";
+import {theme} from "@/constants/theme";
+import {useColorScheme} from "@/hooks/useColorScheme";
+import {useAuth} from "@/contexts/auth";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
 
 interface ActionCard {
   id: string;
@@ -40,6 +28,7 @@ interface ActionCard {
 const ProgramDetails = () => {
   const local = useLocalSearchParams();
   const id = local.pdId;
+  const { trigger } = useHaptics();
 
   
   const router = useRouter();
@@ -98,7 +87,7 @@ const ProgramDetails = () => {
         data?.quiz_learningpath?.map((q: any) => q.quizId) || []
       )
       .eq("status", "completed")
-      .gte("score", 80);
+      .gte("score", 70);
 
     if (courseProgressError || quizError) {
       console.error("Error fetching progress:", courseProgressError || quizError);
@@ -335,7 +324,11 @@ const ProgramDetails = () => {
   const ActionCard = ({ card }: { card: ActionCard }) => (
     <Pressable
       style={[styles.card, isDark && styles.cardDark]}
-      onPress={() => router.push(card.route as any)}
+      onPress={() =>
+      {
+        trigger(HapticType.LIGHT);
+          router.push(card.route as any)}
+      }
     >
       <View style={styles.cardMain}>
         <View

@@ -58,7 +58,7 @@ const formatDuration = (seconds: number): string => {
 const getStatusConfig = (status: string, score: number): { icon: string; color: string; label: string } => {
     switch (status) {
         case 'completed':
-            if (score >= 80) {
+            if (score >= 70) {
                 return {
                     icon: 'check-circle',
                     color: theme.color.success,

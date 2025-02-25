@@ -131,7 +131,8 @@ const VideoPlayerScreen = () => {
 
             <View style={styles.videoWrapper}>
                 <View style={styles.videoContainer}>
-                    <VideoView 
+                    <VideoView
+
                         style={styles.video} 
                         player={player} 
                         allowsFullscreen 

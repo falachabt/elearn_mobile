@@ -9,7 +9,13 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ezadrive.elearn",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
     },
     "android": {
       "package": "com.ezadrive.elearn",
@@ -17,7 +23,10 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#4CAF50"
-      }
+      },
+      "permissions": [
+        "NOTIFICATIONS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -33,19 +42,7 @@
           "imageWidth": 200,
           "resizeMode": "cover",
           "backgroundColor": "#059669",
-          "fill" : "#059669"
-        }
-      ],
-      [
-        "react-native-video",
-        {
-          "enableNotificationControls": true,
-          "androidExtensions": {
-            "useExoplayerRtsp": false,
-            "useExoplayerSmoothStreaming": false,
-            "useExoplayerHls": false,
-            "useExoplayerDash": false
-          }
+          "fill": "#059669"
         }
       ],
       [
@@ -54,7 +51,16 @@
           "supportsBackgroundPlayback": true,
           "supportsPictureInPicture": true
         }
-
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#4CAF50",
+          "sounds": [
+            "./assets/sounds/notification.wav"
+          ]
+        }
       ]
     ],
     "experiments": {

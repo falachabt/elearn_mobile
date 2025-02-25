@@ -1,22 +1,25 @@
 // src/providers/index.tsx
-import { AuthProvider } from "@/contexts/auth";
-import { ConfigProvider } from "antd-mobile";
-import { AppState, AppStateStatus, BackHandler } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SWRConfig } from "swr";
-import { useEffect } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { QuizProvider } from "@/contexts/quizContext";
-import { UserProvider } from "@/contexts/useUserInfo";
+import {AuthProvider} from "@/contexts/auth";
+import {ConfigProvider} from "antd-mobile";
+import {AppState, AppStateStatus, BackHandler} from "react-native";
+import {GestureHandlerRootView} from "react-native-gesture-handler";
+import {SWRConfig} from "swr";
+import {useEffect} from "react";
+import {useLocalSearchParams, useRouter} from "expo-router";
+import {QuizProvider} from "@/contexts/quizContext";
+import {UserProvider} from "@/contexts/useUserInfo";
 import UserActivityTracker from "@/components/shared/UserActivity";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
 
 export function Provider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { quizId, attempId } = useLocalSearchParams()
+  const { quizId, attempId } = useLocalSearchParams();
+  const { trigger } = useHaptics();
 
   useEffect(() => {
     const backAction = () => {
       console.log("backAction");
+        trigger(HapticType.LIGHT);
       // Intercept the back button press and navigate using the Expo Router
       router.back();
       return true; // Return true to prevent the default behavior

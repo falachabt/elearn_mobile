@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
-import { MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
-import { theme } from '@/constants/theme';
-import { useAuth } from '@/contexts/auth';
-import { Link } from 'expo-router';
+import {View, Text, StyleSheet, TouchableOpacity, Image, Platform} from 'react-native';
+import {MaterialCommunityIcons, FontAwesome5} from '@expo/vector-icons';
+import {theme} from '@/constants/theme';
+import {useAuth} from '@/contexts/auth';
+import {Link, useRouter} from 'expo-router';
 
 interface TopBarProps {
     userName: string;
@@ -12,20 +12,22 @@ interface TopBarProps {
     onChangeProgram: () => void;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ userName, streaks, xp, onChangeProgram }) => {
-    const { user,  } = useAuth();
+const TopBar: React.FC<TopBarProps> = ({userName, streaks, xp, onChangeProgram}) => {
+    const {user,} = useAuth();
+    const router = useRouter();
+
     return (
         <View style={styles.container}>
             {/* Profile and Stats Row */}
             <View style={styles.mainRow}>
                 <View style={styles.profileSection}>
-                <Link href={'/(app)/profile'} asChild >
-                    <Image 
-                        // source={{ uri: `https://avatars.dicebear.com/api/initials/${userName}.png` }} 
-                        source={{ uri: user?.image?.url || "https://api.dicebear.com/9.x/initials/png?&seed="+userName }} 
-                        style={styles.profileImage} 
+                    <Link href={'/(app)/profile'}>
+                        <Image
+                            // source={{ uri: `https://avatars.dicebear.com/api/initials/${userName}.png` }}
+                            source={{uri: user?.image?.url || "https://api.dicebear.com/9.x/initials/png?&seed=" + userName}}
+                            style={styles.profileImage}
                         />
-                        </Link> 
+                    </Link>
 
                     <View style={styles.userInfo}>
                         <Text style={styles.userName}>{user?.firstname}</Text>
@@ -35,20 +37,20 @@ const TopBar: React.FC<TopBarProps> = ({ userName, streaks, xp, onChangeProgram 
 
                 <View style={styles.statsSection}>
                     <View style={styles.statItem}>
-                        <MaterialCommunityIcons name="star" size={20} color="#FFD700" />
-                        
+                        <MaterialCommunityIcons name="star" size={20} color="#FFD700"/>
+
                         <Text style={styles.statValue}>{user?.user_xp?.total_xp || 0}</Text>
                     </View>
 
-                    <View style={styles.statDivider} />
+                    <View style={styles.statDivider}/>
 
                     <View style={styles.statItem}>
-                        <FontAwesome5 name="fire" size={20} color="#FF4500" />
+                        <FontAwesome5 name="fire" size={20} color="#FF4500"/>
                         <Text style={styles.statValue}>{user?.user_streaks.current_streak}</Text>
                     </View>
 
-                    <TouchableOpacity style={styles.programButton} onPress={onChangeProgram}>
-                        <MaterialCommunityIcons name="book-open-variant" size={20} color="#FFF" />
+                    <TouchableOpacity style={styles.programButton} onPress={() => router.push('/(app)/learn')}>
+                        <MaterialCommunityIcons name="book-open-variant" size={20} color="#FFF"/>
                     </TouchableOpacity>
                 </View>
             </View>

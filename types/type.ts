@@ -26,7 +26,7 @@ export interface Accounts {
   genre: string | null;
   authId: string;
   defpass: string | null;
-  image: Json | null;
+  image: Json | { url : string } | null;
   groups: string[] | null;
   id: string;
   phone: number | null;

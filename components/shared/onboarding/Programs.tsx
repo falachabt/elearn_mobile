@@ -16,7 +16,9 @@ interface Program {
     quiz_count: number;
     status: string;
     duration: string;
-    image: string;
+    image: {
+        src: string;
+    };
   };
   concour: {
     name: string;
@@ -119,7 +121,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
             ]}
             level={program.learning_path.status}
             duration={program.learning_path.duration}
-            image={program.learning_path.image}
+            image={program.learning_path.image?.src}
             courseCount={program.learning_path.course_count}
             quizCount={program.learning_path.quiz_count}
             concoursName={program.concour.name}
