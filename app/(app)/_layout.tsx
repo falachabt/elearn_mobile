@@ -1,27 +1,28 @@
-import React, { ReactNode } from "react";
-import { router, Tabs, useNavigation, Redirect } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useAuth } from "@/contexts/auth";
+import React, {ReactNode} from "react";
+import {Redirect, router, Tabs, useNavigation} from "expo-router";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {useAuth} from "@/contexts/auth";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-  useColorScheme,
-  GestureResponderEvent,
   AccessibilityState,
+  GestureResponderEvent,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  useColorScheme,
+  View,
 } from "react-native";
-import { theme } from "@/constants/theme";
-import { SafeAreaView } from "react-native-safe-area-context";
-import {  useSWRConfig } from "swr";
+import {theme} from "@/constants/theme";
+import {SafeAreaView} from "react-native-safe-area-context";
+import {useSWRConfig} from "swr";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
 
 export default function AppLayout() {
   const { session, isLoading, user } = useAuth();
   const navigation = useNavigation();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
-  const { refreshInterval, mutate, cache, ...restConfig } = useSWRConfig()
+  const { refreshInterval, mutate, cache, ...restConfig } = useSWRConfig();
+  const { trigger } = useHaptics();
 
   if (!isLoading && !session) {
     return <Redirect href="/(auth)" />;
@@ -50,6 +51,9 @@ export default function AppLayout() {
           tabPress: (e) => {
             const target = e.target?.split('-')[0];
             mutate("*")
+
+
+            trigger(HapticType.SELECTION);
 
             if(target === 'index') {
               mutate(`userPrograms-${user.id}`);
@@ -80,7 +84,7 @@ export default function AppLayout() {
         <Tabs.Screen
           name="learn"
           options={{
-            title: "Learn",
+            title: "Apprendre",
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="book-open-variant"
@@ -102,7 +106,7 @@ export default function AppLayout() {
         />
 
         <Tabs.Screen
-          name="profile/index"
+          name="profile"
           options={{
             title: "Profile",
             tabBarIcon: ({ color, size }) => (

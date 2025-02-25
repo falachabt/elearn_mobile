@@ -458,7 +458,7 @@ const register = () => {
           ) : (
             <>
               <View style={styles.otpContainer}>
-                <OTPInput otp={otp} setOtp={setOtp} isOtpValid={isOtpValid} />
+                <OTPInput value={otp} onChangeText={setOtp} isError={!isOtpValid} />
                 <View style={styles.countdownContainer}>
                   <Text style={styles.countdownText}>00:30</Text>
                   <TouchableOpacity onPress={handleResendOtp}>

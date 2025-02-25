@@ -41,7 +41,7 @@ export interface Course {
   };
 }
 
-type FilterType = 'all' | 'school' | 'course';
+type FilterType = 'Ingénieurie' | 'Médécine' | 'Autres';
 
 export default function ShopPage() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -49,7 +49,7 @@ export default function ShopPage() {
   const [selectedProgram, setSelectedProgram] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterType>("Ingénieurie");
   const { cartItems, addToCart, removeFromCart } = useCart();
   const isDark = useColorScheme() === "dark";
   const router = useRouter();
@@ -123,12 +123,12 @@ export default function ShopPage() {
 
     // Apply category filter
     switch (activeFilter) {
-      case 'school':
+      case 'Ingénieurie':
         filtered = filtered.sort((a, b) => 
           a.concour.school.name.localeCompare(b.concour.school.name)
         );
         break;
-      case 'course':
+      case 'Médécine':
         filtered = filtered.sort((a, b) => 
           a.course_count === b.course_count 
             ? 0 
@@ -163,7 +163,7 @@ export default function ShopPage() {
 
   const renderFilters = () => (
     <View style={styles.filtersContainer}>
-      {(['all', 'school', 'course'] as FilterType[]).map((filter) => (
+      {(["Ingénieurie", "Médécine", "Autres"] as FilterType[]).map((filter) => (
         <TouchableOpacity
           key={filter}
           style={[
@@ -180,9 +180,13 @@ export default function ShopPage() {
               activeFilter === filter && styles.activeFilterText,
               isDark && styles.filterTextDark,
               activeFilter === filter && isDark && styles.activeFilterTextDark,
+              {
+                width: "100%",
+                padding: 0,
+              }
             ]}
           >
-            {filter === 'all' ? 'Tous' : filter === 'school' ? 'École' : 'Cours'}
+            {filter }
           </Text>
         </TouchableOpacity>
       ))}
@@ -217,7 +221,7 @@ export default function ShopPage() {
         style={[styles.resetButton, isDark && styles.resetButtonDark]}
         onPress={() => {
           setSearchQuery('');
-          setActiveFilter('all');
+          setActiveFilter('Ingénieurie');
           fetchCourses()
         }}
       >
@@ -404,7 +408,7 @@ const styles = StyleSheet.create({
     borderColor: theme.color.primary[600],
   },
   filterText: {
-    fontSize: theme.typography.fontSize.small,
+    // fontSize: theme.typography.fontSize.,
     color: theme.color.text,
   },
   filterTextDark: {

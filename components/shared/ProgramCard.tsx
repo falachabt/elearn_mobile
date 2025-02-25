@@ -29,7 +29,7 @@ interface ProgramCardProps {
 
 const getDefaultImage = (title: string) => {
   const seed = encodeURIComponent(title);
-  return `https://api.dicebear.com/7.x/shapes/png?seed=${seed}&backgroundColor=32A852,4CAF50`;
+  return `https://api.dicebear.com/9.x/shapes/png?seed=${seed}&backgroundColor=32A852,4CAF50`;
 };
 
 export const ProgramCard: React.FC<ProgramCardProps> = ({

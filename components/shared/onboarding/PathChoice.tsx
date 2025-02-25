@@ -26,7 +26,7 @@ const PathChoice: React.FC<PathChoiceProps> = ({ knowsProgram, setKnowsProgram }
         style={[
           styles.choiceCard,
           isDark && styles.choiceCardDark,
-          knowsProgram === true && (isDark ? styles.choiceCardSelectedDark : styles.choiceCardSelected)
+          knowsProgram && (isDark ? styles.choiceCardSelectedDark : styles.choiceCardSelected)
         ]}
         onPress={() => setKnowsProgram(true)}
       >
@@ -58,7 +58,7 @@ const PathChoice: React.FC<PathChoiceProps> = ({ knowsProgram, setKnowsProgram }
         style={[
           styles.choiceCard,
           isDark && styles.choiceCardDark,
-          knowsProgram === false && (isDark ? styles.choiceCardSelectedDark : styles.choiceCardSelected)
+          !knowsProgram && (isDark ? styles.choiceCardSelectedDark : styles.choiceCardSelected)
         ]}
         onPress={() => setKnowsProgram(false)}
       >

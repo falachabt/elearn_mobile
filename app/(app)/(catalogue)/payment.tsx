@@ -232,8 +232,20 @@ export default function PaymentScreen() {
           style={styles.lottieAnimation}
         />
         <Text style={[styles.statusText, isDark && styles.statusTextDark]}>
-          Validez le paiement sur votre mobile...
+          Validez le paiement
         </Text>
+        <View style={{marginTop: theme.spacing.large}}>
+          <Text style={[styles.statusText, isDark && styles.statusTextDark]}>
+            <MaterialCommunityIcons name="numeric-1-circle" size={20}
+                                    color={theme.color.primary[500]}/> {network === 'mtn' ? 'Composez *126#' : 'Composez #150*4#'} puis
+            validez
+          </Text>
+          <Text style={[styles.statusText, isDark && styles.statusTextDark, {marginTop: theme.spacing.medium}]}>
+            <MaterialCommunityIcons name="numeric-2-circle" size={20} color={theme.color.primary[500]}/> Une fois
+            validé, patientez entre <Text style={{fontWeight: 'bold', color: theme.color.primary[500]}}>1 à 3
+            minutes</Text>
+          </Text>
+        </View>
         <TouchableOpacity 
           style={[styles.actionButton, styles.retryButton]} 
           onPress={handleRetry}

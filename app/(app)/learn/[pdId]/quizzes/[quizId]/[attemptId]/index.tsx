@@ -31,6 +31,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import { QuizResults } from "@/types/quiz.type";
 import QuizResultsDisplay from "@/components/shared/learn/quiz/QuizResultDisplay";
+import BlockNoteContent from "@/components/shared/BlockNoteContent";
 
 // Header component showing progress and timer
 const QuizHeader = ({ isDark }: { isDark: boolean }) => {
@@ -140,11 +141,8 @@ const QuestionContent = ({ isDark }: { isDark: boolean }) => {
 
       {currentQuestion.hasDetails && currentQuestion.details && (
         <View style={styles.detailsContainer}>
-          {currentQuestion.details.map((detail, index) => (
-            <ThemedText key={index} style={styles.detailText}>
-              {detail}
-            </ThemedText>
-          ))}
+              <BlockNoteContent blocks={currentQuestion.details} />
+
         </View>
       )}
     </View>
