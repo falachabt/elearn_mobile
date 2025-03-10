@@ -18,6 +18,8 @@ import {useRouter} from 'expo-router'
 import {theme} from '@/constants/theme'
 import {useProgramProgress} from "@/hooks/useProgramProgress";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
+import NoProgram from "@/components/shared/catalogue/NoProgramCard";
+import ModernLearningPathCard from "@/components/shared/learn/LearningPathCard";
 
 interface School {
     id: string
@@ -45,7 +47,7 @@ interface ConcoursLearningPath {
     concour: Concours
 }
 
-interface LearningPath {
+export interface LearningPath {
     id: string
     title: string
     description: string
@@ -78,37 +80,37 @@ const MyLearningPaths = () => {
             const {data: learningPathsData, error: lpError} = await supabase
                 .from('user_program_enrollments')
                 .select(`
-        concours_learningpaths(  id,
-          price,
-          isActive,
-          learningPathId,
-          concourId,
-          concour:concours(
-            id,
-            name,
-            description,
-            dates,
-            nextDate,
-            schoolId,
-            school:schools(
-              id,
-              name,
-              imageUrl,
-              localisation
-            )
-          ),
-          learning_path:learning_paths(
-            id,
-            title,
-            description,
-            image,
-            duration,
-            content,
-            course_count,
-            quiz_count,
-            total_duration
-        ))
-        `)
+                    concours_learningpaths(  id,
+                      price,
+                      isActive,
+                      learningPathId,
+                      concourId,
+                      concour:concours(
+                        id,
+                        name,
+                        description,
+                        dates,
+                        nextDate,
+                        schoolId,
+                        school:schools(
+                          id,
+                          name,
+                          imageUrl,
+                          localisation
+                        )
+                      ),
+                      learning_path:learning_paths(
+                        id,
+                        title,
+                        description,
+                        image,
+                        duration,
+                        content,
+                        course_count,
+                        quiz_count,
+                        total_duration
+                    ))
+                `)
                 .eq('user_id', user?.id)
 
             if (lpError) throw lpError
@@ -233,7 +235,7 @@ const MyLearningPaths = () => {
             <FlatList
                 data={data}
                 keyExtractor={(item) => item.id + Math.random()}
-                renderItem={({item}) => <LearningPathCard path={item}/>}
+                renderItem={({item}) => <ModernLearningPathCard path={item}/>}
                 contentContainerStyle={styles.listContainer}
                 refreshControl={
                     <RefreshControl
@@ -244,16 +246,7 @@ const MyLearningPaths = () => {
                     />
                 }
                 ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <MaterialCommunityIcons
-                            name="book-open-page-variant"
-                            size={48}
-                            color="#9CA3AF"
-                        />
-                        <Text style={styles.emptyText}>
-                            Vous n'êtes inscrit à aucun parcours pour le moment
-                        </Text>
-                    </View>
+                    <NoProgram/>
                 }
             />
         </View>

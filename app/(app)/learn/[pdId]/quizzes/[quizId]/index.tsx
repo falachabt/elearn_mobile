@@ -51,12 +51,13 @@ const QuizDetail = () => {
 
     });
 
-    const {data: quizAttempts} = useSWR(quizId ? `quiz-attempts-${quizId}` : null, async () => {
+    const {data: quizAttempts} = useSWR(quizId ? `quiz-attempts-${quizId}-${user?.id}` : null, async () => {
 
             const {data} = await supabase
                 .from("quiz_attempts")
                 .select("*, quiz(quiz_questions(count))")
                 .eq("quiz_id", quizId)
+                .eq("user_id", user?.id)
                 .eq("status", "completed"); // Only fetch completed attempts
 
             const {data: quiz_pin} = await supabase

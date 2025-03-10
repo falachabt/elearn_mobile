@@ -99,15 +99,15 @@ const Profile = () => {
         //     label: 'Statistiques',
         //     route: '/profile/statistics',
         // },
-        {
-            icon: <MaterialCommunityIcons name="trophy-outline" size={24} color={theme.color.primary[500]}/>,
-            label: 'Classement',
-            route: '/profile/leaderboard',
-        },
+        // {
+        //     icon: <MaterialCommunityIcons name="trophy-outline" size={24} color={theme.color.primary[500]}/>,
+        //     label: 'Classement',
+        //     route: '/profile/leaderboard',
+        // },
         {
             icon: <Ionicons name="settings-outline" size={24} color={theme.color.primary[500]}/>,
             label: 'Paramètres',
-            route: '/settings',
+            route: '/profile/settings',
         },
         {
             icon: <MaterialCommunityIcons name="credit-card-outline" size={24} color={theme.color.primary[500]}/>,

@@ -85,8 +85,10 @@ const TicketListScreen = () => {
             closed: 'Fermé'
         };
 
+        console.log(item.tickets_messages)
+
         const unreadCount = item.tickets_messages?.filter(
-            (msg: any) => !msg.read_at && msg.sender_id !== user?.id
+            (msg: any) => !msg.read_at && msg.sender_id !== user?.id &&  msg?.sender_id != null
         ).length || 0;
 
         return (

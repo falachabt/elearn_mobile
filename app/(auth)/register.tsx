@@ -1,728 +1,1267 @@
-// app/(auth)/register.tsx
-import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import {useRouter} from "expo-router";
+import React, {useEffect, useRef, useState} from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  GestureResponderEvent,
-  StatusBar,
+    ActivityIndicator,
+    Animated,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+    useColorScheme,
+    GestureResponderEvent,
 } from "react-native";
 
-import { theme } from "@/constants/theme";
-import { useAuth } from "@/contexts/auth";
-import { supabase } from "@/lib/supabase";
-import AntDesign from "@expo/vector-icons/AntDesign";
+import {theme} from "@/constants/theme";
+import {useAuth} from "@/contexts/auth";
+import {supabase} from "@/lib/supabase";
+import {StatusBar} from "expo-status-bar";
 import * as Haptics from "expo-haptics";
-import { Pressable } from "react-native-gesture-handler";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
 import OTPInput from "../../components/ui/OTPInput";
-import CustomMessage from "../../components/shared/CustomMessage";
+import GoogleAuth from "@/components/GoogleLogin";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const register = () => {
-  const router = useRouter();
-  const { signUp, verifyOtp } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [confirmPasswordError, setConfirmPasswordError] = useState("");
-  const [attemptCount, setAttemptCount] = useState(0);
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [countdown, setCountdown] = useState(60);
-  const [otpError, setOtpError] = useState("");
-  const [isChecked, setIsChecked] = useState(false);
-  const [isOtpStep, setIsOtpStep] = useState(false);
-  const [isOtpValid, setIsOtpValid] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1); // 1: Email, 2: OTP
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("");
+interface ToastProps {
+    visible: boolean;
+    message: string;
+    type: 'error' | 'success' | 'warning' | 'info';
+    onDismiss: () => void;
+    action?: {
+        label: string;
+        onPress: () => void;
+    } | null;
+}
 
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+// Toast Component
+const Toast: React.FC<ToastProps> = ({visible, message, type, onDismiss, action}) => {
+    const translateY = useRef(new Animated.Value(70)).current;
+    const opacity = useRef(new Animated.Value(0)).current;
 
-  // Refs for focus management
-  const passwordRef = useRef<TextInput>(null);
-  const confirmPasswordRef = useRef<TextInput>(null);
+    React.useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.timing(translateY, {
+                    toValue: 0,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(opacity, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                })
+            ]).start();
 
-  // Animate component mount
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+            // Auto hide after 5 seconds
+            const timer = setTimeout(() => {
+                hideToast();
+            }, 5000);
 
-  const shakeError = () => {
-    Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: -10,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const validateEmail = (email: string) => {
-    if (!email) {
-      setEmailError("Email is required");
-      return false;
-    }
-    if (!EMAIL_REGEX.test(email)) {
-      setEmailError("Please enter a valid email");
-      return false;
-    }
-    setEmailError("");
-    return true;
-  };
-
-  const validatePassword = (password: string) => {
-    if (!password) {
-      setPasswordError("Password is required");
-      return false;
-    }
-    if (password.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
-      return false;
-    }
-    setPasswordError("");
-    return true;
-  };
-
-  const validateConfirmPassword = (
-    password: string,
-    confirmPassword: string
-  ) => {
-    if (password !== confirmPassword) {
-      setConfirmPasswordError("Passwords do not match");
-      return false;
-    }
-    setConfirmPasswordError("");
-    return true;
-  };
-
-  interface MessageTypes {
-    error: 'error';
-    success: 'success';
-    warning: 'warning';
-    info: 'info';
-  }
-
-  const showMessage = (msg: string, type: keyof MessageTypes = "error"): void => {
-    setMessage(msg);
-    setMessageType(type);
-    setTimeout(() => {
-      setMessage("");
-    }, 3000);
-  };
-
-  const handleSignUp = async () => {
-    try {
-      // Validate fields
-      const isEmailValid = validateEmail(email);
-      const isPasswordValid = validatePassword(password);
-      const isConfirmPasswordValid = validateConfirmPassword(
-        password,
-        confirmPassword
-      );
-
-      if (!isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
-        shakeError();
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-
-      setIsLoading(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-      await signUp(email, password);
-
-      setOtpSent(true);
-      setIsOtpStep(true);
-      setCurrentStep(2);
-      startCountdown();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (error: any) {
-      setAttemptCount((prev) => prev + 1);
-      shakeError();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      if(error.message == "email exists"){
-        showMessage("Email already exists", "error")
-      }
-      
-      Alert.alert(
-        "Erreur",
-        "Une erreur inattendue s'est produite. Veuillez réessayer."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const startCountdown = () => {
-    setCountdown(60);
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev === 1) {
-          clearInterval(interval);
+            return () => clearTimeout(timer);
         }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+    }, [visible]);
 
-  useEffect( () => {
-    if(otp?.length === 6){
-      setIsOtpValid(true)
-    }else{
-      setIsOtpValid(false)
-    }
-  }, [otp] )
+    const hideToast = (): void => {
+        Animated.parallel([
+            Animated.timing(translateY, {
+                toValue: 70,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.timing(opacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            })
+        ]).start(() => {
+            if (onDismiss) onDismiss();
+        });
+    };
 
-  const handleVerifyOtp = async () => {
-    try {
+    const getBackgroundColor = (): string => {
+        switch (type) {
+            case 'error':
+                return theme.color.error;
+            case 'success':
+                return '#4CAF50';
+            case 'warning':
+                return '#FF9800';
+            default:
+                return theme.color.primary[500];
+        }
+    };
 
-      setIsLoading(true);
-      await verifyOtp(email, otp, password);
-    } catch (error) {
-      console.error("Error verifying OTP:", error);
-      Alert.alert("Error", "Failed to verify OTP. Please try again.");
-     
-    }
-  };
+    const getIcon = (): string => {
+        switch (type) {
+            case 'error':
+                return 'alert-circle';
+            case 'success':
+                return 'check-circle';
+            case 'warning':
+                return 'alert';
+            default:
+                return 'information';
+        }
+    };
 
-  const handleEmailChange = (text: string) => {
-    setEmail(text);
-  };
+    if (!visible) return null;
 
-  const handleOtpChange = (text: string) => {
-    setOtp(text);
-    setIsOtpValid(text.length === 6);
-  };
-
-  const modifyEmail = () => {
-    setCurrentStep(1);
-    setIsOtpStep(false);
-    setOtp("");
-
-  }
-
-  const handleResendOtp = async () => {
-    try {
-      setIsLoading(true);
-      // Logic to resend OTP
-      await supabase.auth.signInWithOtp({ email });
-      setCountdown(60);
-      startCountdown();
-      Alert.alert("OTP Resent", "A new OTP has been sent to your email.");
-    } catch (error) {
-      Alert.alert("Error", "Failed to resend OTP. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleModifyEmail = (event: GestureResponderEvent) => {
-    setCurrentStep(1);
-    setIsOtpStep(false);
-    setOtp("");
-  };
-
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <StatusBar backgroundColor={theme.color.primary[500]} barStyle="dark-content" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-      >
+    return (
         <Animated.View
-          style={[
-            styles.formContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }, { translateX: shakeAnim }],
-            },
-          ]}
+            style={[
+                styles.toastContainer,
+                {
+                    backgroundColor: getBackgroundColor(),
+                    transform: [{translateY}],
+                    opacity,
+                }
+            ]}
         >
-          <View style={styles.lo}>
-            {/* <Image
-              source={require("@/assets/images/icon.png")}
-              style={styles.logo}
-            /> */}
-            <Text style={styles.title}>
-              {" "}
-              {currentStep == 1 ? "Inscription" : "Confirmez votre email"}{" "}
-            </Text>
-          </View>
-          <Text style={styles.subtitle}>
-            {currentStep == 1
-              ? "Inscrivez-vous pour continuer"
-              : "Entrez le code à 6 chiffre envoyé à votre adresse mail " +
-                email}{" "}
-          </Text>
-
-          {!isOtpStep ? (
-            <>
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                  style={[styles.input, emailError && styles.inputError]}
-                  placeholder="Enter your email"
-                  value={email}
-                  onChangeText={(text) => {
-                    setEmail(text);
-                    if (emailError) validateEmail(text);
-                  }}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  returnKeyType="next"
-                  onSubmitEditing={() => passwordRef.current?.focus()}
-                  blurOnSubmit={false}
-                />
-                {emailError ? (
-                  <Text style={styles.errorText}>{emailError}</Text>
-                ) : null}
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    ref={passwordRef}
-                    style={[styles.input, passwordError && styles.inputError]}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChangeText={(text) => {
-                      setPassword(text);
-                      if (passwordError) validatePassword(text);
-                    }}
-                    secureTextEntry={!showPassword}
-                    returnKeyType="next"
-                    onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <AntDesign name="eye" size={24} color="black" />
-                    ) : (
-                      <AntDesign name="eyeo" size={24} color="black" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-                {passwordError ? (
-                  <Text style={styles.errorText}>{passwordError}</Text>
-                ) : null}
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Confirm Password</Text>
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    ref={confirmPasswordRef}
-                    style={[
-                      styles.input,
-                      confirmPasswordError && styles.inputError,
-                    ]}
-                    placeholder="Confirm your password"
-                    value={confirmPassword}
-                    onChangeText={(text) => {
-                      setConfirmPassword(text);
-                      if (confirmPasswordError)
-                        validateConfirmPassword(password, text);
-                    }}
-                    secureTextEntry={!showPassword}
-                    returnKeyType="done"
-                    // onSubmitEditing={handleSignUp}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <AntDesign name="eye" size={24} color="black" />
-                    ) : (
-                      <AntDesign name="eyeo" size={24} color="black" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-                {confirmPasswordError ? (
-                  <Text style={styles.errorText}>{confirmPasswordError}</Text>
-                ) : null}
-              </View>
-
-              <View style={styles.checkboxContainer}>
-                <TouchableOpacity
-                  style={styles.checkbox}
-                  onPress={() => setIsChecked(!isChecked)}
-                >
-                  {isChecked && (
-                    <AntDesign
-                      name="check"
-                      size={16}
-                      color={theme.color.primary[500]}
-                    />
-                  )}
+            <View style={styles.toastContent}>
+                {/* @ts-ignore */}
+                <MaterialCommunityIcons name={getIcon()} size={24} color="white"/>
+                <Text style={styles.toastText}>{message}</Text>
+            </View>
+            {action && (
+                <TouchableOpacity onPress={action.onPress} style={styles.toastAction}>
+                    <Text style={styles.toastActionText}>{action.label}</Text>
                 </TouchableOpacity>
-                <Text style={styles.checkboxLabel}>
-                  I agree to the{" "}
-                  <Text
-                    style={styles.link}
-                    onPress={() => router.push("/(app)/(CGU)/terms" as any)}
-                  >
-                    Terms and Conditions
-                  </Text>
-                </Text>
-              </View>
-
-              <Pressable onPress={handleSignUp} style={styles.signUpButton}>
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.signUpButtonText}>Inscription</Text>
-                )}
-              </Pressable>
-
-              <View style={styles.dividerContainer}>
-                <View style={styles.divider} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.divider} />
-              </View>
-
-              <View style={styles.socialLoginContainer}>
-                <TouchableOpacity
-                  style={{ ...styles.socialButton, ...styles.googleButton }}
-                >
-                  <AntDesign name="google" size={24} color="white" />
-                  <Text style={styles.buttonText}>Google</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{ ...styles.socialButton, ...styles.facebookButton }}
-                >
-                  <AntDesign name="facebook-square" size={24} color="white" />
-                  <Text style={styles.buttonText}>Facebook</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.loginContainer}>
-                <Text style={styles.loginText}>Already have an account? </Text>
-                <TouchableOpacity onPress={() => router.push("/login")}>
-                  <Text style={styles.loginLink}>Log In</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <>
-              <View style={styles.otpContainer}>
-                <OTPInput value={otp} onChangeText={setOtp} isError={!isOtpValid} />
-                <View style={styles.countdownContainer}>
-                  <Text style={styles.countdownText}>00:30</Text>
-                  <TouchableOpacity onPress={handleResendOtp}>
-                    <Text style={styles.resendLink}>Renvoyer OTP</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  onPress={handleVerifyOtp}
-                  style={[styles.button, !isOtpValid && styles.buttonDisabled]}
-                  disabled={!isOtpValid}
-                >
-                  <Text style={styles.buttonText}>Vérifier</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleModifyEmail} style={styles.button}>
-                  <Text style={styles.buttonText}>Modifier Email</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+            )}
+            <TouchableOpacity onPress={hideToast} style={styles.toastClose}>
+                <MaterialCommunityIcons name="close" size={20} color="white"/>
+            </TouchableOpacity>
         </Animated.View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
+    );
 };
 
-export default register
+interface ToastState {
+    visible: boolean;
+    message: string;
+    type: 'error' | 'success' | 'warning' | 'info';
+    action: {
+        label: string;
+        onPress: () => void;
+    } | null;
+}
+
+const Register: React.FC = () => {
+    const router = useRouter();
+    const {signUp, verifyOtp} = useAuth();
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
+
+    // States
+    const [email, setEmail] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
+    const [confirmPassword, setConfirmPassword] = useState<string>("");
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [showPassword, setShowPassword] = useState<boolean>(false);
+    const [emailError, setEmailError] = useState<string>("");
+    const [passwordError, setPasswordError] = useState<string>("");
+    const [confirmPasswordError, setConfirmPasswordError] = useState<string>("");
+    const [otp, setOtp] = useState<string>("");
+    const [countdown, setCountdown] = useState<number>(60);
+    const [isOtpStep, setIsOtpStep] = useState<boolean>(false);
+    const [isOtpValid, setIsOtpValid] = useState<boolean>(false);
+    const [isChecked, setIsChecked] = useState<boolean>(false);
+    const [termsError, setTermsError] = useState<string>("");
+
+    // Toast state
+    const [toast, setToast] = useState<ToastState>({
+        visible: false,
+        message: "",
+        type: "error",
+        action: null
+    });
+
+    // Animation values
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(50)).current;
+    const shakeAnim = useRef(new Animated.Value(0)).current;
+    const slideInRight = useRef(new Animated.Value(300)).current;
+    const slideOutLeft = useRef(new Animated.Value(0)).current;
+
+    // Refs for focus management
+    const passwordRef = useRef<TextInput>(null);
+    const confirmPasswordRef = useRef<TextInput>(null);
+    const emailErrorAnim = useRef(new Animated.Value(0)).current;
+    const passwordErrorAnim = useRef(new Animated.Value(0)).current;
+    const confirmPasswordErrorAnim = useRef(new Animated.Value(0)).current;
+    const termsErrorAnim = useRef(new Animated.Value(0)).current;
+
+    // Animate component mount
+    React.useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 600,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, []);
+
+    // Animation for OTP step transition
+    useEffect(() => {
+        if (isOtpStep) {
+            // Animate transition to OTP step
+            Animated.parallel([
+                Animated.timing(slideOutLeft, {
+                    toValue: -300,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(slideInRight, {
+                    toValue: 0,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        } else {
+            // Reset animations
+            slideOutLeft.setValue(0);
+            slideInRight.setValue(300);
+        }
+    }, [isOtpStep]);
+
+    // Animation for error messages
+    useEffect(() => {
+        if (emailError) animateError(emailErrorAnim);
+    }, [emailError]);
+
+    useEffect(() => {
+        if (passwordError) animateError(passwordErrorAnim);
+    }, [passwordError]);
+
+    useEffect(() => {
+        if (confirmPasswordError) animateError(confirmPasswordErrorAnim);
+    }, [confirmPasswordError]);
+
+    useEffect(() => {
+        if (termsError) animateError(termsErrorAnim);
+    }, [termsError]);
+
+    const animateError = (animValue: Animated.Value): void => {
+        Animated.sequence([
+            Animated.timing(animValue, {
+                toValue: 0,
+                duration: 0,
+                useNativeDriver: true,
+            }),
+            Animated.timing(animValue, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            })
+        ]).start();
+    };
+
+    const shakeError = (): void => {
+        Animated.sequence([
+            Animated.timing(shakeAnim, {
+                toValue: 10,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+            Animated.timing(shakeAnim, {
+                toValue: -10,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+            Animated.timing(shakeAnim, {
+                toValue: 10,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+            Animated.timing(shakeAnim, {
+                toValue: 0,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    };
+
+    // OTP validation
+    useEffect(() => {
+        if (otp?.length === 6) {
+            setIsOtpValid(true);
+        } else {
+            setIsOtpValid(false);
+        }
+    }, [otp]);
+
+    // Countdown timer
+    useEffect(() => {
+        let timer: NodeJS.Timeout | undefined;
+        if (isOtpStep && countdown > 0) {
+            timer = setInterval(() => {
+                setCountdown(prev => prev - 1);
+            }, 1000);
+        }
+        return () => {
+            if (timer) clearInterval(timer);
+        };
+    }, [isOtpStep, countdown]);
+
+    const formatCountdown = (): string => {
+        const minutes = Math.floor(countdown / 60);
+        const seconds = countdown % 60;
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    const validateEmail = (email: string): boolean => {
+        if (!email) {
+            setEmailError("L'email est requis");
+            return false;
+        }
+        if (!EMAIL_REGEX.test(email)) {
+            setEmailError("Format d'email invalide");
+            return false;
+        }
+        setEmailError("");
+        return true;
+    };
+
+    const validatePassword = (password: string): boolean => {
+        if (!password) {
+            setPasswordError("Le mot de passe est requis");
+            return false;
+        }
+        if (password.length < 6) {
+            setPasswordError("6 caractères minimum");
+            return false;
+        }
+        setPasswordError("");
+        return true;
+    };
+
+    const validateConfirmPassword = (password: string, confirmPassword: string): boolean => {
+        if (password !== confirmPassword) {
+            setConfirmPasswordError("Les mots de passe ne correspondent pas");
+            return false;
+        }
+        setConfirmPasswordError("");
+        return true;
+    };
+
+    const validateTerms = (): boolean => {
+        if (!isChecked) {
+            setTermsError("Vous devez accepter les conditions d'utilisation");
+            return false;
+        }
+        setTermsError("");
+        return true;
+    };
+
+    const handleSignUp = async (): Promise<void> => {
+        try {
+            // Validate fields
+            const isEmailValid = validateEmail(email);
+            const isPasswordValid = validatePassword(password);
+            const isConfirmPasswordValid = validateConfirmPassword(
+                password,
+                confirmPassword
+            );
+            const isTermsValid = validateTerms();
+
+            if (!isEmailValid || !isPasswordValid || !isConfirmPasswordValid || !isTermsValid) {
+                shakeError();
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                return;
+            }
+
+            setIsLoading(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+            await signUp(email, password);
+
+            setIsOtpStep(true);
+            startCountdown();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            setToast({
+                visible: true,
+                message: "Code de vérification envoyé à votre email",
+                type: "success",
+                action: null
+            });
+        } catch (error: any) {
+            shakeError();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+            if (error.message === "email exists") {
+                setToast({
+                    visible: true,
+                    message: "Cet email est déjà utilisé",
+                    type: "error",
+                    action: {
+                        label: "Se connecter",
+                        onPress: () => router.push("/login")
+                    }
+                });
+            } else {
+                setToast({
+                    visible: true,
+                    message: "Une erreur est survenue, veuillez réessayer",
+                    type: "error",
+                    action: null
+                });
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const startCountdown = (): void => {
+        setCountdown(60);
+    };
+
+    const handleVerifyOtp = async (): Promise<void> => {
+        try {
+            setIsLoading(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+            await verifyOtp(email, otp, password);
+
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setToast({
+                visible: true,
+                message: "Votre compte a été créé avec succès",
+                type: "success",
+                action: null
+            });
+        } catch (error) {
+            shakeError();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+            setToast({
+                visible: true,
+                message: "Code de vérification invalide",
+                type: "error",
+                action: null
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleResendOtp = async (): Promise<void> => {
+        try {
+            setIsLoading(true);
+            await supabase.auth.signInWithOtp({email});
+            startCountdown();
+
+            setToast({
+                visible: true,
+                message: "Nouveau code envoyé à votre email",
+                type: "success",
+                action: null
+            });
+        } catch (error) {
+            setToast({
+                visible: true,
+                message: "Échec de l'envoi du code",
+                type: "error",
+                action: null
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleModifyEmail = (): void => {
+        setIsOtpStep(false);
+        setOtp("");
+    };
+
+    return (
+        <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={[styles.container, isDark && styles.containerDark]}
+        >
+            <StatusBar style={isDark ? "light" : "dark"}/>
+
+            {/* Toast notification */}
+            <Toast
+                visible={toast.visible}
+                message={toast.message}
+                type={toast.type}
+                action={toast.action}
+                onDismiss={() => setToast({...toast, visible: false})}
+            />
+
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+            >
+                <Animated.View
+                    style={[
+                        styles.formContainer,
+                        {
+                            opacity: fadeAnim,
+                            transform: [{translateY: slideAnim}, {translateX: shakeAnim}],
+                        },
+                    ]}
+                >
+                    {/* Logo section */}
+
+                    {
+                        !isOtpStep &&
+                        <View style={styles.logoSection}>
+                            <Image
+                                source={require("@/assets/images/icon.png")}
+                                style={styles.logo}
+                            />
+                            <View style={{
+                                flexDirection: "column",
+                                justifyContent: "flex-start",
+                                alignItems: "flex-start"
+                            }}>
+                                <Text style={[styles.title, isDark && styles.textDark]}>
+                                    Elearn Prepa
+                                </Text>
+                                <Text style={[styles.subtitle, isDark && styles.textGray]}>
+                                    Formez vous pour réussir
+                                </Text>
+
+                            </View>
+
+
+                        </View>
+                    }
+
+                    {/* Main content with animations for step transition */}
+                    <View style={styles.contentContainer}>
+                        {/* Step 1: Registration Form */}
+                        {!isOtpStep && (
+                            <Animated.View
+                                style={[
+                                    styles.formStep,
+                                    {transform: [{translateX: slideOutLeft}]}
+                                ]}
+                            >
+                                {/*<Text style={[styles.title, isDark && styles.textDark]}>*/}
+                                {/*  Inscription*/}
+                                {/*</Text>*/}
+                                <Text style={[styles.subtitle, isDark && styles.textGray]}>
+                                    Créez votre compte pour accéder à la plateforme
+                                </Text>
+
+                                {/* Email Input */}
+                                <View style={styles.inputContainer}>
+                                    <Text style={[styles.label, isDark && styles.textDark]}>
+                                        Email
+                                    </Text>
+                                    <View style={[
+                                        styles.inputWrapper,
+                                        isDark && styles.inputWrapperDark,
+                                        emailError && styles.inputError
+                                    ]}>
+                                        <MaterialCommunityIcons
+                                            name="email-outline"
+                                            size={24}
+                                            color={emailError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
+                                            style={styles.inputIcon}
+                                        />
+                                        <TextInput
+                                            value={email}
+                                            onChangeText={(text) => {
+                                                setEmail(text);
+                                                if (emailError) validateEmail(text);
+                                            }}
+                                            style={[styles.input, isDark && styles.inputDark]}
+                                            placeholder="Votre email"
+                                            placeholderTextColor={isDark ? "#666666" : "#999999"}
+                                            keyboardType="email-address"
+                                            autoCapitalize="none"
+                                            returnKeyType="next"
+                                            onSubmitEditing={() => passwordRef.current?.focus()}
+                                        />
+                                        {emailError && (
+                                            <MaterialCommunityIcons
+                                                name="alert-circle"
+                                                size={20}
+                                                color={theme.color.error}
+                                                style={styles.errorIcon}
+                                            />
+                                        )}
+                                    </View>
+                                    {emailError && (
+                                        <Animated.View
+                                            style={[
+                                                styles.errorContainer,
+                                                {
+                                                    opacity: emailErrorAnim, transform: [{
+                                                        translateY: emailErrorAnim.interpolate({
+                                                            inputRange: [0, 1],
+                                                            outputRange: [-10, 0]
+                                                        })
+                                                    }]
+                                                }
+                                            ]}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name="alert-circle"
+                                                size={16}
+                                                color={theme.color.error}
+                                            />
+                                            <Text style={styles.errorText}>{emailError}</Text>
+                                        </Animated.View>
+                                    )}
+                                </View>
+
+                                {/* Password Input */}
+                                <View style={styles.inputContainer}>
+                                    <Text style={[styles.label, isDark && styles.textDark]}>
+                                        Mot de passe
+                                    </Text>
+                                    <View style={[
+                                        styles.inputWrapper,
+                                        isDark && styles.inputWrapperDark,
+                                        passwordError && styles.inputError
+                                    ]}>
+                                        <MaterialCommunityIcons
+                                            name="lock-outline"
+                                            size={24}
+                                            color={passwordError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
+                                            style={styles.inputIcon}
+                                        />
+                                        <TextInput
+                                            ref={passwordRef}
+                                            value={password}
+                                            onChangeText={(text) => {
+                                                setPassword(text);
+                                                if (passwordError) validatePassword(text);
+                                                if (confirmPassword && confirmPasswordError)
+                                                    validateConfirmPassword(text, confirmPassword);
+                                            }}
+                                            style={[styles.input, isDark && styles.inputDark]}
+                                            placeholder="Votre mot de passe"
+                                            placeholderTextColor={isDark ? "#666666" : "#999999"}
+                                            secureTextEntry={!showPassword}
+                                            returnKeyType="next"
+                                            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+                                        />
+                                        <TouchableOpacity
+                                            onPress={() => setShowPassword(!showPassword)}
+                                            style={styles.eyeIcon}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name={showPassword ? "eye-off" : "eye"}
+                                                size={24}
+                                                color={isDark ? "#CCCCCC" : "#666666"}
+                                            />
+                                        </TouchableOpacity>
+                                    </View>
+                                    {passwordError && (
+                                        <Animated.View
+                                            style={[
+                                                styles.errorContainer,
+                                                {
+                                                    opacity: passwordErrorAnim, transform: [{
+                                                        translateY: passwordErrorAnim.interpolate({
+                                                            inputRange: [0, 1],
+                                                            outputRange: [-10, 0]
+                                                        })
+                                                    }]
+                                                }
+                                            ]}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name="alert-circle"
+                                                size={16}
+                                                color={theme.color.error}
+                                            />
+                                            <Text style={styles.errorText}>{passwordError}</Text>
+                                        </Animated.View>
+                                    )}
+                                </View>
+
+                                {/* Confirm Password Input */}
+                                <View style={styles.inputContainer}>
+                                    <Text style={[styles.label, isDark && styles.textDark]}>
+                                        Confirmer le mot de passe
+                                    </Text>
+                                    <View style={[
+                                        styles.inputWrapper,
+                                        isDark && styles.inputWrapperDark,
+                                        confirmPasswordError && styles.inputError
+                                    ]}>
+                                        <MaterialCommunityIcons
+                                            name="lock-check-outline"
+                                            size={24}
+                                            color={confirmPasswordError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
+                                            style={styles.inputIcon}
+                                        />
+                                        <TextInput
+                                            ref={confirmPasswordRef}
+                                            value={confirmPassword}
+                                            onChangeText={(text) => {
+                                                setConfirmPassword(text);
+                                                if (confirmPasswordError) validateConfirmPassword(password, text);
+                                            }}
+                                            style={[styles.input, isDark && styles.inputDark]}
+                                            placeholder="Confirmez votre mot de passe"
+                                            placeholderTextColor={isDark ? "#666666" : "#999999"}
+                                            secureTextEntry={!showPassword}
+                                            returnKeyType="done"
+                                        />
+                                    </View>
+                                    {confirmPasswordError && (
+                                        <Animated.View
+                                            style={[
+                                                styles.errorContainer,
+                                                {
+                                                    opacity: confirmPasswordErrorAnim, transform: [{
+                                                        translateY: confirmPasswordErrorAnim.interpolate({
+                                                            inputRange: [0, 1],
+                                                            outputRange: [-10, 0]
+                                                        })
+                                                    }]
+                                                }
+                                            ]}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name="alert-circle"
+                                                size={16}
+                                                color={theme.color.error}
+                                            />
+                                            <Text style={styles.errorText}>{confirmPasswordError}</Text>
+                                        </Animated.View>
+                                    )}
+                                </View>
+
+                                {/* Terms and Conditions Checkbox */}
+                                <View style={styles.checkboxContainer}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.checkbox,
+                                            termsError && styles.checkboxError,
+                                            isChecked && styles.checkboxChecked
+                                        ]}
+                                        onPress={() => {
+                                            setIsChecked(!isChecked);
+                                            if (termsError) validateTerms();
+                                        }}
+                                    >
+                                        {isChecked && (
+                                            <MaterialCommunityIcons
+                                                name="check"
+                                                size={18}
+                                                color="#FFFFFF"
+                                            />
+                                        )}
+                                    </TouchableOpacity>
+                                    <Text style={[styles.checkboxLabel, isDark && styles.textGray]}>
+                                        J'accepte les{" "}
+                                        <Text
+                                            style={styles.link}
+                                            /* "TODO handle the right path to  cgu and terms" */
+                                            /* @ts-ignore*/
+                                            onPress={() => router.push("/(app)/(CGU)/terms") }
+                                        >
+                                            conditions d'utilisation
+                                        </Text>
+                                    </Text>
+                                </View>
+
+                                {termsError && (
+                                    <Animated.View
+                                        style={[
+                                            styles.errorContainer,
+                                            {
+                                                opacity: termsErrorAnim, transform: [{
+                                                    translateY: termsErrorAnim.interpolate({
+                                                        inputRange: [0, 1],
+                                                        outputRange: [-10, 0]
+                                                    })
+                                                }]
+                                            }
+                                        ]}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name="alert-circle"
+                                            size={16}
+                                            color={theme.color.error}
+                                        />
+                                        <Text style={styles.errorText}>{termsError}</Text>
+                                    </Animated.View>
+                                )}
+
+                                {/* Sign Up Button */}
+                                <TouchableOpacity
+                                    style={[
+                                        styles.primaryButton,
+                                        isLoading && styles.buttonDisabled
+                                    ]}
+                                    onPress={handleSignUp}
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? (
+                                        <ActivityIndicator color="#FFFFFF"/>
+                                    ) : (
+                                        <Text style={styles.primaryButtonText}>S'inscrire</Text>
+                                    )}
+                                </TouchableOpacity>
+
+                                {/* Social Login Options */}
+                                <View style={styles.divider}>
+                                    <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
+                                    <Text style={[styles.dividerText, isDark && styles.textGray]}>
+                                        ou continuer avec
+                                    </Text>
+                                    <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
+                                </View>
+
+                                <View style={styles.socialButtons}>
+                                    {/*<TouchableOpacity style={[styles.socialButton, styles.googleButton]}>*/}
+                                    {/*    <MaterialCommunityIcons name="google" size={20} color="white"/>*/}
+                                    {/*    <Text style={styles.socialButtonText}>Google</Text>*/}
+
+                                    <GoogleAuth onAuthSuccess={() => router.push("/")}>
+
+                                        <View style={[styles.socialButton, styles.googleButton]}>
+                                            <MaterialCommunityIcons name="google" size={20} color="white"/>
+                                            <Text style={styles.socialButtonText}>Google</Text>
+                                        </View>
+
+
+                                    </GoogleAuth>
+                                </View>
+
+                                {/* Login Link */}
+                                <View style={styles.footerText}>
+                                    <Text style={[styles.footerLabel, isDark && styles.textGray]}>
+                                        Déjà un compte ?{" "}
+                                    </Text>
+                                    <TouchableOpacity onPress={() => router.push("/login")}>
+                                        <Text style={styles.footerLink}>Se connecter</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </Animated.View>
+                        )}
+
+                        {/* Step 2: OTP Verification */}
+                        {isOtpStep && (
+                            <Animated.View
+                                style={[
+                                    styles.formStep,
+                                    {transform: [{translateX: slideInRight}]}
+                                ]}
+                            >
+                                <Text style={[styles.title, isDark && styles.textDark]}>
+                                    Vérification
+                                </Text>
+                                <Text style={[styles.subtitle, isDark && styles.textGray]}>
+                                    Entrez le code à 6 chiffres envoyé à
+                                </Text>
+                                <Text style={[styles.emailHighlight, isDark && styles.textDark]}>
+                                    {email}
+                                </Text>
+
+                                <View style={styles.otpContainer}>
+                                    <OTPInput
+                                        value={otp}
+                                        onChangeText={setOtp}
+                                        isError={!isOtpValid && otp.length === 6}
+                                    />
+
+                                    <View style={styles.countdownContainer}>
+                                        <Text style={[styles.countdownText, isDark && styles.textGray]}>
+                                            {formatCountdown()}
+                                        </Text>
+                                        <TouchableOpacity
+                                            onPress={handleResendOtp}
+                                            disabled={countdown > 0 || isLoading}
+                                            style={[countdown > 0 && styles.resendDisabled]}
+                                        >
+                                            <Text style={[
+                                                styles.resendLink,
+                                                countdown > 0 && styles.resendDisabledText
+                                            ]}>
+                                                Renvoyer le code
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                <View style={styles.otpButtonsContainer}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.primaryButton,
+                                            (!isOtpValid || isLoading) && styles.buttonDisabled
+                                        ]}
+                                        onPress={handleVerifyOtp}
+                                        disabled={!isOtpValid || isLoading}
+                                    >
+                                        {isLoading ? (
+                                            <ActivityIndicator color="#FFFFFF"/>
+                                        ) : (
+                                            <Text style={styles.primaryButtonText}>Vérifier</Text>
+                                        )}
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.secondaryButton, isLoading && styles.buttonDisabled]}
+                                        onPress={handleModifyEmail}
+                                        disabled={isLoading}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name="email-edit-outline"
+                                            size={20}
+                                            color={theme.color.primary[500]}
+                                            style={styles.buttonIcon}
+                                        />
+                                        <Text style={styles.secondaryButtonText}>Modifier l'email</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </Animated.View>
+                        )}
+                    </View>
+                </Animated.View>
+            </ScrollView>
+        </KeyboardAvoidingView>
+    );
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffff",
-  },
-  lo: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 20,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 20,
-  },
-  formContainer: {
-    width: "100%",
-    maxWidth: 400,
-    alignSelf: "center",
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 32,
-    textAlign: "center",
-  },
-  stepText: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 32,
-    textAlign: "center",
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 8,
-    color: "#333",
-  },
-  input: {
-    borderWidth: 2,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: "#ffff",
-  },
-  inputError: {
-    borderColor: "#ff4d4f",
-  },
-  errorText: {
-    color: "#ff4d4f",
-    fontSize: 12,
-    marginTop: 4,
-  },
-  passwordContainer: {
-    position: "relative",
-  },
-  eyeIcon: {
-    position: "absolute",
-    right: 12,
-    top: 12,
-  },
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: "#ddd",
-    borderRadius: 4,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 8,
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: "#333",
-  },
-  link: {
-    color: theme.color.primary[500],
-    textDecorationLine: "underline",
-  },
-  signUpButton: {
-    height: 40,
-    borderRadius: 8,
-    marginBottom: 16,
-    backgroundColor: theme.color.primary["500"],
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  signUpButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#ddd",
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    color: "#666",
-  },
-  socialLoginContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  socialButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 10,
-    borderRadius: 5,
-    marginHorizontal: 5,
-  },
-  buttonText: {
-    color: "white",
-    marginLeft: 10,
-    textAlign: "center",
-  },
-  googleButton: {
-    backgroundColor: "#DB4437",
-  },
-  facebookButton: {
-    backgroundColor: "#3b5998",
-  },
-  loginContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 25,
-  },
-  loginText: {
-    color: "#666",
-    fontSize: 14,
-  },
-  loginLink: {
-    color: theme.color.primary[500],
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  otpContainer: {
-    marginTop: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  otpTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  otpInput: {
-    borderWidth: 2,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    width: "80%",
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  verifyButton: {
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: theme.color.primary["500"],
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  verifyButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  resendText: {
-    color: "#666",
-    fontSize: 14,
-  },
-  button: {
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: theme.color.primary["500"],
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  buttonDisabled: {
-    backgroundColor: "#ddd",
-  },
-  resendLink: {
-    color: theme.color.primary[500],
-    fontSize: 14,
-    fontWeight: "600",
-    textDecorationLine: "underline",
-  },
-  countdownContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-  },
-  countdownText: {
-    fontSize: 16,
-    color: "#666",
-    marginRight: 10,
-  },
-  buttonContainer: {
-    flexDirection: "column",
-    justifyContent: "space-between",
-    marginTop: 20,
-  },
+    container: {
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+    },
+    containerDark: {
+        backgroundColor: theme.color.dark.background.primary,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: "center",
+        padding: 20,
+    },
+    formContainer: {
+        width: "100%",
+        maxWidth: 400,
+        alignSelf: "center",
+    },
+    logoSection: {
+        alignItems: "center",
+        flexDirection: "row",
+        gap: 12,
+        // marginBottom: 24,
+    },
+    logo: {
+        width: 80,
+        height: 80,
+        marginBottom: 12,
+        borderRadius: 16,
+    },
+    appName: {
+        fontSize: 28,
+        fontWeight: "bold",
+        color: "#1A1A1A",
+    },
+    contentContainer: {
+        position: "relative",
+        overflow: "hidden",
+    },
+    formStep: {
+        width: "100%",
+    },
+    title: {
+        fontSize: 26,
+        fontWeight: "bold",
+        color: "#1A1A1A",
+        textAlign: "center",
+        marginBottom: 12,
+    },
+    subtitle: {
+        fontSize: 15,
+        color: "#666666",
+        textAlign: "center",
+        marginBottom: 24,
+    },
+    emailHighlight: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#1A1A1A",
+        textAlign: "center",
+        marginBottom: 24,
+    },
+    inputContainer: {
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: "#1A1A1A",
+        marginBottom: 8,
+    },
+    inputWrapper: {
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: 2,
+        borderColor: "#E5E5E5",
+        borderRadius: 12,
+        backgroundColor: "#FFFFFF",
+        overflow: "hidden",
+    },
+    inputWrapperDark: {
+        backgroundColor: theme.color.dark.background.secondary,
+        borderColor: "#333333",
+    },
+    inputIcon: {
+        padding: 12,
+    },
+    input: {
+        flex: 1,
+        height: 50,
+        fontSize: 16,
+        color: "#1A1A1A",
+    },
+    inputDark: {
+        color: "#FFFFFF",
+    },
+    inputError: {
+        borderColor: theme.color.error,
+    },
+    eyeIcon: {
+        padding: 12,
+    },
+    errorIcon: {
+        padding: 12,
+    },
+    errorContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 6,
+        marginTop: 4,
+        gap: 6,
+    },
+    errorText: {
+        color: theme.color.error,
+        fontSize: 12,
+        fontWeight: "500",
+    },
+    checkboxContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    checkbox: {
+        width: 24,
+        height: 24,
+        borderWidth: 2,
+        borderColor: "#E5E5E5",
+        borderRadius: 6,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 10,
+    },
+    checkboxError: {
+        borderColor: theme.color.error,
+    },
+    checkboxChecked: {
+        backgroundColor: theme.color.primary[500],
+        borderColor: theme.color.primary[500],
+    },
+    checkboxLabel: {
+        fontSize: 14,
+        color: "#666666",
+        flex: 1,
+    },
+    link: {
+        color: theme.color.primary[500],
+        fontWeight: "600",
+    },
+    primaryButton: {
+        height: 50,
+        backgroundColor: theme.color.primary[500],
+        borderRadius: 12,
+        justifyContent: "center",
+        alignItems: "center",
+        marginVertical: 20,
+    },
+    primaryButtonText: {
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "600",
+    },
+    secondaryButton: {
+        height: 50,
+        backgroundColor: "transparent",
+        borderWidth: 2,
+        borderColor: theme.color.primary[100],
+        borderRadius: 12,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    secondaryButtonText: {
+        color: theme.color.primary[500],
+        fontSize: 16,
+        fontWeight: "600",
+    },
+    buttonIcon: {
+        marginRight: 8,
+    },
+    buttonDisabled: {
+        opacity: 0.6,
+    },
+    divider: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginVertical: 20,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: "#E5E5E5",
+    },
+    dividerLineDark: {
+        backgroundColor: "#333333",
+    },
+    dividerText: {
+        paddingHorizontal: 16,
+        color: "#666666",
+        fontSize: 14,
+    },
+    socialButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        gap: 12,
+    },
+    socialButton: {
+        flex: 1,
+        flexDirection: "row",
+        height: 48,
+        borderRadius: 12,
+        justifyContent: "center",
+        alignItems: "center",
+        gap: 8,
+    },
+    socialButtonText: {
+        color: "#FFFFFF",
+        fontSize: 15,
+        fontWeight: "500",
+    },
+    googleButton: {
+        backgroundColor: "#DB4437",
+    },
+    facebookButton: {
+        backgroundColor: "#4267B2",
+    },
+    footerText: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: 24,
+        marginBottom: 16,
+    },
+    footerLabel: {
+        fontSize: 14,
+        color: "#666666",
+    },
+    footerLink: {
+        color: theme.color.primary[500],
+        fontSize: 14,
+        fontWeight: "600",
+    },
+    otpContainer: {
+        alignItems: "center",
+        marginVertical: 24,
+    },
+    countdownContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 20,
+        gap: 10,
+    },
+    countdownText: {
+        fontSize: 16,
+        color: "#666666",
+        fontWeight: "500",
+    },
+    resendLink: {
+        color: theme.color.primary[500],
+        fontSize: 14,
+        fontWeight: "600",
+        textDecorationLine: "underline",
+    },
+    resendDisabled: {
+        opacity: 0.5,
+    },
+    resendDisabledText: {
+        color: "#999999",
+    },
+    otpButtonsContainer: {
+        gap: 12,
+    },
+    textDark: {
+        color: "#FFFFFF",
+    },
+    textGray: {
+        color: "#CCCCCC",
+    },
+    // Toast styles
+    toastContainer: {
+        position: "absolute",
+        bottom: 20,
+        left: 20,
+        right: 20,
+        backgroundColor: theme.color.primary[500],
+        borderRadius: 12,
+        padding: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        zIndex: 1000,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 3,
+        },
+        shadowOpacity: 0.27,
+        shadowRadius: 4.65,
+        elevation: 6,
+    },
+    toastContent: {
+        flexDirection: "row",
+        alignItems: "center",
+        flex: 1,
+    },
+    toastText: {
+        color: "white",
+        fontSize: 14,
+        fontWeight: "500",
+        marginLeft: 12,
+        flex: 1,
+    },
+    toastAction: {
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
+        borderRadius: 8,
+        marginHorizontal: 8,
+    },
+    toastActionText: {
+        color: "white",
+        fontSize: 13,
+        fontWeight: "600",
+    },
+    toastClose: {
+        padding: 4,
+    },
 });
+
+export default Register;

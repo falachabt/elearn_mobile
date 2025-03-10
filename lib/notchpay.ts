@@ -28,34 +28,40 @@ export class NotchPayService {
   /**
    * Initialize and charge payment in one step
    */
-  async initiateDirectCharge(params: NotchPayDirectChargeParams): Promise<{
-    initResponse: NotchPayResponse;
-    chargeResponse: NotchPayChargeResponse;
-  }> {
-    try {
-      // 1. Initialize payment
-      const initResponse = await this.initializePayment(params);
+async initiateDirectCharge(params: NotchPayDirectChargeParams): Promise<{
+  initResponse: NotchPayResponse;
+  chargeResponse: NotchPayChargeResponse;
+}> {
+  try {
+    const startInit = performance.now();
+    // 1. Initialize payment
+    const initResponse = await this.initializePayment(params);
+    const endInit = performance.now();
+    console.log(`Initialization time: ${(endInit - startInit) / 1000}s`);
 
-      // 2. Process direct charge if transaction reference exists
-      if (initResponse.transaction?.reference) {
-        const chargeResponse = await this.chargeMobileMoney(
-          initResponse.transaction.reference,
-          params.phone || '',
-          params.channel
-        );
-        
-        return {
-          initResponse,
-          chargeResponse
-        };
-      }
+    // 2. Process direct charge if transaction reference exists
+    if (initResponse.transaction?.reference) {
+      const startCharge = performance.now();
+      const chargeResponse = await this.chargeMobileMoney(
+        initResponse.transaction.reference,
+        params.phone || '',
+        params.channel
+      );
+      const endCharge = performance.now();
+      console.log(`Charge time: ${(endCharge - startCharge) / 1000}s`);
 
-      throw new Error('Failed to get transaction reference');
-
-    } catch (error) {
-      this.handleError(error);
+      return {
+        initResponse,
+        chargeResponse
+      };
     }
+
+    throw new Error('Failed to get transaction reference');
+
+  } catch (error) {
+    this.handleError(error);
   }
+}
 
   /**
    * Initialize payment only
@@ -63,6 +69,7 @@ export class NotchPayService {
   async initializePayment(params: NotchPayInitializeParams): Promise<NotchPayResponse> {
     try {
       const response = await this.client.post<NotchPayResponse>('/payments', params);
+      console.log(response.data);
       return response.data;
     } catch (error) {
       this.handleError(error);

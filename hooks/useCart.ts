@@ -60,25 +60,72 @@ export const useCart = () => {
 
   const addToCart = async (programId: number, price: number) => {
     try {
-    const { data , error } =  await CartService.addItem(programId, price);
+      // Don't proceed if we don't have the cart yet
+      if (!currentCart) return;
 
-    if(error) throw new Error('Erreur lors de l\'ajout au panier');
-    
-      await mutate(CART_KEY);
+      // Create an optimistic cart item that matches the CartItems type
+      const optimisticCartItem = {
+        id: `temp-${Date.now()}`, // Temporary ID
+        cart_id: currentCart.id,
+        program_id: programId,
+        price: price,
+        created_at: new Date().toISOString(),
+        status: 'active'
+      };
+
+      // Create a copy of the current cart with the new item
+      const optimisticData = {
+        ...currentCart,
+        items: [...(currentCart.items || []), optimisticCartItem]
+      };
+
+      // Update the local cache immediately (optimistic update)
+      mutate(CART_KEY, optimisticData, false);
+
+      // Make the API call
+      const { data, error } = await CartService.addItem(programId, price, currentCart?.id);
+
+      if (error) throw new Error('Erreur lors de l\'ajout au panier');
+
+      // No need to mutate again if we have realtime, but if not:
+      // mutate(CART_KEY);
     } catch (err) {
+      // If there's an error, revalidate to get correct state
+      mutate(CART_KEY);
       throw new Error('Erreur lors de l\'ajout au panier');
     }
   };
 
   const removeFromCart = async (programId: number) => {
+    const start = performance.now();
     try {
-      await CartService.removeItem(programId);
-      await mutate(CART_KEY);
+      // Don't proceed if we don't have the cart yet
+      if (!currentCart) return;
+
+      // Create a copy of the current cart without the item
+      const optimisticData = {
+        ...currentCart,
+        items: currentCart.items.filter(item => item.program_id !== programId)
+      };
+
+      // Update the local cache immediately (optimistic update)
+      mutate(CART_KEY, optimisticData, false);
+
+      // Make the API call
+      await CartService.removeItem(programId, currentCart?.id);
+
+      // No need to mutate again if we have realtime, but if not:
+      // await mutate(CART_KEY);
     } catch (err) {
+      // If there's an error, revalidate to get correct state
+      mutate(CART_KEY);
       throw new Error('Erreur lors de la suppression du panier');
+    } finally {
+      const end = performance.now();
+      const duration = end - start;
+      console.log(`removeFromCart a pris ${duration} millisecondes`);
     }
   };
-
   return {
     cartItems: currentCart?.items || [],
     loading: isLoading,

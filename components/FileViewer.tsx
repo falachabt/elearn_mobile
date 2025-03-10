@@ -4,7 +4,6 @@ import { theme } from '@/constants/theme';
 import React, { useState } from 'react';
 import { View, StyleSheet, Dimensions, useColorScheme } from 'react-native';
 import Pdf from 'react-native-pdf';
-import WebView from 'react-native-webview';
 
 interface FileViewerProps {
   file: Archive;
