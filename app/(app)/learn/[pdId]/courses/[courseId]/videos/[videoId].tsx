@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Pressable, ActivityIndicator, BackHandler, useColorScheme } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, Pressable, ActivityIndicator, BackHandler, useColorScheme, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,30 +8,51 @@ import type { CourseVideos } from '@/types/type';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { VideoPlaylist } from '@/components/shared/learn/VideoPlayList';
 import { theme } from '@/constants/theme';
+import { useSound } from '@/hooks/useSound';
 
 const VideoPlayerScreen = () => {
-    const { videoId, courseId } = useLocalSearchParams();
+    const { videoId, courseId, pdId } = useLocalSearchParams();
     const router = useRouter();
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
     const [isLoading, setIsLoading] = useState(true);
     const [videos, setVideos] = useState<CourseVideos[]>([]);
     const [currentVideo, setCurrentVideo] = useState<CourseVideos | null>(null);
+    const [currentVideoIndex, setCurrentVideoIndex] = useState<number>(-1);
     const [error, setError] = useState<string | null>(null);
     const [hasError, setHasError] = useState(false);
-    const pathname = usePathname()
+    const [isVideoDone, setIsVideoDone] = useState(false);
+    const pathname = usePathname();
+    const { playClick } = useSound();
 
     const videoSource = currentVideo ? `https://stream.mux.com/${currentVideo.mux_playback_id}.m3u8` : '';
-    
+
     const player = useVideoPlayer(videoSource, player => {
-        player.loop = true;
+        player.loop = false; // Changed from true to false to enable playlist behavior
         player.play();
+
+        // Handle video ended event to play next video
+        const endedListener = () => {
+            setIsVideoDone(true);
+        };
+
+        player.addListener('playToEnd', endedListener);
+
+
         return () => {
-            if ( pathname === `/(app)/learn/${courseId}/courses/${courseId}/videos/${videoId}`) {
+            if (pathname === `/(app)/learn/${pdId}/courses/${courseId}/videos/${videoId}`) {
                 player.pause();
             }
+            player.removeListener('playToEnd', endedListener);
         };
     });
+
+    useEffect(() => {
+        // Auto-play next video when current one finishes
+        if (isVideoDone && currentVideoIndex < videos.length - 1) {
+            playNextVideo();
+        }
+    }, [isVideoDone]);
 
     useEffect(() => {
         const fetchVideos = async () => {
@@ -44,10 +65,11 @@ const VideoPlayerScreen = () => {
 
                 if (error) throw error;
                 setVideos(data);
-                
-                const current = data.find(v => v.id === videoId);
-                if (current) {
-                    setCurrentVideo(current);
+
+                const currentIndex = data.findIndex(v => v.id === videoId);
+                if (currentIndex !== -1) {
+                    setCurrentVideo(data[currentIndex]);
+                    setCurrentVideoIndex(currentIndex);
                 }
             } catch (err) {
                 setError('Error loading videos');
@@ -60,37 +82,34 @@ const VideoPlayerScreen = () => {
         fetchVideos();
 
         return () => {
-            if (player && player.pause && pathname === `/(app)/learn/${courseId}/courses/${courseId}/videos/${videoId}`) {
+            if (player && player.pause && pathname === `/(app)/learn/${pdId}/courses/${courseId}/videos/${videoId}`) {
                 player.pause();
+                player.release();
             }
         };
     }, [courseId, videoId]);
 
+
+    const playNextVideo = useCallback(() => {
+        if (currentVideoIndex < videos.length - 1) {
+            playClick();
+            const nextVideo = videos[currentVideoIndex + 1];
+            if (player) {
+                player.pause();
+            }
+            setIsVideoDone(false);
+            router.push(`/(app)/learn/${pdId}/courses/${courseId}/videos/${nextVideo.id}`);
+        }
+    }, [currentVideoIndex, videos, player, pdId, courseId]);
+
     const handleVideoSelect = async (video: CourseVideos) => {
+        playClick();
         if (player) {
             player.pause();
         }
-        router.push(`/(app)/learn/${courseId}/courses/${courseId}/videos/${video.id}`);
+        setIsVideoDone(false);
+        router.push(`/(app)/learn/${pdId}/courses/${courseId}/videos/${video.id}`);
     };
-
-    // useEffect(() => {
-    //     const backAction = () => {
-    //         if (player) {
-    //             player.pause();
-    //         }
-    //         router.push(`/(app)/learn/${courseId}/courses/${courseId}`);
-    //         return true;
-    //     };
-
-    //     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-
-    //     return () => {
-    //         backHandler.remove();
-    //         if (player && pathname === `/(app)/learn/${courseId}/courses/${courseId}/videos/${videoId}`) {
-    //             player.pause();
-    //         }
-    //     };
-    // }, []);
 
     if (isLoading) {
         return (
@@ -111,13 +130,14 @@ const VideoPlayerScreen = () => {
     return (
         <View style={[styles.container, isDarkMode && styles.containerDark]}>
             <View style={[styles.header, isDarkMode && styles.headerDark]}>
-                <Pressable 
-                    style={[styles.backButton, isDarkMode && styles.backButtonDark]} 
+                <Pressable
+                    style={[styles.backButton, isDarkMode && styles.backButtonDark]}
                     onPress={() => {
+                        playClick();
                         if (player) {
                             player.pause();
                         }
-                        router.push(`/(app)/learn/${courseId}/courses/${courseId}`);
+                        router.push(`/(app)/learn/${pdId}/courses/${courseId}`);
                     }}
                 >
                     <MaterialCommunityIcons name="arrow-left" size={24} color={isDarkMode ? theme.color.dark.text.primary : theme.color.light.text.primary} />
@@ -132,11 +152,10 @@ const VideoPlayerScreen = () => {
             <View style={styles.videoWrapper}>
                 <View style={styles.videoContainer}>
                     <VideoView
-
-                        style={styles.video} 
-                        player={player} 
-                        allowsFullscreen 
-                        allowsPictureInPicture 
+                        style={styles.video}
+                        player={player}
+                        allowsFullscreen
+                        allowsPictureInPicture
                     />
                 </View>
 
@@ -145,9 +164,22 @@ const VideoPlayerScreen = () => {
                         An error occurred while loading the video
                     </ThemedText>
                 )}
+
+
             </View>
 
-            <VideoPlaylist 
+            {/* Video info section */}
+            <View style={[styles.videoInfo, isDarkMode && styles.videoInfoDark]}>
+                <ThemedText style={styles.videoTitle}>{currentVideo?.title}</ThemedText>
+                <ThemedText style={styles.videoDescription}>{currentVideo?.description}</ThemedText>
+                <View style={styles.progress}>
+                    <ThemedText style={styles.progressText}>
+                        {currentVideoIndex + 1} of {videos.length}
+                    </ThemedText>
+                </View>
+            </View>
+
+            <VideoPlaylist
                 videos={videos}
                 currentVideo={currentVideo}
                 onVideoSelect={handleVideoSelect}
@@ -231,6 +263,52 @@ const styles = StyleSheet.create({
     },
     video: {
         flex: 1,
+    },
+    playlistControls: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 8,
+        backgroundColor: '#000000',
+    },
+    navButton: {
+        padding: 12,
+        borderRadius: 50,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        marginHorizontal: 20,
+    },
+    navButtonDark: {
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    navButtonDisabled: {
+        opacity: 0.5,
+    },
+    videoInfo: {
+        padding: 16,
+        backgroundColor: theme.color.light.background.secondary,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.color.light.border,
+    },
+    videoInfoDark: {
+        backgroundColor: theme.color.dark.background.secondary,
+        borderBottomColor: theme.color.dark.border,
+    },
+    videoTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    videoDescription: {
+        fontSize: 14,
+        opacity: 0.8,
+        marginBottom: 8,
+    },
+    progress: {
+        marginTop: 8,
+    },
+    progressText: {
+        fontSize: 14,
+        opacity: 0.6,
     },
 });
 

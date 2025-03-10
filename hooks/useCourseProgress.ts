@@ -12,6 +12,8 @@ interface CourseProgress {
 }
 
 interface SectionProgress {
+  total: any;
+  completed: any;
   sectionid: number;
   progress: number;
   lastaccessed: string;
@@ -32,13 +34,13 @@ const fetchSectionProgress = (
 export const useCourseProgress = (courseId: number) => {
   const { user } = useAuth(); // Get current user
 
-  const { data: progress, error: progressError } =
+  const { data: progress, error: progressError, mutate : mutateCourseProgress } =
     useSWR<CourseProgress | null>(
       user?.id ? ["courseProgress", user.id, courseId] : null,
       () => fetcher(user!.id, courseId)
     );
 
-  const { data: sectionsProgress, error: sectionsProgressError } = useSWR<
+  const { data: sectionsProgress, error: sectionsProgressError, mutate : mutateSectionProgress } = useSWR<
     SectionProgress[] | null
   >(user?.id ? ["sectionsProgress", user.id, courseId] : null, () =>
     fetchSectionsProgress(user!.id, courseId)
@@ -113,7 +115,10 @@ export const useCourseProgress = (courseId: number) => {
     error: progressError || sectionsProgressError,
     updateLastAccessed,
     markSectionComplete,
-    refreshProgress: () => mutate(["courseProgress", user?.id, courseId]),
+    refreshProgress: () => {
+        mutate(["courseProgress", user?.id, courseId]);
+        mutate(["sectionsProgress", user?.id, courseId]);
+    },
     getSectionProgress: (sectionId: number) =>
       sectionsProgress?.find(
         (section: SectionProgress) => section.sectionid === sectionId

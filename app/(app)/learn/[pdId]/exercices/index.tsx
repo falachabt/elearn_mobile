@@ -1,29 +1,30 @@
-import React, {useState, useEffect} from "react";
+import React, { useState } from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    FlatList,
-    TouchableOpacity,
-    TextInput,
     ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
     useColorScheme,
+    View,
 } from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {ScrollView} from "react-native-gesture-handler";
-import {supabase} from "@/lib/supabase";
-import {useRouter, useLocalSearchParams} from "expo-router";
-import {theme} from "@/constants/theme";
-import {useAuth} from "@/contexts/auth";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { ScrollView } from "react-native-gesture-handler";
+import { supabase } from "@/lib/supabase";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { theme } from "@/constants/theme";
+import { useAuth } from "@/contexts/auth";
 import useSWR from "swr";
+import CategoryFilter from "@/components/shared/learn/CategoryFilter";
+import { HapticType, useHaptics } from "@/hooks/useHaptics";
+import ExerciseCard from "@/components/shared/learn/exercices/ExerciceCard";
 
 // Types
 interface Exercise {
     id: string;
     title: string;
     description: string;
-    content: any;
-    correction: any;
     created_at: string;
     course_id: number;
     is_pinned: boolean;
@@ -44,72 +45,90 @@ export const ExercisesList = () => {
     const params = useLocalSearchParams();
     const pdId = params["pdId"];
     const router = useRouter();
-    const {user} = useAuth();
+    const { user } = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [filterType, setFilterType] = useState<FilterType>("all");
-    const scheme = useColorScheme();
-    const isDark = scheme === "dark";
+    const { trigger } = useHaptics();
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
 
     const fetcher = async () => {
-        const courseRes = await supabase
-            .from("course_learningpath")
-            .select(`
-                  courseId,
-                  courses!inner (
-                    id,
-                    name,
-                    category,
-                    courses_categories (
-                        id,
-                        name,
-                        description
-                    )
-                  )
-                `)
-            .eq("lpId", pdId);
+        // Run all database queries in parallel
+        const [courseRes, pathRes] = await Promise.all([
+            // Fetch course learning path data
+            supabase
+                .from("course_learningpath")
+                .select(`
+        courseId,
+        courses!inner (
+            id,
+            name,
+            category,
+            courses_categories (
+                id,
+                name,
+                description
+            )
+        )
+      `)
+                .eq("lpId", pdId),
+
+            // Fetch learning path title
+            supabase
+                .from("learning_paths")
+                .select("title")
+                .eq("id", pdId)
+                .single()
+        ]);
 
         if (courseRes.error) throw courseRes.error;
-
-        const pathRes = await supabase
-            .from("learning_paths")
-            .select("title")
-            .eq("id", pdId)
-            .single();
-
         if (pathRes.error) throw pathRes.error;
 
+        // Extract course IDs for the next query
         const courseIds = courseRes.data?.map((course) => course.courseId) || [];
 
+        // Now fetch the exercises data
         const exerciseRes = await supabase
             .from("exercices")
             .select(`
-                  *,
-                  course:courses!inner (
-                      name,
-                      category,
-                      courses_categories (
-                          name,
-                          description
-                      )
-                  ),
-                  exercices_pin (is_pinned),
-                  exercices_complete (is_completed)
-                `)
+      id, title, description, created_at, course_id,
+      course:courses!inner (
+          name,
+          category,
+          courses_categories (
+              name,
+              description
+          )
+      ),
+      exercices_pin (is_pinned),
+      exercices_complete (is_completed)
+    `)
             .in("course_id", courseIds)
             .eq("exercices_pin.user_id", user?.id)
             .eq("exercices_complete.user_id", user?.id);
 
         if (exerciseRes.error) throw exerciseRes.error;
 
-        const uniqueCategories = [
-            "Tout",
-            ...new Set(
-                exerciseRes.data
-                    .map((exercise) => exercise.course?.courses_categories?.name)
-                    .filter(Boolean)
-            ),
-        ];
+        // Process categories
+        const allCategories = exerciseRes.data
+            // @ts-ignore
+            .map((exercise) => exercise.course?.courses_categories)
+            .filter(Boolean);
+
+        const categoryMap = new Map();
+
+        allCategories.forEach((category) => {
+            if (category && category.name) {
+                categoryMap.set(category.name, {
+                    id: category.id,
+                    name: category.name,
+                    description: category.description
+                });
+            }
+        });
+
+        const uniqueCategories = Array.from(categoryMap.values());
 
         return {
             pathName: pathRes.data.title || "",
@@ -122,7 +141,12 @@ export const ExercisesList = () => {
         };
     };
 
-    const {data, error, isLoading, mutate} = useSWR(`exercises/${pdId}`, fetcher);
+    const { data, error, isLoading, mutate } = useSWR(`exercises/${pdId}`, fetcher , {
+        revalidateOnFocus: false,
+        revalidateOnReconnect: false,
+        refreshWhenHidden: false,
+        refreshInterval: 30000,
+    });
 
     const getFilteredExercises = () => {
         if (!data?.exercises) return [];
@@ -133,7 +157,8 @@ export const ExercisesList = () => {
 
             const matchesCategory =
                 !selectedCategory ||
-                selectedCategory === "Tout" ||
+                selectedCategory === "all" ||
+                // @ts-ignore
                 exercise.course?.courses_categories?.name === selectedCategory;
 
             const matchesFilter =
@@ -146,6 +171,7 @@ export const ExercisesList = () => {
     };
 
     const handleViewExercise = (exercise: Exercise) => {
+        trigger(HapticType.SELECTION);
         router.push({
             pathname: "/(app)/learn/[pdId]/exercices/[exerciceId]",
             params: {
@@ -155,163 +181,98 @@ export const ExercisesList = () => {
         });
     };
 
-    const ExerciseCard = ({exercise}: { exercise: Exercise }) => {
-        const handlePin = async (e: any) => {
-            e.stopPropagation();
-            const newPinState = !exercise.is_pinned;
-            mutate(
-                data
-                    ? {
-                        ...data,
-                        exercises: data.exercises.map((ex) =>
-                            ex.id === exercise.id ? {...ex, is_pinned: newPinState} : ex
-                        ),
-                    }
-                    : {
-                        pathName: "", // Valeur par défaut
-                        categories: [], // Valeur par défaut
-                        exercises: [], // Valeur par défaut
-                    },
-                false
-            );
-            try {
-                const userId = user?.id;
+    const handlePin = async (exercise: Exercise, e: any) => {
+        e.stopPropagation();
+        const newPinState = !exercise.is_pinned;
 
-                const {data: updatedData, error} = await supabase
-                    .from("exercices_pin")
-                    .upsert(
-                        {
-                            user_id: userId,
-                            exercice_id: exercise.id,
-                            is_pinned: newPinState,
-                        },
-                        {onConflict: ["user_id", "exercice_id"].join(",")}
-                    );
-
-                if (error) {
-                    // console.error("Error updating pin state:", error);
-                } else {
-                    // console.log("Pin state updated successfully:", updatedData);
-                    await mutate();
+        // Optimistic update
+        mutate(
+            data
+                ? {
+                    ...data,
+                    exercises: data.exercises.map((ex) =>
+                        ex.id === exercise.id ? {...ex, is_pinned: newPinState} : ex
+                    ),
                 }
-            } catch (error) {
-                // console.error("Unexpected error updating pin state:", error);
-            }
-        };
-
-        const handleComplete = async (e: any) => {
-            e.stopPropagation();
-            const newCompletionState = !exercise.is_completed;
-            mutate(
-                data
-                    ? {
-                        ...data,
-                        exercises: data.exercises.map((ex) =>
-                            ex.id === exercise.id
-                                ? {...ex, is_completed: newCompletionState}
-                                : ex
-                        ),
-                    }
-                    : {
-                        pathName: "", // Valeur par défaut
-                        categories: [], // Valeur par défaut
-                        exercises: [], // Valeur par défaut
-                    },
-                false
-            );
-            try {
-                const userId = user?.id;
-
-                const {data: updatedData, error} = await supabase
-                    .from("exercices_complete")
-                    .upsert(
-                        {
-                            user_id: userId,
-                            exercice_id: exercise.id,
-                            is_completed: newCompletionState,
-                        },
-                        {onConflict: ["user_id", "exercice_id"].join(",")}
-                    );
-
-                if (error) {
-                    // console.error("Error updating completion state:", error);
-                } else {
-                    await mutate();
-                    // console.log("Completion state updated successfully:", updatedData);
-                }
-            } catch (error) {
-                // console.error("Unexpected error updating completion state:", error);
-            }
-        };
-
-        return (
-            <TouchableOpacity
-                style={[styles.exerciseCard, isDark && styles.exerciseCardDark]}
-                onPress={() => handleViewExercise(exercise)}
-            >
-                <View style={styles.exerciseHeader}>
-                    <Text style={[styles.exerciseTitle, isDark && styles.textDark]}>
-                        {exercise.title}
-                    </Text>
-                    <Text style={[styles.courseName, isDark && styles.textDark]}>
-                        {exercise.course?.name}
-                    </Text>
-                </View>
-
-                <Text
-                    style={[styles.exerciseDescription, isDark && styles.textDark]}
-                    numberOfLines={2}
-                >
-                    {exercise.description}
-                </Text>
-
-                <View style={styles.exerciseFooter}>
-                    <View style={[styles.categoryTag, isDark && styles.categoryTagDark]}>
-                        <Text style={[styles.categoryText, isDark && styles.textDark]}>
-                            {exercise.course?.courses_categories?.name || "Non catégorisé"}
-                        </Text>
-                    </View>
-                    <View style={styles.actionButtons}>
-                        <TouchableOpacity
-                            onPress={handlePin}
-                            style={styles.actionButton}
-                        >
-                            <MaterialCommunityIcons
-                                name={exercise.is_pinned ? "pin" : "pin-outline"}
-                                size={20}
-                                color={
-                                    exercise.is_pinned
-                                        ? theme.color.primary[500]
-                                        : isDark
-                                            ? theme.color.gray[400]
-                                            : theme.color.gray[600]
-                                }
-                            />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={handleComplete}
-                            style={styles.actionButton}
-                        >
-                            <MaterialCommunityIcons
-                                name={
-                                    exercise.is_completed
-                                        ? "check-circle"
-                                        : "check-circle-outline"
-                                }
-                                size={20}
-                                color={
-                                    exercise.is_completed
-                                        ? theme.color.primary[500]
-                                        : isDark
-                                            ? theme.color.gray[400]
-                                            : theme.color.gray[600]
-                                }
-                            />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </TouchableOpacity>
+                : {
+                    pathName: "",
+                    categories: [],
+                    exercises: [],
+                },
+            false
         );
+
+        trigger(HapticType.SUCCESS);
+
+        try {
+            const userId = user?.id;
+
+            const { data: updatedData, error } = await supabase
+                .from("exercices_pin")
+                .upsert(
+                    {
+                        user_id: userId,
+                        exercice_id: exercise.id,
+                        is_pinned: newPinState,
+                    },
+                    {onConflict: ["user_id", "exercice_id"].join(",")}
+                );
+
+            if (error) {
+                console.error("Error updating pin state:", error);
+            } else {
+                await mutate();
+            }
+        } catch (error) {
+            console.error("Unexpected error updating pin state:", error);
+        }
+    };
+
+    const handleComplete = async (exercise: Exercise, e: any) => {
+        e.stopPropagation();
+        const newCompletionState = !exercise.is_completed;
+
+        // Optimistic update
+        mutate(
+            data
+                ? {
+                    ...data,
+                    exercises: data.exercises.map((ex) =>
+                        ex.id === exercise.id ? {...ex, is_completed: newCompletionState} : ex
+                    ),
+                }
+                : {
+                    pathName: "",
+                    categories: [],
+                    exercises: [],
+                },
+            false
+        );
+
+        trigger(HapticType.SUCCESS);
+
+        try {
+            const userId = user?.id;
+
+            const { data: updatedData, error } = await supabase
+                .from("exercices_complete")
+                .upsert(
+                    {
+                        user_id: userId,
+                        exercice_id: exercise.id,
+                        is_completed: newCompletionState,
+                    },
+                    {onConflict: ["user_id", "exercice_id"].join(",")}
+                );
+
+            if (error) {
+                console.error("Error updating completion state:", error);
+            } else {
+                await mutate();
+            }
+        } catch (error) {
+            console.error("Unexpected error updating completion state:", error);
+        }
     };
 
     if (isLoading) {
@@ -328,6 +289,8 @@ export const ExercisesList = () => {
         console.error("Error fetching data:", error);
         return null;
     }
+
+    const filteredExercises = getFilteredExercises();
 
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
@@ -447,36 +410,15 @@ export const ExercisesList = () => {
                     </TouchableOpacity>
                 </ScrollView>
 
-                {/* Categories */}
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.categoriesContainer}
-                    style={styles.categoriesScroll}
-                >
-                    {data?.categories.map((category) => (
-                        <TouchableOpacity
-                            key={category}
-                            style={[
-                                styles.categoryChip,
-                                isDark && styles.categoryChipDark,
-                                selectedCategory === category && styles.selectedCategoryChip,
-                            ]}
-                            onPress={() => setSelectedCategory(category)}
-                        >
-                            <Text
-                                style={[
-                                    styles.categoryText,
-                                    selectedCategory === category &&
-                                    styles.selectedCategoryText,
-                                    isDark && styles.textDark,
-                                ]}
-                            >
-                                {category}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                <CategoryFilter
+                    key={"exercice-categories-filter"}
+                    id={"exercice-categories-filter"}
+                    categories={data?.categories || []}
+                    selectedCategory={selectedCategory || ""}
+                    onSelectCategory={(category) => {
+                        setSelectedCategory(category)
+                    }}
+                />
             </View>
 
             {/* Search */}
@@ -499,14 +441,47 @@ export const ExercisesList = () => {
                 </View>
             </View>
 
-            {/* Exercises List */}
-            <FlatList
-                data={getFilteredExercises()}
-                renderItem={({item}) => <ExerciseCard exercise={item}/>}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContainer}
-                showsVerticalScrollIndicator={false}
-            />
+            {/* Display result count when filtering */}
+            {(searchQuery || selectedCategory || filterType !== "all") && (
+                <View style={styles.resultCountContainer}>
+                    <Text style={[styles.resultCountText, isDark && styles.textDark]}>
+                        {filteredExercises.length} exercice{filteredExercises.length !== 1 ? 's' : ''} trouvé{filteredExercises.length !== 1 ? 's' : ''}
+                    </Text>
+                </View>
+            )}
+
+            {/* Exercises List with Enhanced Cards */}
+            {/* TODO fix the type issue and remove the unknow */}
+            {filteredExercises.length > 0 ? (
+                <FlatList
+                    data={filteredExercises}
+                    renderItem={({ item }) => (
+                        <ExerciseCard
+                            exercise={item as unknown as Exercise}
+                            onPress={() => handleViewExercise(item as unknown as Exercise)}
+                            onPinPress={(e) => handlePin(item as unknown as Exercise, e)}
+                            onCompletePress={(e) => handleComplete(item as unknown as Exercise, e)}
+                        />
+                    )}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.listContainer}
+                    showsVerticalScrollIndicator={false}
+                />
+            ) : (
+                <View style={styles.emptyStateContainer}>
+                    <MaterialCommunityIcons
+                        name="notebook-outline"
+                        size={80}
+                        color={isDark ? theme.color.gray[700] : theme.color.gray[300]}
+                    />
+                    <Text style={[styles.emptyStateTitle, isDark && styles.textDark]}>
+                        Aucun exercice trouvé
+                    </Text>
+                    <Text style={[styles.emptyStateDescription, isDark && styles.emptyStateDescriptionDark]}>
+                        Essayez de modifier vos filtres ou votre recherche
+                    </Text>
+                </View>
+            )}
         </View>
     );
 };
@@ -594,104 +569,48 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: "#1A1A1A",
     },
-    categoriesScroll: {
-        maxHeight: 60,
-    },
-    categoriesContainer: {
+    resultCountContainer: {
         paddingHorizontal: 16,
-        paddingVertical: 0,
-        height: 48,
+        paddingBottom: 8,
     },
-    categoryChip: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: theme.border.radius.small,
-        backgroundColor: theme.color.gray[100],
-        marginRight: 8,
-        height: 40,
-    },
-    categoryChipDark: {
-        backgroundColor: theme.color.dark.background.secondary,
-    },
-    selectedCategoryChip: {
-        backgroundColor: theme.color.primary[500],
-    },
-    categoryText: {
+    resultCountText: {
         fontSize: 14,
         color: theme.color.gray[600],
-    },
-    selectedCategoryText: {
-        color: "#FFFFFF",
-    },
-    textDark: {
-        color: "#FFFFFF",
+        fontStyle: "italic",
     },
     listContainer: {
         flexGrow: 1,
         padding: 16,
-        gap: 16,
+        paddingTop: 8,
     },
     loader: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
     },
-    exerciseCard: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: theme.border.radius.small,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: theme.color.border,
+    textDark: {
+        color: "#FFFFFF",
     },
-    exerciseCardDark: {
-        backgroundColor: theme.color.dark.background.secondary,
-        borderColor: theme.color.dark.border,
+    emptyStateContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 32,
     },
-    exerciseHeader: {
-        marginBottom: 8,
-    },
-    exerciseTitle: {
+    emptyStateTitle: {
         fontSize: 18,
         fontWeight: "600",
         color: "#1A1A1A",
-        marginBottom: 4,
+        marginTop: 16,
+        marginBottom: 8,
     },
-    courseName: {
+    emptyStateDescription: {
         fontSize: 14,
         color: theme.color.gray[600],
+        textAlign: "center",
     },
-    exerciseDescription: {
-        fontSize: 14,
-        color: theme.color.gray[600],
-        marginBottom: 12,
-    },
-    exerciseFooter: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginTop: 8,
-    },
-    categoryTag: {
-        backgroundColor: theme.color.gray[100],
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: theme.border.radius.large,
-    },
-    categoryTagDark: {
-        backgroundColor: theme.color.dark.background.primary,
-    },
-    actionButton: {
-        padding: 8,
-        borderRadius: theme.border.radius.small,
-        backgroundColor: theme.color.gray[100],
-    },
-    actionButtons: {
-        flexDirection: "row",
-        gap: 8,
-    },
-    dateText: {
-        fontSize: 12,
-        color: theme.color.gray[500],
+    emptyStateDescriptionDark: {
+        color: theme.color.gray[400],
     },
 });
 

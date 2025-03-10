@@ -45,7 +45,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
     async function fetchPrograms() {
       const { data, error } = await supabase
         .from("concours_learningpaths")
-        .select("*, concour:concours(*), learning_path:learning_paths(*)");
+        .select("*, concour:concours(*), learning_path:learning_paths(id, title, description, course_count, quiz_count, status, duration, image)");
 
       if (error) {
         console.error(error);

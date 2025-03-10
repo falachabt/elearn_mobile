@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { View, Modal, Pressable, StyleSheet, Platform, ActivityIndicator } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { theme } from '@/constants/theme';
+import React, {useState} from 'react';
+import {View, Modal, Pressable, StyleSheet, Platform, ActivityIndicator} from 'react-native';
+import {ThemedText} from '@/components/ThemedText';
+import {MaterialCommunityIcons} from '@expo/vector-icons';
+import {theme} from '@/constants/theme';
 import LottieView from 'lottie-react-native';
-import { QuizResults } from '@/types/quiz.type';
-import { useGlobalSearchParams, useRouter } from 'expo-router';
+import {QuizResults} from '@/types/quiz.type';
+import {useGlobalSearchParams, useRouter} from 'expo-router';
 
 
 interface QuizResultDialogProps {
@@ -18,9 +18,9 @@ interface QuizResultDialogProps {
     onClose: () => void;
 }
 
-const StatCard = ({ icon, value, label, color, isDark }: { 
-    icon: string; 
-    value: string | number; 
+const StatCard = ({icon, value, label, color, isDark}: {
+    icon: string;
+    value: string | number;
     label: string;
     color?: string;
     isDark?: boolean;
@@ -36,18 +36,18 @@ const StatCard = ({ icon, value, label, color, isDark }: {
 );
 
 export const QuizResultDialog = ({
-    visible,
-    isDark,
-    quizName,
-    results,
-    onRetry,
-    onContinue,
-    onClose,
-}: QuizResultDialogProps) => {
+                                     visible,
+                                     isDark,
+                                     quizName,
+                                     results,
+                                     onRetry,
+                                     onContinue,
+                                     onClose,
+                                 }: QuizResultDialogProps) => {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const { pdId, quizId, attempId } = useGlobalSearchParams();
-    
+    const {pdId, quizId, attempId} = useGlobalSearchParams();
+
     // console.log("results", results);
     const isPassed = (results && results.score !== null ? results.score >= 70 : false);
     const formattedTime = (seconds: number) => {
@@ -100,7 +100,7 @@ export const QuizResultDialog = ({
                     <View style={styles.scoreContainer}>
                         <ThemedText style={[
                             styles.scoreValue,
-                            { color: isPassed ? '#10B981' : '#EF4444' }
+                            {color: isPassed ? '#10B981' : '#EF4444'}
                         ]}>
                             {results?.score !== null ? Math.round(results.score) : 0}%
                         </ThemedText>
@@ -135,7 +135,7 @@ export const QuizResultDialog = ({
 
                     {/* Message */}
                     <ThemedText style={styles.message}>
-                        {isPassed 
+                        {isPassed
                             ? "Vous avez réussi le quiz avec succès. Continuez comme ça !"
                             : "Ne vous inquiétez pas ! La pratique rend parfait."}
                     </ThemedText>
@@ -148,7 +148,7 @@ export const QuizResultDialog = ({
                             disabled={loading}
                         >
                             {loading ? (
-                                <ActivityIndicator size="small" color={theme.color.primary[500]} />
+                                <ActivityIndicator size="small" color={theme.color.primary[500]}/>
                             ) : (
                                 <>
                                     <MaterialCommunityIcons
@@ -162,11 +162,13 @@ export const QuizResultDialog = ({
 
                         <Pressable
                             style={[styles.button, styles.continueButton]}
-                            onPress={ () => { onClose() } }
+                            onPress={() => {
+                                onClose()
+                            }}
                             disabled={loading}
                         >
                             {loading ? (
-                                <ActivityIndicator size="small" color="#FFFFFF" />
+                                <ActivityIndicator size="small" color="#FFFFFF"/>
                             ) : (
                                 <>
                                     <MaterialCommunityIcons
@@ -183,7 +185,7 @@ export const QuizResultDialog = ({
                             disabled={loading}
                         >
                             {loading ? (
-                                <ActivityIndicator size="small" color="#FFFFFF" />
+                                <ActivityIndicator size="small" color="#FFFFFF"/>
                             ) : (
                                 <>
                                     <MaterialCommunityIcons
@@ -219,7 +221,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
+                shadowOffset: {width: 0, height: 2},
                 shadowOpacity: 0.25,
                 shadowRadius: 4,
             },
@@ -276,7 +278,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
+                shadowOffset: {width: 0, height: 1},
                 shadowOpacity: 0.1,
                 shadowRadius: 2,
             },

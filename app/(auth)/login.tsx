@@ -8,7 +8,6 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Image,
   useColorScheme,
@@ -21,11 +20,105 @@ import { useAuth } from "@/contexts/auth";
 import { theme } from "@/constants/theme";
 import { Pressable } from "react-native-gesture-handler";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import GoogleAuth from "@/components/GoogleLogin";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function Login() {
+// Toast Component
+const Toast = ({ visible, message, type, onDismiss } : { visible : boolean; message : string; type: string;  onDismiss: () => void }) => {
+  const translateY = useRef(new Animated.Value(70)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
+  React.useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        })
+      ]).start();
+
+      // Auto hide after 3 seconds
+      const timer = setTimeout(() => {
+        hideToast();
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [visible]);
+
+  const hideToast = () => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 70,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      if (onDismiss) onDismiss();
+    });
+  };
+
+  const getBackgroundColor = () => {
+    switch (type) {
+      case 'error':
+        return theme.color.error;
+      case 'success':
+        return '#4CAF50';
+      case 'warning':
+        return '#FF9800';
+      default:
+        return theme.color.primary[500];
+    }
+  };
+
+  const getIcon = () => {
+    switch (type) {
+      case 'error':
+        return 'alert-circle';
+      case 'success':
+        return 'check-circle';
+      case 'warning':
+        return 'alert';
+      default:
+        return 'information';
+    }
+  };
+
+  if (!visible) return null;
+
+  return (
+      <Animated.View
+          style={[
+            styles.toastContainer,
+            {
+              backgroundColor: getBackgroundColor(),
+              transform: [{ translateY }],
+              opacity,
+            }
+          ]}
+      >
+        <MaterialCommunityIcons name={getIcon()} size={24} color="white" />
+        <Text style={styles.toastText}>{message}</Text>
+        <TouchableOpacity onPress={hideToast}>
+          <MaterialCommunityIcons name="close" size={20} color="white" />
+        </TouchableOpacity>
+      </Animated.View>
+  );
+};
+
+export default function Login() {
   const router = useRouter();
   const { signIn } = useAuth();
   const colorScheme = useColorScheme();
@@ -39,9 +132,20 @@ export default function Login() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
-  const passwordRef = useRef<TextInput | null>(null);
-  // const passwordRef = useRef(null);
+  // Toast state
+  const [toast, setToast] = useState({
+    visible: false,
+    message: "",
+    type: "error"
+  });
+
+  const passwordRef = useRef<TextInput>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const emailErrorAnim = useRef(new Animated.Value(0)).current;
+  const passwordErrorAnim = useRef(new Animated.Value(0)).current;
+
+  // Shake animation for form errors
+  const shakeAnim = useRef(new Animated.Value(0)).current;
 
   // Animation on mount
   React.useEffect(() => {
@@ -51,6 +155,41 @@ export default function Login() {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  // Animation for error messages
+  React.useEffect(() => {
+    if (emailError) {
+      Animated.sequence([
+        Animated.timing(emailErrorAnim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+        Animated.timing(emailErrorAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        })
+      ]).start();
+    }
+  }, [emailError]);
+
+  React.useEffect(() => {
+    if (passwordError) {
+      Animated.sequence([
+        Animated.timing(passwordErrorAnim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+        Animated.timing(passwordErrorAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        })
+      ]).start();
+    }
+  }, [passwordError]);
 
   const validateEmail = (email: string) => {
     if (!email) {
@@ -78,6 +217,17 @@ export default function Login() {
     return true;
   };
 
+  // Shake animation function
+  const shakeForm = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true })
+    ]).start();
+  };
+
   const handleLogin = async () => {
     try {
       const isEmailValid = validateEmail(email);
@@ -85,6 +235,7 @@ export default function Login() {
 
       if (!isEmailValid || !isPasswordValid) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        shakeForm();
         return;
       }
 
@@ -93,13 +244,20 @@ export default function Login() {
 
       await signIn(email, password);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setToast({
+        visible: true,
+        message: "Connexion réussie",
+        type: "success"
+      });
       return <Redirect href={"/(app)"} />;
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(
-          "Erreur de connexion",
-          "Email ou mot de passe incorrect"
-      );
+      shakeForm();
+      setToast({
+        visible: true,
+        message: "Email ou mot de passe incorrect",
+        type: "error"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -112,30 +270,57 @@ export default function Login() {
       >
         <StatusBar style={isDark ? "light" : "dark"} />
 
+        {/* Toast notification */}
+        <Toast
+            visible={toast.visible}
+            message={toast.message}
+            type={toast.type}
+            onDismiss={() => setToast({ ...toast, visible: false })}
+        />
+
         <ScrollView
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
         >
-          <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+          <Animated.View
+              style={[
+                styles.content,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateX: shakeAnim }]
+                }
+              ]}
+          >
             {/* Logo Section */}
             <View style={styles.logoSection}>
               <Image
                   source={require("@/assets/images/icon.png")}
                   style={styles.logo}
               />
-              <Text style={[styles.appName, isDark && styles.textDark]}>
-                Elearn
-              </Text>
+              <View style={{
+                flexDirection: "column",
+                justifyContent: "flex-start",
+                alignItems: "flex-start"
+              }}>
+                <Text style={[styles.welcomeTitle, isDark && styles.textDark]}>
+                  Elearn Prepa
+                </Text>
+                <Text style={[styles.welcomeSubtitle, isDark && styles.textGray]}>
+                  Formez vous pour réussir
+                </Text>
+
+              </View>
+
             </View>
 
             {/* Welcome Text */}
             <View style={styles.welcomeSection}>
-              <Text style={[styles.welcomeTitle, isDark && styles.textDark]}>
-                Bon retour! 👋
-              </Text>
+              {/*<Text style={[styles.welcomeTitle, isDark && styles.textDark]}>*/}
+              {/*  Bon retour! 👋*/}
+              {/*</Text>*/}
               <Text style={[styles.welcomeSubtitle, isDark && styles.textGray]}>
-                Connectez-vous pour continuer
+                👋   Connectez-vous pour continuer
               </Text>
             </View>
 
@@ -154,7 +339,7 @@ export default function Login() {
                   <MaterialCommunityIcons
                       name="email-outline"
                       size={24}
-                      color={isDark ? "#CCCCCC" : "#666666"}
+                      color={emailError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
                       style={styles.inputIcon}
                   />
                   <TextInput
@@ -171,9 +356,32 @@ export default function Login() {
                       returnKeyType="next"
                       onSubmitEditing={() => passwordRef?.current?.focus()}
                   />
+                  {emailError && (
+                      <MaterialCommunityIcons
+                          name="alert-circle"
+                          size={20}
+                          color={theme.color.error}
+                          style={styles.errorIcon}
+                      />
+                  )}
                 </View>
                 {emailError && (
-                    <Text style={styles.errorText}>{emailError}</Text>
+                    <Animated.View
+                        style={[
+                          styles.errorContainer,
+                          { opacity: emailErrorAnim, transform: [{ translateY: emailErrorAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [-10, 0]
+                              })}] }
+                        ]}
+                    >
+                      <MaterialCommunityIcons
+                          name="alert-circle"
+                          size={16}
+                          color={theme.color.error}
+                      />
+                      <Text style={styles.errorText}>{emailError}</Text>
+                    </Animated.View>
                 )}
               </View>
 
@@ -190,11 +398,11 @@ export default function Login() {
                   <MaterialCommunityIcons
                       name="lock-outline"
                       size={24}
-                      color={isDark ? "#CCCCCC" : "#666666"}
+                      color={passwordError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
                       style={styles.inputIcon}
                   />
                   <TextInput
-                      ref={(ref) => (passwordRef.current = ref)}
+                      ref={passwordRef}
                       value={password}
                       onChangeText={(text) => {
                         setPassword(text);
@@ -219,7 +427,22 @@ export default function Login() {
                   </TouchableOpacity>
                 </View>
                 {passwordError && (
-                    <Text style={styles.errorText}>{passwordError}</Text>
+                    <Animated.View
+                        style={[
+                          styles.errorContainer,
+                          { opacity: passwordErrorAnim, transform: [{ translateY: passwordErrorAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [-10, 0]
+                              })}] }
+                        ]}
+                    >
+                      <MaterialCommunityIcons
+                          name="alert-circle"
+                          size={16}
+                          color={theme.color.error}
+                      />
+                      <Text style={styles.errorText}>{passwordError}</Text>
+                    </Animated.View>
                 )}
               </View>
 
@@ -257,15 +480,16 @@ export default function Login() {
                 </View>
 
                 <View style={styles.socialButtons}>
-                  <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
-                    <MaterialCommunityIcons name="google" size={24} color="white" />
-                    <Text style={styles.socialButtonText}>Google</Text>
-                  </TouchableOpacity>
+                  <GoogleAuth onAuthSuccess={() => router.push("/")}>
 
-                  <TouchableOpacity style={[styles.socialButton, styles.facebookButton]}>
-                    <MaterialCommunityIcons name="facebook" size={24} color="white" />
-                    <Text style={styles.socialButtonText}>Facebook</Text>
-                  </TouchableOpacity>
+                    <View style={[styles.socialButton, styles.googleButton]}>
+                      <MaterialCommunityIcons name="google" size={20} color="white"/>
+                      <Text style={styles.socialButtonText}>Google</Text>
+                    </View>
+
+
+                  </GoogleAuth>
+
                 </View>
               </View>
 
@@ -306,11 +530,14 @@ const styles = StyleSheet.create({
   logoSection: {
     alignItems: 'center',
     marginBottom: 32,
+    flexDirection: 'row',
+    gap: 12,
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 16,
+    width: 80,
+    height: 80,
+    marginBottom: 12,
+    borderRadius: 16,
   },
   appName: {
     fontSize: 32,
@@ -374,10 +601,20 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 12,
   },
+  errorIcon: {
+    padding: 12,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    marginTop: 4,
+    gap: 6,
+  },
   errorText: {
     color: theme.color.error,
     fontSize: 12,
-    marginTop: 4,
+    fontWeight: '500',
   },
   forgotPassword: {
     alignSelf: 'flex-end',
@@ -470,5 +707,34 @@ const styles = StyleSheet.create({
   },
   textGray: {
     color: '#CCCCCC',
+  },
+  // Toast styles
+  toastContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: theme.color.primary[500],
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.27,
+    shadowRadius: 4.65,
+    elevation: 6,
+  },
+  toastText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+    marginHorizontal: 12,
   },
 });

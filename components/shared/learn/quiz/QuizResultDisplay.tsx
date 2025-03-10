@@ -33,7 +33,7 @@ const QuizResultsDisplay = ({ currentQuestion, attempt, isDark } : { currentQues
   }
 
   const isAnswerCorrect = (optionId : string) => {
-    const isSelected = attempt.answers?.[currentQuestion?.id]?.selectedOptions.includes(optionId) ?? false;
+    const isSelected = attempt.answers?.[currentQuestion?.id]?.selectedOptions.includes(optionId) ?? false  as boolean;
     const isCorrect = currentQuestion.correct.includes(String(optionId));
     return isSelected && isCorrect;
   };
@@ -153,19 +153,20 @@ const QuizResultsDisplay = ({ currentQuestion, attempt, isDark } : { currentQues
           )}
 
           {/* Feedback Section */}
-          <View style={[
-            styles.feedbackContainer,
-            isDark && styles.feedbackContainerDark,
-          ]}>
-            <ThemedText style={styles.feedbackTitle}>
-              Performance
-            </ThemedText>
-            <ThemedText style={styles.feedbackText}>
-              {attempt.answers?.[currentQuestion?.id]?.isCorrect 
-                ? "Great job! You selected the correct answer."
-                : "Keep practicing! Review the explanation to understand the correct answer."}
-            </ThemedText>
-          </View>
+          {/*TODO manage the feedback per quetion to the user*/}
+          {/*<View style={[*/}
+          {/*  styles.feedbackContainer,*/}
+          {/*  isDark && styles.feedbackContainerDark,*/}
+          {/*]}>*/}
+          {/*  <ThemedText style={styles.feedbackTitle}>*/}
+          {/*    Performance*/}
+          {/*  </ThemedText>*/}
+          {/*  <ThemedText style={styles.feedbackText}>*/}
+          {/*    {attempt.answers?.[currentQuestion?.id]?.isCorrect */}
+          {/*      ? "Great job! You selected the correct answer."*/}
+          {/*      : "Keep practicing! Review the explanation to understand the correct answer."}*/}
+          {/*  </ThemedText>*/}
+          {/*</View>*/}
         </View>
       </ScrollView>
     </View>

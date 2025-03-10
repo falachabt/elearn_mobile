@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/constants/theme';
 import useSWR from 'swr';
 import { supabase } from '@/lib/supabase';
+import {useAuth} from "@/contexts/auth";
 
 interface QuizAttempt {
     id: string;
@@ -212,6 +213,7 @@ const AttemptCard = ({ attempt, isDark, onPress, isLast }: {
 };
 
 const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({ quizId, isDark, onAttemptPress }) => {
+const { user } = useAuth();
     const { data: attempts, error, isLoading } = useSWR<QuizAttempt[]>(
         quizId ? `quiz-attempts-${quizId}` : null,
         async () => {
@@ -219,6 +221,7 @@ const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({ quizId, isDark, onA
                 .from('quiz_attempts')
                 .select('*, quiz(quiz_questions(count))')
                 .eq('quiz_id', quizId)
+                .eq('user_id', user?.id)
                 .order('start_time', { ascending: false });
 
             if (error) throw error;

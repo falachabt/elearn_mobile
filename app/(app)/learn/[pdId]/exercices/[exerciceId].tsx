@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -9,12 +9,14 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import {useRouter, useLocalSearchParams, useNavigation} from "expo-router";
 import { theme } from "@/constants/theme";
 import ExerciseContent, { Block as ContentBlock } from "@/components/shared/BlockNoteContent";
 import WebView from "react-native-webview";
 import { useAuth } from "@/contexts/auth";
-
+import { HapticType, useHaptics } from "@/hooks/useHaptics";
+import { useSound } from "@/hooks/useSound";
+import useSWR from "swr";
 
 interface Exercise {
     id: string;
@@ -24,57 +26,280 @@ interface Exercise {
     correction: ContentBlock[];
     course: {
         name: string;
+        id: string;
         courses_categories?: {
             name: string;
+            id: string;
         };
     };
 }
 
-const ExercisePage: React.FC = () => {
-    const { exerciceId } = useLocalSearchParams();
+interface ExercisePin {
+    is_pinned: boolean;
+}
+
+interface ExerciseComplete {
+    is_completed: boolean;
+}
+
+const ExercisePage = () => {
+    const { exerciceId, pdId } = useLocalSearchParams();
     const router = useRouter();
     const scheme = useColorScheme();
     const isDark = scheme === "dark";
+    const { trigger } = useHaptics();
+    const { playNextLesson, playCorrect } = useSound();
 
-    const [exercise, setExercise] = useState<Exercise | null>(null);
-    const [loading, setLoading] = useState(true);
     const [isCorrection, setIsCorrection] = useState(false);
     const [correctionLoading, setCorrectionLoading] = useState(true);
     const [contentLoading, setContentLoading] = useState(true);
-    const { session } = useAuth();
+    const { session, user } = useAuth();
 
-    useEffect(() => {
-        (async () => {
-            await fetchExerciseData();
-        })();
+    // Fetcher pour les données d'exercice
+    const exerciseFetcher = useCallback(async () => {
+        const { data, error } = await supabase
+            .from("exercices")
+            .select(`
+                *,
+                course:courses (
+                    name,
+                    id,
+                    courses_categories (
+                        id,
+                        name
+                    )
+                )
+            `)
+            .eq("id", exerciceId)
+            .single();
+
+        if (error) throw error;
+        return data;
     }, [exerciceId]);
 
-    const fetchExerciseData = async () => {
-        try {
-            const { data, error } = await supabase
-                .from("exercices")
-                .select(`
-                    *,
-                    course:courses (
-                        name,
-                        courses_categories (
-                            name
-                        )
-                    )
-                `)
-                .eq("id", exerciceId)
-                .single();
+    // Fetcher pour l'état épinglé
+    const pinFetcher = useCallback(async () => {
+        if (!user?.id) return { is_pinned: false };
 
-            if (error) {
-                console.error("Error fetching exercise:", error);
-                return;
-            }
-            setExercise(data);
-        } catch (error) {
-            console.error("Unexpected error fetching exercise:", error);
-        } finally {
-            setLoading(false);
+        const { data, error } = await supabase
+            .from("exercices_pin")
+            .select("is_pinned")
+            .eq("exercice_id", exerciceId)
+            .eq("user_id", user.id)
+            .single();
+
+        // Si l'entrée n'existe pas encore, on retourne false par défaut
+        if (error && error.code === "PGRST116") return { is_pinned: false };
+        if (error) throw error;
+
+        return data;
+    }, [exerciceId, user?.id]);
+
+    // Fetcher pour l'état complété
+    const completeFetcher = useCallback(async () => {
+        if (!user?.id) return { is_completed: false };
+
+        const { data, error } = await supabase
+            .from("exercices_complete")
+            .select("is_completed")
+            .eq("exercice_id", exerciceId)
+            .eq("user_id", user.id)
+            .single();
+
+        // Si l'entrée n'existe pas encore, on retourne false par défaut
+        if (error && error.code === "PGRST116") return { is_completed: false };
+        if (error) throw error;
+
+        return data;
+    }, [exerciceId, user?.id]);
+
+    // Fetcher pour l'exercice suivant
+    const nextExerciseFetcher = useCallback(async () => {
+        if (!exerciceId) return null;
+
+        // Étape 1: Obtenir les détails de l'exercice actuel
+        const { data: currentExercise } = await supabase
+            .from("exercices")
+            .select(`course_id, created_at`)
+            .eq("id", exerciceId)
+            .single();
+
+        console.log("currentExercise", currentExercise);
+
+        if (!currentExercise) return null;
+
+        // Étape 2: Trouver les exercices dans la même catégorie
+        const { data: nextExo } = await supabase
+            .from("exercices")
+            .select("id")
+            .eq("course_id", currentExercise?.course_id)
+            .neq("id", exerciceId)
+            .order('created_at', { ascending: true })
+            .gt("created_at", currentExercise?.created_at)
+            .limit(1)
+            .single()
+
+        console.log("nextExo", nextExo);
+
+        if (!nextExo) return null;
+
+
+        return nextExo.id;
+    }, [exerciceId]);
+
+
+    // Fetcher pour l'exercice précédent
+    const previousExerciseFetcher = useCallback(async () => {
+        if (!exerciceId) return null;
+
+        // Étape 1: Obtenir les détails de l'exercice actuel
+        const {data: currentExercise} = await supabase
+            .from("exercices")
+            .select(`course_id, created_at`)
+            .eq("id", exerciceId)
+            .single();
+
+
+        if (!currentExercise) return null;
+
+        const {data: previousExo} = await supabase
+            .from("exercices")
+            .select("id")
+            .eq("course_id", currentExercise?.course_id)
+            .neq("id", exerciceId)
+            .order('created_at', {ascending: false})
+            .lt("created_at", currentExercise?.created_at)
+            .limit(1)
+            .single()
+
+        console.log("previousExo", previousExo);
+
+        if (!previousExo) return null;
+
+        return previousExo.id;
+    }, [exerciceId]);
+
+    // Utilisation de SWR pour optimiser les appels à la base de données
+    const { data: exercise, error: exerciseError, isLoading: exerciseLoading } =
+        useSWR(`exercise-${exerciceId}`, exerciseFetcher);
+
+    const { data: pinData, mutate: mutatePinData } =
+        useSWR(`exercise-pin-${exerciceId}-${user?.id}`, pinFetcher);
+
+    const { data: completeData, mutate: mutateCompleteData } =
+        useSWR(`exercise-complete-${exerciceId}-${user?.id}`, completeFetcher);
+
+    const { data: nextExerciseId } =
+        useSWR(`next-exercise-${exerciceId}`, nextExerciseFetcher);
+
+    const { data: previousExerciseId } =
+        useSWR(`previous-exercise-${exerciceId}`, previousExerciseFetcher);
+
+    // Obtenir les états booléens
+    const isPinned = pinData?.is_pinned || false;
+    const isCompleted = completeData?.is_completed || false;
+
+    // Gérer le marquage de l'exercice comme terminé
+    const handleToggleComplete = async () => {
+        const newCompletionState = !isCompleted;
+
+        // Update optimiste pour l'UI
+        mutateCompleteData({ is_completed: newCompletionState }, false);
+
+        trigger(HapticType.SUCCESS);
+
+        if (newCompletionState) {
+            playCorrect();
         }
+
+        try {
+            await supabase
+                .from("exercices_complete")
+                // @ts-ignore
+                .upsert(
+                    {
+                        user_id: user?.id,
+                        exercice_id: String(exerciceId),
+                        is_completed: newCompletionState,
+                    },
+                    { onConflict: ["user_id", "exercice_id"] }
+                );
+
+            // Revalider les données
+            mutateCompleteData();
+        } catch (error) {
+            console.error("Error updating completion state:", error);
+            // Revert on error
+            mutateCompleteData({ is_completed: isCompleted }, false);
+        }
+    };
+
+    // Gérer l'épinglage de l'exercice
+    const handleTogglePin = async () => {
+        const newPinState = !isPinned;
+
+        // Update optimiste pour l'UI
+        mutatePinData({ is_pinned: newPinState }, false);
+
+        trigger(HapticType.SUCCESS);
+
+        try {
+            await supabase
+                .from("exercices_pin")
+                // @ts-ignore
+                .upsert(
+                    {
+                        user_id: user?.id,
+                        exercice_id: exerciceId,
+                        is_pinned: newPinState,
+                    },
+                    { onConflict: ["user_id", "exercice_id"] }
+                );
+
+            // Revalider les données
+            mutatePinData();
+        } catch (error) {
+            console.error("Error updating pin state:", error);
+            // Revert on error
+            mutatePinData({ is_pinned: isPinned }, false);
+        }
+    };
+
+    // Passer à l'exercice suivant
+    const handleNextExercise = () => {
+        if (nextExerciseId) {
+            playNextLesson();
+            trigger(HapticType.SELECTION);
+            router.replace({
+                pathname: "/(app)/learn/[pdId]/exercices/[exerciceId]",
+                params: {
+                    pdId: String(pdId),
+                    exerciceId: nextExerciseId,
+                },
+            });
+        }
+    };
+
+    // passer à l'exercice précédent
+    const handlePreviousExercise = () => {
+        if (previousExerciseId) {
+            playNextLesson();
+            trigger(HapticType.SELECTION);
+            router.replace({
+                pathname: "/(app)/learn/[pdId]/exercices/[exerciceId]",
+                params: {
+                    pdId: String(pdId),
+                    exerciceId: previousExerciseId,
+                },
+            });
+        }
+    };
+
+    // Toggle entre l'exercice et la correction
+    const toggleCorrection = () => {
+        trigger(HapticType.LIGHT);
+        playNextLesson();
+        setIsCorrection(!isCorrection);
     };
 
     const darkModeScript = `(function() {
@@ -127,7 +352,7 @@ const ExercisePage: React.FC = () => {
     })();`;
 
     const commonWebViewProps = {
-        originWhitelist: ['*'] as string[],
+        originWhitelist: ['*'],
         javaScriptEnabled: true,
         domStorageEnabled: true,
         startInLoadingState: true,
@@ -137,7 +362,7 @@ const ExercisePage: React.FC = () => {
         injectedJavaScript: darkModeScript,
     };
 
-    if (loading) {
+    if (exerciseLoading) {
         return (
             <View style={[styles.container, styles.centered]}>
                 <ActivityIndicator size="large" color={theme.color.primary[500]} />
@@ -145,16 +370,15 @@ const ExercisePage: React.FC = () => {
         );
     }
 
-    if (!exercise) {
+    if (exerciseError || !exercise) {
         return (
             <View style={[styles.container, styles.centered]}>
                 <Text style={[styles.errorText, isDark && styles.textDark]}>
-                    Exercise not found
+                    Exercice non trouvé
                 </Text>
             </View>
         );
     }
-
 
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
@@ -171,11 +395,57 @@ const ExercisePage: React.FC = () => {
                 </TouchableOpacity>
                 <View style={styles.headerTitleContainer}>
                     <Text style={[styles.courseName, isDark && styles.textDark]} numberOfLines={2}>
-                        {exercise.course.name}
+                        {exercise.title}
                     </Text>
-                    <Text style={[styles.categoryName, isDark && styles.textDark]}>
-                        {exercise.course.courses_categories?.name || "No category"}
-                    </Text>
+                    <View style={styles.metaContainer}>
+                        <Text style={[styles.categoryName, isDark && styles.textDark]} numberOfLines={2}>
+                            {exercise.course.name || "Sans cours"}
+                        </Text>
+                        <View style={styles.statusContainer}>
+                            {isCompleted && (
+                                <View style={styles.statusBadge}>
+                                    <MaterialCommunityIcons
+                                        name="check-circle"
+                                        size={16}
+                                        color={theme.color.primary[500]}
+                                    />
+                                    <Text style={styles.statusText}>Complété</Text>
+                                </View>
+                            )}
+                            {isPinned && (
+                                <View style={styles.statusBadge}>
+                                    <MaterialCommunityIcons
+                                        name="pin"
+                                        size={16}
+                                        color={isDark ? "#FFA500" : "#FF8C00"}
+                                    />
+                                    <Text style={styles.statusText}>Épinglé</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                </View>
+                <View style={styles.actionButtonsContainer}>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={handleTogglePin}
+                    >
+                        <MaterialCommunityIcons
+                            name={isPinned ? "pin-off" : "pin"}
+                            size={22}
+                            color={isPinned ? (isDark ? "#FFA500" : "#FF8C00") : (isDark ? theme.color.gray[400] : theme.color.gray[600])}
+                        />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={handleToggleComplete}
+                    >
+                        <MaterialCommunityIcons
+                            name={isCompleted ? "check-circle" : "check-circle-outline"}
+                            size={22}
+                            color={isCompleted ? theme.color.primary[500] : (isDark ? theme.color.gray[400] : theme.color.gray[600])}
+                        />
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -202,9 +472,6 @@ const ExercisePage: React.FC = () => {
                         onLoadEnd={() => setCorrectionLoading(false)}
                         onError={() => setCorrectionLoading(true)}
                     />
-                    {/*{correctionLoading && isCorrection && (*/}
-                    {/*    <ExerciseContent blocks={exercise?.correction} />*/}
-                    {/*)}*/}
                 </View>
 
                 {/* Content WebView */}
@@ -229,24 +496,42 @@ const ExercisePage: React.FC = () => {
                         onLoadEnd={() => setContentLoading(false)}
                         onError={() => setContentLoading(true)}
                     />
-                    {/*{contentLoading && !isCorrection && (*/}
-                    {/*    <ExerciseContent blocks={exercise?.content} />*/}
-                    {/*)}*/}
                 </View>
             </View>
 
-            <TouchableOpacity
-                style={[
-                    styles.correctionButton,
-                    !exercise.correction && styles.disabledButton,
-                ]}
-                onPress={() => setIsCorrection(!isCorrection)}
-                disabled={!exercise.correction || (correctionLoading && contentLoading)}
-            >
-                <Text style={[styles.correctionButtonText, isDark && styles.textDark]}>
-                    {isCorrection ? "Voir l'exercice" : "Voir la correction"}
-                </Text>
-            </TouchableOpacity>
+            <View style={styles.bottomButtonsContainer}>
+                {previousExerciseId && (
+                    <TouchableOpacity
+                        style={[styles.nextButton, {marginRight: 8}]}
+                        onPress={handlePreviousExercise}
+                    >
+                        <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                )}
+
+
+                <TouchableOpacity
+                    style={[
+                        styles.correctionButton,
+                        !exercise.correction && styles.disabledButton,
+                    ]}
+                    onPress={toggleCorrection}
+                    disabled={!exercise.correction || (correctionLoading && contentLoading)}
+                >
+                    <Text style={[styles.correctionButtonText, isDark && styles.textDark]}>
+                        {isCorrection ? "Voir l'exercice" : "Voir la correction"}
+                    </Text>
+                </TouchableOpacity>
+
+                {nextExerciseId && (
+                    <TouchableOpacity
+                        style={styles.nextButton}
+                        onPress={handleNextExercise}
+                    >
+                        <MaterialCommunityIcons name="arrow-right" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                )}
+            </View>
         </View>
     );
 };
@@ -282,10 +567,43 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#1A1A1A",
     },
+    metaContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 2,
+        flexWrap: 'wrap',
+    },
     categoryName: {
         fontSize: 14,
         color: theme.color.gray[600],
-        marginTop: 2,
+        marginRight: 8,
+    },
+    statusContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 12,
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(101, 183, 65, 0.1)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginRight: 6,
+    },
+    statusText: {
+        fontSize: 12,
+        marginLeft: 4,
+        color: theme.color.gray[700],
+    },
+    actionButtonsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    actionButton: {
+        padding: 8,
+        marginLeft: 4,
     },
     contentContainer: {
         flex: 1,
@@ -313,17 +631,31 @@ const styles = StyleSheet.create({
     hidden: {
         display: 'none',
     },
+    bottomButtonsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+    },
     correctionButton: {
+        flex: 1,
         backgroundColor: theme.color.primary[500],
         padding: 16,
         borderRadius: 8,
         alignItems: "center",
         justifyContent: "center",
-        margin: 16,
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
+        marginRight: 8,
+    },
+    nextButton: {
+        width: 56,
+        height: 56,
+        backgroundColor: theme.color.primary[500],
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 8,
     },
     disabledButton: {
         backgroundColor: "#BDBDBD",

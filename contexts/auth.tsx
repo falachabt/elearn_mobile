@@ -1,10 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { Session } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { RealtimeChannel, Session} from '@supabase/supabase-js'
+import {supabase} from '@/lib/supabase'
 import axios from 'axios'
-import { Accounts, tables, UserXp } from '@/types/type'
-import { useRouter } from 'expo-router'
-import useSWR, { mutate } from 'swr'
+import {Accounts, tables, UserXp} from '@/types/type'
+import useSWR from 'swr'
 
 interface UserStreak {
   id: string
@@ -18,6 +17,7 @@ interface UserStreak {
 interface Account extends Accounts {
   user_xp: UserXp
   user_streaks: UserStreak
+  image: { url: string }
 }
 
 type AuthContextType = {
@@ -36,139 +36,169 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // SWR fetcher function
 const fetcher = async (email: string) => {
-  const { data, error } = await supabase
-    .from("accounts")
-    .select("*, user_xp(*), user_streaks(*)")
-    .eq("email", email)
-    .single();
-  
+  const {data, error} = await supabase
+      .from("accounts")
+      .select("*, user_xp(*), user_streaks(*)")
+      .eq("email", email)
+      .single();
+
   if (error) throw error;
   return data as Account;
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({children}: { children: React.ReactNode }) {
+  // Step 1: Auth state management
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Use SWR for user data
-  const { data: user, error, mutate: mutateUser } = useSWR<Account | null>(
-    session?.user?.email ? session.user.email : null,
-    fetcher,
-    {
-      refreshInterval: 0,
-      revalidateOnFocus: false,
-    }
+  // Step 2: User data fetching with SWR
+  const {data: user, error, mutate: mutateUser} = useSWR<Account | null>(
+      session?.user?.email ? session.user.email : null,
+      fetcher,
+      {
+        refreshInterval: 0,
+        revalidateOnFocus: false,
+        dedupingInterval: 2000,
+        // No loading callbacks to avoid state conflicts
+      }
   );
-  
 
-
+  // Step 3: User streak check function
   const checkStreak = async () => {
     try {
       if (!user?.id) return;
 
-      const { data, error } = await supabase
-        .rpc('check_and_update_streak', {
-          p_user_id: user.id
-        });
+      const {data, error} = await supabase
+          .rpc('check_and_update_streak', {
+            p_user_id: user.id
+          });
 
       if (error) throw error;
-      
+
       // Revalidate user data to get updated streak
       await mutateUser();
-      
+
       return data;
     } catch (error) {
       console.error('Error checking streak:', error);
     }
   };
 
+  // Step 4: Initialize and listen for session changes
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setIsLoading(false)
-    })
+    supabase.auth.getSession().then(({data: {session}}) => {
+      setSession(session);
+    });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async(_event, session) => {
+    const {data: {subscription}} = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-    })
+    });
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => subscription.unsubscribe();
+  }, []);
 
-  // Effect to check streak on app open/session change
+  // Step 5: Carefully manage loading state based on auth and data fetch status
+  useEffect(() => {
+    if (session === null) {
+      // We don't know session status yet - loading
+      setIsLoading(true);
+    } else if (!session) {
+      // Definitely logged out - not loading
+      setIsLoading(false);
+    } else if (session && user !== undefined) {
+      // We have session AND we finished the user data fetch (even if user is null)
+      setIsLoading(false);
+    } else {
+      // We have session but still waiting for user data
+      setIsLoading(true);
+    }
+  }, [session, user]);
+
+  // Step 6: Check streak when user data becomes available
   useEffect(() => {
     if (session && user?.id) {
       checkStreak();
     }
-  }, [session, user?.id]);
+  }, [user?.id]);
 
+  // Step 7: Setup real-time database subscriptions
   useEffect(() => {
-    let subscription: any;
+    let subscription: RealtimeChannel;
 
-    if(user?.email) {
-      // Subscribe to realtime changes
+    if(user?.id && user?.email) {
+      // Create a single subscription with a stable channel name
       subscription = supabase
-        .channel('any_channel_name')
-        .on('postgres_changes', 
-          {
-            event: '*',
-            schema: 'public',
-            table: 'accounts',
-            filter: `email=eq.${user.email}`
-          }, 
-          () => {
-            mutateUser()
-          }
-        )
-        .on('postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'user_xp',
-            filter: `userid=eq.${user?.id}`
-          },
-          () => {
-            mutateUser()
-          }
-        )
-        .on('postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'user_streaks',
-            filter: `user_id=eq.${user?.id}`
-          },
-          () => {
-            mutateUser()
-          }
-        )
-        .subscribe()
+          .channel(`user_${user.id}_updates`)
+          .on('postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'accounts',
+                filter: `email=eq.${user.email}`
+              },
+              () => {
+                // Just mutate data, don't set loading state
+                mutateUser();
+              }
+          )
+          .on('postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'user_xp',
+                filter: `userid=eq.${user.id}`
+              },
+              () => {
+                mutateUser();
+              }
+          )
+          .on('postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'user_streaks',
+                filter: `user_id=eq.${user.id}`
+              },
+              () => {
+                mutateUser();
+              }
+          )
+          .subscribe();
     }
 
     return () => {
       if (subscription) {
-        supabase.removeChannel(subscription)
+        supabase.removeChannel(subscription);
       }
-    }
-  }, [session, user?.id])
+    };
+  }, [user?.id]); // Only depend on stable ID
 
+  // Step 8: Auth methods
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    if (error) throw error
-  }
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      // Session change will update loading state
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
 
   const verifyOtp = async (email: string, token: string, password: string, type: string = "signup") => {
+    setIsLoading(true);
     try {
-      const { error, data } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+      const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
 
       if(type === "signup"){
-        const { error: updateError } = await supabase.auth.updateUser({ 
-          data: { role: "student", type: "student" }
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { role: "student", type: "student" , roles: ["student"] }
         });
         if(updateError) throw updateError;
       }
@@ -176,62 +206,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (session?.access_token) {
-        await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount', 
-          { email },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
+        await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
+            { email },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              }
             }
-          }
         );
       }
-     
+
     } catch (error) {
       console.error('Error verifying OTP:', error);
+      setIsLoading(false);
       throw error;
     }
-  }
+  };
 
   const signUp = async (email: string, password: string) => {
+    setIsLoading(true);
     try {
       try {
-        await axios.post('https://elearn.ezadrive.com/api/mobile/auth/create', 
-          {
-            email,
-            password
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json'
+        await axios.post('https://elearn.ezadrive.com/api/mobile/auth/create',
+            {
+              email,
+              password
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json'
+              }
             }
-          }
         );
       } catch (error) {
         if (axios.isAxiosError(error) && error.response?.data?.error === "Email already exists in the system") {
+          setIsLoading(false);
           throw new Error('email exists');
         }
-        throw error;
       }
 
       const { error } = await supabase.auth.signInWithOtp({
         email
-      })
-      if (error) throw error;
+      });
+      if (error) {
+        setIsLoading(false);
+        throw error;
+      }
     } catch (error) {
       console.error('Error signing up:', error);
+      setIsLoading(false);
       throw error;
     }
-  }
+  };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error;
-    mutate(null);
-  }
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      throw error;
+    }
+  };
 
+  // Step 9: Provide auth context
   const value = {
     user: user || null,
     session,
@@ -242,20 +282,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     verifyOtp,
     mutateUser,
     checkStreak
-  }
+  };
 
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+      <AuthContext.Provider value={value}>
+        {children}
+      </AuthContext.Provider>
+  );
 }
 
 // Custom hook to use auth context
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
+  return context;
 }

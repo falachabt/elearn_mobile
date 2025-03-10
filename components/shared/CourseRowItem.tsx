@@ -1,10 +1,11 @@
 import React from "react";
-import { View, StyleSheet, Pressable } from "react-native";
-import { ThemedText } from "@/components/ThemedText";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { theme } from "@/constants/theme";
-import { useCourseProgress } from "@/hooks/useCourseProgress";
+import {Image, Pressable, StyleSheet, View} from "react-native";
+import {ThemedText} from "@/components/ThemedText";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {useRouter} from "expo-router";
+import {theme} from "@/constants/theme";
+import {useCourseProgress} from "@/hooks/useCourseProgress";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
 
 interface CourseRowItemProps {
     courseItem: any;
@@ -12,36 +13,73 @@ interface CourseRowItemProps {
     isDark: boolean;
 }
 
-const CourseRowItem: React.FC<CourseRowItemProps> = ({ courseItem, pdId, isDark }) => {
+const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, isDark}) => {
     const router = useRouter();
     const sections = courseItem.course?.courses_content?.length || 0;
     const videos = courseItem.course?.course_videos?.length || 0;
-    const { progress } = useCourseProgress(courseItem.course?.id);
+    const {progress} = useCourseProgress(courseItem.course?.id);
+    const {trigger} = useHaptics();
 
     return (
         <Pressable
             style={[styles.courseItem, isDark && styles.courseItemDark]}
-            onPress={() =>
+            onPress={() => {
+                trigger(HapticType.SELECTION);
+
                 router.push(`/(app)/learn/${pdId}/courses/${courseItem.course?.id}`)
+            }
             }
         >
             <View style={styles.courseContent}>
                 <View style={styles.courseHeader}>
-                    <View 
+                    <View
                         style={[
                             progress?.is_completed ? styles.courseIcon : styles.courseIconIncomplete,
                             isDark && (progress?.is_completed ? styles.courseIconDark : styles.courseIconIncompleteDark)
                         ]}
                     >
-                        <MaterialCommunityIcons
-                            name={progress?.is_completed ? "check" : "book"}
-                            size={24}
-                            color={
-                                progress?.is_completed 
-                                    ? (isDark ? "#6EE7B7" : "#4CAF50") 
-                                    : (isDark ? "#9CA3AF" : theme.color.gray[600])
-                            }
-                        />
+                        {
+                            !progress?.is_completed ? (
+                                courseItem.course.category?.icon ? (
+                                    <Image
+                                        source={{uri: courseItem.course.category?.icon}}
+                                        style={styles.categoryIconImage}
+                                        resizeMode="contain"
+                                    />
+                                ) : (
+                                    <MaterialCommunityIcons
+                                        name="book"
+                                        size={24}
+                                        color={isDark ? "#9CA3AF" : theme.color.gray[600]}
+                                    />
+
+                                )
+
+
+                            ) : (
+                                <MaterialCommunityIcons
+                                    name="check"
+                                    size={24}
+                                    color={isDark ? "#6EE7B7" : "#4CAF50"}
+                                />
+
+                            )
+                        }
+                        {/*<Image*/}
+                        {/*    source={{ uri: courseItem.course.category?.icon }}*/}
+                        {/*    style={styles.categoryIconImage}*/}
+                        {/*    resizeMode="contain"*/}
+                        {/*/>*/}
+
+                        {/*<MaterialCommunityIcons*/}
+                        {/*    name={progress?.is_completed ? "check" : "book"}*/}
+                        {/*    size={24}*/}
+                        {/*    color={*/}
+                        {/*        progress?.is_completed */}
+                        {/*            ? (isDark ? "#6EE7B7" : "#4CAF50") */}
+                        {/*            : (isDark ? "#9CA3AF" : theme.color.gray[600])*/}
+                        {/*    }*/}
+                        {/*/>*/}
                     </View>
                     <View style={styles.courseTitleContainer}>
                         <ThemedText
@@ -63,12 +101,12 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({ courseItem, pdId, isDark 
                 </View>
 
                 <View style={[styles.progressBar, isDark && styles.progressBarDark]}>
-                    <View 
+                    <View
                         style={[
                             styles.progressFill,
                             isDark && styles.progressFillDark,
-                            { width: progress?.progress_percentage !== undefined ? `${progress.progress_percentage}%` : 0 }
-                        ]} 
+                            {width: progress?.progress_percentage !== undefined ? `${progress.progress_percentage}%` : 0}
+                        ]}
                     />
                 </View>
             </View>
@@ -136,6 +174,10 @@ const styles = StyleSheet.create({
     },
     courseMetricsDark: {
         color: "#9CA3AF",
+    },
+    categoryIconImage: {
+        width: 24,
+        height: 24,
     },
     progressBar: {
         height: 4,

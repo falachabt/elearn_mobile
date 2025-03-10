@@ -1,6 +1,9 @@
 // src/hooks/useHaptics.ts
 import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
+import { Platform, AppState, AppStateStatus } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
+import { STORAGE_KEY_SETTINGS } from "@/constants/storage-keys";
 
 export enum HapticType {
     LIGHT = 'light',
@@ -60,9 +63,50 @@ export const HapticPatterns = {
 
 export const useHaptics = (options: HapticOptions = { disableOnAndroid: false }) => {
     const isAndroid = Platform.OS === 'android';
+    const [hapticEnabled, setHapticEnabled] = useState(true); // Default to true if setting not found
+
+    // Load haptic settings from AsyncStorage
+    const loadHapticSettings = async () => {
+        console.log("we are triging to load apptick setting")
+        try {
+            const storedSettings = await AsyncStorage.getItem(STORAGE_KEY_SETTINGS);
+            if (storedSettings) {
+                const settings = JSON.parse(storedSettings);
+                // If hapticEnabled is explicitly set to false, use that value
+                // Otherwise, default to true (assume haptics are enabled)
+                setHapticEnabled(settings.hapticEnabled !== false);
+            }
+        } catch (error) {
+            console.error('Error loading haptic settings:', error);
+            // If there's an error, default to enabling haptics
+            setHapticEnabled(true);
+        }
+    };
+
+    // Handle app state changes to check for settings updates
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+        if (nextAppState === 'active') {
+            // App has come to the foreground, reload settings
+            loadHapticSettings();
+        }
+    };
+
+    useEffect(() => {
+        // Load haptic settings on first mount
+        loadHapticSettings();
+
+        // Set up AppState listener for detecting when app comes to foreground
+        const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+        return () => {
+            // Clean up the AppState listener
+            subscription.remove();
+        };
+    }, []);
 
     const triggerSingle = async (type: HapticType) => {
-        if (isAndroid && options.disableOnAndroid) {
+        // Don't trigger haptics if disabled in settings
+        if (!hapticEnabled || (isAndroid && options.disableOnAndroid)) {
             return;
         }
 
@@ -98,7 +142,8 @@ export const useHaptics = (options: HapticOptions = { disableOnAndroid: false })
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     const triggerPattern = async (pattern: readonly HapticStep[]) => {
-        if (isAndroid && options.disableOnAndroid) {
+        // Don't trigger haptics if disabled in settings
+        if (!hapticEnabled || (isAndroid && options.disableOnAndroid)) {
             return;
         }
 
@@ -123,37 +168,8 @@ export const useHaptics = (options: HapticOptions = { disableOnAndroid: false })
         trigger: triggerSingle,
         triggerPattern,
         createPattern,
-        patterns: HapticPatterns
+        patterns: HapticPatterns,
+        loadHapticSettings,
+        hapticEnabled // Expose the current haptic enabled state
     };
 };
-//
-// // Enhanced HapticTouchable with pattern support
-// import { TouchableOpacity, TouchableOpacityProps } from 'react-native';
-//
-// interface HapticTouchableProps extends TouchableOpacityProps {
-//     hapticType?: HapticType;
-//     hapticPattern?: readonly HapticStep[];
-// }
-//
-// export const HapticTouchable: React.FC<HapticTouchableProps> = ({
-//                                                                     hapticType,
-//                                                                     hapticPattern,
-//                                                                     onPress,
-//                                                                     ...props
-//                                                                 }) => {
-//     const { trigger, triggerPattern } = useHaptics();
-//
-//     const handlePress = async (event: any) => {
-//         if (hapticPattern) {
-//             await triggerPattern(hapticPattern);
-//         } else if (hapticType) {
-//             await trigger(hapticType);
-//         }
-//
-//         if (onPress) {
-//             onPress(event);
-//         }
-//     };
-//
-//     return <TouchableOpacity {...props} onPress={handlePress} />;
-// };

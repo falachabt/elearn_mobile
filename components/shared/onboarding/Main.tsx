@@ -136,8 +136,8 @@ const [isDataValid, setIsDataValid] = useState(false);
             phone: accountData.phone ? Number(accountData?.phone) : null,
             city: accountData.city || '',
             birthdate:  null,
-            email: user.email || '',  // from auth user
-            authId: user.id,  // from auth user
+            email: user?.email || '',  // from auth user
+            authId: user?.id,  // from auth user
           });
   
           // Set profile defaults
@@ -342,14 +342,13 @@ const [isDataValid, setIsDataValid] = useState(false);
   const renderStepContent = () => {
     switch (step) {
       case 3:
-        // return <UserInfoForm 
-        //   ref={userInfoFormRef} 
-        //   title={stepsContent[step - 1].title} 
-        //   description={stepsContent[step - 1].description} 
-        //   userInfo={userInfo} 
-        //   setUserInfo={setUserInfo} 
-        // />;
-        return null
+        return <UserInfoForm
+          ref={userInfoFormRef}
+          title={stepsContent[step - 1].title}
+          description={stepsContent[step - 1].description}
+          userInfo={userInfo}
+          setUserInfo={setUserInfo}
+        />;
       case 4:
         return (
           <PathChoice
@@ -398,6 +397,15 @@ const [isDataValid, setIsDataValid] = useState(false);
     }
   };
 
+  function renderNextButtonLabel() {
+    if (step === 7) {
+      return isWatingForPayment ? "Paiement en cours..." : programs?.length ? "Payer" :  "Sauter";
+    }else if(step === 6){
+      return programs?.length ? "Suivant" : "Sauter";
+    }
+    return "Suivant";
+  }
+
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       <View style={styles.group1}>
@@ -442,8 +450,10 @@ const [isDataValid, setIsDataValid] = useState(false);
           disabled={(step === 4 && knowsProgram === null) || loading || isPaymentLoading}
         >
           <Text style={styles.buttonText}>
-            {step === 7 ? isWatingForPayment ? "Payer" : isPaymentLoading ? <ActivityIndicator /> : "Payer" : "Suivant"}
-          </Text>
+            {
+              renderNextButtonLabel()
+            }
+            </Text>
         </TouchableOpacity>
       </View>
 
@@ -494,7 +504,7 @@ const [isDataValid, setIsDataValid] = useState(false);
                     styles.secondaryButtonText,
                     isDark && styles.secondaryButtonTextDark
                   ]}>
-                    Fermer
+                    Plus tard
                   </Text>
                 )}
               </TouchableOpacity>

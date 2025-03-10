@@ -337,7 +337,7 @@ const QuizContent = () => {
           }}
           onContinue={async () => {
             setShowResult(false);
-            router.replace("/(app)/(tabs)/learn" as any);
+            router.replace(`/(app)/learn/${pdId}/quizzes` as any);
           }}
         />
       )}

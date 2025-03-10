@@ -1,84 +1,185 @@
-// src/providers/index.tsx
 import {AuthProvider} from "@/contexts/auth";
 import {ConfigProvider} from "antd-mobile";
-import {AppState, AppStateStatus, BackHandler} from "react-native";
+import {AppState, AppStateStatus, BackHandler, ToastAndroid} from "react-native";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import {SWRConfig} from "swr";
-import {useEffect} from "react";
+import {useEffect, useRef, useState} from "react";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import {QuizProvider} from "@/contexts/quizContext";
 import {UserProvider} from "@/contexts/useUserInfo";
 import UserActivityTracker from "@/components/shared/UserActivity";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
+import AuthDeepLinkHandler from "@/components/shared/DeepLinkHandler";
+import {NotificationProvider} from "@/contexts/NotificationContext";
+
+// Array of motivational messages to show when user tries to exit
+const MOTIVATIONAL_MESSAGES = [
+  "Encore quelques minutes pour apprendre quelque chose de nouveau?",
+  "N'abandonnez pas maintenant, la persistance est la clé du succès!",
+  "Un petit effort de plus vous rapproche de votre objectif!",
+  "Prendre une pause? Vous êtes sur la bonne voie!",
+  "Chaque minute d'apprentissage compte. Continuez!",
+  "Votre cerveau vous remerciera de continuer à apprendre!",
+  "Les grands succès commencent par de petits efforts quotidiens.",
+  "Une leçon de plus aujourd'hui, un grand pas vers la réussite!",
+  "Le savoir est la seule richesse que l'on peut donner sans s'appauvrir.",
+  "Apprendre, c'est découvrir ce que vous savez déjà.",
+  "La connaissance s'acquiert par l'expérience, tout le reste n'est que de l'information.",
+  "L'éducation est l'arme la plus puissante pour changer le monde.",
+  "Le succès, c'est tomber sept fois et se relever huit.",
+  "Le meilleur moment pour commencer était hier, le deuxième meilleur moment est maintenant.",
+  "Chaque jour est une nouvelle opportunité d'apprendre.",
+  "Un investissement dans la connaissance paie toujours les meilleurs intérêts.",
+  "La pratique régulière est le secret de l'apprentissage efficace.",
+  "Le chemin vers l'excellence n'a pas de ligne d'arrivée.",
+  "Votre potentiel est illimité. Continuez à apprendre!",
+  "Petit à petit, l'oiseau fait son nid. Continuez votre apprentissage!",
+];
 
 export function Provider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { quizId, attempId } = useLocalSearchParams();
   const { trigger } = useHaptics();
+  const [exitAppCount, setExitAppCount] = useState(0);
+  const exitTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [lastUsedMessageIndex, setLastUsedMessageIndex] = useState(-1);
+  const lastExitTimeRef = useRef<number>(0);
+
+  // Listen for app state changes to track when app returns from background
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        // App has come to the foreground
+        console.log('App has returned to the foreground');
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     const backAction = () => {
-      console.log("backAction");
+      try {
         trigger(HapticType.LIGHT);
-      // Intercept the back button press and navigate using the Expo Router
-      router.back();
-      return true; // Return true to prevent the default behavior
+
+        // If we can go back to a previous screen, just do that
+        if (router.canGoBack()) {
+          router.back();
+          return true;
+        }
+
+        // Handle app exit with double-press confirmation
+        if (exitAppCount === 0) {
+          // First press - show motivational message
+          setExitAppCount(1);
+
+          // Current time to check if we should always show a message
+          const currentTime = Date.now();
+          const timeSinceLastExit = currentTime - lastExitTimeRef.current;
+          const showMessageAnyway = timeSinceLastExit > 30000; // 30 seconds
+
+          // Get random motivational message (different from the last one if possible)
+          let randomIndex;
+          do {
+            randomIndex = Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length);
+          } while (randomIndex === lastUsedMessageIndex && MOTIVATIONAL_MESSAGES.length > 1);
+
+          setLastUsedMessageIndex(randomIndex);
+          const message = MOTIVATIONAL_MESSAGES[randomIndex];
+
+          // Always show a toast with the message
+          ToastAndroid.showWithGravity(
+              `${message}\n\nAppuyez à nouveau pour quitter`,
+              ToastAndroid.LONG,
+              ToastAndroid.CENTER,
+          );
+
+          // Reset the exit counter after 2 seconds
+          exitTimerRef.current = setTimeout(() => {
+            setExitAppCount(0);
+          }, 2000);
+
+          return true;
+        } else {
+          // Second press within 2 seconds - exit app
+          if (exitTimerRef.current) {
+            clearTimeout(exitTimerRef.current);
+          }
+          // Store the time when user exits
+          lastExitTimeRef.current = Date.now();
+          BackHandler.exitApp();
+          return true;
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'exécution de backAction:", error);
+        return false;
+      }
     };
 
     BackHandler.addEventListener("hardwareBackPress", backAction);
 
     return () => {
+      if (exitTimerRef.current) {
+        clearTimeout(exitTimerRef.current);
+      }
       BackHandler.removeEventListener("hardwareBackPress", backAction);
     };
-  }, [router]);
+  }, [router, exitAppCount, trigger]);
 
   return (
-    <ConfigProvider>
-      <SWRConfig
-        value={{
-          provider: () => new Map(),
-          isVisible: () => {
-            return true;
-          },
-          
-          initFocus(callback) {
-            let appState = AppState.currentState;
+      <ConfigProvider>
+        <SWRConfig
+            value={{
+              provider: () => new Map(),
+              isVisible: () => {
+                return true;
+              },
 
-            const onAppStateChange = (nextAppState: AppStateStatus) => {
-              /* If it's resuming from background or inactive mode to active one */
-              console.log(appState, nextAppState);
-              if (
-                appState.match(/inactive|background/) &&
-                nextAppState === "active"
-              ) {
-                callback();
-              }
-              appState = nextAppState;
-            };
+              initFocus(callback) {
+                let appState = AppState.currentState;
 
-            // Subscribe to the app state change events
-            const subscription = AppState.addEventListener(
-              "change",
-              onAppStateChange
-            );
+                const onAppStateChange = (nextAppState: AppStateStatus) => {
+                  /* If it's resuming from background or inactive mode to active one */
+                  console.log(appState, nextAppState);
+                  if (
+                      appState.match(/inactive|background/) &&
+                      nextAppState === "active"
+                  ) {
+                    callback();
+                  }
+                  appState = nextAppState;
+                };
 
-            return () => {
-              subscription.remove();
-            };
-          },
-        }}
-      >
-        <AuthProvider>
-          <UserProvider>
-          <GestureHandlerRootView>
-          <QuizProvider quizId={String(quizId)} attemptId={String(attempId)} >
-            <UserActivityTracker/> 
-            {children}
-              </QuizProvider> 
-            </GestureHandlerRootView>
-            </UserProvider> 
-        </AuthProvider>
-      </SWRConfig>
-    </ConfigProvider>
+                // Subscribe to the app state change events
+                const subscription = AppState.addEventListener(
+                    "change",
+                    onAppStateChange
+                );
+
+                return () => {
+                  subscription.remove();
+                };
+              },
+            }}
+        >
+          <NotificationProvider>
+
+          <AuthDeepLinkHandler />
+          <AuthProvider>
+            <UserProvider>
+              <GestureHandlerRootView>
+                <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
+                  <UserActivityTracker/>
+                  {children}
+                </QuizProvider>
+              </GestureHandlerRootView>
+            </UserProvider>
+          </AuthProvider>
+          </NotificationProvider>
+        </SWRConfig>
+      </ConfigProvider>
   );
 }

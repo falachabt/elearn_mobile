@@ -69,7 +69,7 @@ export const theme = {
   },
   border: {
     radius: {
-      small: 5,
+      small: 6,
       medium: 10,
       large: 25,
     },
