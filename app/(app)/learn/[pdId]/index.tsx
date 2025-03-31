@@ -1,14 +1,13 @@
 import {Image, Platform, Pressable, ScrollView, StyleSheet, View} from "react-native";
-import React, {useEffect, useMemo, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {ThemedText} from "@/components/ThemedText";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useLocalSearchParams, useRouter} from "expo-router";
-import useSWR from "swr";
-import {supabase} from "@/lib/supabase";
 import {theme} from "@/constants/theme";
 import {useColorScheme} from "@/hooks/useColorScheme";
 import {useAuth} from "@/contexts/auth";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
+import {useProgramProgress} from "@/hooks/useProgramProgress"; // Import the hook
 
 interface ActionCard {
     id: string;
@@ -25,273 +24,7 @@ interface ActionCard {
     rightContent?: React.ReactNode;
 }
 
-
-// Types pour les structures de données
-interface Exercise {
-    id: string;
-}
-
-interface Course {
-    id: string;
-    exercices?: Exercise[];
-}
-
-interface CourseLearningPath {
-    id: string;
-    courseId: string;
-    courses?: Course;  // Note: This is a single course, not an array
-}
-
-interface QuizLearningPath {
-    id: string;
-    quizId: string;
-}
-
-interface School {
-    id: string;
-    name: string;
-}
-
-interface Concours {
-    id: string;
-    name: string;
-    school?: School;
-}
-
-interface ConcoursLearningPath {
-    concour?: Concours;
-}
-
-interface LearningPath {
-    id: string;
-    title: string;
-    description?: string;
-    course_count?: number;
-    quiz_count?: number;
-    duration?: number;
-    course_learningpath: CourseLearningPath[];
-    quiz_learningpath: QuizLearningPath[];
-    concours_learningpaths?: ConcoursLearningPath;
-}
-
-interface CourseProgress {
-    course_id: string;
-    progress_percentage: number;
-}
-
-interface QuizAttempt {
-    quiz_id: string;
-}
-
-interface ExerciceComplete {
-    exercice_id: string;
-}
-
-interface ProgressResult {
-    program: LearningPath;
-    courseProgress: {
-        completed: number;
-        percentage: number;
-    };
-    quizProgress: {
-        completed: number;
-        percentage: number;
-    };
-    exercisesProgress: {
-        completed: number;
-        total: number;
-        percentage: number;
-    };
-}
-
-interface ProgressResult {
-    program: LearningPath;
-    courseProgress: {
-        completed: number;
-        percentage: number;
-    };
-    quizProgress: {
-        completed: number;
-        percentage: number;
-    };
-    exercisesProgress: {
-        completed: number;
-        total: number;
-        percentage: number;
-    };
-}
-
-const programFetcher = async (id: string, user: any): Promise<ProgressResult | null> => {
-    if (!id) return null;
-
-    // Step 1: Fetch the program data first to get the course and quiz IDs
-    const { data: rawProgramData, error: programError } = await supabase
-        .from("learning_paths")
-        .select(
-            `
-            id,
-            title,
-            description,
-            course_count,
-            quiz_count,
-            duration,
-            course_learningpath(
-                id, 
-                courseId,
-                courses(
-                    id, 
-                    exercices(id)
-                )
-            ),
-            quiz_learningpath(
-                id, 
-                quizId
-            ),
-            concours_learningpaths(
-                concour:concours(
-                    id,
-                    name,
-                    school:schools(
-                        id,
-                        name
-                    )
-                )
-            )
-            `
-        )
-        .eq("id", id)
-        .single();
-
-    if (programError) {
-        console.error("Error fetching program:", programError);
-        throw programError;
-    }
-
-    // Properly cast the data to our type
-    const programData = rawProgramData as unknown as LearningPath;
-
-    // Extract relevant IDs from the program data
-    const relevantCourseIds = programData.course_learningpath.map(c => c.courseId).filter(Boolean);
-    const relevantQuizIds = programData.quiz_learningpath.map(q => q.quizId).filter(Boolean);
-
-    // Extract all exercise IDs from the program data
-    const allExerciseIds: string[] = [];
-    programData.course_learningpath.forEach(courseLP => {
-        const exercises = courseLP.courses?.exercices || [];
-        exercises.forEach(exercise => {
-            if (exercise.id) {
-                allExerciseIds.push(exercise.id);
-            }
-        });
-    });
-
-    // If no user is logged in, return program data with zero progress
-    if (!user?.id) {
-        return {
-            program: programData,
-            courseProgress: { completed: 0, percentage: 0 },
-            quizProgress: { completed: 0, percentage: 0 },
-            exercisesProgress: { completed: 0, total: allExerciseIds.length, percentage: 0 }
-        };
-    }
-
-    // Step 2: Fetch only the necessary progress data in parallel
-    const [courseProgressData, quizData, exerciseData] = await Promise.all([
-        // Fetch only relevant course progress
-        supabase
-            .from("course_progress_summary")
-            .select("course_id, progress_percentage")
-            .eq("user_id", user.id)
-            .in("course_id", relevantCourseIds)
-            .then(({ data, error }) => {
-                if (error) {
-                    console.error("Error fetching course progress:", error);
-                    return [];
-                }
-                return data as CourseProgress[] || [];
-            }),
-
-        // Fetch only relevant quiz attempts
-        supabase
-            .from("quiz_attempts")
-            .select("quiz_id")
-            .eq("user_id", user.id)
-            .eq("status", "completed")
-            .gte("score", 70)
-            .in("quiz_id", relevantQuizIds)
-            .then(({ data, error }) => {
-                if (error) {
-                    console.error("Error fetching quiz attempts:", error);
-                    return [];
-                }
-                return data as QuizAttempt[] || [];
-            }),
-
-        // Fetch only relevant completed exercises
-        supabase
-            .from("exercices_complete")
-            .select("exercice_id")
-            .eq("user_id", user.id)
-            .eq("is_completed", true)
-            .in("exercice_id", allExerciseIds)
-            .then(({ data, error }) => {
-                if (error) {
-                    console.error("Error fetching completed exercises:", error);
-                    return [];
-                }
-                return data as ExerciceComplete[] || [];
-            })
-    ]);
-
-    // Create a set of completed exercise IDs
-    const completedExerciseIds = new Set(
-        exerciseData.map(exercise => exercise.exercice_id)
-    );
-
-    // Calculate course progress
-    const totalCourses = programData.course_learningpath.length || 0;
-    const totalCourseProgress =
-        courseProgressData.reduce((acc, course) => {
-            return acc + Math.min(course.progress_percentage, 100);
-        }, 0) || 0;
-
-    const courseProgress = totalCourses
-        ? (totalCourseProgress / (totalCourses * 100)) * 100
-        : 0;
-    const courseCompleted =
-        courseProgressData.filter(course => course.progress_percentage === 100).length || 0;
-
-    // Calculate quiz progress
-    const totalQuizzes = programData.quiz_learningpath.length || 0;
-    const quizProgress =
-        totalQuizzes && quizData.length
-            ? (quizData.length / totalQuizzes) * 100
-            : 0;
-
-    // Calculate exercises progress
-    const totalExercises = allExerciseIds.length;
-    const completedExercises = completedExerciseIds.size;
-    const exercisesProgress = totalExercises
-        ? (completedExercises / totalExercises) * 100
-        : 0;
-
-    return {
-        program: programData,
-        courseProgress: {
-            completed: courseCompleted,
-            percentage: courseProgress,
-        },
-        quizProgress: {
-            completed: quizData?.length || 0,
-            percentage: quizProgress,
-        },
-        exercisesProgress: {
-            completed: completedExercises,
-            total: totalExercises,
-            percentage: exercisesProgress
-        }
-    };
-};
+// Types are already defined in the useProgramProgress hook, so we don't need to redefine them here
 
 const ProgramDetails = () => {
     const local = useLocalSearchParams();
@@ -303,131 +36,22 @@ const ProgramDetails = () => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
 
-    // Use SWR for data fetching with automatic revalidation
-    const {data: programData, error} = useSWR(
-        id ? `program-${id}` : null,
-        () => programFetcher(id, user),
-        {
-            revalidateOnFocus: true,
-            revalidateOnReconnect: true,
-            refreshInterval: 10000
-        }
-    );
+    // Use the centralized hook instead of direct SWR fetcher
+    const {
+        courseProgress,
+        quizProgress,
+        exercisesProgress,
+        archiveProgress, // Renamed from archivesProgress to match hook naming
+        totalProgress,
+        program,
+        isLoading,
+        error
+    } = useProgramProgress(id, user?.id || "");
 
-    const [courseProgress, setCourseProgress] = useState({
-        completed: 0,
-        percentage: 0
-    });
-    const [quizProgress, setQuizProgress] = useState({
-        completed: 0,
-        percentage: 0
-    });
-    const [exercisesProgress, setExercisesProgress] = useState({
-        completed: 0,
-        total: 0,
-        percentage: 0
-    });
-
-    // Update local state when programData changes
-    useEffect(() => {
-        if (programData) {
-            setCourseProgress(programData.courseProgress);
-            setQuizProgress(programData.quizProgress);
-            setExercisesProgress(programData.exercisesProgress);
-        }
-    }, [programData]);
-
-    // Calculate total progress
-    const program = programData?.program;
-    const totalCourses = program?.course_learningpath?.length || 0;
-    const totalQuizzes = program?.quiz_learningpath?.length || 0;
-
-    // Add proper null checks for exercisesProgress in the totalProgress calculation
-    const totalProgress = useMemo(() => {
-        // Make sure all required values exist
-        if (!programData) return 0;
-
-        const totalCourses = program?.course_learningpath?.length || 0;
-        const totalQuizzes = program?.quiz_learningpath?.length || 0;
-        const totalExercises = exercisesProgress?.total || 0;
-
-        if (!totalCourses && !totalQuizzes && !totalExercises) return 0;
-
-        // Define weights for each component
-        const componentsWeight = {
-            courses: totalCourses > 0 ? 0.5 : 0,
-            quizzes: totalQuizzes > 0 ? 0.3 : 0,
-            exercises: totalExercises > 0 ? 0.2 : 0
-        };
-
-        // Normalize weights if any component is missing
-        const totalWeight = componentsWeight.courses + componentsWeight.quizzes + componentsWeight.exercises;
-
-        if (totalWeight === 0) return 0;
-
-        const normalizedWeights = {
-            courses: componentsWeight.courses / totalWeight,
-            quizzes: componentsWeight.quizzes / totalWeight,
-            exercises: componentsWeight.exercises / totalWeight
-        };
-
-        // Use optional chaining and nullish coalescing to safely access values
-        return Math.round(
-            ((courseProgress?.percentage || 0) * normalizedWeights.courses) +
-            ((quizProgress?.percentage || 0) * normalizedWeights.quizzes) +
-            ((exercisesProgress?.percentage || 0) * normalizedWeights.exercises)
-        );
-    }, [courseProgress, quizProgress, exercisesProgress, program]);
-
-    // Add null checks for actionCards that use exercisesProgress
-    useEffect(() => {
-        if (program) {
-            setActionCards([
-                // ... other cards
-                {
-                    id: "exos",
-                    title: "Exercices de révision",
-                    subtitle: "Mémorisez efficacement",
-                    progress: {
-                        current: exercisesProgress?.completed || 0,
-                        total: exercisesProgress?.total || 0,
-                        percentage: exercisesProgress?.percentage || 0,
-                    },
-                    icon: (
-                        <MaterialCommunityIcons
-                            name="card-text-outline"
-                            size={24}
-                            color={isDark ? "#E879F9" : "#9C27B0"}
-                        />
-                    ),
-                    route: `/(app)/learn/${id}/exercices`,
-                    color: isDark ? "#E879F9" : "#9C27B0",
-                    rightContent: (
-                        <View style={styles.progressIndicator}>
-                            <ThemedText
-                                style={[styles.progressText, isDark && styles.progressTextDark]}
-                            >
-                                {exercisesProgress?.completed || 0}/
-                                {exercisesProgress?.total || 0}
-                            </ThemedText>
-                            <ThemedText
-                                style={[
-                                    styles.progressLabel,
-                                    isDark && styles.progressLabelDark,
-                                ]}
-                            >
-                                exercices complétés
-                            </ThemedText>
-                        </View>
-                    ),
-                },
-                // ... other cards
-            ]);
-        }
-    }, [program, courseProgress, quizProgress, exercisesProgress, id, isDark]);
     // Prepare action cards
     const [actionCards, setActionCards] = useState<ActionCard[]>([]);
 
+    // Update actionCards when program or progress data changes
     useEffect(() => {
         if (program) {
             setActionCards([
@@ -438,7 +62,7 @@ const ProgramDetails = () => {
                     progress: {
                         current: courseProgress?.completed || 0,
                         total: program.course_count || 0,
-                        percentage: courseProgress?.percentage,
+                        percentage: courseProgress?.percentage || 0,
                     },
                     icon: (
                         <MaterialCommunityIcons
@@ -475,7 +99,7 @@ const ProgramDetails = () => {
                     progress: {
                         current: quizProgress?.completed || 0,
                         total: program.quiz_learningpath?.length || 0,
-                        percentage: quizProgress?.percentage,
+                        percentage: quizProgress?.percentage || 0,
                     },
                     icon: (
                         <MaterialCommunityIcons
@@ -544,7 +168,7 @@ const ProgramDetails = () => {
                 },
                 {
                     id: "pastExams",
-                    title: "Annales",
+                    title: "Anciens sujets",
                     subtitle: "Sujets des années précédentes",
                     icon: (
                         <MaterialCommunityIcons
@@ -553,12 +177,35 @@ const ProgramDetails = () => {
                             color={isDark ? "#FBBF24" : "#FF9800"}
                         />
                     ),
+                    progress: {
+                        current: archiveProgress?.completed || 0,
+                        total: archiveProgress?.completed + (program.concours_learningpaths?.concour?.concours_archives?.length || 0) - (archiveProgress?.completed || 0),
+                        percentage: archiveProgress?.percentage || 0,
+                    },
                     route: `/(app)/learn/${id}/anales`,
                     color: isDark ? "#FBBF24" : "#FF9800",
+                    rightContent: (
+                        <View style={styles.progressIndicator}>
+                            <ThemedText
+                                style={[styles.progressText, isDark && styles.progressTextDark]}
+                            >
+                                {archiveProgress?.completed}/
+                                {program.concours_learningpaths?.concour?.concours_archives?.length || 0}
+                            </ThemedText>
+                            <ThemedText
+                                style={[
+                                    styles.progressLabel,
+                                    isDark && styles.progressLabelDark,
+                                ]}
+                            >
+                                Anales revisés
+                            </ThemedText>
+                        </View>
+                    ),
                 },
             ]);
         }
-    }, [program, courseProgress, quizProgress, exercisesProgress, id, isDark]);
+    }, [program, courseProgress, quizProgress, exercisesProgress, archiveProgress, id, isDark]);
 
     // Render individual action card
     const ActionCard = ({card}: { card: ActionCard }) => (
@@ -627,7 +274,7 @@ const ProgramDetails = () => {
                     <ThemedText
                         style={[styles.programTitle, isDark && styles.programTitleDark]}
                     >
-                        {program?.title}
+                        {"Programme - "} {program?.concours_learningpaths?.concour?.school?.sigle} l{program?.concours_learningpaths?.concour?.study_cycles?.level}
                     </ThemedText>
                     <ThemedText
                         style={[styles.concoursName, isDark && styles.concoursNameDark]}
@@ -638,7 +285,7 @@ const ProgramDetails = () => {
                 </View>
             </View>
 
-            {/* Overall progress indicator */}
+            {/* Overall progress indicator - Uncomment if you want to show total progress */}
             {/*<View style={styles.overallProgressContainer}>*/}
             {/*    <ThemedText style={styles.overallProgressLabel}>*/}
             {/*        Progression globale: {totalProgress}%*/}
@@ -675,6 +322,7 @@ const ProgramDetails = () => {
 };
 
 const styles = StyleSheet.create({
+    // Styles remain unchanged
     container: {
         flex: 1,
         backgroundColor: "#F9FAFB",

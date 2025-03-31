@@ -91,11 +91,13 @@ const MyLearningPaths = () => {
                         description,
                         dates,
                         nextDate,
-                        schoolId,
+                        study_cycles(level),
+                        school_id,
                         school:schools(
                           id,
                           name,
                           imageUrl,
+                          sigle,
                           localisation
                         )
                       ),
@@ -105,7 +107,6 @@ const MyLearningPaths = () => {
                         description,
                         image,
                         duration,
-                        content,
                         course_count,
                         quiz_count,
                         total_duration
@@ -113,14 +114,18 @@ const MyLearningPaths = () => {
                 `)
                 .eq('user_id', user?.id)
 
+
+
+        console.log("lpError", lpError)
+
             if (lpError) throw lpError
 
             const result = learningPathsData.map((item: any) => (item?.concours_learningpaths));
 
             // Transform data and add mock progress
-            return result.map((item: any) => ({
+            return result.map((item: any, index : number) => ({
                 id: item.learning_path.id,
-                title: item.learning_path.title,
+                title: "Programme " + item.concour.school.sigle + " Niveau : " + item.concour.study_cycles.level ,
                 description: item.learning_path.description,
                 image: item.learning_path.image,
                 duration: item.learning_path.duration,

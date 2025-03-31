@@ -173,7 +173,7 @@ export default function PaymentScreen() {
 
           <View style={styles.phoneSection}>
             <Text style={[styles.label, isDark && styles.labelDark]}>
-              Numéro Mobile Money
+              Numéro Mobile Money ou Orange Money
             </Text>
             <View style={styles.phoneInputContainer}>
               <View style={[styles.networkIndicator, isDark && styles.networkIndicatorDark]}>

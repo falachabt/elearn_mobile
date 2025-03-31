@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import {useState, useEffect} from 'react';
+import {supabase} from '@/lib/supabase';
 import useSWR from 'swr';
+import {programProgressKeys} from "@/constants/swr-path";
 
 // Interfaces for data structures
 interface School {
@@ -12,10 +13,17 @@ interface Concours {
     id: string;
     name: string;
     school?: School;
+    concours_archives?: ArchiveComplete[];
+}
+
+interface ArchiveComplete {
+    id: string;
 }
 
 interface ConcoursLearningPath {
     concour?: Concours;
+
+
 }
 
 interface Exercise {
@@ -78,6 +86,10 @@ interface ProgressData {
         total: number;
         percentage: number;
     };
+    archiveProgress: {
+        completed: number;
+        percentage: number;
+    };
 }
 
 interface ProgramProgress {
@@ -92,6 +104,10 @@ interface ProgramProgress {
     exercisesProgress: {
         completed: number;
         total: number;
+        percentage: number;
+    };
+    archiveProgress: {
+        completed: number;
         percentage: number;
     };
     totalProgress: number;
@@ -132,42 +148,56 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
         percentage: 0,
     });
 
-    const { data: programData, error, isLoading } = useSWR<ProgressData>(
-        lpId && userId ? `program-progress-${lpId}-${userId}` : null,
+    const [archiveProgress, setArchiveProgress] = useState<{
+        completed: number;
+        percentage: number;
+    }>({
+            completed: 0,
+            percentage: 0,
+        }
+    );
+
+    const {data: programData, error, isLoading} = useSWR<ProgressData>(
+        lpId && userId ? programProgressKeys.detail(lpId, userId) : null, // Use specific key
         async () => {
             // Step 1: First fetch the program data to extract relevant IDs
-            const { data: rawProgramData, error: programError } = await supabase
+            const {data: rawProgramData, error: programError} = await supabase
                 .from("learning_paths")
-                .select(`
+                .select(
+                    `
+            id,
+            title,
+            description,
+            course_count,
+            quiz_count,
+            duration,
+            course_learningpath(
+                id, 
+                courseId,
+                courses(
+                    id, 
+                    exercices(id)
+                )
+            ),
+            quiz_learningpath(
+                id, 
+                quizId
+            ),
+            concours_learningpaths(
+                concour:concours(
                     id,
-                    title,
-                    description,
-                    course_count,
-                    quiz_count,
-                    duration,
-                    course_learningpath(
-                        id, 
-                        courseId,
-                        courses(
-                            id, 
-                            exercices(id)
-                        )
-                    ),
-                    quiz_learningpath(
-                        id, 
-                        quizId
-                    ),
-                    concours_learningpaths(
-                        concour:concours(
-                            id,
-                            name,
-                            school:schools(
-                                id,
-                                name
-                            )
-                        )
+                    name,
+                    study_cycles(level),
+                    concours_archives(id),
+                    school:schools(
+                        id,
+                        name, 
+                        sigle
                     )
-                `)
+                )
+            )
+            `
+                )
                 .eq("id", lpId)
                 .single();
 
@@ -184,6 +214,9 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                 .map(q => q.quizId)
                 .filter(Boolean);
 
+            const relevantArchivesIds = program.concours_learningpaths?.concour?.concours_archives?.map(a => a.id).filter(Boolean) || [];
+
+
             // Extract all exercise IDs
             const allExerciseIds: string[] = [];
             program.course_learningpath.forEach(courseLP => {
@@ -197,14 +230,14 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
             });
 
             // Step 2: Fetch only the necessary progress data in parallel
-            const [courseProgressData, quizData, exerciseData] = await Promise.all([
+            const [courseProgressData, quizData, exerciseData, archiveProgressData] = await Promise.all([
                 // Fetch only relevant course progress
                 supabase
                     .from("course_progress_summary")
                     .select("course_id, progress_percentage")
                     .eq("user_id", userId)
                     .in("course_id", relevantCourseIds.length ? relevantCourseIds : ['none'])
-                    .then(({ data, error }) => {
+                    .then(({data, error}) => {
                         if (error) throw error;
                         return data as CourseProgress[] || [];
                     }),
@@ -217,7 +250,7 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                     .eq("status", "completed")
                     .gte("score", 70)
                     .in("quiz_id", relevantQuizIds.length ? relevantQuizIds : ['none'])
-                    .then(({ data, error }) => {
+                    .then(({data, error}) => {
                         if (error) throw error;
                         return data as QuizAttempt[] || [];
                     }),
@@ -229,10 +262,24 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                     .eq("user_id", userId)
                     .eq("is_completed", true)
                     .in("exercice_id", allExerciseIds.length ? allExerciseIds : ['none'])
-                    .then(({ data, error }) => {
+                    .then(({data, error}) => {
                         if (error) throw error;
                         return data as ExerciceComplete[] || [];
-                    })
+                    }),
+
+                // Fetch only relevant archive progress
+                supabase
+                    .from("user_completed_archives")
+                    .select("id")
+                    .eq("user_id", userId)
+                    .in("id", relevantArchivesIds)
+                    .then(({data, error}) => {
+                        if (error) {
+                            console.error("Error fetching completed archives:", error);
+                            return [];
+                        }
+                        return data as ArchiveComplete[] || [];
+                    }),
             ]);
 
             // Calculate course progress
@@ -305,6 +352,10 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                     completed: completedExercises,
                     total: totalExercises,
                     percentage: calculatedExercisesProgress
+                },
+                archiveProgress: {
+                    completed: archiveProgressData.length,
+                    percentage: capPercentage((archiveProgressData.length / relevantArchivesIds.length) * 100)
                 }
             };
         },
@@ -320,6 +371,7 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
             setCourseProgress(programData.courseProgress);
             setQuizProgress(programData.quizProgress);
             setExercisesProgress(programData.exercisesProgress);
+            setArchiveProgress(programData.archiveProgress);
         }
     }, [programData]);
 
@@ -328,32 +380,36 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
         const totalCourses = programData?.program?.course_learningpath?.length || 0;
         const totalQuizzes = programData?.program?.quiz_learningpath?.length || 0;
         const totalExercises = exercisesProgress?.total || 0;
+        const totalArchives = programData?.program?.concours_learningpaths?.concour?.concours_archives?.length || 0;
 
         if (!totalCourses && !totalQuizzes && !totalExercises) return 0;
 
         // Define weights for each component
         const componentsWeight = {
-            courses: totalCourses > 0 ? 0.5 : 0,
-            quizzes: totalQuizzes > 0 ? 0.3 : 0,
-            exercises: totalExercises > 0 ? 0.2 : 0
+            courses: totalCourses > 0 ? 1.5 : 0,
+            quizzes: totalQuizzes > 0 ? 2 : 0,
+            exercises: totalExercises > 0 ? 3 : 0,
+            archives: totalArchives > 0 ? 2 : 0
         };
 
         // Normalize weights if any component is missing
-        const totalWeight = componentsWeight.courses + componentsWeight.quizzes + componentsWeight.exercises;
+        const totalWeight = componentsWeight.courses + componentsWeight.quizzes + componentsWeight.exercises + componentsWeight.archives;
 
         if (totalWeight === 0) return 0;
 
         const normalizedWeights = {
             courses: componentsWeight.courses / totalWeight,
             quizzes: componentsWeight.quizzes / totalWeight,
-            exercises: componentsWeight.exercises / totalWeight
+            exercises: componentsWeight.exercises / totalWeight,
+            archives: componentsWeight.archives / totalWeight
         };
 
         // Calculate weighted progress and cap at 100%
         const weightedProgress =
             ((courseProgress?.percentage || 0) * normalizedWeights.courses) +
             ((quizProgress?.percentage || 0) * normalizedWeights.quizzes) +
-            ((exercisesProgress?.percentage || 0) * normalizedWeights.exercises);
+            ((exercisesProgress?.percentage || 0) * normalizedWeights.exercises) +
+            ((archiveProgress?.percentage || 0) * normalizedWeights.archives);
 
         return Math.round(capPercentage(weightedProgress));
     })();
@@ -362,6 +418,7 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
         courseProgress,
         quizProgress,
         exercisesProgress,
+        archiveProgress,
         totalProgress,
         program: programData?.program,
         isLoading,

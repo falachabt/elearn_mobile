@@ -108,29 +108,31 @@ const StartPage = () => {
                 }
               ]}
           >
-            <Link href="/(auth)/login" asChild>
+            {/* Register Button - Main Action */}
+            <Link href="/(auth)/register" asChild>
               <TouchableOpacity
-                  style={styles.loginButton}
+                  style={styles.registerButton}
                   onPress={handleButtonPress}
                   activeOpacity={0.8}
               >
-                <MaterialCommunityIcons name="login" size={20} color="white" />
-                <Text style={styles.loginButtonText}>Se connecter</Text>
+                <MaterialCommunityIcons name="account-plus" size={20} color="white" />
+                <Text style={styles.registerButtonText}>Créer un compte</Text>
               </TouchableOpacity>
             </Link>
 
-            <Link   style={[styles.registerButton, isDark && styles.registerButtonDark]} href="/(auth)/register" asChild>
+            {/* Login Button - Secondary Action */}
+            <Link href="/(auth)/login" style={[styles.loginButton, isDark && styles.loginButtonDark]} asChild>
               <TouchableOpacity
 
                   onPress={handleButtonPress}
                   activeOpacity={0.8}
               >
                 <MaterialCommunityIcons
-                    name="account-plus"
+                    name="login"
                     size={20}
                     color={theme.color.primary[500]}
                 />
-                <Text style={styles.registerButtonText}>S'inscrire</Text>
+                <Text style={styles.loginButtonText}>Déjà inscrit ? Se connecter</Text>
               </TouchableOpacity>
             </Link>
           </Animated.View>
@@ -217,7 +219,8 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     paddingHorizontal: 20,
   },
-  loginButton: {
+  // Main CTA - Register button
+  registerButton: {
     height: 55,
     backgroundColor: theme.color.primary[500],
     borderRadius: 12,
@@ -231,17 +234,18 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  loginButtonText: {
+  registerButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    lineHeight : 22,
     marginLeft: 8,
   },
-  registerButton: {
+  // Secondary action - Login button
+  loginButton: {
     height: 55,
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    width: '100%',
     borderColor: theme.color.primary[500],
     borderRadius: 12,
     flexDirection: 'row',
@@ -253,32 +257,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  registerButtonDark: {
+  loginButtonDark: {
     backgroundColor: theme.color.dark.background.secondary,
-    borderColor: theme.color.primary[700],
+    borderColor: theme.color.primary[100],
   },
-  registerButtonText: {
+  loginButtonText: {
     color: theme.color.primary[500],
     fontSize: 16,
     fontWeight: '600',
+    lineHeight: 22,
     marginLeft: 8,
-  },
-  featuresContainer: {
-    width: '100%',
-    maxWidth: 400,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 10,
-  },
-  featureItem: {
-    alignItems: 'center',
-    padding: 10,
-  },
-  featureText: {
-    color: '#666666',
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
   },
   textDark: {
     color: '#FFFFFF',

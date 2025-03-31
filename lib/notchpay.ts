@@ -45,7 +45,8 @@ async initiateDirectCharge(params: NotchPayDirectChargeParams): Promise<{
       const chargeResponse = await this.chargeMobileMoney(
         initResponse.transaction.reference,
         params.phone || '',
-        params.channel
+        // params.channel
+          "cm.mobile"
       );
       const endCharge = performance.now();
       console.log(`Charge time: ${(endCharge - startCharge) / 1000}s`);

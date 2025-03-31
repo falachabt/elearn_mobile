@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/auth";
 import { CourseProgressService } from "@/services/course.progress.service";
 import { supabase } from "@/lib/supabase";
 import { useEffect } from "react";
+import {courseProgressKeys} from "@/constants/swr-path";
 
 interface CourseProgress {
   total_sections: number;
@@ -34,17 +35,17 @@ const fetchSectionProgress = (
 export const useCourseProgress = (courseId: number) => {
   const { user } = useAuth(); // Get current user
 
-  const { data: progress, error: progressError, mutate : mutateCourseProgress } =
-    useSWR<CourseProgress | null>(
-      user?.id ? ["courseProgress", user.id, courseId] : null,
-      () => fetcher(user!.id, courseId)
+    const { data: progress, error: progressError, mutate: mutateCourseProgress } =
+        useSWR<CourseProgress | null>(
+            user?.id ? courseProgressKeys.summary(user.id, courseId) : null,
+            () => fetcher(user!.id, courseId)
+        );
+
+    const { data: sectionsProgress, error: sectionsProgressError, mutate: mutateSectionProgress } = useSWR<SectionProgress[] | null>(
+        user?.id ? courseProgressKeys.sections(user.id, courseId) : null,
+            () => fetchSectionsProgress(user!.id, courseId)
     );
 
-  const { data: sectionsProgress, error: sectionsProgressError, mutate : mutateSectionProgress } = useSWR<
-    SectionProgress[] | null
-  >(user?.id ? ["sectionsProgress", user.id, courseId] : null, () =>
-    fetchSectionsProgress(user!.id, courseId)
-  );
 
   const updateLastAccessed = async (sectionId: number) => {
     if (!user?.id) return;
@@ -62,8 +63,7 @@ export const useCourseProgress = (courseId: number) => {
       courseId,
       sectionId
     );
-    mutate(["courseProgress", user.id, courseId]);
-    mutate(["sectionsProgress", user.id, courseId]);
+      courseProgressKeys.mutateAllForCourse(user.id, courseId);
   };
 
   useEffect(() => {
@@ -80,8 +80,7 @@ export const useCourseProgress = (courseId: number) => {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          mutate(["courseProgress", user.id, courseId]);
-          mutate(["sectionsProgress", user.id, courseId]);
+            courseProgressKeys.mutateAllForCourse(user?.id || "", courseId);
         }
       )
       .subscribe();
@@ -96,8 +95,7 @@ export const useCourseProgress = (courseId: number) => {
           filter: `userid=eq.${user.id}`,
         },
         () => {
-          mutate(["courseProgress", user.id, courseId]);
-          mutate(["sectionsProgress", user.id, courseId]);
+            courseProgressKeys.mutateAllForCourse(user?.id || "", courseId);
         }
       )
       .subscribe();
@@ -116,8 +114,7 @@ export const useCourseProgress = (courseId: number) => {
     updateLastAccessed,
     markSectionComplete,
     refreshProgress: () => {
-        mutate(["courseProgress", user?.id, courseId]);
-        mutate(["sectionsProgress", user?.id, courseId]);
+        courseProgressKeys.mutateAllForCourse(user?.id || "", courseId);
     },
     getSectionProgress: (sectionId: number) =>
       sectionsProgress?.find(

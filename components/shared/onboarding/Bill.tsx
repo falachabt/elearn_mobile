@@ -14,6 +14,7 @@ import {
     useColorScheme,
     Linking,
     StyleSheet,
+    ScrollView,
 } from "react-native";
 import {theme} from "@/constants/theme";
 import {supabase} from "@/lib/supabase";
@@ -67,7 +68,6 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
     const {paymentStatus, initiatePayment, cancelPayment} = usePayment();
     const {user} = useAuth();
     const [processingState, setProcessingState] = useState<'idle' | 'processing' | 'waiting'>('idle');
-    // Moved this hook to component level
     const [showExtendedMessage, setShowExtendedMessage] = useState(false);
 
     function shouldUsePaymentStatus() {
@@ -397,85 +397,117 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
         );
     };
 
+    // Render phone number input section (fixed at top)
+    const renderPhoneSection = () => {
+        return (
+            <View style={[styles.section, isDark && styles.sectionDark]}>
+                <Text style={[styles.label, isDark && styles.labelDark]}>
+                    Numéro Mobile Money
+                </Text>
+                <View style={styles.phoneInputContainer}>
+                    <View style={[styles.networkIndicator, isDark && styles.networkIndicatorDark]}>
+                        {network === "mtn" ? (
+                            <Image
+                                source={require("@/assets/images/mtn-logo.png")}
+                                style={styles.networkIcon}
+                                resizeMode="contain"
+                            />
+                        ) : network === "orange" ? (
+                            <Image
+                                source={require("@/assets/images/orange-logo.png")}
+                                style={styles.networkIcon}
+                                resizeMode="contain"
+                            />
+                        ) : (
+                            <View style={[styles.placeholderIcon, isDark && styles.placeholderIconDark]}/>
+                        )}
+                    </View>
+                    <TextInput
+                        style={[styles.input, isDark && styles.inputDark]}
+                        value={phoneNumber}
+                        onChangeText={handlePhoneChange}
+                        placeholder="6XXXXXXXX"
+                        placeholderTextColor={isDark ? theme.color.gray[500] : theme.color.gray[400]}
+                        keyboardType="phone-pad"
+                        maxLength={9}
+                        editable={!isLoading}
+                    />
+                </View>
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            </View>
+        );
+    };
+
+    // Render cart items (scrollable middle section)
+    const renderCartItems = () => {
+        return (
+            <ScrollView
+                style={styles.cartItemsScrollView}
+                contentContainerStyle={styles.cartItemsContentContainer}
+            >
+                {programs.map((item) => (
+                    <View
+                        key={item.id}
+                        style={[styles.cartItem, isDark && styles.cartItemDark]}
+                    >
+                        <View style={styles.itemInfo}>
+                            <Text style={[styles.itemName, isDark && styles.itemNameDark]}>
+                                {item.learning_path?.title}
+                            </Text>
+                            <View style={styles.tagsContainer}>
+                                <View style={[styles.tag, isDark && styles.tagDark]}>
+                                    <Text style={[styles.tagText, isDark && styles.tagTextDark]}>
+                                        {item.concour?.name}
+                                    </Text>
+                                </View>
+                                <View style={[styles.tag, styles.schoolTag, isDark && styles.schoolTagDark]}>
+                                    <Text style={[styles.tagText, isDark && styles.tagTextDark]}>
+                                        {item.concour?.school?.name}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                        <Text style={[styles.itemPrice, isDark && styles.itemPriceDark]}>
+                            {item.price.toLocaleString("fr-FR")} FCFA
+                        </Text>
+                    </View>
+                ))}
+            </ScrollView>
+        );
+    };
+
+    // Render total section (fixed at bottom)
+    const renderTotalSection = () => {
+        return (
+            <View style={[styles.totalContainer, isDark && styles.totalContainerDark]}>
+                <Text style={[styles.totalLabel, isDark && styles.totalLabelDark]}>
+                    Total:
+                </Text>
+                <Text style={[styles.totalAmount, isDark && styles.totalAmountDark]}>
+                    {calculateTotal().toLocaleString("fr-FR")} FCFA
+                </Text>
+            </View>
+        );
+    };
+
     // Main payment form when not in a special state
     const renderPaymentForm = () => {
         return (
             <View style={styles.formContainer}>
-                <View style={[styles.section, isDark && styles.sectionDark]}>
-                    <Text style={[styles.label, isDark && styles.labelDark]}>
-                        Numéro Mobile Money
-                    </Text>
-                    <View style={styles.phoneInputContainer}>
-                        <View style={[styles.networkIndicator, isDark && styles.networkIndicatorDark]}>
-                            {network === "mtn" ? (
-                                <Image
-                                    source={require("@/assets/images/mtn-logo.png")}
-                                    style={styles.networkIcon}
-                                    resizeMode="contain"
-                                />
-                            ) : network === "orange" ? (
-                                <Image
-                                    source={require("@/assets/images/orange-logo.png")}
-                                    style={styles.networkIcon}
-                                    resizeMode="contain"
-                                />
-                            ) : (
-                                <View style={[styles.placeholderIcon, isDark && styles.placeholderIconDark]}/>
-                            )}
-                        </View>
-                        <TextInput
-                            style={[styles.input, isDark && styles.inputDark]}
-                            value={phoneNumber}
-                            onChangeText={handlePhoneChange}
-                            placeholder="6XXXXXXXX"
-                            placeholderTextColor={isDark ? theme.color.gray[500] : theme.color.gray[400]}
-                            keyboardType="phone-pad"
-                            maxLength={9}
-                            editable={!isLoading}
-                        />
-                    </View>
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
-                </View>
+                {/* Fixed top section */}
+                {renderPhoneSection()}
 
-                <View style={[styles.section, isDark && styles.sectionDark]}>
+                {/* Summary section with scrollable cart items */}
+                <View style={[styles.section, styles.recapSection, isDark && styles.sectionDark]}>
                     <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
                         Récapitulatif
                     </Text>
-                    {programs.map((item) => (
-                        <View
-                            key={item.id}
-                            style={[styles.cartItem, isDark && styles.cartItemDark]}
-                        >
-                            <View style={styles.itemInfo}>
-                                <Text style={[styles.itemName, isDark && styles.itemNameDark]}>
-                                    {item.learning_path?.title}
-                                </Text>
-                                <View style={styles.tagsContainer}>
-                                    <View style={[styles.tag, isDark && styles.tagDark]}>
-                                        <Text style={[styles.tagText, isDark && styles.tagTextDark]}>
-                                            {item.concour?.name}
-                                        </Text>
-                                    </View>
-                                    <View style={[styles.tag, styles.schoolTag, isDark && styles.schoolTagDark]}>
-                                        <Text style={[styles.tagText, isDark && styles.tagTextDark]}>
-                                            {item.concour?.school?.name}
-                                        </Text>
-                                    </View>
-                                </View>
-                            </View>
-                            <Text style={[styles.itemPrice, isDark && styles.itemPriceDark]}>
-                                {item.price.toLocaleString("fr-FR")} FCFA
-                            </Text>
-                        </View>
-                    ))}
-                    <View style={[styles.totalContainer, isDark && styles.totalContainerDark]}>
-                        <Text style={[styles.totalLabel, isDark && styles.totalLabelDark]}>
-                            Total:
-                        </Text>
-                        <Text style={[styles.totalAmount, isDark && styles.totalAmountDark]}>
-                            {calculateTotal().toLocaleString("fr-FR")} FCFA
-                        </Text>
-                    </View>
+
+                    {/* Scrollable middle section */}
+                    {renderCartItems()}
+
+                    {/* Fixed bottom section */}
+                    {renderTotalSection()}
                 </View>
             </View>
         );
@@ -519,14 +551,27 @@ const styles = StyleSheet.create({
     },
     formContainer: {
         flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
     },
     section: {
         backgroundColor: "#FFFFFF",
         marginBottom: theme.spacing.medium,
         padding: theme.spacing.medium,
     },
+    recapSection: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+    },
     sectionDark: {
         backgroundColor: theme.color.dark.background.primary,
+    },
+    cartItemsScrollView: {
+        flex: 1,
+    },
+    cartItemsContentContainer: {
+        paddingBottom: theme.spacing.small,
     },
     phoneInputContainer: {
         flexDirection: "row",
@@ -628,8 +673,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         borderTopWidth: theme.border.width.thin,
         borderTopColor: theme.color.border,
-        marginTop: theme.spacing.medium,
         paddingTop: theme.spacing.medium,
+        marginTop: theme.spacing.small,
     },
     totalContainerDark: {
         borderTopColor: theme.color.gray[800],
@@ -817,6 +862,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: theme.spacing.xlarge,
         borderRadius: theme.border.radius.medium,
     },
+    actionButtonText: {
+        color: "#FFFFFF",
+        fontSize: theme.typography.fontSize.medium,
+        fontWeight: "600",
+    },
     retryButtonText: {
         color: "#FFFFFF",
         fontSize: theme.typography.fontSize.medium,
@@ -843,13 +893,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.primary[500],
         paddingVertical: theme.spacing.medium,
         paddingHorizontal: theme.spacing.xlarge,
-        borderRadius: theme.border.radius.medium,
-    },
-    actionButtonText: {
-        color: "#FFFFFF",
-        fontSize: theme.typography.fontSize.medium,
-        fontWeight: "600",
-    },
-});
+    }
+})
 
 export default React.memo(PaymentPage);
