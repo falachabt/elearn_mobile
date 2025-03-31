@@ -1,6 +1,7 @@
 import React, {useEffect} from 'react';
 import {Linking} from 'react-native';
 import {supabase} from '@/lib/supabase';
+import axios from "axios";
 
 // Define prop types for the component
 interface AuthDeepLinkHandlerProps {
@@ -53,6 +54,23 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                                 access_token: params.access_token,
                                 refresh_token: params.refresh_token,
                             });
+
+                          setTimeout(async () => {
+                                const { data } = await supabase.auth.getUser();
+
+                                if (params?.access_token) {
+                                    // await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
+                                    await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
+                                    { email: data?.user?.email, phone: data?.user?.phone },
+                                        {
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${params?.access_token}`
+                                            }
+                                        }
+                                    );
+                                }
+                            }, 500);
 
                             if (error) {
                                 console.error('Error setting session:', error);

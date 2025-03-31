@@ -1,5 +1,5 @@
-import React, {useEffect, useMemo, useState} from "react";
-import {useRouter, useLocalSearchParams} from "expo-router";
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
     ScrollView,
     StyleSheet,
@@ -8,93 +8,369 @@ import {
     ActivityIndicator,
     Platform,
     StatusBar,
+    Animated,
+    Easing,
+    Image,
+    Dimensions
 } from "react-native";
-import {ThemedText} from "@/components/ThemedText";
-import {useColorScheme} from "@/hooks/useColorScheme";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {theme} from "@/constants/theme";
+import { ThemedText } from "@/components/ThemedText";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { theme } from "@/constants/theme";
 import useSWR from "swr";
-import {supabase} from "@/lib/supabase";
-import {CoursesCategories, Quiz, Tags} from "@/types/type";
-import {useAuth} from "@/contexts/auth";
+import { supabase } from "@/lib/supabase";
+import { CoursesCategories, Quiz, Tags } from "@/types/type";
+import { useAuth } from "@/contexts/auth";
 import QuizAttemptsList from "@/components/shared/learn/quiz/QuizAttempList";
+import { HapticType, useHaptics } from "@/hooks/useHaptics";
 
-
-interface Q extends Quiz {
-    quiz_category: CoursesCategories;
-    quiz_tags: {
-        tags: Tags;
-    }[];
-    quiz_questions: { count: number }[];
-    quiz_courses: { courses: { id: number; name: string } }[];
+// Define interfaces for the data
+interface QuizCourse {
+    courses: {
+        id: number;
+        name: string;
+    };
 }
 
-const QuizDetail = () => {
+interface QuizTag {
+    tags: Tags;
+}
+
+interface QuizQuestion {
+    count: number;
+}
+
+interface QuizWithDetails extends Quiz {
+    quiz_category: CoursesCategories;
+    quiz_tags: QuizTag[];
+    quiz_questions: QuizQuestion[];
+    quiz_courses: QuizCourse[];
+}
+
+interface QuizAttempt {
+    id: string;
+    quiz_id: string;
+    user_id: string;
+    start_time: string;
+    end_time: string;
+    score: number;
+    status: string;
+    quiz?: {
+        quiz_questions: {
+            count: number;
+        }[];
+    };
+}
+
+// Define component interfaces
+interface StatCardProps {
+    icon: string;
+    value: string;
+    label: string;
+    color?: string;
+    isDark: boolean;
+    index: number;
+}
+
+interface PrerequisiteProps {
+    prereq: QuizCourse;
+    isDark: boolean;
+    index: number;
+    onPress: (id: number) => void;
+}
+
+// Skeleton loading component
+const QuizDetailSkeleton = ({ isDark }: { isDark: boolean }) => {
+    const pulseAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    easing: Easing.ease,
+                    useNativeDriver: false,
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 0,
+                    duration: 1000,
+                    easing: Easing.ease,
+                    useNativeDriver: false,
+                })
+            ])
+        ).start();
+    }, []);
+
+    const backgroundColor = pulseAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: isDark
+            ? ['rgba(55, 65, 81, 0.8)', 'rgba(75, 85, 99, 0.8)']
+            : ['rgba(229, 231, 235, 0.8)', 'rgba(209, 213, 219, 0.8)']
+    });
+
+    return (
+        <View style={[styles.container, isDark && styles.containerDark]}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+            {/* Header Skeleton */}
+            <View style={[styles.header, isDark && styles.headerDark]}>
+                <View style={styles.backButton} />
+                <Animated.View style={[styles.skeletonLine, { width: '60%', height: 18, backgroundColor }]} />
+                <View style={styles.pinButton} />
+            </View>
+
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                {/* Stats Grid Skeleton */}
+                <View style={styles.statsGrid}>
+                    {[1, 2, 3].map((_, i) => (
+                        <Animated.View key={i} style={[styles.statCard, { backgroundColor }]} />
+                    ))}
+                </View>
+
+                {/* Description Skeleton */}
+                <View style={styles.section}>
+                    <Animated.View style={[styles.skeletonLine, { width: '40%', height: 20, backgroundColor }]} />
+                    <Animated.View style={[styles.card, { backgroundColor }]} />
+                </View>
+
+                {/* Prerequisites Skeleton */}
+                <View style={styles.section}>
+                    <Animated.View style={[styles.skeletonLine, { width: '40%', height: 20, backgroundColor }]} />
+                    {[1, 2].map((_, i) => (
+                        <Animated.View key={i} style={[styles.prerequisiteItem, { backgroundColor, marginBottom: 8 }]} />
+                    ))}
+                </View>
+
+                {/* Tags Skeleton */}
+                <View style={styles.section}>
+                    <Animated.View style={[styles.skeletonLine, { width: '30%', height: 20, backgroundColor }]} />
+                    <View style={styles.tagsContainer}>
+                        {[1, 2, 3].map((_, i) => (
+                            <Animated.View key={i} style={[styles.tag, { backgroundColor, width: 80 }]} />
+                        ))}
+                    </View>
+                </View>
+
+                {/* Attempts Skeleton */}
+                <View style={[styles.section, styles.lastSection]}>
+                    <Animated.View style={[styles.skeletonLine, { width: '30%', height: 20, backgroundColor }]} />
+                    <Animated.View style={[styles.card, { backgroundColor, height: 100 }]} />
+                </View>
+            </ScrollView>
+
+            {/* Footer Skeleton */}
+            <View style={[styles.footer, isDark && styles.footerDark]}>
+                <Animated.View style={[styles.startButton, { backgroundColor }]} />
+            </View>
+        </View>
+    );
+};
+
+// Enhanced stat card component
+const StatCard: React.FC<StatCardProps> = ({ icon, value, label, color, isDark, index }) => {
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(20)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 600,
+                delay: index * 100,
+                useNativeDriver: true,
+                easing: Easing.out(Easing.ease),
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 600,
+                delay: index * 100,
+                useNativeDriver: true,
+                easing: Easing.out(Easing.ease),
+            }),
+        ]).start();
+    }, []);
+
+    const cardColor = color || theme.color.primary[500];
+
+    return (
+        <Animated.View
+            style={[
+                styles.statCard,
+                isDark && styles.statCardDark,
+                {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: slideAnim }],
+                    borderLeftWidth: 4,
+                    borderLeftColor: cardColor
+                }
+            ]}
+        >
+            <MaterialCommunityIcons
+                name={icon as any}
+                size={24}
+                color={cardColor}
+            />
+            <ThemedText style={[styles.statValue, { color: cardColor }]}>{value}</ThemedText>
+            <ThemedText style={styles.statLabel}>{label}</ThemedText>
+        </Animated.View>
+    );
+};
+
+// Enhanced prerequisite item component
+const PrerequisiteItem: React.FC<PrerequisiteProps> = ({ prereq, isDark, index, onPress }) => {
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(20)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 600,
+                delay: 300 + index * 100,
+                useNativeDriver: true,
+                easing: Easing.out(Easing.ease),
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 600,
+                delay: 300 + index * 100,
+                useNativeDriver: true,
+                easing: Easing.out(Easing.ease),
+            }),
+        ]).start();
+    }, []);
+
+    return (
+        <Animated.View style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+        }}>
+            <Pressable
+                style={[styles.prerequisiteItem, isDark && styles.cardDark]}
+                onPress={() => onPress(prereq.courses.id)}
+                android_ripple={{ color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
+            >
+                <View style={styles.prereqIconContainer}>
+                    <MaterialCommunityIcons
+                        name="book-open-variant"
+                        size={20}
+                        color="#FFFFFF"
+                    />
+                </View>
+
+                <ThemedText style={styles.prerequisiteText}>
+                    {prereq.courses?.name}
+                </ThemedText>
+
+                <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={isDark ? "#9CA3AF" : "#6B7280"}
+                />
+            </Pressable>
+        </Animated.View>
+    );
+};
+
+// Error state component
+const ErrorState: React.FC<{ onRetry: () => void; isDark: boolean }> = ({ onRetry, isDark }) => (
+    <View style={[styles.centerContainer, isDark && styles.containerDark]}>
+        <MaterialCommunityIcons name="alert-circle" size={64} color="#EF4444" />
+        <ThemedText style={styles.errorTitle}>
+            Oups! Une erreur s'est produite
+        </ThemedText>
+        <ThemedText style={styles.errorText}>
+            Nous n'avons pas pu charger les détails de ce quiz.
+        </ThemedText>
+        <Pressable
+            style={[styles.retryButton, isDark && styles.retryButtonDark]}
+            onPress={onRetry}
+        >
+            <MaterialCommunityIcons name="reload" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <ThemedText style={styles.retryButtonText}>Réessayer</ThemedText>
+        </Pressable>
+    </View>
+);
+
+// Main Quiz Detail Component
+const QuizDetail: React.FC = () => {
     const router = useRouter();
-    const {quizId, pdId} = useLocalSearchParams();
+    const { quizId, pdId } = useLocalSearchParams();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const [isPinned, setPinned] = useState(false);
     const [showFullDesc, setShowFullDesc] = useState(false);
     const [showAllPrereqs, setShowAllPrereqs] = useState(false);
-    const {user} = useAuth();
+    const { user } = useAuth();
+    const { trigger } = useHaptics();
 
-    const {data: isQuizPinned, mutate: mutateQuizPin} = useSWR(quizId ? `quiz-pin-${quizId}` : null, async () => {
-        const {data} = await supabase
-            .from("quiz_pin")
-            .select("*")
-            .eq("quiz_id", quizId)
-            .eq("user_id", user?.id)
-            .maybeSingle();
+    // Animation refs
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const headerOpacity = useRef(new Animated.Value(0)).current;
 
-        return data;
-
-    });
-
-    const {data: quizAttempts} = useSWR(quizId ? `quiz-attempts-${quizId}-${user?.id}` : null, async () => {
-
-            const {data} = await supabase
-                .from("quiz_attempts")
-                .select("*, quiz(quiz_questions(count))")
-                .eq("quiz_id", quizId)
-                .eq("user_id", user?.id)
-                .eq("status", "completed"); // Only fetch completed attempts
-
-            const {data: quiz_pin} = await supabase
+    // SWR fetch for quiz pin status
+    const { data: isQuizPinned, mutate: mutateQuizPin } = useSWR<{ id: string } | null>(
+        quizId ? `quiz-pin-${quizId}` : null,
+        async () => {
+            const { data } = await supabase
                 .from("quiz_pin")
                 .select("*")
                 .eq("quiz_id", quizId)
                 .eq("user_id", user?.id)
                 .maybeSingle();
 
+            return data;
+        }
+    );
 
-            console.log("hey", quiz_pin);
+    // SWR fetch for quiz attempts
+    const { data: quizAttempts } = useSWR<QuizAttempt[]>(
+        quizId ? `quiz-attempts-${quizId}-${user?.id}` : null,
+        async () => {
+            const { data } = await supabase
+                .from("quiz_attempts")
+                .select("*, quiz(quiz_questions(count))")
+                .eq("quiz_id", quizId)
+                .eq("user_id", user?.id)
+                .eq("status", "completed"); // Only fetch completed attempts
+
+            return data || [];
+        }
+    );
+
+    // SWR fetch for quiz details
+    const {
+        data: quiz,
+        error: quizError,
+        isLoading: quizLoading,
+        mutate: refreshQuiz
+    } = useSWR<QuizWithDetails>(
+        quizId ? `quiz-${quizId}` : null,
+        async () => {
+            const { data } = await supabase
+                .from("quiz")
+                .select(
+                    "*, quiz_questions(count), category(name), quiz_tags(tags(id,name)), quiz_courses(courses(id,name))"
+                )
+                .eq("id", quizId)
+                .single();
 
             return data;
         }
     );
 
-    const { data: quiz, error: quizError, isLoading: quizLoading,} = useSWR<Q>(quizId ? `quiz-${quizId}` : null, async () => {
-
-        const {data} = await supabase
-            .from("quiz")
-            .select(
-                "*, quiz_questions(count), category(name), quiz_tags(tags(id,name)), quiz_courses(courses(id,name))"
-            )
-            .eq("id", quizId)
-            .single();
-
-        return data;
-    });
-
-    const createQuizAttempt = async () => {
+    // Create a new quiz attempt
+    const createQuizAttempt = async (): Promise<void> => {
         try {
-            const {data: attempt, error} = await supabase
+            trigger(HapticType.SELECTION);
+
+            const { data: attempt, error } = await supabase
                 .from("quiz_attempts")
                 .insert([
                     {
                         quiz_id: quizId,
-                        user_id: user?.id, // Get current user ID
+                        user_id: user?.id,
                         start_time: new Date().toISOString(),
                         end_time: new Date(Date.now() + 30 * 60000).toISOString(),
                         status: "in_progress",
@@ -113,9 +389,12 @@ const QuizDetail = () => {
         }
     };
 
-    const triggerQuizPin = async () => {
+    // Toggle pin status for the quiz
+    const triggerQuizPin = async (): Promise<void> => {
         try {
+            trigger(HapticType.SELECTION);
             setPinned(!isPinned);
+
             if (isPinned) {
                 await supabase
                     .from("quiz_pin")
@@ -128,30 +407,27 @@ const QuizDetail = () => {
                     .insert([{quiz_id: quizId, user_id: user?.id, is_pinned: true}]);
             }
 
-           await  mutateQuizPin();
+            await mutateQuizPin();
         } catch (error) {
             console.error("Error pinning quiz:", error);
             // Handle error (show toast/alert)
         }
-    }
+    };
 
-    const {averageSuccess, averageDuration} = useMemo(() => {
+    // Calculate average success and duration
+    const { averageSuccess, averageDuration } = useMemo(() => {
         if (!quizAttempts || quizAttempts.length === 0) {
-            return {averageSuccess: 0, averageDuration: 0};
+            return { averageSuccess: 0, averageDuration: 0 };
         }
 
         // Calculate success rate
-        const totalSuccessRate = quizAttempts.reduce((sum: any, attempt: { score: any; }) => {
-            // Assuming score is a percentage stored in the attempt
+        const totalSuccessRate = quizAttempts.reduce((sum, attempt) => {
             return sum + (attempt.score || 0);
         }, 0);
         const averageSuccess = totalSuccessRate / quizAttempts.length;
 
         // Calculate average duration in minutes
-        const totalDuration = quizAttempts.reduce((sum: number, attempt: {
-            start_time: string | number | Date;
-            end_time: string | number | Date;
-        }) => {
+        const totalDuration = quizAttempts.reduce((sum, attempt) => {
             const startTime = new Date(attempt.start_time);
             const endTime = new Date(attempt.end_time);
             const durationInMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
@@ -165,8 +441,8 @@ const QuizDetail = () => {
         };
     }, [quizAttempts]);
 
-
-    const formatDuration = (minutes: number) => {
+    // Format duration for display
+    const formatDuration = (minutes: number): string => {
         if (minutes === 0) return "--";
         if (minutes < 60) return `${minutes}min`;
         const hours = Math.floor(minutes / 60);
@@ -176,63 +452,82 @@ const QuizDetail = () => {
             : `${hours}h`;
     };
 
-    // Format the success rate for display
-    const formatSuccessRate = (rate: number) => {
+    // Format success rate for display
+    const formatSuccessRate = (rate: number): string => {
         if (rate === 0) return "0%";
         return `${Math.round(rate)}%`;
     };
 
+    // Handle navigation to a prerequisite course
+    const handlePrereqPress = (courseId: number): void => {
+        trigger(HapticType.SELECTION);
+        router.push(`/(app)/learn/${pdId}/courses/${courseId}`);
+    };
 
+    // Update isPinned state when isQuizPinned changes
     useEffect(() => {
-        if (isQuizPinned) {
-            setPinned(true);
-        } else {
-            setPinned(false);
-        }
+        setPinned(!!isQuizPinned);
     }, [isQuizPinned]);
 
+    // Fade-in animation when component mounts
+    useEffect(() => {
+        if (!quizLoading && quiz) {
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 500,
+                    useNativeDriver: true,
+                    easing: Easing.out(Easing.ease),
+                }),
+                Animated.timing(headerOpacity, {
+                    toValue: 1,
+                    duration: 700,
+                    useNativeDriver: true,
+                    easing: Easing.out(Easing.ease),
+                })
+            ]).start();
+        }
+    }, [quizLoading, quiz]);
 
-    const StatCard = ({icon, value, label,}: { icon: string; value: string; label: string; }) => (
-        <View style={[styles.statCard, isDark && styles.statCardDark]}>
-            <MaterialCommunityIcons
-                name={icon as any}
-                size={24}
-                color={theme.color.primary[500]}
-            />
-            <ThemedText style={styles.statValue}>{value}</ThemedText>
-            <ThemedText style={styles.statLabel}>{label}</ThemedText>
-        </View>
-    );
+    // Handle back button press
+    const handleBackPress = (): void => {
+        trigger(HapticType.LIGHT);
+        router.back();
+    };
 
-    const description = quiz?.description || "---";
+    // Handle retry when error occurs
+    const handleRetry = (): void => {
+        refreshQuiz();
+    };
 
+    // Loading state
     if (quizLoading) {
-        return (
-            <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color={theme.color.primary[500]}/>
-            </View>
-        );
+        return <QuizDetailSkeleton isDark={isDark} />;
     }
 
-    if (quizError) {
-        return (
-            <View style={styles.centerContainer}>
-                <MaterialCommunityIcons name="alert-circle" size={48} color="#EF4444"/>
-                <ThemedText style={styles.errorText}>
-                    Une erreur s'est produite lors du chargement du quiz.
-                </ThemedText>
-            </View>
-        );
+    // Error state
+    if (quizError || !quiz) {
+        return <ErrorState onRetry={handleRetry} isDark={isDark} />;
     }
+
+    // Get quiz description or default text
+    const description = quiz?.description || "Aucune description disponible pour ce quiz.";
 
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
-            <StatusBar barStyle={isDark ? "light-content" : "dark-content"}/>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-            <View style={[styles.header, isDark && styles.headerDark]}>
+            {/* Header */}
+            <Animated.View
+                style={[
+                    styles.header,
+                    isDark && styles.headerDark,
+                    { opacity: headerOpacity }
+                ]}
+            >
                 <Pressable
-                    onPress={() => router.back()}
-                    style={styles.backButton}
+                    onPress={handleBackPress}
+                    style={[styles.backButton, isDark && styles.backButtonDark]}
                     hitSlop={8}
                 >
                     <MaterialCommunityIcons
@@ -247,7 +542,7 @@ const QuizDetail = () => {
                 </ThemedText>
 
                 <Pressable
-                    onPress={() => triggerQuizPin()}
+                    onPress={triggerQuizPin}
                     style={styles.pinButton}
                     hitSlop={8}
                 >
@@ -257,24 +552,52 @@ const QuizDetail = () => {
                         color={theme.color.primary[500]}
                     />
                 </Pressable>
-            </View>
+            </Animated.View>
 
-            <ScrollView
+            <Animated.ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
+                style={{ opacity: fadeAnim }}
             >
+                {/* Stats Grid */}
                 <View style={styles.statsGrid}>
                     <StatCard
                         icon="help-circle-outline"
                         value={quiz?.quiz_questions[0].count?.toString() || "--"}
                         label="Questions"
+                        color="#3B82F6"
+                        isDark={isDark}
+                        index={0}
                     />
-                    <StatCard icon="clock-outline" value={formatDuration(averageDuration)} label="Duration"/>
-                    <StatCard icon="trophy-outline" value={formatSuccessRate(averageSuccess)} label="Success"/>
+                    <StatCard
+                        icon="clock-outline"
+                        value={formatDuration(averageDuration)}
+                        label="Durée"
+                        color="#8B5CF6"
+                        isDark={isDark}
+                        index={1}
+                    />
+                    <StatCard
+                        icon="trophy-outline"
+                        value={formatSuccessRate(averageSuccess)}
+                        label="Réussite"
+                        color="#10B981"
+                        isDark={isDark}
+                        index={2}
+                    />
                 </View>
 
+                {/* Description Section */}
                 <View style={styles.section}>
-                    <ThemedText style={styles.sectionTitle}>Description</ThemedText>
+                    <View style={styles.sectionHeader}>
+                        <MaterialCommunityIcons
+                            name="information-outline"
+                            size={20}
+                            color={isDark ? "#D1D5DB" : "#4B5563"}
+                            style={styles.sectionIcon}
+                        />
+                        <ThemedText style={styles.sectionTitle}>Description</ThemedText>
+                    </View>
                     <View style={[styles.card, isDark && styles.cardDark]}>
                         <ThemedText
                             style={styles.description}
@@ -284,110 +607,159 @@ const QuizDetail = () => {
                         </ThemedText>
                         {description.length > 150 && (
                             <Pressable
-                                onPress={() => setShowFullDesc(!showFullDesc)}
+                                onPress={() => {
+                                    trigger(HapticType.LIGHT);
+                                    setShowFullDesc(!showFullDesc);
+                                }}
                                 style={styles.showMoreButton}
                             >
                                 <ThemedText style={styles.showMoreText}>
                                     {showFullDesc ? "Afficher moins" : "Afficher plus"}
                                 </ThemedText>
+                                <MaterialCommunityIcons
+                                    name={showFullDesc ? "chevron-up" : "chevron-down"}
+                                    size={16}
+                                    color={theme.color.primary[500]}
+                                />
                             </Pressable>
                         )}
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <ThemedText style={styles.sectionTitle}>Prérequis</ThemedText>
-                    {(showAllPrereqs
-                            ? quiz?.quiz_courses ?? []
-                            : quiz?.quiz_courses?.slice(0, 2) ?? []
-                    ).map((prereq, index) => (
-                        <Pressable
-                            key={index}
-                            style={[styles.prerequisiteItem, isDark && styles.cardDark]}
-                            onPress={() => {
-                                router.push(`/(app)/learn/${pdId}/courses/${prereq.courses.id}`)
-                            }}
-                        >
+                {/* Prerequisites Section */}
+                {quiz?.quiz_courses && quiz.quiz_courses.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
                             <MaterialCommunityIcons
-                                name="check-circle"
+                                name="book-open-page-variant"
                                 size={20}
-                                color={theme.color.primary[500]}
+                                color={isDark ? "#D1D5DB" : "#4B5563"}
+                                style={styles.sectionIcon}
                             />
+                            <ThemedText style={styles.sectionTitle}>Prérequis</ThemedText>
+                        </View>
 
-                            <ThemedText style={styles.prerequisiteText}>
-                                {prereq.courses?.name}
-                            </ThemedText>
-                        </Pressable>
-                    ))}
-                    {(quiz?.quiz_courses?.length ?? 0) > 2 && (
-                        <Pressable
-                            onPress={() => setShowAllPrereqs(!showAllPrereqs)}
-                            style={[
-                                styles.showMorePrereqs,
-                                isDark && styles.showMorePrereqsDark,
-                            ]}
-                        >
-                            <ThemedText style={styles.showMoreText}>
-                                {showAllPrereqs
-                                    ? "Afficher moins"
-                                    : `Afficher ${(quiz?.quiz_courses?.length ?? 0) - 2} autres`}
-                            </ThemedText>
-                            <MaterialCommunityIcons
-                                name={showAllPrereqs ? "chevron-up" : "chevron-down"}
-                                size={20}
-                                color={theme.color.primary[500]}
+                        {/* Prerequisite Items */}
+                        {(showAllPrereqs
+                                ? quiz.quiz_courses
+                                : quiz.quiz_courses.slice(0, 2)
+                        ).map((prereq, index) => (
+                            <PrerequisiteItem
+                                key={`prereq-${prereq.courses.id}`}
+                                prereq={prereq}
+                                isDark={isDark}
+                                index={index}
+                                onPress={handlePrereqPress}
                             />
-                        </Pressable>
-                    )}
-                </View>
-
-                <View style={[styles.section]}>
-                    <ThemedText style={styles.sectionTitle}>Tags</ThemedText>
-                    <View style={styles.tagsContainer}>
-                        {quiz?.quiz_tags.map((tag, index) => (
-                            <View key={index} style={[styles.tag, isDark && styles.tagDark]}>
-                                <ThemedText style={styles.tagText}>
-                                    #{tag.tags?.name}
-                                </ThemedText>
-                            </View>
                         ))}
-                    </View>
-                </View>
 
+                        {/* Show More/Less Button */}
+                        {quiz.quiz_courses.length > 2 && (
+                            <Pressable
+                                onPress={() => {
+                                    trigger(HapticType.LIGHT);
+                                    setShowAllPrereqs(!showAllPrereqs);
+                                }}
+                                style={[
+                                    styles.showMorePrereqs,
+                                    isDark && styles.showMorePrereqsDark,
+                                ]}
+                            >
+                                <ThemedText style={styles.showMoreText}>
+                                    {showAllPrereqs
+                                        ? "Afficher moins"
+                                        : `Voir ${quiz.quiz_courses.length - 2} autres cours`}
+                                </ThemedText>
+                                <MaterialCommunityIcons
+                                    name={showAllPrereqs ? "chevron-up" : "chevron-down"}
+                                    size={20}
+                                    color={theme.color.primary[500]}
+                                />
+                            </Pressable>
+                        )}
+                    </View>
+                )}
+
+                {/* Tags Section */}
+                {quiz?.quiz_tags && quiz.quiz_tags.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <MaterialCommunityIcons
+                                name="tag-multiple-outline"
+                                size={20}
+                                color={isDark ? "#D1D5DB" : "#4B5563"}
+                                style={styles.sectionIcon}
+                            />
+                            <ThemedText style={styles.sectionTitle}>Tags</ThemedText>
+                        </View>
+                        <View style={styles.tagsContainer}>
+                            {quiz.quiz_tags.map((tag, index) => (
+                                <View
+                                    key={`tag-${tag.tags?.id || index}`}
+                                    style={[styles.tag, isDark && styles.tagDark]}
+                                >
+                                    <MaterialCommunityIcons
+                                        name="pound"
+                                        size={14}
+                                        color={theme.color.primary[500]}
+                                        style={{ marginRight: 4 }}
+                                    />
+                                    <ThemedText style={styles.tagText}>
+                                        {tag.tags?.name}
+                                    </ThemedText>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                )}
+
+                {/* Attempts Section */}
                 <View style={[styles.section, styles.lastSection]}>
-                    <ThemedText style={styles.sectionTitle}>{" Essaies "} </ThemedText>
+                    <View style={styles.sectionHeader}>
+                        <MaterialCommunityIcons
+                            name="history"
+                            size={20}
+                            color={isDark ? "#D1D5DB" : "#4B5563"}
+                            style={styles.sectionIcon}
+                        />
+                        <ThemedText style={styles.sectionTitle}>Mes essais</ThemedText>
+                    </View>
                     <QuizAttemptsList
                         quizId={String(quizId)}
                         isDark={isDark}
                         onAttemptPress={(a) => {
+                            trigger(HapticType.SELECTION);
                             router.push(`/(app)/learn/${pdId}/quizzes/${quizId}/${a.id}`);
                         }}
                     />
                 </View>
-            </ScrollView>
+            </Animated.ScrollView>
 
+            {/* Footer with Start Button */}
             <View style={[styles.footer, isDark && styles.footerDark]}>
                 <Pressable
                     style={styles.startButton}
-                    onPress={() => createQuizAttempt()}
+                    onPress={createQuizAttempt}
+                    android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
                 >
                     <MaterialCommunityIcons
                         name="play-circle"
                         size={24}
                         color="#FFFFFF"
                     />
-                    <ThemedText style={styles.startButtonText}>Commencer</ThemedText>
+                    <ThemedText style={styles.startButtonText}>Commencer le quiz</ThemedText>
                 </Pressable>
             </View>
         </View>
     );
 };
 
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F9FAFB",
-        paddingBottom: 50, // For tab bar
     },
     containerDark: {
         backgroundColor: "#111827",
@@ -402,6 +774,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFFFFF",
         borderBottomWidth: 1,
         borderBottomColor: "#E5E7EB",
+        elevation: 2,
     },
     headerDark: {
         backgroundColor: "#1F2937",
@@ -419,11 +792,15 @@ const styles = StyleSheet.create({
         borderRadius: theme.border.radius.small,
         backgroundColor: "rgba(0,0,0,0.05)",
     },
+    backButtonDark: {
+        backgroundColor: "rgba(255,255,255,0.1)",
+    },
     pinButton: {
         padding: 8,
     },
     scrollContent: {
         padding: 16,
+        paddingBottom: 100,
     },
     statsGrid: {
         flexDirection: "row",
@@ -434,11 +811,11 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
         backgroundColor: "#FFFFFF",
-        borderRadius: theme.border.radius.small,
+        borderRadius: theme.border.radius.medium,
         ...Platform.select({
             ios: {
                 shadowColor: "#000",
-                shadowOffset: {width: 0, height: 1},
+                shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.1,
                 shadowRadius: 2,
             },
@@ -448,11 +825,11 @@ const styles = StyleSheet.create({
         }),
     },
     statCardDark: {
-        backgroundColor: "#374151",
+        backgroundColor: "#1F2937",
     },
     statValue: {
         fontSize: 20,
-        fontWeight: "600",
+        fontWeight: "700",
         marginTop: 8,
     },
     statLabel: {
@@ -463,22 +840,29 @@ const styles = StyleSheet.create({
     section: {
         marginBottom: 24,
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    sectionIcon: {
+        marginRight: 8,
+    },
     lastSection: {
         marginBottom: 100,
     },
     sectionTitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: "600",
-        marginBottom: 12,
     },
     card: {
         backgroundColor: "#FFFFFF",
-        borderRadius: theme.border.radius.small,
+        borderRadius: theme.border.radius.medium,
         padding: 16,
         ...Platform.select({
             ios: {
                 shadowColor: "#000",
-                shadowOffset: {width: 0, height: 1},
+                shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.1,
                 shadowRadius: 2,
             },
@@ -488,7 +872,7 @@ const styles = StyleSheet.create({
         }),
     },
     cardDark: {
-        backgroundColor: "#374151",
+        backgroundColor: "#1F2937",
     },
     description: {
         fontSize: 16,
@@ -497,23 +881,25 @@ const styles = StyleSheet.create({
     showMoreButton: {
         marginTop: 8,
         alignSelf: "flex-start",
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     showMoreText: {
         color: theme.color.primary[500],
         fontWeight: "500",
+        marginRight: 4,
     },
     prerequisiteItem: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
         backgroundColor: "#FFFFFF",
         padding: 16,
-        borderRadius: theme.border.radius.small,
+        borderRadius: theme.border.radius.medium,
         marginBottom: 8,
         ...Platform.select({
             ios: {
                 shadowColor: "#000",
-                shadowOffset: {width: 0, height: 1},
+                shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.1,
                 shadowRadius: 2,
             },
@@ -521,6 +907,15 @@ const styles = StyleSheet.create({
                 elevation: 2,
             },
         }),
+    },
+    prereqIconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: theme.color.primary[500],
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
     },
     prerequisiteText: {
         fontSize: 16,
@@ -545,9 +940,11 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     tag: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: "#F3F4F6",
         paddingVertical: 8,
-        paddingHorizontal: 16,
+        paddingHorizontal: 12,
         borderRadius: 20,
     },
     tagDark: {
@@ -562,13 +959,12 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         backgroundColor: "#FFFFFF",
-        marginBottom: Platform.OS === "ios" ? 0 : 60,
+        marginBottom: Platform.OS === "ios" ? 32 : 60, // Account for tab bar
         padding: 16,
-        paddingBottom: Platform.OS === "ios" ? 32 : 16,
         ...Platform.select({
             ios: {
                 shadowColor: "#000",
-                shadowOffset: {width: 0, height: -2},
+                shadowOffset: { width: 0, height: -2 },
                 shadowOpacity: 0.1,
                 shadowRadius: 4,
             },
@@ -598,11 +994,42 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        padding: 24,
+    },
+    errorTitle: {
+        fontSize: 18,
+        fontWeight: "600",
+        marginTop: 16,
+        marginBottom: 8,
+        textAlign: "center",
     },
     errorText: {
-        color: "#EF4444",
-        marginTop: 8,
+        color: "#6B7280",
+        marginBottom: 24,
         textAlign: "center",
+        maxWidth: width * 0.8,
+    },
+    retryButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.color.primary[500],
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 8,
+        elevation: 2,
+    },
+    retryButtonDark: {
+        backgroundColor: '#3B82F6',
+    },
+    retryButtonText: {
+        color: '#FFFFFF',
+        fontWeight: '500',
+        fontSize: 16,
+    },
+    // Skeleton styles
+    skeletonLine: {
+        borderRadius: 4,
+        marginVertical: 2,
     },
 });
 

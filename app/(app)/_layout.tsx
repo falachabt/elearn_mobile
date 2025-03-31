@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Redirect, router, Tabs, useNavigation } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/auth";
@@ -10,17 +10,13 @@ import {
     TouchableOpacity,
     View,
     Text,
-    Animated,
-    Easing,
 } from "react-native";
 import { theme } from "@/constants/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSWRConfig } from "swr";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useColorScheme } from '@/hooks/useColorScheme';
-import {LoadingAnimation} from "@/components/shared/LoadingAnimation1";
-
-// Custom loading animation component
+import { LoadingAnimation } from "@/components/shared/LoadingAnimation1";
 
 export default function AppLayout() {
     const { session, isLoading, user } = useAuth();
@@ -29,20 +25,52 @@ export default function AppLayout() {
     const isDarkMode = colorScheme === 'dark';
     const { mutate } = useSWRConfig();
     const { trigger } = useHaptics();
+    const [needsRedirect, setNeedsRedirect] = useState(false);
 
-    // Handle authentication redirects
-    if (!session) {
-        return <Redirect href="/(auth)" />;
-    }
+    // Check redirect conditions once and store result, don't re-evaluate on every render
+    useEffect(() => {
+        if (!session) {
+            setNeedsRedirect(true);
+        } else if (user && !user.onboarding_done) {
+            setNeedsRedirect(true);
+        } else {
+            setNeedsRedirect(false);
+        }
+    }, [session, user?.onboarding_done]);
 
-    // Handle onboarding redirect if needed
-    if (user && !user.onboarding_done) {
-        return <Redirect href="/(auth)/onboarding" />;
+    // Handle tab press with memoized callback to avoid recreation on each render
+    const handleTabPress = useCallback((e) => {
+        const target = e.target?.split('-')[0];
+
+        // Use focus event to trigger haptics to avoid unnecessary renders
+        trigger(HapticType.SELECTION);
+
+        // Selective mutation based on tab
+        if (target === 'index') {
+            mutate(`userPrograms-${user?.id}`);
+        } else if (target === 'learn') {
+            mutate("my-learning-paths");
+            e.preventDefault();
+            router.replace('/learn');
+        }
+    }, [trigger, mutate, user?.id]);
+
+    // CRITICAL: This is a protected route - no session means redirect immediately
+    if (needsRedirect) {
+        // Handle onboarding redirect if needed
+        if (user && !user.onboarding_done) {
+            return <Redirect href="/(auth)/onboarding" />;
+        }
+
+        if (!session) {
+            return <Redirect href="/(auth)" />;
+        }
+
+
     }
 
     // Show loading indicator when we have session but user data is still loading
-    // This prevents showing protected content before we have user data
-    if (isLoading && (session && !user)) {
+    if (isLoading || (session && !user)) {
         return (
             <View style={{
                 flex: 1,
@@ -54,8 +82,6 @@ export default function AppLayout() {
             </View>
         );
     }
-
-
 
     return (
         <SafeAreaView
@@ -72,21 +98,7 @@ export default function AppLayout() {
                     tabBarLabelStyle: styles.tabLabel,
                 }}
                 screenListeners={{
-                    tabPress: (e) => {
-                        const target = e.target?.split('-')[0];
-
-                        // Use focus event to trigger haptics to avoid unnecessary renders
-                        trigger(HapticType.SELECTION);
-
-                        // Selective mutation based on tab
-                        if (target === 'index') {
-                            mutate(`userPrograms-${user?.id}`);
-                        } else if (target === 'learn') {
-                            mutate("my-learning-paths");
-                            e.preventDefault();
-                            router.replace('/learn');
-                        }
-                    },
+                    tabPress: handleTabPress,
                 }}
             >
                 {/* Tab screens stay the same */}
@@ -252,6 +264,4 @@ const styles = StyleSheet.create({
     tabButtonContentActive: {
         backgroundColor: `${theme.color.primary[500]}10`,
     },
-
-
 });

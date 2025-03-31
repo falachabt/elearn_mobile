@@ -122,7 +122,8 @@ const CourseScreen: React.FC<null> = () => {
             course_videos(id)
           )
         `)
-            .eq('lpId', pdId);
+            .eq('lpId', pdId)
+            // .eq("courses.status", true)
         // @ts-ignore
         return data as CourseItem[];
       }

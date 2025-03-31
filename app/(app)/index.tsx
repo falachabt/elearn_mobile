@@ -3,7 +3,6 @@ import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, useCol
 import TopBar from '@/components/TopBar';
 import {theme} from '@/constants/theme';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
-// Ensure you create this file at components/CustomizableGoals.tsx with the code from the first artifact
 import {Link, useRouter} from 'expo-router';
 import {useAuth} from '@/contexts/auth';
 import {useUser} from '@/contexts/useUserInfo';
@@ -12,6 +11,7 @@ import NoProgram from "@/components/shared/catalogue/NoProgramCard";
 import {useNotification} from "@/contexts/NotificationContext";
 import {checkAndUpdateNotifications} from "@/utils/notification-utils";
 import CustomizableGoals from "@/components/CustimizableHomeScreenGoals";
+import GeminiChatbot from "@/components/shared/GeminiChatBot";
 
 const {width} = Dimensions.get('window');
 const HORIZONTAL_PADDING = 16;
@@ -21,7 +21,6 @@ const PATH_CARD_WIDTH = width * 0.6;
 export default function Index() {
     const {user} = useAuth();
     const {toDayXp, toDayExo, toDayTime, userPrograms, lastCourse} = useUser();
-    const {expoPushToken, notification, error} = useNotification();
     const colorScheme = useColorScheme();
     const router = useRouter();
     const isDarkMode = colorScheme === 'dark';
@@ -42,6 +41,26 @@ export default function Index() {
                 onChangeProgram={() => {
                 }}
             />
+
+            {/*<GeminiChatbot*/}
+            {/*    apiKey="AIzaSyCQv5mGd4Kr6Csa_GPRt4DCbAWjB6oYiYs"*/}
+            {/*    position="bottom-right"*/}
+            {/*    theme={{*/}
+            {/*        primary: '#10B981',    // Green*/}
+            {/*        secondary: '#6EE7B7',*/}
+            {/*        background: '#FFFFFF',*/}
+            {/*        text: '#1F2937',*/}
+            {/*        userBubble: '#10B981',*/}
+            {/*        botBubble: '#ECFDF5',*/}
+            {/*    }}*/}
+            {/*    botName="EcoAssistant"*/}
+            {/*    welcomeMessage="Hello! I'm your eco-friendly assistant. How can I help you today?"*/}
+            {/*    persistChat={true}*/}
+            {/*    onSendMessage={(message) => {*/}
+            {/*        console.log('User sent:', message);*/}
+            {/*        // You can add analytics or other processing here*/}
+            {/*    }}*/}
+            {/*/>*/}
 
 
             <ScrollView

@@ -172,21 +172,7 @@ const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
                             </Text>
                         </View>
 
-                        <View style={styles.statDivider} />
 
-                        <View style={styles.statItem}>
-                            <MaterialCommunityIcons
-                                name="clock-outline"
-                                size={16}
-                                color={theme.color.primary[500]}
-                            />
-                            <Text style={[styles.statText, isDarkMode && styles.statTextDark]}>
-                                {path.total_duration}
-                            </Text>
-                            <Text style={[styles.statLabel, isDarkMode && styles.statLabelDark]}>
-                                heures
-                            </Text>
-                        </View>
                     </View>
 
                     {/* Exam date countdown */}
@@ -267,6 +253,7 @@ const styles = StyleSheet.create({
     schoolBadge: {
         flexDirection: 'row',
         alignItems: 'center',
+        width: '80%',
         backgroundColor: 'rgba(209, 213, 219, 0.2)',
         borderRadius: 4,
         paddingHorizontal: 8,

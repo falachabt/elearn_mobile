@@ -158,15 +158,17 @@ const Register: React.FC = () => {
 
     // States
     const [email, setEmail] = useState<string>("");
+    const [phone, setPhone] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [confirmPassword, setConfirmPassword] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [emailError, setEmailError] = useState<string>("");
+    const [phoneError, setPhoneError] = useState<string>("");
     const [passwordError, setPasswordError] = useState<string>("");
     const [confirmPasswordError, setConfirmPasswordError] = useState<string>("");
     const [otp, setOtp] = useState<string>("");
-    const [countdown, setCountdown] = useState<number>(60);
+    const [countdown, setCountdown] = useState<number>(300);
     const [isOtpStep, setIsOtpStep] = useState<boolean>(false);
     const [isOtpValid, setIsOtpValid] = useState<boolean>(false);
     const [isChecked, setIsChecked] = useState<boolean>(false);
@@ -190,7 +192,9 @@ const Register: React.FC = () => {
     // Refs for focus management
     const passwordRef = useRef<TextInput>(null);
     const confirmPasswordRef = useRef<TextInput>(null);
+
     const emailErrorAnim = useRef(new Animated.Value(0)).current;
+    const phoneErrorAnim = useRef(new Animated.Value(0)).current;
     const passwordErrorAnim = useRef(new Animated.Value(0)).current;
     const confirmPasswordErrorAnim = useRef(new Animated.Value(0)).current;
     const termsErrorAnim = useRef(new Animated.Value(0)).current;
@@ -238,6 +242,10 @@ const Register: React.FC = () => {
     useEffect(() => {
         if (emailError) animateError(emailErrorAnim);
     }, [emailError]);
+
+    useEffect(() => {
+        if (phoneError) animateError(phoneErrorAnim);
+    }, [phoneError]);
 
     useEffect(() => {
         if (passwordError) animateError(passwordErrorAnim);
@@ -332,6 +340,23 @@ const Register: React.FC = () => {
         return true;
     };
 
+    const validatePhone = (phone: string): boolean => {
+
+        if (!phone) {
+            setPhoneError("Le numéro de téléphone est requis");
+            return false;
+        }
+
+        // put phone regex for cameroun phones here
+        const regex = /^6[5-9]{1}[0-9]{7}$/;
+        // if (!regex.test(phone)) {
+        //     setPhoneError("Format de téléphone invalide");
+        //     return false;
+        // }
+        setPhoneError("");
+        return true
+    }
+
     const validatePassword = (password: string): boolean => {
         if (!password) {
             setPasswordError("Le mot de passe est requis");
@@ -367,14 +392,17 @@ const Register: React.FC = () => {
         try {
             // Validate fields
             const isEmailValid = validateEmail(email);
+            // const isPhoneValid = validatePhone(phone);
             const isPasswordValid = validatePassword(password);
+            // const isPasswordValid = true
             const isConfirmPasswordValid = validateConfirmPassword(
                 password,
                 confirmPassword
             );
+            // const isConfirmPasswordValid = true
             const isTermsValid = validateTerms();
 
-            if (!isEmailValid || !isPasswordValid || !isConfirmPasswordValid || !isTermsValid) {
+            if (!isEmailValid || !isPasswordValid || !isConfirmPasswordValid || !isTermsValid ) {
                 shakeError();
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                 return;
@@ -383,6 +411,7 @@ const Register: React.FC = () => {
             setIsLoading(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+            // await signUp(email, phone, password);
             await signUp(email, password);
 
             setIsOtpStep(true);
@@ -402,7 +431,7 @@ const Register: React.FC = () => {
             if (error.message === "email exists") {
                 setToast({
                     visible: true,
-                    message: "Cet email est déjà utilisé",
+                    message: "Cet email ou phone est déjà utilisé",
                     type: "error",
                     action: {
                         label: "Se connecter",
@@ -423,7 +452,7 @@ const Register: React.FC = () => {
     };
 
     const startCountdown = (): void => {
-        setCountdown(60);
+        setCountdown(300);
     };
 
     const handleVerifyOtp = async (): Promise<void> => {
@@ -458,7 +487,7 @@ const Register: React.FC = () => {
     const handleResendOtp = async (): Promise<void> => {
         try {
             setIsLoading(true);
-            await supabase.auth.signInWithOtp({email});
+            await supabase.auth.signInWithOtp({phone:  phone});
             startCountdown();
 
             setToast({
@@ -558,6 +587,35 @@ const Register: React.FC = () => {
                                     Créez votre compte pour accéder à la plateforme
                                 </Text>
 
+                                {/* Social Login Options */}
+
+
+                                <View style={styles.socialButtons}>
+                                    {/*<TouchableOpacity style={[styles.socialButton, styles.googleButton]}>*/}
+                                    {/*    <MaterialCommunityIcons name="google" size={20} color="white"/>*/}
+                                    {/*    <Text style={styles.socialButtonText}>Google</Text>*/}
+
+                                    <GoogleAuth onAuthSuccess={() => router.push("/")}>
+
+                                        <View style={[styles.socialButton, styles.googleButton]}>
+                                            <MaterialCommunityIcons name="google" size={20} color="white"/>
+                                            <Text style={styles.socialButtonText}>Google</Text>
+                                        </View>
+
+
+                                    </GoogleAuth>
+                                </View>
+
+                                <View style={styles.divider}>
+                                    <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
+                                    <Text style={[styles.dividerText, isDark && styles.textGray]}>
+                                        ou continuer avec
+                                    </Text>
+                                    <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
+                                </View>
+
+
+
                                 {/* Email Input */}
                                 <View style={styles.inputContainer}>
                                     <Text style={[styles.label, isDark && styles.textDark]}>
@@ -620,6 +678,70 @@ const Register: React.FC = () => {
                                         </Animated.View>
                                     )}
                                 </View>
+
+                                {/* Phone Input */}
+                                {/*<View style={styles.inputContainer}>*/}
+                                {/*    <Text style={[styles.label, isDark && styles.textDark]}>*/}
+                                {/*        Téléphone*/}
+                                {/*    </Text>*/}
+                                {/*    <View style={[*/}
+                                {/*        styles.inputWrapper,*/}
+                                {/*        isDark && styles.inputWrapperDark,*/}
+                                {/*        emailError && styles.inputError*/}
+                                {/*    ]}>*/}
+                                {/*        <MaterialCommunityIcons*/}
+                                {/*            name="phone"*/}
+                                {/*            size={24}*/}
+                                {/*            color={phoneError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}*/}
+                                {/*            style={styles.inputIcon}*/}
+                                {/*        />*/}
+                                {/*        <TextInput*/}
+                                {/*            value={phone}*/}
+                                {/*            onChangeText={(text) => {*/}
+                                {/*                setPhone(text);*/}
+                                {/*                if (phoneError) validatePhone(text);*/}
+                                {/*            }}*/}
+                                {/*            style={[styles.input, isDark && styles.inputDark]}*/}
+                                {/*            placeholder="6xxxxxxxx"*/}
+                                {/*            placeholderTextColor={isDark ? "#666666" : "#999999"}*/}
+                                {/*            keyboardType="phone-pad"*/}
+                                {/*            autoCapitalize="none"*/}
+                                {/*            returnKeyType="next"*/}
+                                {/*            onSubmitEditing={() => passwordRef.current?.focus()}*/}
+                                {/*        />*/}
+                                {/*        {phoneError && (*/}
+                                {/*            <MaterialCommunityIcons*/}
+                                {/*                name="alert-circle"*/}
+                                {/*                size={20}*/}
+                                {/*                color={theme.color.error}*/}
+                                {/*                style={styles.errorIcon}*/}
+                                {/*            />*/}
+                                {/*        )}*/}
+                                {/*    </View>*/}
+                                {/*    {phoneError && (*/}
+                                {/*        <Animated.View*/}
+                                {/*            style={[*/}
+                                {/*                styles.errorContainer,*/}
+                                {/*                {*/}
+                                {/*                    opacity: emailErrorAnim, transform: [{*/}
+                                {/*                        translateY: emailErrorAnim.interpolate({*/}
+                                {/*                            inputRange: [0, 1],*/}
+                                {/*                            outputRange: [-10, 0]*/}
+                                {/*                        })*/}
+                                {/*                    }]*/}
+                                {/*                }*/}
+                                {/*            ]}*/}
+                                {/*        >*/}
+                                {/*            <MaterialCommunityIcons*/}
+                                {/*                name="alert-circle"*/}
+                                {/*                size={16}*/}
+                                {/*                color={theme.color.error}*/}
+                                {/*            />*/}
+                                {/*            <Text style={styles.errorText}>{phoneError}</Text>*/}
+                                {/*        </Animated.View>*/}
+                                {/*    )}*/}
+                                {/*</View>*/}
+
 
                                 {/* Password Input */}
                                 <View style={styles.inputContainer}>
@@ -815,30 +937,6 @@ const Register: React.FC = () => {
                                     )}
                                 </TouchableOpacity>
 
-                                {/* Social Login Options */}
-                                <View style={styles.divider}>
-                                    <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
-                                    <Text style={[styles.dividerText, isDark && styles.textGray]}>
-                                        ou continuer avec
-                                    </Text>
-                                    <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
-                                </View>
-
-                                <View style={styles.socialButtons}>
-                                    {/*<TouchableOpacity style={[styles.socialButton, styles.googleButton]}>*/}
-                                    {/*    <MaterialCommunityIcons name="google" size={20} color="white"/>*/}
-                                    {/*    <Text style={styles.socialButtonText}>Google</Text>*/}
-
-                                    <GoogleAuth onAuthSuccess={() => router.push("/")}>
-
-                                        <View style={[styles.socialButton, styles.googleButton]}>
-                                            <MaterialCommunityIcons name="google" size={20} color="white"/>
-                                            <Text style={styles.socialButtonText}>Google</Text>
-                                        </View>
-
-
-                                    </GoogleAuth>
-                                </View>
 
                                 {/* Login Link */}
                                 <View style={styles.footerText}>
@@ -849,6 +947,8 @@ const Register: React.FC = () => {
                                         <Text style={styles.footerLink}>Se connecter</Text>
                                     </TouchableOpacity>
                                 </View>
+
+
                             </Animated.View>
                         )}
 
@@ -1136,6 +1236,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     socialButtons: {
+        marginVertical: 20,
         flexDirection: "row",
         justifyContent: "space-between",
         gap: 12,
@@ -1173,6 +1274,7 @@ const styles = StyleSheet.create({
     },
     footerLink: {
         color: theme.color.primary[500],
+        lineHeight : 20,
         fontSize: 14,
         fontWeight: "600",
     },

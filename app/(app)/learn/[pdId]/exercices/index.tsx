@@ -77,7 +77,7 @@ export const ExercisesList = () => {
             // Fetch learning path title
             supabase
                 .from("learning_paths")
-                .select("title")
+                .select("title, concour:concours_learningpaths(id, concours(id, name, study_cycles(id, name), school:schools(id, name, sigle)))")
                 .eq("id", pdId)
                 .single()
         ]);
@@ -131,7 +131,7 @@ export const ExercisesList = () => {
         const uniqueCategories = Array.from(categoryMap.values());
 
         return {
-            pathName: pathRes.data.title || "",
+            pathName:  pathRes.data.title || "",
             categories: uniqueCategories,
             exercises: exerciseRes.data.map((ex) => ({
                 ...ex,
@@ -306,7 +306,7 @@ export const ExercisesList = () => {
                         color={"white"}
                     />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, isDark && styles.textDark]}>
+                <Text numberOfLines={3} style={[styles.headerTitle, isDark && styles.textDark]}>
                     {data?.pathName}
                 </Text>
             </View>

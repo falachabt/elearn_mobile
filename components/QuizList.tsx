@@ -1,72 +1,287 @@
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
     View,
-    ScrollView,
+    Text,
     StyleSheet,
-    Pressable,
     TextInput,
+    Pressable,
+    ScrollView,
     ActivityIndicator,
-} from "react-native";
-import React, {useState, useMemo} from "react";
-import {ThemedText} from "@/components/ThemedText";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useRouter, useLocalSearchParams} from "expo-router";
-import useSWR from "swr";
-import {supabase} from "@/lib/supabase";
-import {theme} from "@/constants/theme";
-import {useColorScheme} from "@/hooks/useColorScheme";
-import {useAuth} from "@/contexts/auth";
+    SafeAreaView,
+    Animated,
+    FlatList,
+    Easing
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { ThemedText } from '@/components/ThemedText';
+import { HapticType, useHaptics } from '@/hooks/useHaptics';
+import { theme } from '@/constants/theme';
+import useSWR from 'swr';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/auth';
+import EnhancedQuizCard from '@/components/shared/learn/quiz/QuizCard';
+import EnhancedQuizRowItem from '@/components/shared/learn/quiz/QuizRowItem';
+import EnhancedQuizCategoryFilter from '@/components/shared/learn/quiz/QuizCategoryFilter';
 
-const QuizList = () => {
+// ==========================
+// Types
+// ==========================
+
+interface Category {
+    id?: number;
+    name: string;
+}
+
+interface QuizQuestion {
+    id: number;
+}
+
+interface Course {
+    id: number;
+    name: string;
+}
+
+interface Quiz {
+    id: number;
+    name: string;
+    category?: Category;
+    quiz_questions?: QuizQuestion[];
+    course?: Course;
+}
+
+interface QuizItem {
+    quizId: number;
+    lpId: string;
+    quiz: Quiz;
+    isPinned?: boolean;
+    progress?: number;
+}
+
+interface Program {
+    id: string;
+    title: string;
+    concours_learningpaths?: Array<{
+        concour?: {
+            name?: string;
+            school?: {
+                name?: string;
+            }
+        }
+    }>;
+}
+
+// ==========================
+// Skeleton Loading Component
+// ==========================
+
+const QuizSkeleton = ({ isDark } : { isDark : boolean}) => {
+    // Animation for the skeleton loading effect
+    const pulseAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    easing: Easing.ease,
+                    useNativeDriver: false,
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 0,
+                    duration: 1000,
+                    easing: Easing.ease,
+                    useNativeDriver: false,
+                })
+            ])
+        ).start();
+    }, []);
+
+    const backgroundColor = pulseAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: isDark
+            ? ['rgba(55, 65, 81, 0.8)', 'rgba(75, 85, 99, 0.8)']
+            : ['rgba(229, 231, 235, 0.8)', 'rgba(209, 213, 219, 0.8)']
+    });
+
+    return (
+        <View style={[styles.container, isDark && styles.containerDark]}>
+            {/* Header Skeleton */}
+            <View style={[styles.header, isDark && styles.headerDark]}>
+                <Animated.View style={[styles.skeletonCircle, { backgroundColor }]} />
+                <View style={{ flex: 1, marginLeft: 16 }}>
+                    <Animated.View style={[styles.skeletonLine, { width: '70%', height: 20, backgroundColor }]} />
+                    <Animated.View style={[styles.skeletonLine, { width: '40%', height: 16, marginTop: 8, backgroundColor }]} />
+                </View>
+            </View>
+
+            {/* Search Skeleton */}
+            <View style={[styles.searchContainer, isDark && styles.searchContainerDark]}>
+                <Animated.View style={[styles.searchBox, isDark && styles.searchBoxDark, { backgroundColor }]} />
+            </View>
+
+            {/* Category Filter Skeleton */}
+            <View style={{ height: 56, marginTop: 8 }}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+                >
+                    {[1, 2, 3, 4, 5].map((_, index) => (
+                        <Animated.View
+                            key={index}
+                            style={[styles.skeletonCategory, { width: 80 + index * 20, backgroundColor }]}
+                        />
+                    ))}
+                </ScrollView>
+            </View>
+
+            {/* Quiz Count Skeleton */}
+            <View style={[styles.quizCountContainer, isDark && styles.quizCountContainerDark]}>
+                <Animated.View style={[styles.skeletonLine, { width: 120, height: 14, backgroundColor }]} />
+            </View>
+
+            {/* Quiz Items Skeleton */}
+            <ScrollView style={{ flex: 1 }}>
+                {[1, 2, 3, 4, 5, 6].map((_, index) => (
+                    <View key={index} style={[styles.quizItem, isDark && styles.quizItemDark]}>
+                        <View style={styles.quizContent}>
+                            <View style={styles.quizHeader}>
+                                <Animated.View style={[styles.skeletonQuizIcon, { backgroundColor }]} />
+                                <View style={{ flex: 1, marginLeft: 12 }}>
+                                    <Animated.View style={[styles.skeletonLine, { width: '80%', height: 16, backgroundColor }]} />
+                                    <Animated.View style={[styles.skeletonLine, { width: '60%', height: 12, marginTop: 8, backgroundColor }]} />
+                                </View>
+                                <Animated.View style={[styles.skeletonCircle, { width: 24, height: 24, backgroundColor }]} />
+                            </View>
+
+                            <View style={styles.badgeContainer}>
+                                <Animated.View style={[styles.skeletonBadge, { width: 80, backgroundColor }]} />
+                            </View>
+
+                            <Animated.View style={[styles.progressBar, isDark && styles.progressBarDark, { backgroundColor }]} />
+                        </View>
+                    </View>
+                ))}
+            </ScrollView>
+        </View>
+    );
+};
+
+// ==========================
+// Empty State Component
+// ==========================
+
+const EmptyState = ({ searchQuery, selectedCategory, isDark }) => {
+    return (
+        <View style={styles.emptyState}>
+            <MaterialCommunityIcons
+                name="file-search-outline"
+                size={64}
+                color={isDark ? "#818CF8" : "#2563EB"}
+            />
+            <ThemedText style={[styles.emptyStateTitle, isDark && { color: '#D1D5DB' }]}>
+                {searchQuery || selectedCategory !== "all"
+                    ? "Aucun quiz trouvé"
+                    : "Aucun quiz disponible"}
+            </ThemedText>
+            <ThemedText style={[styles.emptyStateText, isDark && { color: '#9CA3AF' }]}>
+                {searchQuery || selectedCategory !== "all"
+                    ? "Essayez de modifier vos critères de recherche"
+                    : "Revenez plus tard pour voir les nouveaux quiz"}
+            </ThemedText>
+        </View>
+    );
+};
+
+// ==========================
+// Error State Component
+// ==========================
+
+const ErrorState = ({ onRetry, isDark }) => {
+    return (
+        <View style={[styles.centerContent, isDark && { backgroundColor: "#111827" }]}>
+            <MaterialCommunityIcons
+                name="alert-circle-outline"
+                size={64}
+                color="#EF4444"
+            />
+            <ThemedText style={styles.errorTitle}>
+                Impossible de charger les quiz
+            </ThemedText>
+            <ThemedText style={styles.errorText}>
+                Une erreur s'est produite lors du chargement des données. Veuillez réessayer.
+            </ThemedText>
+            <Pressable
+                style={[styles.retryButton, isDark && styles.retryButtonDark]}
+                onPress={onRetry}
+            >
+                <MaterialCommunityIcons name="reload" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <ThemedText style={styles.retryButtonText}>Réessayer</ThemedText>
+            </Pressable>
+        </View>
+    );
+};
+
+// ==========================
+// Main Quiz Screen Component
+// ==========================
+
+const EnhancedQuizScreen = () => {
     const router = useRouter();
-    const {pdId} = useLocalSearchParams();
+    const { pdId } = useLocalSearchParams();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
-    const {user} = useAuth();
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list'); // Add view mode toggle
+    const { user } = useAuth();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
+    const { trigger } = useHaptics();
 
-    const {data: program, isLoading: programLoading, error: programError} = useSWR(
+    // Animation refs
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    // Fetch program data
+    const { data: program, isLoading: programLoading, error: programError, mutate: reloadProgram } = useSWR(
         pdId ? `program-quizzes-${pdId}` : null,
         async () => {
-            const {data, error} = await supabase
+            const { data, error } = await supabase
                 .from("learning_paths")
-                .select(
-                    `
-                    id,
-                    title,
-                    concours_learningpaths(
-                        concour:concours(
-                            name,
-                            school:schools(name)
-                        )
-                    )
-                    `
-                )
+                .select(`
+          id, 
+          title,
+          concours_learningpaths(
+            concour:concours(
+              name,
+              school:schools(name)
+            )
+          )
+        `)
                 .eq("id", pdId)
                 .single();
 
-            console.log("error", error);
             if (error) throw error;
-            return data;
+            return data as Program;
         }
     );
 
-    const {data: quizzes, isLoading: quizzesLoading, error: quizzesError} = useSWR(
+    // Fetch quizzes data
+    const { data: quizzes, isLoading: quizzesLoading, error: quizzesError, mutate: reloadQuizzes } = useSWR(
         pdId ? `quizzes-${pdId}` : null,
         async () => {
-            const {data, error} = await supabase
+            const { data, error } = await supabase
                 .from("quiz_learningpath")
-                .select(
-                    `
-                    *,
-                    quiz:quiz(
-                        *,
-                        category:courses_categories(*),
-                        quiz_questions(id),
-                        course(*)
-                    )
-                    `
-                )
+                .select(`
+          *,
+          quiz:quiz(
+            *,
+            category:courses_categories(*),
+            quiz_questions(id),
+            course(*)
+          )
+        `)
                 .eq("lpId", pdId);
 
             if (error) throw error;
@@ -75,7 +290,7 @@ const QuizList = () => {
             const quizIds = data.map((quiz) => quiz.quizId);
 
             // Fetch pinned status for all quizzes
-            const {data: quiz_pinned, error: pinnedError} = await supabase
+            const { data: quiz_pinned, error: pinnedError } = await supabase
                 .from("quiz_pin")
                 .select("*")
                 .in("quiz_id", quizIds)
@@ -90,31 +305,38 @@ const QuizList = () => {
                     ...quiz,
                     isPinned: !!isPinned
                 };
-            });
+            }) as QuizItem[];
         }
     );
 
     // Fetch quiz attempts to calculate progress
-    const {data: attempts} = useSWR(
+    const { data: attempts } = useSWR(
         pdId && quizzes ? `quiz-attempts-${pdId}-${user?.id}` : null,
         async () => {
             const quizIds = quizzes?.map(q => q.quizId);
-            const {data, error} = await supabase
+            const { data, error } = await supabase
                 .from("quiz_attempts")
                 .select("*, quiz_id, score")
                 .in("quiz_id", quizIds || [])
                 .eq("user_id", user?.id)
                 .eq("status", "completed");
 
-
             if (error) throw error;
             return data || [];
-        },
-        {
-            // Only run this query after quizzes are loaded
-            // enabled: !!quizzes && quizzes.length > 0
         }
     );
+
+    // Fade in content when data loads
+    useEffect(() => {
+        if (!programLoading && !quizzesLoading) {
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+                easing: Easing.out(Easing.ease)
+            }).start();
+        }
+    }, [programLoading, quizzesLoading]);
 
     // Calculate progress for each quiz
     const quizzesWithProgress = useMemo(() => {
@@ -135,7 +357,7 @@ const QuizList = () => {
         });
     }, [quizzes, attempts]);
 
-    // Extract unique categories
+    // Extract unique categories from quizzes
     const categories = useMemo(() => {
         if (!quizzesWithProgress) return [];
         const uniqueCategories = new Set(
@@ -146,7 +368,7 @@ const QuizList = () => {
         return Array.from(uniqueCategories);
     }, [quizzesWithProgress]);
 
-    // Filter quizzes
+    // Filter quizzes based on search and category
     const filteredQuizzes = useMemo(() => {
         if (!quizzesWithProgress) return [];
         return quizzesWithProgress.filter((quizItem) => {
@@ -158,423 +380,437 @@ const QuizList = () => {
         });
     }, [quizzesWithProgress, searchQuery, selectedCategory]);
 
-    // Get program info
-    const programName = useMemo(() => {
-        if (!program) return "Loading...";
-        return program.title || "Programme";
-    }, [program]);
+    // Handle quiz press
+    const handleQuizPress = (quizItem) => {
+        trigger(HapticType.SELECTION);
+        router.push(`/(app)/learn/${pdId}/quizzes/${quizItem.quiz?.id}`);
+    };
 
-    const schoolInfo = useMemo(() => {
-        if (!program || !program.concours_learningpaths ) {
-            return { type: "N/A", name: "N/A" };
+    // Handle back button press
+    const handleBackPress = () => {
+        trigger(HapticType.LIGHT);
+        router.back();
+    };
+
+    // Toggle view mode between list and grid
+    const toggleViewMode = () => {
+        trigger(HapticType.LIGHT);
+        setViewMode(prev => prev === 'list' ? 'grid' : 'list');
+    };
+
+    // Clear search
+    const clearSearch = () => {
+        setSearchQuery('');
+    };
+
+    // Retry loading data
+    const handleRetry = () => {
+        reloadProgram();
+        reloadQuizzes();
+    };
+
+    // Get program title and school info
+    const getProgramInfo = () => {
+        if (!program) {
+            return { title: 'Programme', school: '', concours: '' };
         }
 
-        // @ts-ignore
-        // TODO - Fix this
-        const concour = program.concours_learningpaths?.concour;
+        const concours = program.concours_learningpaths?.[0]?.concour;
         return {
-            type: concour?.name || "N/A",
-            name: concour?.school?.name || "N/A"
+            title: program.title || 'Programme',
+            school: concours?.school?.name || '',
+            concours: concours?.name || ''
         };
-    }, [program]);
+    };
+
+    const { title, school, concours } = getProgramInfo();
 
     // Loading state
     if (programLoading || quizzesLoading) {
-        return (
-            <View style={[styles.container, isDark && styles.containerDark, styles.centerContent]}>
-                <ActivityIndicator size="large" color={isDark ? "#818CF8" : "#2563EB"} />
-                <ThemedText style={styles.loadingText}>Chargement des quiz...</ThemedText>
-            </View>
-        );
+        return <QuizSkeleton isDark={isDark} />;
     }
 
     // Error state
     if (programError || quizzesError) {
+        return <ErrorState onRetry={handleRetry} isDark={isDark} />;
+    }
+
+    // Check if no quizzes are available
+    if (filteredQuizzes.length === 0) {
         return (
-            <View style={[styles.container, isDark && styles.containerDark, styles.centerContent]}>
-                <MaterialCommunityIcons
-                    name="alert-circle-outline"
-                    size={48}
-                    color="#EF4444"
+            <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
+                {/* Header */}
+                <View style={[styles.header, isDark && styles.headerDark]}>
+                    <Pressable style={styles.headerIcon} onPress={handleBackPress}>
+                        <MaterialCommunityIcons
+                            name="arrow-left"
+                            size={24}
+                            color={isDark ? "#FFFFFF" : "#111827"}
+                        />
+                    </Pressable>
+
+                    <View style={styles.headerInfo}>
+                        <ThemedText style={styles.headerTitle} numberOfLines={1}>
+                            {title}
+                        </ThemedText>
+                        {(school || concours) && (
+                            <ThemedText style={styles.headerSubtitle}>
+                                {concours && <Text style={styles.concoursText}>{concours} • </Text>}
+                                {school && <Text style={styles.schoolText}>{school}</Text>}
+                            </ThemedText>
+                        )}
+                    </View>
+
+                    {/* View mode toggle */}
+                    <Pressable style={styles.viewModeButton} onPress={toggleViewMode}>
+                        <MaterialCommunityIcons
+                            name={viewMode === 'list' ? 'view-grid' : 'view-list'}
+                            size={24}
+                            color={theme.color.primary[500]}
+                        />
+                    </Pressable>
+                </View>
+
+                {/* Search */}
+                <View style={[styles.searchContainer, isDark && styles.searchContainerDark]}>
+                    <View style={[styles.searchBox, isDark && styles.searchBoxDark]}>
+                        <MaterialCommunityIcons
+                            name="magnify"
+                            size={20}
+                            color={isDark ? "#9CA3AF" : "#6B7280"}
+                        />
+                        <TextInput
+                            style={[styles.searchInput, isDark && styles.searchInputDark]}
+                            placeholder="Rechercher un quiz..."
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
+                        />
+                        {searchQuery.length > 0 && (
+                            <Pressable style={styles.clearButton} onPress={clearSearch}>
+                                <MaterialCommunityIcons
+                                    name="close-circle"
+                                    size={20}
+                                    color={isDark ? "#9CA3AF" : "#6B7280"}
+                                />
+                            </Pressable>
+                        )}
+                    </View>
+                </View>
+
+                {/* Categories */}
+                <View style={{ height: 56 }}>
+                    <EnhancedQuizCategoryFilter
+                        categories={categories}
+                        selectedCategory={selectedCategory}
+                        onSelectCategory={setSelectedCategory}
+                        isDark={isDark}
+                    />
+                </View>
+
+                {/* Quiz count */}
+                <View style={[styles.quizCountContainer, isDark && styles.quizCountContainerDark]}>
+                    <ThemedText style={[styles.quizCountText, isDark && styles.quizCountTextDark]}>
+                        {filteredQuizzes.length} quiz{filteredQuizzes.length !== 1 ? 's' : ''} disponible{filteredQuizzes.length !== 1 ? 's' : ''}
+                    </ThemedText>
+                </View>
+
+                {/* Empty state */}
+                <EmptyState
+                    searchQuery={searchQuery}
+                    selectedCategory={selectedCategory}
+                    isDark={isDark}
                 />
-                <ThemedText style={styles.errorText}>
-                    Une erreur s'est produite lors du chargement des données.
-                </ThemedText>
-                <Pressable
-                    style={[styles.retryButton, isDark && styles.retryButtonDark]}
-                    onPress={() => router.replace(`/(app)/learn/${pdId}/quizzes`)}
-                >
-                    <ThemedText style={styles.retryButtonText}>Réessayer</ThemedText>
-                </Pressable>
-            </View>
+            </SafeAreaView>
         );
     }
 
     return (
-        <View style={[styles.container, isDark && styles.containerDark]}>
-            <View style={[styles.programHeaderMain, isDark && styles.programHeaderMainDark]}>
-                <View style={[styles.quizIcon, isDark && styles.quizIconDark]}>
-                    <MaterialCommunityIcons
-                        name="pencil-box-multiple"
-                        size={24}
-                        color={isDark ? "#818CF8" : "#2563EB"}
-                    />
-                </View>
-                <View style={[styles.programHeader, isDark && styles.programHeaderDark]}>
-                    <ThemedText style={[styles.programName, isDark && styles.programNameDark]}>
-                        {programName}
-                    </ThemedText>
-                    <ThemedText style={[styles.schoolInfo, isDark && styles.schoolInfoDark]}>
-                        {schoolInfo.type} • <ThemedText
-                        style={[styles.schoolName, isDark && styles.schoolNameDark]}>{schoolInfo.name}</ThemedText>
-                    </ThemedText>
-                </View>
-            </View>
-
-            <View style={[styles.searchBox, isDark && styles.searchBoxDark]}>
-                <MaterialCommunityIcons
-                    name="magnify"
-                    size={20}
-                    color={isDark ? "#9CA3AF" : "#6B7280"}
-                />
-                <TextInput
-                    style={[styles.searchInput, isDark && styles.searchInputDark]}
-                    placeholder="Rechercher un quiz..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
-                />
-            </View>
-
-            <View style={styles.categoryWrapper}>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.categoryContainer}
+        <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
+            {/* Header */}
+            <Animated.View
+                style={[
+                    styles.header,
+                    isDark && styles.headerDark,
+                    { opacity: fadeAnim }
+                ]}
+            >
+                <Pressable
+                    style={styles.headerIcon}
+                    onPress={handleBackPress}
                 >
-                    <Pressable
-                        style={[
-                            styles.categoryChip,
-                            isDark && styles.categoryChipDark,
-                            selectedCategory === "all" && styles.selectedCategory,
-                            selectedCategory === "all" && isDark && styles.selectedCategoryDark,
-                        ]}
-                        onPress={() => setSelectedCategory("all")}
-                    >
-                        <ThemedText
-                            style={[
-                                styles.categoryText,
-                                isDark && styles.categoryTextDark,
-                                selectedCategory === "all" && styles.selectedCategoryText,
-                            ]}
-                        >
-                            Tout
-                        </ThemedText>
-                    </Pressable>
+                    <MaterialCommunityIcons
+                        name="arrow-left"
+                        size={24}
+                        color={isDark ? "#FFFFFF" : "#111827"}
+                    />
+                </Pressable>
 
-                    {categories.map((category) => (
+                <View style={styles.headerInfo}>
+                    <ThemedText style={styles.headerTitle} numberOfLines={1}>
+                        {title}
+                    </ThemedText>
+                    {(school || concours) && (
+                        <ThemedText style={styles.headerSubtitle}>
+                            {concours && <Text style={styles.concoursText}>{concours} • </Text>}
+                            {school && <Text style={styles.schoolText}>{school}</Text>}
+                        </ThemedText>
+                    )}
+                </View>
+
+                {/* View mode toggle */}
+                <Pressable
+                    style={styles.viewModeButton}
+                    onPress={toggleViewMode}
+                >
+                    <MaterialCommunityIcons
+                        name={viewMode === 'list' ? 'view-grid' : 'view-list'}
+                        size={24}
+                        color={theme.color.primary[500]}
+                    />
+                </Pressable>
+            </Animated.View>
+
+            {/* Search */}
+            <Animated.View
+                style={[
+                    styles.searchContainer,
+                    isDark && styles.searchContainerDark,
+                    { opacity: fadeAnim }
+                ]}
+            >
+                <View style={[styles.searchBox, isDark && styles.searchBoxDark]}>
+                    <MaterialCommunityIcons
+                        name="magnify"
+                        size={20}
+                        color={isDark ? "#9CA3AF" : "#6B7280"}
+                    />
+                    <TextInput
+                        style={[styles.searchInput, isDark && styles.searchInputDark]}
+                        placeholder="Rechercher un quiz..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
+                    />
+                    {searchQuery.length > 0 && (
                         <Pressable
-                            key={category}
-                            style={[
-                                styles.categoryChip,
-                                isDark && styles.categoryChipDark,
-                                selectedCategory === category && styles.selectedCategory,
-                                selectedCategory === category && isDark && styles.selectedCategoryDark,
-                            ]}
-                            onPress={() => setSelectedCategory(category)}
+                            style={styles.clearButton}
+                            onPress={clearSearch}
                         >
-                            <ThemedText
-                                style={[
-                                    styles.categoryText,
-                                    isDark && styles.categoryTextDark,
-                                    selectedCategory === category && styles.selectedCategoryText,
-                                ]}
-                            >
-                                {category}
-                            </ThemedText>
+                            <MaterialCommunityIcons
+                                name="close-circle"
+                                size={20}
+                                color={isDark ? "#9CA3AF" : "#6B7280"}
+                            />
                         </Pressable>
-                    ))}
-                </ScrollView>
-            </View>
+                    )}
+                </View>
+            </Animated.View>
 
-            <ThemedText style={[styles.quizCount, isDark && styles.quizCountDark]}>
-                {filteredQuizzes.length} quiz{filteredQuizzes.length !== 1 ? 's' : ''} disponible{filteredQuizzes.length !== 1 ? 's' : ''}
-            </ThemedText>
+            {/* Categories */}
+            <Animated.View style={{ height: 56, opacity: fadeAnim }}>
+                <EnhancedQuizCategoryFilter
+                    categories={categories}
+                    selectedCategory={selectedCategory}
+                    onSelectCategory={setSelectedCategory}
+                    isDark={isDark}
+                />
+            </Animated.View>
 
-            <ScrollView style={styles.quizList}>
-                {filteredQuizzes.length === 0 ? (
-                    <View style={styles.emptyState}>
-                        <MaterialCommunityIcons
-                            name="file-search-outline"
-                            size={48}
-                            color={isDark ? "#818CF8" : "#2563EB"}
-                        />
-                        <ThemedText style={styles.emptyStateText}>
-                            {searchQuery || selectedCategory !== "all"
-                                ? "Aucun quiz ne correspond à votre recherche"
-                                : "Aucun quiz disponible pour ce programme"}
-                        </ThemedText>
-                    </View>
+            {/* Quiz count */}
+            <Animated.View
+                style={[
+                    styles.quizCountContainer,
+                    isDark && styles.quizCountContainerDark,
+                    { opacity: fadeAnim }
+                ]}
+            >
+                <ThemedText style={[styles.quizCountText, isDark && styles.quizCountTextDark]}>
+                    {filteredQuizzes.length} quiz{filteredQuizzes.length !== 1 ? 's' : ''} disponible{filteredQuizzes.length !== 1 ? 's' : ''}
+                </ThemedText>
+            </Animated.View>
+
+            {/* Quiz list or grid based on viewMode */}
+            <Animated.View
+                style={[
+                    styles.contentContainer,
+                    { opacity: fadeAnim }
+                ]}
+            >
+                {/* Use conditional rendering instead of changing numColumns on the fly */}
+                {viewMode === 'list' ? (
+                    <FlatList
+                        key="list" // Key changes when viewMode changes
+                        data={filteredQuizzes}
+                        keyExtractor={(item) => `quiz-row-${item.quizId}`}
+                        renderItem={({ item, index }) => (
+                            <EnhancedQuizRowItem
+                                quizItem={item}
+                                pdId={String(pdId)}
+                                isDark={isDark}
+                                index={index}
+                            />
+                        )}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.quizListContent}
+                    />
                 ) : (
-                    filteredQuizzes.map((quizItem) => {
-                        const questions = quizItem.quiz?.quiz_questions?.length || 0;
-                        const relatedCourse = quizItem.quiz?.course?.name;
-                        const progress = quizItem.progress || 0;
-
-                        return (
-                            <Pressable
-                                key={quizItem.quiz?.id}
-                                style={[styles.quizItem, isDark && styles.quizItemDark]}
-                                onPress={() => router.push(`/(app)/learn/${pdId}/quizzes/${quizItem.quiz?.id}` as any)}
-                            >
-                                <View style={styles.quizContent}>
-                                    <View style={styles.quizHeader}>
-                                        <View style={[styles.quizItemIcon, isDark && styles.quizItemIconDark]}>
-                                            <MaterialCommunityIcons
-                                                name="pencil-box-multiple"
-                                                size={24}
-                                                color={isDark ? "#818CF8" : "#2563EB"}
-                                            />
-                                        </View>
-                                        <View style={styles.quizTitleContainer}>
-                                            <ThemedText
-                                                style={[styles.quizTitle, isDark && styles.quizTitleDark]}
-                                                numberOfLines={1}
-                                                ellipsizeMode="tail"
-                                            >
-                                                {quizItem.quiz?.name}
-                                            </ThemedText>
-                                            <ThemedText style={[styles.quizMetrics, isDark && styles.quizMetricsDark]}>
-                                                {questions} question{questions !== 1 ? 's' : ''}
-                                                {relatedCourse ? ` • Cours: ${relatedCourse}` : ' • Quiz indépendant'}
-                                            </ThemedText>
-                                        </View>
-                                        <MaterialCommunityIcons
-                                            name="chevron-right"
-                                            size={24}
-                                            color={isDark ? "#6B7280" : "#9CA3AF"}
-                                        />
-                                    </View>
-
-                                    <View style={styles.badgeContainer}>
-                                        {quizItem.isPinned && (
-                                            <View style={styles.pinnedIndicator}>
-                                                <MaterialCommunityIcons
-                                                    name="pin"
-                                                    size={16}
-                                                    color={theme.color.primary[500]}
-                                                />
-                                                <ThemedText style={styles.pinnedText}>Épinglé</ThemedText>
-                                            </View>
-                                        )}
-
-                                        {quizItem.quiz?.category?.name && (
-                                            <View style={[styles.quizBadge, isDark && styles.quizBadgeDark]}>
-                                                <ThemedText style={[styles.quizBadgeText, isDark && styles.quizBadgeTextDark]}>
-                                                    {quizItem.quiz.category.name}
-                                                </ThemedText>
-                                            </View>
-                                        )}
-                                    </View>
-
-                                    <View style={[styles.progressBar, isDark && styles.progressBarDark]}>
-                                        <View
-                                            style={[
-                                                styles.progressFill,
-                                                isDark && styles.progressFillDark,
-                                                {width: `${progress}%`}
-                                            ]}
-                                        />
-                                    </View>
-
-                                    {progress > 0 && (
-                                        <ThemedText style={styles.progressText}>
-                                            {Math.round(progress)}% complété
-                                        </ThemedText>
-                                    )}
-                                </View>
-                            </Pressable>
-                        );
-                    })
+                    <FlatList
+                        key="grid" // Key changes when viewMode changes
+                        data={filteredQuizzes}
+                        keyExtractor={(item) => `grid-quiz-card-${item.quizId}`}
+                        renderItem={({ item, index }) => (
+                            <EnhancedQuizCard
+                                quizItem={item}
+                                pdId={String(pdId)}
+                                isDark={isDark}
+                                index={index}
+                            />
+                        )}
+                        numColumns={2}
+                        columnWrapperStyle={styles.gridRow}
+                        contentContainerStyle={styles.gridContainer}
+                        showsVerticalScrollIndicator={false}
+                    />
                 )}
-            </ScrollView>
-        </View>
+            </Animated.View>
+        </SafeAreaView>
     );
 };
 
+// ==========================
+// Styles
+// ==========================
+
 const styles = StyleSheet.create({
+    // Container styles
     container: {
         flex: 1,
-        backgroundColor: "#F9FAFB",
-        paddingBottom: 80,
+        backgroundColor: '#F9FAFB',
     },
     containerDark: {
-        backgroundColor: "#111827",
+        backgroundColor: '#111827',
+    },
+    contentContainer: {
+        flex: 1,
     },
     centerContent: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
+        padding: 24,
+        backgroundColor: '#F9FAFB',
     },
-    loadingText: {
-        marginTop: 16,
-        fontSize: 16,
-        textAlign: 'center',
+
+    // Grid styles
+    gridContainer: {
+        paddingHorizontal: 8,
+        paddingBottom: 80,
     },
-    errorText: {
-        marginTop: 12,
-        fontSize: 16,
-        textAlign: 'center',
-        color: '#EF4444',
-        maxWidth: '80%',
+    gridRow: {
+        justifyContent: 'space-between',
+        paddingHorizontal: 8,
     },
-    retryButton: {
-        marginTop: 16,
-        paddingVertical: 8,
+
+    // Header styles
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingHorizontal: 16,
-        backgroundColor: '#2563EB',
-        borderRadius: 8,
+        paddingVertical: 16,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+        elevation: 2,
     },
-    retryButtonDark: {
-        backgroundColor: '#3B82F6',
+    headerDark: {
+        backgroundColor: '#1F2937',
+        borderBottomColor: '#374151',
     },
-    retryButtonText: {
-        color: '#FFFFFF',
+    headerIcon: {
+        padding: 4,
+    },
+    headerInfo: {
+        flex: 1,
+        marginLeft: 12,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    headerSubtitle: {
+        fontSize: 14,
+        marginTop: 2,
+    },
+    concoursText: {
+        color: theme.color.primary[500],
+    },
+    schoolText: {
         fontWeight: '500',
     },
-    programHeaderMain: {
-        flexDirection: "row",
+    viewModeButton: {
+        padding: 8,
+        borderRadius: 8,
+    },
+
+    // Search styles
+    searchContainer: {
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
-        borderBottomColor: "#E5E7EB",
+        borderBottomColor: '#E5E7EB',
     },
-    programHeaderMainDark: {
-        backgroundColor: "#1F2937",
-        borderBottomColor: "#374151",
-    },
-    programHeader: {
-        backgroundColor: "#FFFFFF",
-    },
-    programHeaderDark: {
-        backgroundColor: "#1F2937",
-    },
-    quizIcon: {
-        width: 40,
-        height: 40,
-        backgroundColor: "#EFF6FF",
-        borderRadius: 8,
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: 12,
-    },
-    quizIconDark: {
-        backgroundColor: "rgba(129, 140, 248, 0.2)",
-    },
-    programName: {
-        fontSize: 19,
-        fontWeight: "700",
-        color: "#111827",
-    },
-    programNameDark: {
-        color: "#FFFFFF",
-    },
-    schoolInfo: {
-        fontSize: 14,
-        color: "#2563EB",
-        marginTop: 4,
-    },
-    schoolInfoDark: {
-        color: "#818CF8",
-    },
-    schoolName: {
-        color: "#2563EB",
-    },
-    schoolNameDark: {
-        color: "#818CF8",
+    searchContainerDark: {
+        backgroundColor: '#1F2937',
+        borderBottomColor: '#374151',
     },
     searchBox: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#F3F4F6",
-        margin: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F3F4F6',
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 8,
     },
     searchBoxDark: {
-        backgroundColor: "#374151",
+        backgroundColor: '#374151',
     },
     searchInput: {
         flex: 1,
         marginLeft: 8,
         fontSize: 16,
-        color: "#111827",
+        color: '#111827',
+        height: 40,
     },
     searchInputDark: {
-        color: "#FFFFFF",
+        color: '#FFFFFF',
     },
-    categoryWrapper: {
-        height: 60,
+    clearButton: {
+        padding: 4,
     },
-    categoryContainer: {
-        paddingHorizontal: 16,
-        gap: 16,
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    categoryChip: {
-        height: 40,
-        paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: theme.border.radius.small,
-        backgroundColor: theme.color.gray[200],
-        justifyContent: "center",
-    },
-    categoryChipDark: {
-        backgroundColor: "#374151",
-    },
-    selectedCategory: {
-        backgroundColor: "#2563EB",
-    },
-    selectedCategoryDark: {
-        backgroundColor: "#3B82F6",
-    },
-    categoryText: {
-        fontSize: 14,
-        color: "#4B5563",
-    },
-    categoryTextDark: {
-        color: "#D1D5DB",
-    },
-    selectedCategoryText: {
-        color: "#FFFFFF",
-    },
-    quizCount: {
-        fontSize: 14,
-        color: "#6B7280",
+
+    // Quiz count styles
+    quizCountContainer: {
         paddingHorizontal: 16,
         paddingVertical: 8,
-        backgroundColor: "#F3F4F6",
+        backgroundColor: '#F3F4F6',
     },
-    quizCountDark: {
-        color: "#9CA3AF",
-        backgroundColor: "#1F2937",
+    quizCountContainerDark: {
+        backgroundColor: '#1F2937',
     },
-    quizList: {
-        flex: 1,
-    },
-    emptyState: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 40,
-    },
-    emptyStateText: {
-        textAlign: 'center',
-        marginTop: 16,
-        fontSize: 16,
+    quizCountText: {
+        fontSize: 14,
+        fontWeight: '500',
         color: '#6B7280',
+    },
+    quizCountTextDark: {
+        color: '#9CA3AF',
+    },
+
+    // Quiz list styles
+    quizListContent: {
+        paddingBottom: 80,
     },
     quizItem: {
         backgroundColor: "#FFFFFF",
@@ -592,75 +828,96 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
-    quizItemIcon: {
+
+    // Empty state styles
+    emptyState: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    emptyStateTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginTop: 16,
+        color: '#111827',
+        textAlign: 'center',
+    },
+    emptyStateText: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginTop: 8,
+        textAlign: 'center',
+        maxWidth: '80%',
+    },
+
+    // Error state styles
+    errorTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginTop: 16,
+        color: '#EF4444',
+        textAlign: 'center',
+    },
+    errorText: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginTop: 8,
+        textAlign: 'center',
+        maxWidth: '80%',
+        marginBottom: 16,
+    },
+    retryButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.color.primary[500],
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 8,
+        marginTop: 12,
+        elevation: 2,
+    },
+    retryButtonDark: {
+        backgroundColor: '#3B82F6',
+    },
+    retryButtonText: {
+        color: '#FFFFFF',
+        fontWeight: '500',
+        fontSize: 16,
+    },
+
+    // Skeleton styles
+    skeletonLine: {
+        borderRadius: 4,
+        marginVertical: 2,
+    },
+    skeletonCircle: {
         width: 40,
         height: 40,
-        backgroundColor: "#EFF6FF",
+        borderRadius: 20,
+    },
+    skeletonCategory: {
+        height: 40,
         borderRadius: 8,
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: 12,
-    },
-    quizItemIconDark: {
-        backgroundColor: "rgba(129, 140, 248, 0.2)",
-    },
-    quizTitleContainer: {
-        flex: 1,
         marginRight: 8,
     },
-    quizTitle: {
-        fontSize: 16,
-        fontWeight: "500",
-        color: "#111827",
-        marginBottom: 4,
-        flexShrink: 1,
+    skeletonQuizIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
     },
-    quizTitleDark: {
-        color: "#FFFFFF",
+    skeletonBadge: {
+        height: 24,
+        borderRadius: 4,
     },
-    quizMetrics: {
-        fontSize: 12,
-        color: "#6B7280",
-    },
-    quizMetricsDark: {
-        color: "#9CA3AF",
-    },
+
+    // Badge styles
     badgeContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         flexWrap: 'wrap',
         marginTop: 8,
         gap: 8,
-    },
-    pinnedIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-        gap: 4,
-    },
-    pinnedText: {
-        fontSize: 12,
-        color: theme.color.primary[500],
-        fontWeight: '500',
-    },
-    quizBadge: {
-        backgroundColor: "#F3F4F6",
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-    },
-    quizBadgeDark: {
-        backgroundColor: "#374151",
-    },
-    quizBadgeText: {
-        fontSize: 12,
-        color: "#4B5563",
-    },
-    quizBadgeTextDark: {
-        color: "#D1D5DB",
     },
     progressBar: {
         height: 4,
@@ -672,20 +929,6 @@ const styles = StyleSheet.create({
     progressBarDark: {
         backgroundColor: "#374151",
     },
-    progressFill: {
-        height: "100%",
-        backgroundColor: "#2563EB",
-        borderRadius: 2,
-    },
-    progressFillDark: {
-        backgroundColor: "#3B82F6",
-    },
-    progressText: {
-        fontSize: 12,
-        color: '#6B7280',
-        marginTop: 4,
-        textAlign: 'right',
-    },
 });
 
-export default QuizList;
+export default EnhancedQuizScreen;

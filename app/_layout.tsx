@@ -19,7 +19,7 @@ import { theme } from "@/constants/theme";
 import * as Notifications from "expo-notifications";
 
 // Define app expiration date - March 16, 2025 (one week after March 9, 2025)
-const EXPIRATION_DATE = new Date('2025-03-17');
+const EXPIRATION_DATE = new Date('2025-04-1');
 
 // Custom Expiration Screen Component
 const ExpiredAppScreen = ({ isDarkMode } : { isDarkMode: boolean }) => {
