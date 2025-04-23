@@ -16,6 +16,8 @@ const fetcher = async () => {
   return cart;
 };
 
+//  TODO handle complete payemnent to apply directly essential formula
+
 export const useCart = () => {
   const { data: currentCart, error, isLoading } = useSWR<Cart>(CART_KEY, fetcher);
   const { user } = useAuth();

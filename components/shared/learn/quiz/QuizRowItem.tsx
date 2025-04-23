@@ -236,7 +236,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     quizTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
         color: '#111827',
         marginBottom: 6,
@@ -252,7 +253,8 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     quizInfo: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: '#6B7280',
         flexDirection: 'row',
         alignItems: 'center',
@@ -275,7 +277,8 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     pinnedText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: theme.color.primary[500],
         fontWeight: '500',
     },
@@ -288,7 +291,8 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     categoryText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: '500',
     },
     chevron: {
@@ -313,7 +317,8 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
     progressText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         marginTop: 4,
         textAlign: 'right',
         fontWeight: '500',

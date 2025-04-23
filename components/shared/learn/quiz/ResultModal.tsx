@@ -243,7 +243,8 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     quizName: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: '600',
         textAlign: 'center',
         marginBottom: 16,
@@ -255,11 +256,13 @@ const styles = StyleSheet.create({
     scoreValue: {
         textAlignVertical: 'center',
         height: 60,
-        fontSize: 40,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 40,
         fontWeight: '700',
     },
     scoreLabel: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#6B7280',
         marginTop: 4,
     },
@@ -291,18 +294,21 @@ const styles = StyleSheet.create({
         backgroundColor: '#374151',
     },
     statValue: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
         marginTop: 4,
     },
     statLabel: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: '#6B7280',
         marginTop: 2,
         textAlign: 'center',
     },
     message: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         textAlign: 'center',
         marginBottom: 24,
         paddingHorizontal: 20,
@@ -328,7 +334,8 @@ const styles = StyleSheet.create({
     retryButtonText: {
         color: theme.color.primary[500],
         fontWeight: '600',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     },
     continueButton: {
         backgroundColor: theme.color.primary[500],
@@ -336,6 +343,7 @@ const styles = StyleSheet.create({
     continueButtonText: {
         color: '#FFFFFF',
         fontWeight: '600',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     },
 });

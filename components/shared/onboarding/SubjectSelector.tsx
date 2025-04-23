@@ -135,7 +135,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: 18,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 18,
     fontWeight: '600',
     color: theme.color.gray[900],
     marginBottom: 4,
@@ -144,7 +145,8 @@ const styles = StyleSheet.create({
     color: theme.color.gray[50],
   },
   subtitle: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: theme.color.gray[600],
   },
   subtitleDark: {
@@ -184,7 +186,8 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipText: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: theme.color.gray[600],
   },
   chipTextDark: {

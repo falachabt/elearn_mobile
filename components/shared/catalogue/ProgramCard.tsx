@@ -182,7 +182,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   title: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: "600",
     color: "#1A1A1A",
     marginBottom: 4,
@@ -197,7 +198,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   schoolText: {
-    fontSize: 12,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 12,
     color: theme.color.gray[600],
     flex: 1,
   },
@@ -214,7 +216,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statText: {
-    fontSize: 12,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 12,
     color: theme.color.gray[600],
   },
   statTextDark: {
@@ -249,7 +252,8 @@ const styles = StyleSheet.create({
     borderTopColor: theme.color.dark.border,
   },
   price: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: "700",
     color: theme.color.primary[500],
   },

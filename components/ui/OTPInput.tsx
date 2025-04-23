@@ -10,6 +10,7 @@ import {
   TextStyle,
   Clipboard,
 } from 'react-native';
+import {theme} from "@/constants/theme";
 
 interface OTPInputProps {
   length?: number;
@@ -164,7 +165,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 4,
     textAlign: 'center',
-    fontSize: 18,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 18,
     fontWeight: '600',
     color: '#000000',
     borderColor: '#CCCCCC',

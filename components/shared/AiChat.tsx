@@ -25,6 +25,7 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from 'react-native-reanimated';
+import {theme} from "@/constants/theme";
 
 // Initialize Gemini
 const API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your API key
@@ -420,7 +421,8 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         flex: 1,
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '600',
         textAlign: 'center',
     },
@@ -443,7 +445,8 @@ const styles = StyleSheet.create({
     },
     questionText: {
         color: '#ffffff',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     },
     answerBubble: {
         maxWidth: '85%',
@@ -454,7 +457,8 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     answerText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     },
     inputContainer: {
         padding: 10,
@@ -474,7 +478,8 @@ const styles = StyleSheet.create({
     },
     attachmentChipText: {
         marginRight: 8,
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         maxWidth: 120,
     },
     inputRow: {
@@ -492,7 +497,8 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         paddingHorizontal: 15,
         paddingVertical: 10,
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     },
     sendButton: {
         width: 44,
@@ -512,6 +518,7 @@ const styles = StyleSheet.create({
     attachmentText: {
         color: '#ffffff',
         marginLeft: 6,
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     },
 });

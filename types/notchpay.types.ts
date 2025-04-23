@@ -1,77 +1,71 @@
-export interface NotchPayCustomer {
-    email: string;
-    name?: string;
-    phone?: string;
-  }
-  
-  export interface NotchPayMetadataCustomField {
-    display_name: string;
-    variable_name: string;
-    value: string | number;
-  }
-  
-  export interface NotchPayMetadata {
-    [key: string]: any;
-    custom_fields?: NotchPayMetadataCustomField[];
-  }
-  
-  export interface NotchPayInitializeParams {
-    amount: number;
-    currency: string;
-    description?: string;
-    reference?: string;
-    callback?: string;
-    customer: NotchPayCustomer;
-    metadata?: NotchPayMetadata;
-  }
-  
-  export interface NotchPayTransaction {
-    amount: number;
-    amount_total: number;
-    sandbox: boolean;
-    fee: number;
-    converted_amount: number;
-    customer: string;
-    reference: string;
-    status: NotchPayTransactionStatus;
-    currency: string;
-    callback?: string;
-    geo: string;
-    created_at: string;
-    updated_at: string;
-  }
-  
-  export type NotchPayTransactionStatus = 
-    | 'pending' 
-    | 'processing'
-    | 'incomplete'
-    | 'canceled'
-    | 'failed'
-    | 'rejected'
-    | 'abandoned'
-    | 'expired'
-    | 'complete'
-    | 'refunded'
-    | 'partialy-refunded';
+export type NotchPayChannel = 'cm.mobile' | 'cm.orange' | 'cm.mtn' | string;
 
-    export interface NotchPayResponse {
-        status: string;
-        message: string;
-        code: number;
-        transaction: NotchPayTransaction;
-        authorization_url?: string;
-      }
-      
-      export interface NotchPayChargeResponse {
-        message: string;
-        code: number;
-        status: string;
-        action: string;
-      }
-      
-      export type NotchPayChannel = 'cm.mtn' | 'cm.orange' | 'cm.mobile' | 'paypal';
-      
-      export interface NotchPayDirectChargeParams extends NotchPayInitializeParams {
-        channel: NotchPayChannel;
-        phone?: string;
-      }
+export interface NotchPayCustomer {
+  email: string;
+  name?: string;
+  phone?: string;
+}
+
+export interface NotchPayInitializeParams {
+  amount: number;
+  currency: string;
+  customer: NotchPayCustomer;
+  reference?: string;
+  description?: string;
+  callback?: string;
+  locked_currency?: string;
+  locked_country?: string;
+}
+
+export interface NotchPayDirectChargeParams extends NotchPayInitializeParams {
+  phone?: string;
+  channel?: NotchPayChannel;
+}
+
+export interface NotchPayTransaction {
+  amount: number;
+  amounts: {
+    converted: number;
+    currency: string;
+    rate: number;
+    total: number;
+  };
+  callback: string | null;
+  charge: string;
+  created_at: string;
+  currency: string;
+  customer: string;
+  description: string | null;
+  fees: any[];
+  geo: string;
+  reference: string;
+  sandbox: boolean;
+  status: string;
+}
+
+export interface NotchPayResponse {
+  authorization_url: string;
+  code: number;
+  message: string;
+  status: string;
+  transaction: NotchPayTransaction;
+}
+
+export interface NotchPayChargeResponse {
+  code: number;
+  message: string;
+  status: string;
+  transaction?: {
+    reference: string;
+    status: string;
+  };
+}
+
+export interface NotchPayVerifyResponse {
+  code: number;
+  message: string;
+  status: string;
+  transaction: NotchPayTransaction & {
+    status: 'pending' | 'completed' | 'canceled' | 'failed';
+  };
+}

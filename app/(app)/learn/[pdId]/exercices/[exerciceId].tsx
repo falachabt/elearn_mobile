@@ -563,7 +563,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     courseName: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: "600",
         color: "#1A1A1A",
     },
@@ -574,7 +575,8 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     categoryName: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: theme.color.gray[600],
         marginRight: 8,
     },
@@ -593,7 +595,8 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     statusText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         marginLeft: 4,
         color: theme.color.gray[700],
     },
@@ -662,7 +665,8 @@ const styles = StyleSheet.create({
     },
     correctionButtonText: {
         color: "#FFFFFF",
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: "600",
         lineHeight: 24,
     },
@@ -670,7 +674,8 @@ const styles = StyleSheet.create({
         color: "#FFFFFF",
     },
     errorText: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         color: theme.color.gray[600],
     },
 });

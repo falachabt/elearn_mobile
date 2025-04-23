@@ -188,7 +188,8 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     categoryText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: '500',
         color: '#4B5563',
         marginLeft: 6,

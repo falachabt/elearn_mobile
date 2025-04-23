@@ -426,12 +426,14 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     sectionTitle: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '700',
         color: '#1A1A1A',
     },
     sectionTitleDark: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '700',
         color: '#FFFFFF',
     },
@@ -444,7 +446,8 @@ const styles = StyleSheet.create({
     customizeText: {
         color: theme.color.primary[500],
         fontWeight: '600',
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         marginLeft: 4,
     },
     goalsRow: {
@@ -483,14 +486,16 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     goalTitle: {
-        fontSize: 13,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 13,
         lineHeight: 16,
         fontWeight: '500',
         color: '#1A1A1A',
         height: 32,
     },
     goalTitleDark: {
-        fontSize: 13,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 13,
         lineHeight: 16,
         fontWeight: '500',
         color: '#FFFFFF',
@@ -508,7 +513,8 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
     goalMetrics: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         textAlign: 'center',
     },
     currentValue: {
@@ -542,7 +548,8 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     modalTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: '600',
         color: '#111827',
     },
@@ -553,7 +560,8 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     modalSectionTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         color: '#111827',
         marginBottom: 16,
@@ -594,7 +602,8 @@ const styles = StyleSheet.create({
         borderColor: theme.color.primary[500],
     },
     tagText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#374151',
     },
     tagTextDark: {
@@ -605,7 +614,8 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     tagSelectorLabel: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#6B7280',
         marginBottom: 8,
     },
@@ -618,7 +628,8 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     currentGoalText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#111827',
         marginLeft: 12,
     },
@@ -660,7 +671,8 @@ const styles = StyleSheet.create({
         backgroundColor: `${theme.color.primary[500]}25`,
     },
     goalItemTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         color: '#111827',
     },
@@ -668,7 +680,8 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     goalItemSubtitle: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#6B7280',
     },
     goalItemSubtitleDark: {
@@ -691,7 +704,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.primary[600],
     },
     modalButtonText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         color: '#FFFFFF',
     },
@@ -708,7 +722,8 @@ const styles = StyleSheet.create({
         borderColor: '#4B5563',
     },
     resetButtonText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         color: '#111827',
     },
@@ -727,7 +742,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.primary[600],
     },
     closeButtonText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         color: '#FFFFFF',
     },

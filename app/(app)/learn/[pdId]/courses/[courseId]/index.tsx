@@ -108,7 +108,6 @@ const CourseDetail = () => {
                 .select("id, status, score, quiz_id")
                 .eq("user_id", user?.id)
                 .in("quiz_id", quizzes?.map((q: any) => q.id) || [])
-            console.log("quiz-progress", data)
             return data;
         }
     )
@@ -543,7 +542,8 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 16,
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: "#6B7280",
     },
     errorContainer: {
@@ -596,7 +596,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     courseTitle: {
-        fontSize: 19,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 19,
         fontWeight: "700",
         color: "#111827",
         marginBottom: 4,
@@ -605,7 +606,8 @@ const styles = StyleSheet.create({
         color: "#FFFFFF",
     },
     courseInfo: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: "#6B7280",
     },
     courseInfoDark: {
@@ -649,7 +651,8 @@ const styles = StyleSheet.create({
         backgroundColor: "#059669",
     },
     chipText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: "#4B5563",
         fontWeight: "500",
     },
@@ -706,7 +709,8 @@ const styles = StyleSheet.create({
         backgroundColor: "#374151",
     },
     sectionNumberText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: "700",
     },
     contentTextContainer: {
@@ -714,7 +718,8 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     contentTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: "600",
         color: "#111827",
     },
@@ -744,7 +749,8 @@ const styles = StyleSheet.create({
         backgroundColor: "#059669",
     },
     progressText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: "#6B7280",
     },
     // Video styles
@@ -769,7 +775,8 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     videoTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: "#111827",
         fontWeight: "500",
         marginBottom: 4,
@@ -787,7 +794,8 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     videoMetaText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: "#6B7280",
         marginLeft: 4,
     },
@@ -824,7 +832,8 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     quizTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: "#111827",
         fontWeight: "500",
         marginBottom: 8,
@@ -855,7 +864,8 @@ const styles = StyleSheet.create({
         marginRight: 4,
     },
     quizChipText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: "#6366F1",
         fontWeight: "500",
     },
@@ -867,14 +877,16 @@ const styles = StyleSheet.create({
         marginTop: 24,
     },
     emptyStateTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: "600",
         marginTop: 16,
         marginBottom: 8,
         textAlign: "center",
     },
     emptyStateDescription: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         textAlign: "center",
         color: "#6B7280",
         maxWidth: "80%",

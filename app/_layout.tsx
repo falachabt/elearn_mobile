@@ -9,7 +9,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
-import { View, Text, StyleSheet } from "react-native";
+import {View, Text, StyleSheet, Platform} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -19,7 +19,8 @@ import { theme } from "@/constants/theme";
 import * as Notifications from "expo-notifications";
 
 // Define app expiration date - March 16, 2025 (one week after March 9, 2025)
-const EXPIRATION_DATE = new Date('2025-04-1');
+const EXPIRATION_DATE = new Date('2025-04-10T00:00:00Z');
+const IS_TEST_MODE = false; // Set to false for production
 
 // Custom Expiration Screen Component
 const ExpiredAppScreen = ({ isDarkMode } : { isDarkMode: boolean }) => {
@@ -37,7 +38,8 @@ const ExpiredAppScreen = ({ isDarkMode } : { isDarkMode: boolean }) => {
             color={theme.color.primary[500]}
         />
         <Text style={{
-          fontSize: 24,
+          fontFamily : theme.typography.fontFamily,
+fontSize: 24,
           fontWeight: 'bold',
           marginTop: 20,
           textAlign: 'center',
@@ -46,7 +48,8 @@ const ExpiredAppScreen = ({ isDarkMode } : { isDarkMode: boolean }) => {
           Phase de Test Terminée
         </Text>
         <Text style={{
-          fontSize: 16,
+          fontFamily : theme.typography.fontFamily,
+fontSize: 16,
           marginTop: 15,
           textAlign: 'center',
           color: isDarkMode ? theme.color.dark.text.secondary : theme.color.light.text.secondary
@@ -86,6 +89,8 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const [loaded] = useFonts({
+    Outfit: require("../assets/fonts/Outfit-Regular.ttf"),
+    PlusJakartaSans: require("../assets/fonts/PlusJakartaSans-Regular.ttf"),
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
@@ -99,13 +104,12 @@ export default function RootLayout() {
     return null;
   }
 
-  console.log("colorScheme", colorScheme);
 
   // Check if app has expired
   const isAppExpired = new Date() > EXPIRATION_DATE;
 
   // If app is expired, show the expiration screen instead of normal layout
-  if (isAppExpired) {
+  if (isAppExpired && IS_TEST_MODE) {
     return <ExpiredAppScreen isDarkMode={isDarkMode} />;
   }
 
@@ -118,7 +122,7 @@ export default function RootLayout() {
             <Stack.Screen name="(app)" />
             <Stack.Screen name="+not-found" />
           </Stack>
-          <StatusBar style="auto" backgroundColor={theme.color.primary[500]} />
+          <StatusBar hidden={Platform.OS == "ios" ? true : false}  style="auto" backgroundColor={theme.color.primary[500]} />
         </ThemeProvider>
       </Provider>
   );

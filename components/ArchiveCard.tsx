@@ -232,7 +232,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.primary["500"],
     },
     cardTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
         color: '#1A1A1A',
         flex: 1,
@@ -266,7 +267,8 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     metaText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: theme.color.gray[600],
     },
     metaTextDark: {
@@ -296,7 +298,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     progressText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: '500',
         color: theme.color.primary[500],
     }

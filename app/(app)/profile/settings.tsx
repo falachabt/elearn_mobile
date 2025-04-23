@@ -786,7 +786,8 @@ const styles = StyleSheet.create({
         borderBottomColor: theme.color.dark.border,
     },
     title: {
-        fontSize: 24,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 24,
         fontWeight: 'bold',
         color: '#111827',
     },
@@ -794,7 +795,8 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     subtitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#6B7280',
         marginTop: 4,
     },
@@ -812,7 +814,8 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     sectionTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: '600',
         color: '#111827',
         marginBottom: 12,
@@ -857,7 +860,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     settingTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         color: '#111827',
     },
@@ -865,7 +869,8 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     settingSubtitle: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#6B7280',
         marginTop: 2,
     },
@@ -877,7 +882,8 @@ const styles = StyleSheet.create({
     },
     emailInput: {
         width: '100%',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#111827',
         paddingVertical: 8,
         paddingHorizontal: 12,
@@ -905,7 +911,8 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     saveButtonText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         color: '#FFFFFF',
     },
@@ -930,7 +937,8 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     modalTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: '600',
         color: '#111827',
     },
@@ -941,7 +949,8 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     modalSectionTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         color: '#111827',
         marginBottom: 8,
@@ -960,7 +969,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#374151',
     },
     timeText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#111827',
         marginLeft: 8,
     },
@@ -991,7 +1001,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.primary[600],
     },
     dayText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#111827',
     },
     dayTextDark: {
@@ -1010,7 +1021,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.primary[600],
     },
     modalButtonText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         color: '#FFFFFF',
     },

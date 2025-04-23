@@ -277,6 +277,7 @@ const ProgramDetails = () => {
                         {"Programme - "} {program?.concours_learningpaths?.concour?.school?.sigle} l{program?.concours_learningpaths?.concour?.study_cycles?.level}
                     </ThemedText>
                     <ThemedText
+                        numberOfLines={1}
                         style={[styles.concoursName, isDark && styles.concoursNameDark]}
                     >
                         {program?.concours_learningpaths?.concour?.name} .
@@ -344,8 +345,8 @@ const styles = StyleSheet.create({
         borderBottomColor: "#374151",
     },
     headerImage: {
-        width: 100,
-        height: 100,
+        width: 70,
+        height: 70,
         borderRadius: 50,
     },
     headerContent: {
@@ -364,12 +365,14 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     schoolName: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: "#6B7280",
         fontWeight: "500",
     },
     programTitle: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: "bold",
         color: "#111827",
         marginBottom: 8,
@@ -381,7 +384,8 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     concoursName: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: "#4CAF50",
         fontWeight: "600",
     },
@@ -394,7 +398,8 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     dateText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: "#4B5563",
     },
     overallProgressContainer: {
@@ -404,7 +409,8 @@ const styles = StyleSheet.create({
         borderBottomColor: "#E5E7EB",
     },
     overallProgressLabel: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: "600",
         marginBottom: 8,
     },
@@ -450,7 +456,8 @@ const styles = StyleSheet.create({
         marginLeft: 12,
     },
     cardTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: "600",
         color: "#111827",
     },
@@ -458,7 +465,8 @@ const styles = StyleSheet.create({
         color: "#FFFFFF",
     },
     cardSubtitle: {
-        fontSize: 13,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 13,
         color: "#6B7280",
         marginTop: 2,
     },
@@ -469,7 +477,8 @@ const styles = StyleSheet.create({
         alignItems: "flex-end",
     },
     progressText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: "600",
         color: "#4B5563",
     },
@@ -477,7 +486,8 @@ const styles = StyleSheet.create({
         color: "#D1D5DB",
     },
     progressLabel: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: "#6B7280",
     },
     progressLabelDark: {

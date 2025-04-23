@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Image,
   Modal,
-  ScrollView,
+  ScrollView, Dimensions,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
@@ -36,6 +36,7 @@ interface ProgramCardProps {
     exercises: { id: string; title: string }[];
     archives: { id: string; name: string; session: string }[];
   };
+    directDiscountPrice?: number;
 }
 
 const getDefaultImage = (title: string) => {
@@ -61,7 +62,8 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
                                                           isDark,
                                                           programDetails,
                                                           onExpand,
-                                                          features
+                                                          features,
+                                                          directDiscountPrice
                                                         }) => {
   const [showDetails, setShowDetails] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -76,6 +78,7 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
     exercises: false,
     archives: false
   });
+
 
   // Load details when modal is opened
   useEffect(() => {
@@ -221,7 +224,7 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
             isDark && styles.footerDark
           ]}>
             <View style={styles.priceSection}>
-              <Text style={styles.priceAmount}>{price.toLocaleString()} FCFA</Text>
+              <Text style={styles.priceAmount}>{ directDiscountPrice?.toLocaleString() || price.toLocaleString()} FCFA</Text>
               <Text style={[
                 styles.priceLabel,
                 isDark && styles.priceLabelDark
@@ -655,12 +658,12 @@ const styles = StyleSheet.create({
     borderColor: theme.color.gray[800],
   },
   contentRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 12,
   },
   imageWrapper: {
-    width: 100,
-    height: 100,
+    width: Dimensions.get('window').width - 60,
+    height: 90*2,
     borderRadius: theme.border.radius.small,
     overflow: 'hidden',
     position: 'relative',
@@ -696,11 +699,13 @@ const styles = StyleSheet.create({
   },
   levelText: {
     color: theme.color.primary[500],
-    fontSize: 12,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 12,
     fontWeight: '600',
   },
   title: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '700',
     color: '#1A1A1A',
     marginBottom: 6,
@@ -722,7 +727,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statText: {
-    fontSize: 13,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 13,
     color: '#666',
   },
   statTextDark: {
@@ -735,7 +741,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   durationText: {
-    fontSize: 13,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 13,
     color: '#666',
   },
   durationTextDark: {
@@ -747,7 +754,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   schoolText: {
-    fontSize: 13,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 13,
     color: '#4A4A4A',
     flex: 1,
   },
@@ -770,12 +778,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   priceAmount: {
-    fontSize: 18,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 18,
     fontWeight: '700',
     color: theme.color.primary[500],
   },
   priceLabel: {
-    fontSize: 12,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 12,
     color: '#666',
   },
   priceLabelDark: {
@@ -851,7 +861,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   modalTitle: {
-    fontSize: 20,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 20,
     fontWeight: '700',
     color: theme.color.gray[900],
     marginBottom: 4,
@@ -860,7 +871,8 @@ const styles = StyleSheet.create({
     color: theme.color.gray[50],
   },
   modalSubtitle: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     color: theme.color.gray[600],
   },
   modalSubtitleDark: {
@@ -886,7 +898,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.dark.background.secondary,
   },
   statCount: {
-    fontSize: 18,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 18,
     fontWeight: '700',
     color: theme.color.gray[900],
     marginTop: 4,
@@ -895,7 +908,8 @@ const styles = StyleSheet.create({
     color: theme.color.gray[50],
   },
   statLabel: {
-    fontSize: 12,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 12,
     color: theme.color.gray[600],
     marginTop: 2,
   },
@@ -913,7 +927,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 17,
     fontWeight: '600',
     color: theme.color.gray[900],
     marginBottom: 8,
@@ -922,7 +937,8 @@ const styles = StyleSheet.create({
     color: theme.color.gray[50],
   },
   descriptionText: {
-    fontSize: 15,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 15,
     lineHeight: 22,
     color: theme.color.gray[700],
   },
@@ -949,7 +965,8 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.color.gray[700],
   },
   detailText: {
-    fontSize: 15,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 15,
     color: theme.color.gray[800],
     flex: 1,
   },
@@ -961,7 +978,8 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   noDetailsText: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '600',
     color: theme.color.gray[700],
     marginTop: 16,
@@ -971,7 +989,8 @@ const styles = StyleSheet.create({
     color: theme.color.gray[300],
   },
   noDetailsSubText: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: theme.color.gray[600],
     textAlign: 'center',
     paddingHorizontal: 32,
@@ -1000,7 +1019,8 @@ const styles = StyleSheet.create({
     borderColor: theme.color.gray[700],
   },
   closeModalButtonText: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '600',
     color: theme.color.gray[700],
   },
@@ -1024,7 +1044,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.primary[600],
   },
   selectModalButtonText: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '600',
     color: 'white',
   },
@@ -1044,7 +1065,8 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     color: theme.color.gray[700],
   },
   loadingTextDark: {

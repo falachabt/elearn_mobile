@@ -160,7 +160,8 @@ const localStyles = StyleSheet.create({
     backgroundColor: theme.color.dark.background.primary,
   },
   title: {
-    fontSize: 20,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 20,
     fontWeight: '700',
     color: theme.color.gray[900],
     marginBottom: 8,
@@ -169,7 +170,8 @@ const localStyles = StyleSheet.create({
     color: theme.color.gray[50],
   },
   subtitle: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: theme.color.gray[600],
     marginBottom: 20,
   },
@@ -219,7 +221,8 @@ const localStyles = StyleSheet.create({
     flex: 1,
   },
   styleTitle: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '600',
     color: theme.color.gray[900],
     marginBottom: 4,
@@ -234,7 +237,8 @@ const localStyles = StyleSheet.create({
     color: theme.color.primary[100],
   },
   description: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: theme.color.gray[600],
     lineHeight: 20,
     marginBottom: 12,
@@ -265,7 +269,8 @@ const localStyles = StyleSheet.create({
     backgroundColor: theme.color.primary[700],
   },
   keywordText: {
-    fontSize: 12,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 12,
     color: theme.color.gray[600],
   },
   keywordTextDark: {

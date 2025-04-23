@@ -55,6 +55,18 @@ export const theme = {
       800: '#424242',
       900: '#212121',
     },
+    info : {
+        50: '#e6f7ff',
+        100: '#bae7ff',
+        200: '#91d5ff',
+        300: '#69c0ff',
+        400: '#40a9ff',
+        500: '#1890ff',
+        600: '#096dd9',
+        700: '#0050b3',
+        800: '#003a8c',
+        900: '#002766'
+    },
     // error, warning, success, danger colors
     error: '#ff4d4f',
     success: '#52c41a',
@@ -88,7 +100,8 @@ export const theme = {
     color: '#333',
   },
   typography: {
-    fontSize: {
+    fontFamily : "PlusJakartaSans",
+fontSize: {
       small: 12,
       medium: 16,
       large: 20,

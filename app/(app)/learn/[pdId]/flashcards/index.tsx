@@ -334,7 +334,8 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.color.border,
   },
   headerText: {
-    fontSize: 18,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
     color: '#1F2937',
@@ -393,7 +394,8 @@ const styles = StyleSheet.create({
     // bottom: 0,
   },
   cardText: {
-    fontSize: 20,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 20,
     textAlign: 'center',
     color: '#1F2937',
   },
@@ -401,7 +403,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     color: theme.color.gray[400],
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
   },
   controls: {
     flexDirection: 'row',
@@ -444,7 +447,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   completedText: {
-    fontSize: 24,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 24,
     fontWeight: '600',
     marginTop: 16,
     marginBottom: 24,
@@ -460,13 +464,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 20,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 20,
     fontWeight: '600',
     marginTop: 8,
     color: '#1F2937',
   },
   statLabel: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: theme.color.gray[600],
     marginTop: 4,
   },
@@ -489,7 +495,8 @@ const styles = StyleSheet.create({
   },
   resetButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '600',
   },
   textDark: {

@@ -167,11 +167,13 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     notificationText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         marginBottom: 8,
     },
     errorText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: theme.color.error,
         marginBottom: 8,
     },
@@ -194,23 +196,27 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     welcomeTitle: {
-        fontSize: 24,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 24,
         fontWeight: '700',
         color: '#1A1A1A',
         marginBottom: 4,
     },
     welcomeTitleDark: {
-        fontSize: 24,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 24,
         fontWeight: '700',
         color: '#FFFFFF',
         marginBottom: 4,
     },
     welcomeSubtitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#666',
     },
     welcomeSubtitleDark: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#CCCCCC',
     },
     section: {
@@ -226,12 +232,14 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     sectionTitle: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '700',
         color: '#1A1A1A',
     },
     sectionTitleDark: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '700',
         color: '#FFFFFF',
     },
@@ -242,7 +250,8 @@ const styles = StyleSheet.create({
     seeAllText: {
         color: theme.color.primary[500],
         fontWeight: '600',
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     },
     currentCourseCard: {
         backgroundColor: '#FFFFFF',
@@ -291,23 +300,27 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     courseTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
         color: '#1A1A1A',
         marginBottom: 4,
     },
     courseTitleDark: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
         color: '#FFFFFF',
         marginBottom: 4,
     },
     lessonProgress: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#666',
     },
     lessonProgressDark: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#CCCCCC',
     },
     continueButton: {
@@ -319,6 +332,7 @@ const styles = StyleSheet.create({
     continueText: {
         color: '#FFFFFF',
         fontWeight: '600',
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     },
 });

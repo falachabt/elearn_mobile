@@ -981,20 +981,23 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     title: {
-        fontSize: 26,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 26,
         fontWeight: "bold",
         color: "#1A1A1A",
         textAlign: "center",
         marginBottom: 12,
     },
     subtitle: {
-        fontSize: 15,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 15,
         color: "#666666",
         textAlign: "center",
         marginBottom: 24,
     },
     emailHighlight: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: "600",
         color: "#1A1A1A",
         textAlign: "center",
@@ -1004,7 +1007,8 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     label: {
-        fontSize: 15,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 15,
         fontWeight: "600",
         color: "#1A1A1A",
         marginBottom: 8,
@@ -1028,7 +1032,8 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         height: 50,
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: "#1A1A1A",
     },
     inputDark: {
@@ -1052,7 +1057,8 @@ const styles = StyleSheet.create({
     },
     errorText: {
         color: theme.color.error,
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: "500",
     },
     primaryButton: {
@@ -1065,7 +1071,8 @@ const styles = StyleSheet.create({
     },
     primaryButtonText: {
         color: "#FFFFFF",
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: "600",
     },
     secondaryButton: {
@@ -1080,7 +1087,8 @@ const styles = StyleSheet.create({
     },
     secondaryButtonText: {
         color: theme.color.primary[500],
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: "600",
     },
     buttonIcon: {
@@ -1097,12 +1105,14 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     footerLabel: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: "#666666",
     },
     footerLink: {
         color: theme.color.primary[500],
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: "600",
     },
     otpContainer: {
@@ -1117,13 +1127,15 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     countdownText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: "#666666",
         fontWeight: "500",
     },
     resendLink: {
         color: theme.color.primary[500],
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: "600",
         textDecorationLine: "underline",
     },
@@ -1171,7 +1183,8 @@ const styles = StyleSheet.create({
     },
     toastText: {
         color: "white",
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: "500",
         marginLeft: 12,
         flex: 1,
@@ -1185,7 +1198,8 @@ const styles = StyleSheet.create({
     },
     toastActionText: {
         color: "white",
-        fontSize: 13,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 13,
         fontWeight: "600",
     },
     toastClose: {

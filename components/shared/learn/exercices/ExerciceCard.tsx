@@ -217,7 +217,8 @@ const styles = StyleSheet.create({
         marginRight: 4,
     },
     categoryText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: "600",
     },
     actionButtons: {
@@ -228,7 +229,8 @@ const styles = StyleSheet.create({
         padding: 6,
     },
     title: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: "700",
         marginBottom: 6,
         color: "#1A1A1A",
@@ -237,7 +239,8 @@ const styles = StyleSheet.create({
         color: "#FFFFFF",
     },
     description: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         lineHeight: 20,
         color: "#666666",
         marginBottom: 8,
@@ -246,7 +249,8 @@ const styles = StyleSheet.create({
         color: "#BBBBBB",
     },
     courseName: {
-        fontSize: 13,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 13,
         color: "#888888",
         fontWeight: "500",
     },

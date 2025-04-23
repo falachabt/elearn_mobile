@@ -39,22 +39,24 @@ export default function AppLayout() {
     }, [session, user?.onboarding_done]);
 
     // Handle tab press with memoized callback to avoid recreation on each render
-    const handleTabPress = useCallback((e) => {
-        const target = e.target?.split('-')[0];
+//     @ts-ignore
+const handleTabPress = useCallback((e ) => {
+    // Accéder à l'ID du tab via la propriété routeNames si disponible
+    const currentRoute = e.target?.toString() || '';
+    const target = currentRoute.includes('-') ? currentRoute.split('-')[0] : currentRoute;
 
-        // Use focus event to trigger haptics to avoid unnecessary renders
-        trigger(HapticType.SELECTION);
+    // Use focus event to trigger haptics to avoid unnecessary renders
+    trigger(HapticType.SELECTION);
 
-        // Selective mutation based on tab
-        if (target === 'index') {
-            mutate(`userPrograms-${user?.id}`);
-        } else if (target === 'learn') {
-            mutate("my-learning-paths");
-            e.preventDefault();
-            router.replace('/learn');
-        }
-    }, [trigger, mutate, user?.id]);
-
+    // Selective mutation based on tab
+    if (target === 'index') {
+        mutate(`userPrograms-${user?.id}`);
+    } else if (target === 'learn') {
+        mutate("my-learning-paths");
+        e.preventDefault?.();
+        router.replace('/learn');
+    }
+}, [trigger, mutate, user?.id]);
     // CRITICAL: This is a protected route - no session means redirect immediately
     if (needsRedirect) {
         // Handle onboarding redirect if needed
@@ -238,7 +240,8 @@ const styles = StyleSheet.create({
         height: "100%",
     },
     tabLabel: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: "500",
         marginTop: -5,
         marginBottom: 5,
@@ -262,6 +265,7 @@ const styles = StyleSheet.create({
         position: "relative",
     },
     tabButtonContentActive: {
+        fontFamily : "Outfit",
         backgroundColor: `${theme.color.primary[500]}10`,
     },
 });

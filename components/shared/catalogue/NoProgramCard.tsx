@@ -113,14 +113,16 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     title: {
-        fontSize: 22,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 22,
         fontWeight: '700',
         color: '#1A1A1A',
         textAlign: 'center',
         marginBottom: 12,
     },
     description: {
-        fontSize: 15,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 15,
         color: '#666666',
         textAlign: 'center',
         marginBottom: 24,
@@ -136,7 +138,8 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     featureText: {
-        fontSize: 15,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 15,
         color: '#333333',
         marginLeft: 12,
         flex: 1,
@@ -156,7 +159,8 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#FFFFFF',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
     },
     textDark: {

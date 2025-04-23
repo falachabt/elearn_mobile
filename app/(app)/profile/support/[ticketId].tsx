@@ -447,7 +447,8 @@ const styles = StyleSheet.create({
         borderBottomColor: theme.color.dark.border,
     },
     headerTitle: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '600',
         color: '#1F2937',
     },
@@ -510,7 +511,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.dark.background.secondary,
     },
     messageText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         lineHeight: 24,
     },
     userText: {
@@ -535,7 +537,8 @@ const styles = StyleSheet.create({
         display: 'flex',
         alignItems: 'center',
         gap: 4,
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: '#9CA3AF',
     },
     timestampDark: {
@@ -566,7 +569,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 8,
         paddingRight: 40,
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#1F2937',
     },
     inputDark: {
@@ -636,7 +640,8 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     modalTitle: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '600',
         color: '#1F2937',
     },
@@ -664,7 +669,8 @@ const styles = StyleSheet.create({
         marginRight: 16,
     },
     contactTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
         color: '#1F2937',
         marginBottom: 4,
@@ -673,7 +679,8 @@ const styles = StyleSheet.create({
         color: '#E5E7EB',
     },
     contactHours: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: theme.color.primary[500],
         marginBottom: 4,
     },
@@ -681,7 +688,8 @@ const styles = StyleSheet.create({
         color: theme.color.primary[400],
     },
     contactDescription: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#6B7280',
     },
     contactDescriptionDark: {
@@ -698,7 +706,8 @@ const styles = StyleSheet.create({
     },
     callButtonText: {
         color: '#FFFFFF',
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: '500',
     },
     imagePreviewModal: {
@@ -720,6 +729,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         color: '#EF4444',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     },
 });

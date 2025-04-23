@@ -13,7 +13,9 @@ import {
     TouchableOpacity,
     View,
     useColorScheme,
-    GestureResponderEvent,
+    Dimensions,
+    StatusBar as RNStatusBar,
+    SafeAreaView,
 } from "react-native";
 
 import {theme} from "@/constants/theme";
@@ -26,6 +28,14 @@ import OTPInput from "../../components/ui/OTPInput";
 import GoogleAuth from "@/components/GoogleLogin";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Get screen dimensions
+const { width, height } = Dimensions.get('window');
+const isSmallDevice = width < 375;
+const scale = width / 390; // Base scale on standard iPhone size
+
+// Helper function to get responsive sizes
+const rs = (size: number) => Math.round(size * scale);
 
 interface ToastProps {
     visible: boolean;
@@ -341,18 +351,12 @@ const Register: React.FC = () => {
     };
 
     const validatePhone = (phone: string): boolean => {
-
         if (!phone) {
             setPhoneError("Le numéro de téléphone est requis");
             return false;
         }
 
-        // put phone regex for cameroun phones here
         const regex = /^6[5-9]{1}[0-9]{7}$/;
-        // if (!regex.test(phone)) {
-        //     setPhoneError("Format de téléphone invalide");
-        //     return false;
-        // }
         setPhoneError("");
         return true
     }
@@ -392,14 +396,11 @@ const Register: React.FC = () => {
         try {
             // Validate fields
             const isEmailValid = validateEmail(email);
-            // const isPhoneValid = validatePhone(phone);
             const isPasswordValid = validatePassword(password);
-            // const isPasswordValid = true
             const isConfirmPasswordValid = validateConfirmPassword(
                 password,
                 confirmPassword
             );
-            // const isConfirmPasswordValid = true
             const isTermsValid = validateTerms();
 
             if (!isEmailValid || !isPasswordValid || !isConfirmPasswordValid || !isTermsValid ) {
@@ -411,7 +412,6 @@ const Register: React.FC = () => {
             setIsLoading(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-            // await signUp(email, phone, password);
             await signUp(email, password);
 
             setIsOtpStep(true);
@@ -487,7 +487,7 @@ const Register: React.FC = () => {
     const handleResendOtp = async (): Promise<void> => {
         try {
             setIsLoading(true);
-            await supabase.auth.signInWithOtp({phone:  phone});
+            await supabase.auth.signInWithOtp({phone: phone});
             startCountdown();
 
             setToast({
@@ -514,528 +514,454 @@ const Register: React.FC = () => {
     };
 
     return (
-        <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={[styles.container, isDark && styles.containerDark]}
-        >
-            <StatusBar style={isDark ? "light" : "dark"}/>
-
-            {/* Toast notification */}
-            <Toast
-                visible={toast.visible}
-                message={toast.message}
-                type={toast.type}
-                action={toast.action}
-                onDismiss={() => setToast({...toast, visible: false})}
-            />
-
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
+        <SafeAreaView style={[styles.safeArea, isDark && styles.safeAreaDark]}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={[styles.container, isDark && styles.containerDark]}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
             >
-                <Animated.View
-                    style={[
-                        styles.formContainer,
-                        {
-                            opacity: fadeAnim,
-                            transform: [{translateY: slideAnim}, {translateX: shakeAnim}],
-                        },
-                    ]}
+                <StatusBar style={isDark ? "light" : "dark"}/>
+
+                {/* Toast notification */}
+                <Toast
+                    visible={toast.visible}
+                    message={toast.message}
+                    type={toast.type}
+                    action={toast.action}
+                    onDismiss={() => setToast({...toast, visible: false})}
+                />
+
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    bounces={false}
                 >
-                    {/* Logo section */}
-
-                    {
-                        !isOtpStep &&
-                        <View style={styles.logoSection}>
-                            <Image
-                                source={require("@/assets/images/icon.png")}
-                                style={styles.logo}
-                            />
-                            <View style={{
-                                flexDirection: "column",
-                                justifyContent: "flex-start",
-                                alignItems: "flex-start"
-                            }}>
-                                <Text style={[styles.title, isDark && styles.textDark]}>
-                                    Elearn Prepa
-                                </Text>
-                                <Text style={[styles.subtitle, isDark && styles.textGray]}>
-                                    Formez vous pour réussir
-                                </Text>
-
+                    <Animated.View
+                        style={[
+                            styles.formContainer,
+                            {
+                                opacity: fadeAnim,
+                                transform: [{translateY: slideAnim}, {translateX: shakeAnim}],
+                            },
+                        ]}
+                    >
+                        {/* Logo section */}
+                        {
+                            !isOtpStep &&
+                            <View style={styles.logoSection}>
+                                <Image
+                                    source={require("@/assets/images/icon.png")}
+                                    style={styles.logo}
+                                    resizeMode="contain"
+                                />
+                                <View style={{
+                                    flexDirection: "column",
+                                    justifyContent: "flex-start",
+                                    alignItems: "flex-start"
+                                }}>
+                                    <Text style={[styles.title, isDark && styles.textDark]}>
+                                        Elearn Prepa
+                                    </Text>
+                                    <Text style={[styles.subtitle, isDark && styles.textGray]}>
+                                        Formez vous pour réussir
+                                    </Text>
+                                </View>
                             </View>
+                        }
 
-
-                        </View>
-                    }
-
-                    {/* Main content with animations for step transition */}
-                    <View style={styles.contentContainer}>
-                        {/* Step 1: Registration Form */}
-                        {!isOtpStep && (
-                            <Animated.View
-                                style={[
-                                    styles.formStep,
-                                    {transform: [{translateX: slideOutLeft}]}
-                                ]}
-                            >
-                                {/*<Text style={[styles.title, isDark && styles.textDark]}>*/}
-                                {/*  Inscription*/}
-                                {/*</Text>*/}
-                                <Text style={[styles.subtitle, isDark && styles.textGray]}>
-                                    Créez votre compte pour accéder à la plateforme
-                                </Text>
-
-                                {/* Social Login Options */}
-
-
-                                <View style={styles.socialButtons}>
-                                    {/*<TouchableOpacity style={[styles.socialButton, styles.googleButton]}>*/}
-                                    {/*    <MaterialCommunityIcons name="google" size={20} color="white"/>*/}
-                                    {/*    <Text style={styles.socialButtonText}>Google</Text>*/}
-
-                                    <GoogleAuth onAuthSuccess={() => router.push("/")}>
-
-                                        <View style={[styles.socialButton, styles.googleButton]}>
-                                            <MaterialCommunityIcons name="google" size={20} color="white"/>
-                                            <Text style={styles.socialButtonText}>Google</Text>
-                                        </View>
-
-
-                                    </GoogleAuth>
-                                </View>
-
-                                <View style={styles.divider}>
-                                    <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
-                                    <Text style={[styles.dividerText, isDark && styles.textGray]}>
-                                        ou continuer avec
-                                    </Text>
-                                    <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
-                                </View>
-
-
-
-                                {/* Email Input */}
-                                <View style={styles.inputContainer}>
-                                    <Text style={[styles.label, isDark && styles.textDark]}>
-                                        Email
-                                    </Text>
-                                    <View style={[
-                                        styles.inputWrapper,
-                                        isDark && styles.inputWrapperDark,
-                                        emailError && styles.inputError
-                                    ]}>
-                                        <MaterialCommunityIcons
-                                            name="email-outline"
-                                            size={24}
-                                            color={emailError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
-                                            style={styles.inputIcon}
-                                        />
-                                        <TextInput
-                                            value={email}
-                                            onChangeText={(text) => {
-                                                setEmail(text);
-                                                if (emailError) validateEmail(text);
-                                            }}
-                                            style={[styles.input, isDark && styles.inputDark]}
-                                            placeholder="Votre email"
-                                            placeholderTextColor={isDark ? "#666666" : "#999999"}
-                                            keyboardType="email-address"
-                                            autoCapitalize="none"
-                                            returnKeyType="next"
-                                            onSubmitEditing={() => passwordRef.current?.focus()}
-                                        />
-                                        {emailError && (
-                                            <MaterialCommunityIcons
-                                                name="alert-circle"
-                                                size={20}
-                                                color={theme.color.error}
-                                                style={styles.errorIcon}
-                                            />
-                                        )}
-                                    </View>
-                                    {emailError && (
-                                        <Animated.View
-                                            style={[
-                                                styles.errorContainer,
-                                                {
-                                                    opacity: emailErrorAnim, transform: [{
-                                                        translateY: emailErrorAnim.interpolate({
-                                                            inputRange: [0, 1],
-                                                            outputRange: [-10, 0]
-                                                        })
-                                                    }]
-                                                }
-                                            ]}
-                                        >
-                                            <MaterialCommunityIcons
-                                                name="alert-circle"
-                                                size={16}
-                                                color={theme.color.error}
-                                            />
-                                            <Text style={styles.errorText}>{emailError}</Text>
-                                        </Animated.View>
-                                    )}
-                                </View>
-
-                                {/* Phone Input */}
-                                {/*<View style={styles.inputContainer}>*/}
-                                {/*    <Text style={[styles.label, isDark && styles.textDark]}>*/}
-                                {/*        Téléphone*/}
-                                {/*    </Text>*/}
-                                {/*    <View style={[*/}
-                                {/*        styles.inputWrapper,*/}
-                                {/*        isDark && styles.inputWrapperDark,*/}
-                                {/*        emailError && styles.inputError*/}
-                                {/*    ]}>*/}
-                                {/*        <MaterialCommunityIcons*/}
-                                {/*            name="phone"*/}
-                                {/*            size={24}*/}
-                                {/*            color={phoneError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}*/}
-                                {/*            style={styles.inputIcon}*/}
-                                {/*        />*/}
-                                {/*        <TextInput*/}
-                                {/*            value={phone}*/}
-                                {/*            onChangeText={(text) => {*/}
-                                {/*                setPhone(text);*/}
-                                {/*                if (phoneError) validatePhone(text);*/}
-                                {/*            }}*/}
-                                {/*            style={[styles.input, isDark && styles.inputDark]}*/}
-                                {/*            placeholder="6xxxxxxxx"*/}
-                                {/*            placeholderTextColor={isDark ? "#666666" : "#999999"}*/}
-                                {/*            keyboardType="phone-pad"*/}
-                                {/*            autoCapitalize="none"*/}
-                                {/*            returnKeyType="next"*/}
-                                {/*            onSubmitEditing={() => passwordRef.current?.focus()}*/}
-                                {/*        />*/}
-                                {/*        {phoneError && (*/}
-                                {/*            <MaterialCommunityIcons*/}
-                                {/*                name="alert-circle"*/}
-                                {/*                size={20}*/}
-                                {/*                color={theme.color.error}*/}
-                                {/*                style={styles.errorIcon}*/}
-                                {/*            />*/}
-                                {/*        )}*/}
-                                {/*    </View>*/}
-                                {/*    {phoneError && (*/}
-                                {/*        <Animated.View*/}
-                                {/*            style={[*/}
-                                {/*                styles.errorContainer,*/}
-                                {/*                {*/}
-                                {/*                    opacity: emailErrorAnim, transform: [{*/}
-                                {/*                        translateY: emailErrorAnim.interpolate({*/}
-                                {/*                            inputRange: [0, 1],*/}
-                                {/*                            outputRange: [-10, 0]*/}
-                                {/*                        })*/}
-                                {/*                    }]*/}
-                                {/*                }*/}
-                                {/*            ]}*/}
-                                {/*        >*/}
-                                {/*            <MaterialCommunityIcons*/}
-                                {/*                name="alert-circle"*/}
-                                {/*                size={16}*/}
-                                {/*                color={theme.color.error}*/}
-                                {/*            />*/}
-                                {/*            <Text style={styles.errorText}>{phoneError}</Text>*/}
-                                {/*        </Animated.View>*/}
-                                {/*    )}*/}
-                                {/*</View>*/}
-
-
-                                {/* Password Input */}
-                                <View style={styles.inputContainer}>
-                                    <Text style={[styles.label, isDark && styles.textDark]}>
-                                        Mot de passe
-                                    </Text>
-                                    <View style={[
-                                        styles.inputWrapper,
-                                        isDark && styles.inputWrapperDark,
-                                        passwordError && styles.inputError
-                                    ]}>
-                                        <MaterialCommunityIcons
-                                            name="lock-outline"
-                                            size={24}
-                                            color={passwordError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
-                                            style={styles.inputIcon}
-                                        />
-                                        <TextInput
-                                            ref={passwordRef}
-                                            value={password}
-                                            onChangeText={(text) => {
-                                                setPassword(text);
-                                                if (passwordError) validatePassword(text);
-                                                if (confirmPassword && confirmPasswordError)
-                                                    validateConfirmPassword(text, confirmPassword);
-                                            }}
-                                            style={[styles.input, isDark && styles.inputDark]}
-                                            placeholder="Votre mot de passe"
-                                            placeholderTextColor={isDark ? "#666666" : "#999999"}
-                                            secureTextEntry={!showPassword}
-                                            returnKeyType="next"
-                                            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-                                        />
-                                        <TouchableOpacity
-                                            onPress={() => setShowPassword(!showPassword)}
-                                            style={styles.eyeIcon}
-                                        >
-                                            <MaterialCommunityIcons
-                                                name={showPassword ? "eye-off" : "eye"}
-                                                size={24}
-                                                color={isDark ? "#CCCCCC" : "#666666"}
-                                            />
-                                        </TouchableOpacity>
-                                    </View>
-                                    {passwordError && (
-                                        <Animated.View
-                                            style={[
-                                                styles.errorContainer,
-                                                {
-                                                    opacity: passwordErrorAnim, transform: [{
-                                                        translateY: passwordErrorAnim.interpolate({
-                                                            inputRange: [0, 1],
-                                                            outputRange: [-10, 0]
-                                                        })
-                                                    }]
-                                                }
-                                            ]}
-                                        >
-                                            <MaterialCommunityIcons
-                                                name="alert-circle"
-                                                size={16}
-                                                color={theme.color.error}
-                                            />
-                                            <Text style={styles.errorText}>{passwordError}</Text>
-                                        </Animated.View>
-                                    )}
-                                </View>
-
-                                {/* Confirm Password Input */}
-                                <View style={styles.inputContainer}>
-                                    <Text style={[styles.label, isDark && styles.textDark]}>
-                                        Confirmer le mot de passe
-                                    </Text>
-                                    <View style={[
-                                        styles.inputWrapper,
-                                        isDark && styles.inputWrapperDark,
-                                        confirmPasswordError && styles.inputError
-                                    ]}>
-                                        <MaterialCommunityIcons
-                                            name="lock-check-outline"
-                                            size={24}
-                                            color={confirmPasswordError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
-                                            style={styles.inputIcon}
-                                        />
-                                        <TextInput
-                                            ref={confirmPasswordRef}
-                                            value={confirmPassword}
-                                            onChangeText={(text) => {
-                                                setConfirmPassword(text);
-                                                if (confirmPasswordError) validateConfirmPassword(password, text);
-                                            }}
-                                            style={[styles.input, isDark && styles.inputDark]}
-                                            placeholder="Confirmez votre mot de passe"
-                                            placeholderTextColor={isDark ? "#666666" : "#999999"}
-                                            secureTextEntry={!showPassword}
-                                            returnKeyType="done"
-                                        />
-                                    </View>
-                                    {confirmPasswordError && (
-                                        <Animated.View
-                                            style={[
-                                                styles.errorContainer,
-                                                {
-                                                    opacity: confirmPasswordErrorAnim, transform: [{
-                                                        translateY: confirmPasswordErrorAnim.interpolate({
-                                                            inputRange: [0, 1],
-                                                            outputRange: [-10, 0]
-                                                        })
-                                                    }]
-                                                }
-                                            ]}
-                                        >
-                                            <MaterialCommunityIcons
-                                                name="alert-circle"
-                                                size={16}
-                                                color={theme.color.error}
-                                            />
-                                            <Text style={styles.errorText}>{confirmPasswordError}</Text>
-                                        </Animated.View>
-                                    )}
-                                </View>
-
-                                {/* Terms and Conditions Checkbox */}
-                                <View style={styles.checkboxContainer}>
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.checkbox,
-                                            termsError && styles.checkboxError,
-                                            isChecked && styles.checkboxChecked
-                                        ]}
-                                        onPress={() => {
-                                            setIsChecked(!isChecked);
-                                            if (termsError) validateTerms();
-                                        }}
-                                    >
-                                        {isChecked && (
-                                            <MaterialCommunityIcons
-                                                name="check"
-                                                size={18}
-                                                color="#FFFFFF"
-                                            />
-                                        )}
-                                    </TouchableOpacity>
-                                    <Text style={[styles.checkboxLabel, isDark && styles.textGray]}>
-                                        J'accepte les{" "}
-                                        <Text
-                                            style={styles.link}
-                                            /* "TODO handle the right path to  cgu and terms" */
-                                            /* @ts-ignore*/
-                                            onPress={() => router.push("/(app)/(CGU)/terms") }
-                                        >
-                                            conditions d'utilisation
-                                        </Text>
-                                    </Text>
-                                </View>
-
-                                {termsError && (
-                                    <Animated.View
-                                        style={[
-                                            styles.errorContainer,
-                                            {
-                                                opacity: termsErrorAnim, transform: [{
-                                                    translateY: termsErrorAnim.interpolate({
-                                                        inputRange: [0, 1],
-                                                        outputRange: [-10, 0]
-                                                    })
-                                                }]
-                                            }
-                                        ]}
-                                    >
-                                        <MaterialCommunityIcons
-                                            name="alert-circle"
-                                            size={16}
-                                            color={theme.color.error}
-                                        />
-                                        <Text style={styles.errorText}>{termsError}</Text>
-                                    </Animated.View>
-                                )}
-
-                                {/* Sign Up Button */}
-                                <TouchableOpacity
+                        {/* Main content with animations for step transition */}
+                        <View style={styles.contentContainer}>
+                            {/* Step 1: Registration Form */}
+                            {!isOtpStep && (
+                                <Animated.View
                                     style={[
-                                        styles.primaryButton,
-                                        isLoading && styles.buttonDisabled
+                                        styles.formStep,
+                                        {transform: [{translateX: slideOutLeft}]}
                                     ]}
-                                    onPress={handleSignUp}
-                                    disabled={isLoading}
                                 >
-                                    {isLoading ? (
-                                        <ActivityIndicator color="#FFFFFF"/>
-                                    ) : (
-                                        <Text style={styles.primaryButtonText}>S'inscrire</Text>
-                                    )}
-                                </TouchableOpacity>
-
-
-                                {/* Login Link */}
-                                <View style={styles.footerText}>
-                                    <Text style={[styles.footerLabel, isDark && styles.textGray]}>
-                                        Déjà un compte ?{" "}
+                                    <Text style={[styles.subtitle, isDark && styles.textGray]}>
+                                        Créez votre compte pour accéder à la plateforme
                                     </Text>
-                                    <TouchableOpacity onPress={() => router.push("/login")}>
-                                        <Text style={styles.footerLink}>Se connecter</Text>
-                                    </TouchableOpacity>
-                                </View>
 
-
-                            </Animated.View>
-                        )}
-
-                        {/* Step 2: OTP Verification */}
-                        {isOtpStep && (
-                            <Animated.View
-                                style={[
-                                    styles.formStep,
-                                    {transform: [{translateX: slideInRight}]}
-                                ]}
-                            >
-                                <Text style={[styles.title, isDark && styles.textDark]}>
-                                    Vérification
-                                </Text>
-                                <Text style={[styles.subtitle, isDark && styles.textGray]}>
-                                    Entrez le code à 6 chiffres envoyé à
-                                </Text>
-                                <Text style={[styles.emailHighlight, isDark && styles.textDark]}>
-                                    {email}
-                                </Text>
-
-                                <View style={styles.otpContainer}>
-                                    <OTPInput
-                                        value={otp}
-                                        onChangeText={setOtp}
-                                        isError={!isOtpValid && otp.length === 6}
-                                    />
-
-                                    <View style={styles.countdownContainer}>
-                                        <Text style={[styles.countdownText, isDark && styles.textGray]}>
-                                            {formatCountdown()}
-                                        </Text>
-                                        <TouchableOpacity
-                                            onPress={handleResendOtp}
-                                            disabled={countdown > 0 || isLoading}
-                                            style={[countdown > 0 && styles.resendDisabled]}
-                                        >
-                                            <Text style={[
-                                                styles.resendLink,
-                                                countdown > 0 && styles.resendDisabledText
-                                            ]}>
-                                                Renvoyer le code
-                                            </Text>
-                                        </TouchableOpacity>
+                                    {/* Social Login Options */}
+                                    <View style={styles.socialButtons}>
+                                        <GoogleAuth onAuthSuccess={() => router.push("/")}>
+                                            <View style={[styles.socialButton, styles.googleButton]}>
+                                                <MaterialCommunityIcons name="google" size={20} color="white"/>
+                                                <Text style={styles.socialButtonText}>Google</Text>
+                                            </View>
+                                        </GoogleAuth>
                                     </View>
-                                </View>
 
-                                <View style={styles.otpButtonsContainer}>
+                                    <View style={styles.divider}>
+                                        <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
+                                        <Text style={[styles.dividerText, isDark && styles.textGray]}>
+                                            ou continuer avec
+                                        </Text>
+                                        <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
+                                    </View>
+
+                                    {/* Email Input */}
+                                    <View style={styles.inputContainer}>
+                                        <Text style={[styles.label, isDark && styles.textDark]}>
+                                            Email
+                                        </Text>
+                                        <View style={[
+                                            styles.inputWrapper,
+                                            isDark && styles.inputWrapperDark,
+                                            emailError && styles.inputError
+                                        ]}>
+                                            <MaterialCommunityIcons
+                                                name="email-outline"
+                                                size={24}
+                                                color={emailError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
+                                                style={styles.inputIcon}
+                                            />
+                                            <TextInput
+                                                value={email}
+                                                onChangeText={(text) => {
+                                                    setEmail(text);
+                                                    if (emailError) validateEmail(text);
+                                                }}
+                                                style={[styles.input, isDark && styles.inputDark]}
+                                                placeholder="Votre email"
+                                                placeholderTextColor={isDark ? "#666666" : "#999999"}
+                                                keyboardType="email-address"
+                                                autoCapitalize="none"
+                                                returnKeyType="next"
+                                                onSubmitEditing={() => passwordRef.current?.focus()}
+                                            />
+                                            {emailError && (
+                                                <MaterialCommunityIcons
+                                                    name="alert-circle"
+                                                    size={20}
+                                                    color={theme.color.error}
+                                                    style={styles.errorIcon}
+                                                />
+                                            )}
+                                        </View>
+                                        {emailError && (
+                                            <Animated.View
+                                                style={[
+                                                    styles.errorContainer,
+                                                    {
+                                                        opacity: emailErrorAnim, transform: [{
+                                                            translateY: emailErrorAnim.interpolate({
+                                                                inputRange: [0, 1],
+                                                                outputRange: [-10, 0]
+                                                            })
+                                                        }]
+                                                    }
+                                                ]}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name="alert-circle"
+                                                    size={16}
+                                                    color={theme.color.error}
+                                                />
+                                                <Text style={styles.errorText}>{emailError}</Text>
+                                            </Animated.View>
+                                        )}
+                                    </View>
+
+                                    {/* Password Input */}
+                                    <View style={styles.inputContainer}>
+                                        <Text style={[styles.label, isDark && styles.textDark]}>
+                                            Mot de passe
+                                        </Text>
+                                        <View style={[
+                                            styles.inputWrapper,
+                                            isDark && styles.inputWrapperDark,
+                                            passwordError && styles.inputError
+                                        ]}>
+                                            <MaterialCommunityIcons
+                                                name="lock-outline"
+                                                size={24}
+                                                color={passwordError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
+                                                style={styles.inputIcon}
+                                            />
+                                            <TextInput
+                                                ref={passwordRef}
+                                                value={password}
+                                                onChangeText={(text) => {
+                                                    setPassword(text);
+                                                    if (passwordError) validatePassword(text);
+                                                    if (confirmPassword && confirmPasswordError)
+                                                        validateConfirmPassword(text, confirmPassword);
+                                                }}
+                                                style={[styles.input, isDark && styles.inputDark]}
+                                                placeholder="Votre mot de passe"
+                                                placeholderTextColor={isDark ? "#666666" : "#999999"}
+                                                secureTextEntry={!showPassword}
+                                                returnKeyType="next"
+                                                onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+                                            />
+                                            <TouchableOpacity
+                                                onPress={() => setShowPassword(!showPassword)}
+                                                style={styles.eyeIcon}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name={showPassword ? "eye-off" : "eye"}
+                                                    size={24}
+                                                    color={isDark ? "#CCCCCC" : "#666666"}
+                                                />
+                                            </TouchableOpacity>
+                                        </View>
+                                        {passwordError && (
+                                            <Animated.View
+                                                style={[
+                                                    styles.errorContainer,
+                                                    {
+                                                        opacity: passwordErrorAnim, transform: [{
+                                                            translateY: passwordErrorAnim.interpolate({
+                                                                inputRange: [0, 1],
+                                                                outputRange: [-10, 0]
+                                                            })
+                                                        }]
+                                                    }
+                                                ]}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name="alert-circle"
+                                                    size={16}
+                                                    color={theme.color.error}
+                                                />
+                                                <Text style={styles.errorText}>{passwordError}</Text>
+                                            </Animated.View>
+                                        )}
+                                    </View>
+
+                                    {/* Confirm Password Input */}
+                                    <View style={styles.inputContainer}>
+                                        <Text style={[styles.label, isDark && styles.textDark]}>
+                                            Confirmer le mot de passe
+                                        </Text>
+                                        <View style={[
+                                            styles.inputWrapper,
+                                            isDark && styles.inputWrapperDark,
+                                            confirmPasswordError && styles.inputError
+                                        ]}>
+                                            <MaterialCommunityIcons
+                                                name="lock-check-outline"
+                                                size={24}
+                                                color={confirmPasswordError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
+                                                style={styles.inputIcon}
+                                            />
+                                            <TextInput
+                                                ref={confirmPasswordRef}
+                                                value={confirmPassword}
+                                                onChangeText={(text) => {
+                                                    setConfirmPassword(text);
+                                                    if (confirmPasswordError) validateConfirmPassword(password, text);
+                                                }}
+                                                style={[styles.input, isDark && styles.inputDark]}
+                                                placeholder="Confirmez votre mot de passe"
+                                                placeholderTextColor={isDark ? "#666666" : "#999999"}
+                                                secureTextEntry={!showPassword}
+                                                returnKeyType="done"
+                                            />
+                                        </View>
+                                        {confirmPasswordError && (
+                                            <Animated.View
+                                                style={[
+                                                    styles.errorContainer,
+                                                    {
+                                                        opacity: confirmPasswordErrorAnim, transform: [{
+                                                            translateY: confirmPasswordErrorAnim.interpolate({
+                                                                inputRange: [0, 1],
+                                                                outputRange: [-10, 0]
+                                                            })
+                                                        }]
+                                                    }
+                                                ]}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name="alert-circle"
+                                                    size={16}
+                                                    color={theme.color.error}
+                                                />
+                                                <Text style={styles.errorText}>{confirmPasswordError}</Text>
+                                            </Animated.View>
+                                        )}
+                                    </View>
+
+                                    {/* Terms and Conditions Checkbox */}
+                                    <View style={styles.checkboxContainer}>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.checkbox,
+                                                termsError && styles.checkboxError,
+                                                isChecked && styles.checkboxChecked
+                                            ]}
+                                            onPress={() => {
+                                                setIsChecked(!isChecked);
+                                                if (termsError) validateTerms();
+                                            }}
+                                        >
+                                            {isChecked && (
+                                                <MaterialCommunityIcons
+                                                    name="check"
+                                                    size={18}
+                                                    color="#FFFFFF"
+                                                />
+                                            )}
+                                        </TouchableOpacity>
+                                        <Text style={[styles.checkboxLabel, isDark && styles.textGray]}>
+                                            J'accepte les{" "}
+                                            <Text
+                                                style={styles.link}
+                                                onPress={() => router.push("/(app)/(CGU)/terms" as any)}
+                                            >
+                                                conditions d'utilisation
+                                            </Text>
+                                        </Text>
+                                    </View>
+
+                                    {termsError && (
+                                        <Animated.View
+                                            style={[
+                                                styles.errorContainer,
+                                                {
+                                                    opacity: termsErrorAnim, transform: [{
+                                                        translateY: termsErrorAnim.interpolate({
+                                                            inputRange: [0, 1],
+                                                            outputRange: [-10, 0]
+                                                        })
+                                                    }]
+                                                }
+                                            ]}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name="alert-circle"
+                                                size={16}
+                                                color={theme.color.error}
+                                            />
+                                            <Text style={styles.errorText}>{termsError}</Text>
+                                        </Animated.View>
+                                    )}
+
+                                    {/* Sign Up Button */}
                                     <TouchableOpacity
                                         style={[
                                             styles.primaryButton,
-                                            (!isOtpValid || isLoading) && styles.buttonDisabled
+                                            isLoading && styles.buttonDisabled
                                         ]}
-                                        onPress={handleVerifyOtp}
-                                        disabled={!isOtpValid || isLoading}
+                                        onPress={handleSignUp}
+                                        disabled={isLoading}
                                     >
                                         {isLoading ? (
                                             <ActivityIndicator color="#FFFFFF"/>
                                         ) : (
-                                            <Text style={styles.primaryButtonText}>Vérifier</Text>
+                                            <Text style={styles.primaryButtonText}>S'inscrire</Text>
                                         )}
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity
-                                        style={[styles.secondaryButton, isLoading && styles.buttonDisabled]}
-                                        onPress={handleModifyEmail}
-                                        disabled={isLoading}
-                                    >
-                                        <MaterialCommunityIcons
-                                            name="email-edit-outline"
-                                            size={20}
-                                            color={theme.color.primary[500]}
-                                            style={styles.buttonIcon}
+                                    {/* Login Link */}
+                                    <View style={styles.footerText}>
+                                        <Text style={[styles.footerLabel, isDark && styles.textGray]}>
+                                            Déjà un compte ?{" "}
+                                        </Text>
+                                        <TouchableOpacity onPress={() => router.push("/login")}>
+                                            <Text style={styles.footerLink}>Se connecter</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </Animated.View>
+                            )}
+
+                            {/* Step 2: OTP Verification */}
+                            {isOtpStep && (
+                                <Animated.View
+                                    style={[
+                                        styles.formStep,
+                                        {transform: [{translateX: slideInRight}]}
+                                    ]}
+                                >
+                                    <Text style={[styles.otpTitle, isDark && styles.textDark]}>
+                                        Vérification
+                                    </Text>
+                                    <Text style={[styles.subtitle, isDark && styles.textGray]}>
+                                        Entrez le code à 6 chiffres envoyé à
+                                    </Text>
+                                    <Text style={[styles.emailHighlight, isDark && styles.textDark]}>
+                                        {email}
+                                    </Text>
+
+                                    <View style={styles.otpContainer}>
+                                        <OTPInput
+                                            value={otp}
+                                            onChangeText={setOtp}
+                                            isError={!isOtpValid && otp.length === 6}
                                         />
-                                        <Text style={styles.secondaryButtonText}>Modifier l'email</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </Animated.View>
-                        )}
-                    </View>
-                </Animated.View>
-            </ScrollView>
-        </KeyboardAvoidingView>
+
+                                        <View style={styles.countdownContainer}>
+                                            <Text style={[styles.countdownText, isDark && styles.textGray]}>
+                                                {formatCountdown()}
+                                            </Text>
+                                            <TouchableOpacity
+                                                onPress={handleResendOtp}
+                                                disabled={countdown > 0 || isLoading}
+                                                style={[countdown > 0 && styles.resendDisabled]}
+                                            >
+                                                <Text style={[
+                                                    styles.resendLink,
+                                                    countdown > 0 && styles.resendDisabledText
+                                                ]}>
+                                                    Renvoyer le code
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.otpButtonsContainer}>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.primaryButton,
+                                                (!isOtpValid || isLoading) && styles.buttonDisabled
+                                            ]}
+                                            onPress={handleVerifyOtp}
+                                            disabled={!isOtpValid || isLoading}
+                                        >
+                                            {isLoading ? (
+                                                <ActivityIndicator color="#FFFFFF"/>
+                                            ) : (
+                                                <Text style={styles.primaryButtonText}>Vérifier</Text>
+                                            )}
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity
+                                            style={[styles.secondaryButton, isLoading && styles.buttonDisabled]}
+                                            onPress={handleModifyEmail}
+                                            disabled={isLoading}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name="email-edit-outline"
+                                                size={20}
+                                                color={theme.color.primary[500]}
+                                                style={styles.buttonIcon}
+                                            />
+                                            <Text style={styles.secondaryButtonText}>Modifier l'email</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </Animated.View>
+                            )}
+                        </View>
+                    </Animated.View>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
+    },
+    safeAreaDark: {
+        backgroundColor: theme.color.dark.background.primary,
+    },
     container: {
         flex: 1,
         backgroundColor: "#FFFFFF",
@@ -1046,27 +972,29 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         justifyContent: "center",
-        padding: 20,
+        padding: width * 0.05,
+        paddingBottom: height * 0.05,
     },
     formContainer: {
         width: "100%",
-        maxWidth: 400,
+        maxWidth: Math.min(400, width * 0.95),
         alignSelf: "center",
     },
     logoSection: {
         alignItems: "center",
         flexDirection: "row",
-        gap: 12,
-        // marginBottom: 24,
+        gap: rs(12),
+        marginBottom: rs(20),
     },
     logo: {
-        width: 80,
-        height: 80,
-        marginBottom: 12,
+        width: isSmallDevice ? 60 : 80,
+        height: isSmallDevice ? 60 : 80,
+        marginBottom: rs(12),
         borderRadius: 16,
     },
     appName: {
-        fontSize: 28,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: rs(28),
         fontWeight: "bold",
         color: "#1A1A1A",
     },
@@ -1078,33 +1006,47 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     title: {
-        fontSize: 26,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(22) : rs(26),
+        fontWeight: "bold",
+        lineHeight : isSmallDevice ? rs(28) : rs(32),
+        color: "#1A1A1A",
+        textAlign: "center",
+        marginBottom: rs(12),
+    },
+    otpTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(22) : rs(26),
         fontWeight: "bold",
         color: "#1A1A1A",
         textAlign: "center",
-        marginBottom: 12,
+        marginBottom: rs(12),
+        marginTop: rs(20),
     },
     subtitle: {
-        fontSize: 15,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(14) : rs(15),
         color: "#666666",
         textAlign: "center",
-        marginBottom: 24,
+        marginBottom: rs(24),
     },
     emailHighlight: {
-        fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(15) : rs(16),
         fontWeight: "600",
         color: "#1A1A1A",
         textAlign: "center",
-        marginBottom: 24,
+        marginBottom: rs(24),
     },
     inputContainer: {
-        marginBottom: 20,
+        marginBottom: rs(20),
     },
     label: {
-        fontSize: 15,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(14) : rs(15),
         fontWeight: "600",
         color: "#1A1A1A",
-        marginBottom: 8,
+        marginBottom: rs(8),
     },
     inputWrapper: {
         flexDirection: "row",
@@ -1114,18 +1056,20 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: "#FFFFFF",
         overflow: "hidden",
+        height: isSmallDevice ? rs(45) : rs(50),
     },
     inputWrapperDark: {
         backgroundColor: theme.color.dark.background.secondary,
         borderColor: "#333333",
     },
     inputIcon: {
-        padding: 12,
+        padding: isSmallDevice ? rs(10) : rs(12),
     },
     input: {
         flex: 1,
-        height: 50,
-        fontSize: 16,
+        height: isSmallDevice ? rs(45) : rs(50),
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(15) : rs(16),
         color: "#1A1A1A",
     },
     inputDark: {
@@ -1135,37 +1079,38 @@ const styles = StyleSheet.create({
         borderColor: theme.color.error,
     },
     eyeIcon: {
-        padding: 12,
+        padding: isSmallDevice ? rs(10) : rs(12),
     },
     errorIcon: {
-        padding: 12,
+        padding: isSmallDevice ? rs(10) : rs(12),
     },
     errorContainer: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 6,
-        marginTop: 4,
-        gap: 6,
+        paddingHorizontal: rs(6),
+        marginTop: rs(4),
+        gap: rs(6),
     },
     errorText: {
         color: theme.color.error,
-        fontSize: 12,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(11) : rs(12),
         fontWeight: "500",
     },
     checkboxContainer: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 10,
+        marginBottom: rs(10),
     },
     checkbox: {
-        width: 24,
-        height: 24,
+        width: isSmallDevice ? rs(22) : rs(24),
+        height: isSmallDevice ? rs(22) : rs(24),
         borderWidth: 2,
         borderColor: "#E5E5E5",
         borderRadius: 6,
         justifyContent: "center",
         alignItems: "center",
-        marginRight: 10,
+        marginRight: rs(10),
     },
     checkboxError: {
         borderColor: theme.color.error,
@@ -1175,7 +1120,8 @@ const styles = StyleSheet.create({
         borderColor: theme.color.primary[500],
     },
     checkboxLabel: {
-        fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(13) : rs(14),
         color: "#666666",
         flex: 1,
     },
@@ -1184,20 +1130,21 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     primaryButton: {
-        height: 50,
+        height: isSmallDevice ? rs(45) : rs(50),
         backgroundColor: theme.color.primary[500],
         borderRadius: 12,
         justifyContent: "center",
         alignItems: "center",
-        marginVertical: 20,
+        marginVertical: rs(20),
     },
     primaryButtonText: {
         color: "#FFFFFF",
-        fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(15) : rs(16),
         fontWeight: "600",
     },
     secondaryButton: {
-        height: 50,
+        height: isSmallDevice ? rs(45) : rs(50),
         backgroundColor: "transparent",
         borderWidth: 2,
         borderColor: theme.color.primary[100],
@@ -1208,11 +1155,12 @@ const styles = StyleSheet.create({
     },
     secondaryButtonText: {
         color: theme.color.primary[500],
-        fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(15) : rs(16),
         fontWeight: "600",
     },
     buttonIcon: {
-        marginRight: 8,
+        marginRight: rs(8),
     },
     buttonDisabled: {
         opacity: 0.6,
@@ -1220,7 +1168,7 @@ const styles = StyleSheet.create({
     divider: {
         flexDirection: "row",
         alignItems: "center",
-        marginVertical: 20,
+        marginVertical: rs(20),
     },
     dividerLine: {
         flex: 1,
@@ -1231,28 +1179,30 @@ const styles = StyleSheet.create({
         backgroundColor: "#333333",
     },
     dividerText: {
-        paddingHorizontal: 16,
+        paddingHorizontal: rs(5),
         color: "#666666",
-        fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(13) : rs(14),
     },
     socialButtons: {
-        marginVertical: 20,
+        marginVertical: rs(0),
         flexDirection: "row",
         justifyContent: "space-between",
-        gap: 12,
+        gap: rs(12),
     },
     socialButton: {
         flex: 1,
         flexDirection: "row",
-        height: 48,
+        height: isSmallDevice ? rs(45) : rs(48),
         borderRadius: 12,
         justifyContent: "center",
         alignItems: "center",
-        gap: 8,
+        gap: rs(8),
     },
     socialButtonText: {
         color: "#FFFFFF",
-        fontSize: 15,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(14) : rs(15),
         fontWeight: "500",
     },
     googleButton: {
@@ -1265,38 +1215,42 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginTop: 24,
-        marginBottom: 16,
+        marginTop: rs(24),
+        marginBottom: rs(16),
     },
     footerLabel: {
-        fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(13) : rs(14),
         color: "#666666",
     },
     footerLink: {
         color: theme.color.primary[500],
-        lineHeight : 20,
-        fontSize: 14,
+        lineHeight: isSmallDevice ? rs(18) : rs(20),
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(13) : rs(14),
         fontWeight: "600",
     },
     otpContainer: {
         alignItems: "center",
-        marginVertical: 24,
+        marginVertical: rs(24),
     },
     countdownContainer: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 20,
-        gap: 10,
+        marginTop: rs(20),
+        gap: rs(10),
     },
     countdownText: {
-        fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(15) : rs(16),
         color: "#666666",
         fontWeight: "500",
     },
     resendLink: {
         color: theme.color.primary[500],
-        fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(13) : rs(14),
         fontWeight: "600",
         textDecorationLine: "underline",
     },
@@ -1307,7 +1261,7 @@ const styles = StyleSheet.create({
         color: "#999999",
     },
     otpButtonsContainer: {
-        gap: 12,
+        gap: rs(12),
     },
     textDark: {
         color: "#FFFFFF",
@@ -1318,12 +1272,14 @@ const styles = StyleSheet.create({
     // Toast styles
     toastContainer: {
         position: "absolute",
-        bottom: 20,
-        left: 20,
-        right: 20,
+        bottom: height * 0.03,
+        left: width * 0.05,
+        right: width * 0.05,
+        maxWidth: 600,
+        alignSelf: 'center',
         backgroundColor: theme.color.primary[500],
         borderRadius: 12,
-        padding: 16,
+        padding: rs(16),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
@@ -1344,25 +1300,27 @@ const styles = StyleSheet.create({
     },
     toastText: {
         color: "white",
-        fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(13) : rs(14),
         fontWeight: "500",
-        marginLeft: 12,
+        marginLeft: rs(12),
         flex: 1,
     },
     toastAction: {
-        paddingHorizontal: 12,
-        paddingVertical: 4,
+        paddingHorizontal: rs(12),
+        paddingVertical: rs(4),
         backgroundColor: "rgba(255, 255, 255, 0.2)",
         borderRadius: 8,
-        marginHorizontal: 8,
+        marginHorizontal: rs(8),
     },
     toastActionText: {
         color: "white",
-        fontSize: 13,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: isSmallDevice ? rs(12) : rs(13),
         fontWeight: "600",
     },
     toastClose: {
-        padding: 4,
+        padding: rs(4),
     },
 });
 

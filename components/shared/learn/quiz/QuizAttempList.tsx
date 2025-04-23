@@ -6,11 +6,11 @@ import {
     Platform,
     Dimensions,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ThemedText } from '@/components/ThemedText';
-import { theme } from '@/constants/theme';
+import {MaterialCommunityIcons} from '@expo/vector-icons';
+import {ThemedText} from '@/components/ThemedText';
+import {theme} from '@/constants/theme';
 import useSWR from 'swr';
-import { supabase } from '@/lib/supabase';
+import {supabase} from '@/lib/supabase';
 import {useAuth} from "@/contexts/auth";
 
 interface QuizAttempt {
@@ -26,8 +26,8 @@ interface QuizAttempt {
         selectedOptions: string[];
         isCorrect: boolean;
         timeSpent: number;
-      }>;
-    quiz : {quiz_questions : { count : number}[]}
+    }>;
+    quiz: { quiz_questions: { count: number }[] }
 }
 
 interface QuizAttemptsListProps {
@@ -36,7 +36,7 @@ interface QuizAttemptsListProps {
     onAttemptPress: (attempt: QuizAttempt) => void;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -93,21 +93,21 @@ const getStatusConfig = (status: string, score: number): { icon: string; color: 
     }
 };
 
-const QuizProgressBar = ({ progress, isDark }: { progress: number; isDark: boolean }) => (
+const QuizProgressBar = ({progress, isDark}: { progress: number; isDark: boolean }) => (
     <View style={[styles.progressBarContainer, isDark && styles.progressBarContainerDark]}>
-        <View 
+        <View
             style={[
-                styles.progressBarFill, 
-                { width: `${progress}%` },
+                styles.progressBarFill,
+                {width: `${progress}%`},
                 progress >= 100 && styles.progressBarComplete
-            ]} 
+            ]}
         />
     </View>
 );
 
-const AttemptCard = ({ attempt, isDark, onPress, isLast }: { 
-    attempt: QuizAttempt; 
-    isDark: boolean; 
+const AttemptCard = ({attempt, isDark, onPress, isLast}: {
+    attempt: QuizAttempt;
+    isDark: boolean;
     onPress: () => void;
     isLast: boolean;
 }) => {
@@ -124,13 +124,13 @@ const AttemptCard = ({ attempt, isDark, onPress, isLast }: {
             onPress={onPress}
         >
             {/* Status Badge */}
-            <View style={[styles.statusBadge, { backgroundColor: `${status.color}15` }]}>
+            <View style={[styles.statusBadge, {backgroundColor: `${status.color}15`}]}>
                 <MaterialCommunityIcons
                     name={status.icon as any}
                     size={16}
                     color={status.color}
                 />
-                <ThemedText style={[styles.statusText, { color: status.color }]}>
+                <ThemedText style={[styles.statusText, {color: status.color}]}>
                     {status.label}
                 </ThemedText>
             </View>
@@ -155,10 +155,10 @@ const AttemptCard = ({ attempt, isDark, onPress, isLast }: {
                             Progress
                         </ThemedText>
                         <ThemedText style={styles.progressText}>
-                            { attempt.status !== "in_progress" ?   `${Object.values(attempt.answers).filter(answer => answer.isCorrect).length}/${attempt.quiz.quiz_questions[0].count}` : "" }
+                            {attempt.status !== "in_progress" ? `${Object.values(attempt.answers).filter(answer => answer.isCorrect).length}/${attempt.quiz.quiz_questions[0].count}` : ""}
                         </ThemedText>
                     </View>
-                    <QuizProgressBar progress={ attempt.status !== "in_progress" ? attempt.score : 0} isDark={isDark} />
+                    <QuizProgressBar progress={attempt.status !== "in_progress" ? attempt.score : 0} isDark={isDark}/>
                 </View>
 
                 {/* Stats Row */}
@@ -177,8 +177,8 @@ const AttemptCard = ({ attempt, isDark, onPress, isLast }: {
                         </View>
                     </View>
 
-                    <View style={styles.statDivider} />
-                    
+                    <View style={styles.statDivider}/>
+
                     <View style={styles.statItem}>
                         <MaterialCommunityIcons
                             name="percent"
@@ -212,30 +212,39 @@ const AttemptCard = ({ attempt, isDark, onPress, isLast }: {
     );
 };
 
-const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({ quizId, isDark, onAttemptPress }) => {
-const { user } = useAuth();
-    const { data: attempts, error, isLoading } = useSWR<QuizAttempt[]>(
-        quizId ? `quiz-attempts-${quizId}` : null,
+const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({quizId, isDark, onAttemptPress}) => {
+    const {user} = useAuth();
+    const {data: attempts, error, isLoading} = useSWR<QuizAttempt[]>(
+        quizId ? `quiz-attemptsss-${quizId}` : null,
         async () => {
-            const { data, error } = await supabase
+            const {data, error} = await supabase
                 .from('quiz_attempts')
                 .select('*, quiz(quiz_questions(count))')
                 .eq('quiz_id', quizId)
                 .eq('user_id', user?.id)
-                .order('start_time', { ascending: false });
+                .order('start_time', {ascending: false});
 
             if (error) throw error;
 
             return data;
+        },
+        {
+            refreshInterval: 5000,
+            revalidateOnFocus: true,
+            revalidateOnMount: true,
+
+            revalidateOnReconnect: true,
+
+
         }
     );
 
     if (isLoading) {
         return (
             <View style={[styles.emptyContainer, isDark && styles.emptyContainerDark]}>
-                <MaterialCommunityIcons 
-                    name="loading" 
-                    size={32} 
+                <MaterialCommunityIcons
+                    name="loading"
+                    size={32}
                     color={theme.color.primary[500]}
                 />
                 <ThemedText style={styles.emptyText}>Chargement des essaies...</ThemedText>
@@ -246,9 +255,9 @@ const { user } = useAuth();
     if (error) {
         return (
             <View style={[styles.emptyContainer, isDark && styles.emptyContainerDark]}>
-                <MaterialCommunityIcons 
-                    name="alert-circle" 
-                    size={32} 
+                <MaterialCommunityIcons
+                    name="alert-circle"
+                    size={32}
                     color={theme.color.error}
                 />
                 <ThemedText style={styles.emptyText}>chargement des essaies échoué</ThemedText>
@@ -259,10 +268,10 @@ const { user } = useAuth();
     if (!attempts?.length) {
         return (
             <View style={[styles.emptyContainer, isDark && styles.emptyContainerDark]}>
-                <MaterialCommunityIcons 
-                    name="history" 
-                    size={48} 
-                    color={isDark ? '#4B5563' : '#9CA3AF'} 
+                <MaterialCommunityIcons
+                    name="history"
+                    size={48}
+                    color={isDark ? '#4B5563' : '#9CA3AF'}
                 />
                 <ThemedText style={styles.emptyText}>Aucune tentative pour le moment</ThemedText>
                 <ThemedText style={styles.emptySubtext}>
@@ -270,7 +279,7 @@ const { user } = useAuth();
                 </ThemedText>
             </View>
         );
-    
+
     }
 
     return (
@@ -300,7 +309,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
+                shadowOffset: {width: 0, height: 2},
                 shadowOpacity: 0.1,
                 shadowRadius: 4,
             },
@@ -328,6 +337,7 @@ const styles = StyleSheet.create({
         right: 12,
     },
     statusText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 12,
         fontWeight: '600',
     },
@@ -341,6 +351,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     dateText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         color: '#6B7280',
     },
@@ -354,10 +365,12 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     progressLabel: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         fontWeight: '500',
     },
     progressText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         color: '#6B7280',
     },
@@ -396,10 +409,12 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     statLabel: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 12,
         color: '#6B7280',
     },
     statValue: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         fontWeight: '600',
     },
@@ -419,6 +434,7 @@ const styles = StyleSheet.create({
         borderTopColor: '#E5E7EB',
     },
     actionText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         color: theme.color.primary[500],
         fontWeight: '500',
@@ -434,12 +450,14 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         marginTop: 12,
+        fontFamily: theme.typography.fontFamily,
         fontSize: 16,
         fontWeight: '500',
         color: '#6B7280',
     },
     emptySubtext: {
         marginTop: 4,
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         color: '#9CA3AF',
     },

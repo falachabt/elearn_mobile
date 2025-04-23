@@ -67,7 +67,7 @@ export const useHaptics = (options: HapticOptions = { disableOnAndroid: false })
 
     // Load haptic settings from AsyncStorage
     const loadHapticSettings = async () => {
-        console.log("we are triging to load apptick setting")
+        // console.log("we are triging to load apptick setting")
         try {
             const storedSettings = await AsyncStorage.getItem(STORAGE_KEY_SETTINGS);
             if (storedSettings) {

@@ -131,7 +131,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.dark.background.secondary,
   },
   choiceTitle: {
-    fontSize: 20,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 20,
     fontWeight: "600",
     color: "#1A1A1A",
     marginBottom: 8,
@@ -140,7 +141,8 @@ const styles = StyleSheet.create({
     color: theme.color.gray[50],
   },
   choiceDescription: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     color: "#666666",
     lineHeight: 24,
   },

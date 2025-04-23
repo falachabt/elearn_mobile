@@ -18,6 +18,7 @@ interface Account extends Accounts {
     user_xp: UserXp
     user_streaks: UserStreak
     image: { url: string }
+    user_program_enrollments: { id : string}[]
 }
 
 type AuthContextType = {
@@ -39,7 +40,7 @@ const fetcher = async (email: string) => {
     try {
         const {data, error} = await supabase
             .from("accounts")
-            .select("*, user_xp(*), user_streaks(*)")
+            .select("*, user_xp(*), user_streaks(*), user_program_enrollments(*)")
             .eq("email", email)
             .single();
 
@@ -55,6 +56,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     // Auth state management
     const [session, setSession] = useState<Session | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isAccountCreating, setIsAccountCreating] = useState(false);
     const initialLoadRef = useRef(false);
     const streakCheckedRef = useRef(false);
 
@@ -67,15 +69,46 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             revalidateOnFocus: false,
             dedupingInterval: 2000,
             onSuccess: () => {
-                // Successfully loaded user data, ensure loading is false
-                setIsLoading(false);
+                // Successfully loaded user data, ensure loading is false if not creating account
+                if (!isAccountCreating) {
+                    setIsLoading(false);
+                }
             },
             onError: (error) => {
-                console.error("SWR error loading user:", error);
-                setIsLoading(false);
+                // Don't set loading to false if we're still creating an account
+                if (!isAccountCreating) {
+                    console.error("SWR error loading user:", error);
+                    setIsLoading(false);
+                }
             }
         }
     );
+
+    // Helper function to wait for account data to be created
+    const waitForAccountData = async (email: string, maxRetries = 5, retryDelay = 1000) => {
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                const { data, error } = await supabase
+                    .from("accounts")
+                    .select("*")
+                    .eq("email", email)
+                    .single();
+
+                if (data) {
+                    return data;
+                }
+
+                console.log(`Account data not available yet, retry ${i+1}/${maxRetries}`);
+                // Wait before retrying
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            } catch (err) {
+                console.log(`Error checking account data, retry ${i+1}/${maxRetries}`, err);
+                if (i === maxRetries - 1) throw err;
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+        }
+        throw new Error('Failed to retrieve account data after creation');
+    };
 
     // User streak check function
     const checkStreak = async () => {
@@ -131,6 +164,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // If signing out, ensure loading is false and reset refs
             if (!session) {
                 setIsLoading(false);
+                setIsAccountCreating(false);
                 streakCheckedRef.current = false;
             }
         });
@@ -142,12 +176,23 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     useEffect(() => {
         if (!initialLoadRef.current) return;
 
+        // If account creation is in progress, stay in loading state
+        if (isAccountCreating) {
+            return;
+        }
+
         if (!session) {
             // No session = not loading
             setIsLoading(false);
         }
         else if (session && userError) {
-            // Error loading user data
+            // Check if this is an expected error during signup
+            if (isAccountCreating) {
+                // This is expected during signup - stay in loading state
+                return;
+            }
+
+            // Handle other errors
             console.error("Error loading user data:", userError);
             setIsLoading(false);
         }
@@ -155,7 +200,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // User data loaded
             setIsLoading(false);
         }
-    }, [session, user, userError]);
+    }, [session, user, userError, isAccountCreating]);
 
     // Check streak when user data becomes available - but only once
     useEffect(() => {
@@ -191,6 +236,16 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     schema: 'public',
                     table: 'user_xp',
                     filter: `userid=eq.${user.id}`
+                },
+                () => {
+                    mutateUser();
+                }
+            ) .on('postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'user_program_enrollments',
+                    filter: `user_id=eq.${user.id}`
                 },
                 () => {
                     mutateUser();
@@ -243,40 +298,70 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         }
     };
 
-    const verifyOtp = async (email : string , token: string, password: string, type: string = "signup") => {
+    const verifyOtp = async (email: string, token: string, password: string, type: string = "signup") => {
         try {
             setIsLoading(true);
 
-            // to check with sms
-            const { error } = await supabase.auth.verifyOtp({ email , token, type: "email" });
-
-            if(type === "signup"){
-                // const { error: updateError } = await supabase.auth.updateUser({
-                //     // data: { role: "student", type: "student" , roles: ["student"] }
-                // });
-                // if(updateError) throw updateError;
+            // Set account creation flag if this is a signup
+            if (type === "signup") {
+                setIsAccountCreating(true);
             }
 
-            if (error) throw error;
+            // Verify OTP
+            const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
 
+            if (error) {
+                throw error;
+            }
+
+            // Get the session after verification
             const { data: { session } } = await supabase.auth.getSession();
 
-            if (session?.access_token) {
-                await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
-                    // await axios.post('https://elearn/api/mobile/auth/createAccount',
-                    { email, password },
-                    {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${session.access_token}`
+            if (!session?.access_token) {
+                throw new Error('Session not created after OTP verification');
+            }
+
+            // For signup flow, create the account
+            if (type === "signup" && session?.access_token) {
+                try {
+                    console.log("Creating account...");
+                    // Account creation API call
+                    await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
+                        { email, password },
+                        {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${session.access_token}`
+                            }
                         }
-                    }
-                );
+                    );
+
+                    console.log("Account creation API call successful, waiting for database...");
+
+                    // Wait for the account data to be available in the database
+                    await waitForAccountData(email);
+
+                    // Force revalidation of user data
+                    await mutateUser();
+
+                    console.log("Account created and data loaded successfully");
+                } catch (apiError) {
+                    console.error('Error in account creation process:', apiError);
+                    throw apiError;
+                }
             }
         } catch (error) {
             console.error('Error verifying OTP:', error);
-            setIsLoading(false);
             throw error;
+        } finally {
+            // Clear the account creation flag
+            setIsAccountCreating(false);
+
+            // If this is not signup, we can set loading to false here
+            if (type !== "signup") {
+                setIsLoading(false);
+            }
+            // For signup, loading state will be managed by the useEffect when user data loads
         }
     };
 
@@ -286,33 +371,94 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             streakCheckedRef.current = false;
 
             try {
-                await axios.post('https://elearn.ezadrive.com/api/mobile/auth/create',
-                    // await axios.post('http://192.168.1.168:3000/api/mobile/auth/create',
-                    {
-                        email,
-                        password
-                    },
-                    {
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
-            } catch (error) {
-                axios.isAxiosError(error) && console.log("error", error.response?.data?.error);
-                if (axios.isAxiosError(error) && error.response?.data?.error === "Email already exists in the system") {
-                    setIsLoading(false);
-                    throw new Error('email exists');
-                }
-            }
+                setIsAccountCreating(true);
+                const { data  , error } = await supabase.auth.signUp({
+                    email,
+                    password
+                });
 
-            const { error } = await supabase.auth.signInWithOtp({
-                email
-            });
-            if (error) {
+                // make the logic that create the account
+
+                if (data.session) {
+                    console.log("Sign up successful, session:", data.session);
+                    try {
+                        console.log("Creating account...");
+                        // Account creation API call
+                        await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
+                            { email, password },
+                            {
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${data.session.access_token}`
+                                }
+                            }
+                        );
+
+                        console.log("Account creation API call successful, waiting for database...");
+
+                        // Wait for the account data to be available in the database
+                        await waitForAccountData(email);
+
+                        // Force revalidation of user data
+                        await mutateUser();
+
+                        console.log("Account created and data loaded successfully");
+                    } catch (apiError) {
+                        console.error('Error in account creation process:', apiError);
+                        throw apiError;
+                    } finally {
+                        setIsAccountCreating(false);
+                        setIsLoading(false);
+                    }
+                } else {
+                    console.log("Sign up successful, no session");
+                }
+
+
+
+
+                if (error) {
+                    console.error("Sign up error:", error);
+                    setIsLoading(false);
+                    throw error;
+                }
+            } catch (error) {
+                console.error("Sign up exception:", error);
                 setIsLoading(false);
                 throw error;
             }
+
+
+
+            // try {
+            //     await axios.post('https://elearn.ezadrive.com/api/mobile/auth/create',
+            //         {
+            //             email,
+            //             password
+            //         },
+            //         {
+            //             headers: {
+            //                 'Content-Type': 'application/json'
+            //             }
+            //         }
+            //     );
+            // } catch (error) {
+            //     axios.isAxiosError(error) && console.log("error", error.response?.data?.error);
+            //     if (axios.isAxiosError(error) && error.response?.data?.error === "Email already exists in the system") {
+            //         setIsLoading(false);
+            //         throw new Error('email exists');
+            //     }
+            // }
+            //
+            // const { error } = await supabase.auth.signInWithOtp({
+            //     email
+            // });
+            // if (error) {
+            //     setIsLoading(false);
+            //     throw error;
+            // }
+            //
+
         } catch (error) {
             console.error('Error signing up:', error);
             setIsLoading(false);

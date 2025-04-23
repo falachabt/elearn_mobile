@@ -4,6 +4,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemedText } from '@/components/ThemedText';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CompactCourseCard from './CourseCard';
+import {theme} from "@/constants/theme";
 
 // TypeScript interfaces
 interface Category {
@@ -210,7 +211,8 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     categoryTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: 'bold',
     },
     seeAllButton: {
@@ -219,7 +221,8 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
     },
     seeAllText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         marginRight: 4,
         opacity: 0.8,
     },
@@ -237,7 +240,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#111827',
     },
     emptyText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         textAlign: 'center',
         marginTop: 16,
         color: '#6B7280',

@@ -7,12 +7,16 @@ import {programProgressKeys} from "@/constants/swr-path";
 interface School {
     id: string;
     name: string;
+    sigle: string;
 }
 
 interface Concours {
     id: string;
     name: string;
     school?: School;
+    study_cycles : {
+        level : number;
+    };
     concours_archives?: ArchiveComplete[];
 }
 

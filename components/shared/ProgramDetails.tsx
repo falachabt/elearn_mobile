@@ -146,7 +146,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   tagText: {
-    fontSize: 13,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 13,
     color: theme.color.primary[700],
     fontWeight: '500',
   },
@@ -154,7 +155,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   title: {
-    fontSize: 24,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 24,
     fontWeight: '700',
     color: '#1A1A1A',
     marginBottom: 24,
@@ -175,12 +177,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statLabel: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: theme.color.gray[600],
     marginTop: 4,
   },
   statValue: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '600',
     color: theme.color.primary[700],
   },
@@ -188,7 +192,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 18,
     fontWeight: '600',
     color: '#1A1A1A',
     marginBottom: 8,
@@ -197,7 +202,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   description: {
-    fontSize: 15,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 15,
     lineHeight: 22,
     color: theme.color.gray[600],
   },
@@ -218,12 +224,14 @@ const styles = StyleSheet.create({
     borderTopColor: theme.color.dark.border,
   },
   priceLabel: {
-    fontSize: 13,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 13,
     color: theme.color.gray[600],
     marginBottom: 2,
   },
   price: {
-    fontSize: 20,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 20,
     fontWeight: '700',
     color: theme.color.primary[500],
   },
@@ -241,7 +249,8 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 15,
     fontWeight: '600',
   },
 });

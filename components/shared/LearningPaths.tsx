@@ -361,18 +361,21 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   badgeText: {
-    fontSize: 12,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 12,
     fontWeight: '600',
   },
   progressContainer: {
     alignItems: 'flex-end',
   },
   progressText: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '700',
   },
   progressLabel: {
-    fontSize: 10,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 10,
     color: '#9CA3AF',
     fontWeight: '500',
   },
@@ -380,7 +383,8 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   title: {
-    fontSize: 18,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 18,
     fontWeight: '700',
     color: '#1F2937',
     marginBottom: 14,
@@ -401,7 +405,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statText: {
-    fontSize: 13,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 13,
     color: '#6B7280',
     fontWeight: '500',
   },
@@ -432,7 +437,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#065F46',
   },
   statusText: {
-    fontSize: 10,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 10,
     fontWeight: '600',
   },
   notStartedText: {
@@ -454,7 +460,8 @@ const styles = StyleSheet.create({
     color: '#34D399',
   },
   description: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: '#4B5563',
     lineHeight: 20,
     marginBottom: 14,
@@ -473,7 +480,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   durationText: {
-    fontSize: 13,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 13,
     color: '#6B7280',
     fontWeight: '500',
   },

@@ -326,7 +326,7 @@ const QuizDetail: React.FC = () => {
 
     // SWR fetch for quiz attempts
     const { data: quizAttempts } = useSWR<QuizAttempt[]>(
-        quizId ? `quiz-attempts-${quizId}-${user?.id}` : null,
+        quizId ? `quiz-attemptss-${quizId}-${user?.id}` : null,
         async () => {
             const { data } = await supabase
                 .from("quiz_attempts")
@@ -782,7 +782,8 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         flex: 1,
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: "600",
         textAlign: "center",
         marginHorizontal: 16,
@@ -828,12 +829,14 @@ const styles = StyleSheet.create({
         backgroundColor: "#1F2937",
     },
     statValue: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: "700",
         marginTop: 8,
     },
     statLabel: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: "#6B7280",
         marginTop: 4,
     },
@@ -852,7 +855,8 @@ const styles = StyleSheet.create({
         marginBottom: 100,
     },
     sectionTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: "600",
     },
     card: {
@@ -875,7 +879,8 @@ const styles = StyleSheet.create({
         backgroundColor: "#1F2937",
     },
     description: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         lineHeight: 24,
     },
     showMoreButton: {
@@ -918,7 +923,8 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     prerequisiteText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         flex: 1,
     },
     showMorePrereqs: {
@@ -951,7 +957,8 @@ const styles = StyleSheet.create({
         backgroundColor: "#374151",
     },
     tagText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     },
     footer: {
         position: "absolute",
@@ -987,7 +994,8 @@ const styles = StyleSheet.create({
     },
     startButtonText: {
         color: "#FFFFFF",
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: "600",
     },
     centerContainer: {
@@ -997,7 +1005,8 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     errorTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: "600",
         marginTop: 16,
         marginBottom: 8,
@@ -1024,7 +1033,8 @@ const styles = StyleSheet.create({
     retryButtonText: {
         color: '#FFFFFF',
         fontWeight: '500',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     },
     // Skeleton styles
     skeletonLine: {

@@ -161,7 +161,8 @@ const styles = StyleSheet.create({
     },
     numberText: {
         color: '#94A3B8',
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: '600',
     },
     itemMiddleContainer: {
@@ -169,7 +170,8 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     videoTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         marginBottom: 4,
     },
@@ -184,7 +186,8 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     videoDuration: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#64748B',
     },
     itemRightContainer: {
@@ -200,7 +203,8 @@ const styles = StyleSheet.create({
     },
     playingText: {
         color: '#2DD4BF',
-        fontSize: 10,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 10,
         fontWeight: '700',
         letterSpacing: 0.5,
     },

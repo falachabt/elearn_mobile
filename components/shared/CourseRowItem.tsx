@@ -159,7 +159,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     courseTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: "500",
         color: "#111827",
         marginBottom: 4,
@@ -169,7 +170,8 @@ const styles = StyleSheet.create({
         color: "#FFFFFF",
     },
     courseMetrics: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: "#6B7280",
     },
     courseMetricsDark: {

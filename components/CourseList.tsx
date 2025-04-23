@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import CourseRowItem from "./shared/CourseRowItem";
 import { ThemedText } from "@/components/ThemedText";
+import {theme} from "@/constants/theme";
 
 // Define proper TypeScript interfaces for our data
 interface Category {
@@ -98,7 +99,8 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     emptyText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         textAlign: 'center',
         opacity: 0.7,
     }

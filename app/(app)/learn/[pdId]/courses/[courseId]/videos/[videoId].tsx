@@ -217,7 +217,8 @@ const styles = StyleSheet.create({
     },
     errorText: {
         color: theme.color.error,
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     },
     header: {
         backgroundColor: theme.color.light.background.secondary,
@@ -244,7 +245,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     title: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: '600',
         color: theme.color.light.text.primary,
     },
@@ -294,12 +296,14 @@ const styles = StyleSheet.create({
         borderBottomColor: theme.color.dark.border,
     },
     videoTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: '600',
         marginBottom: 4,
     },
     videoDescription: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         opacity: 0.8,
         marginBottom: 8,
     },
@@ -307,7 +311,8 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     progressText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         opacity: 0.6,
     },
 });

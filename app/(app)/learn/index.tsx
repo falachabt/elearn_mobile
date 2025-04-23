@@ -278,7 +278,8 @@ const styles = StyleSheet.create({
         borderBottomColor: theme.color.dark.border,
     },
     title: {
-        fontSize: 24,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 24,
         fontWeight: 'bold',
         color: '#111827',
     },
@@ -286,7 +287,8 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     subtitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#6B7280',
         marginTop: 4,
     },
@@ -301,7 +303,8 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 12,
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#6B7280',
     },
     errorContainer: {
@@ -311,7 +314,8 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     errorText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#6B7280',
         textAlign: 'center',
         marginTop: 12,
@@ -325,7 +329,8 @@ const styles = StyleSheet.create({
     },
     retryText: {
         color: '#FFFFFF',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
     },
     listContainer: {
@@ -364,11 +369,13 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     schoolName: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#6B7280',
     },
     pathTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: 'bold',
         color: '#111827',
         marginBottom: 0,
@@ -391,7 +398,8 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
     progressText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: '#6B7280',
         marginTop: 4,
     },
@@ -413,7 +421,8 @@ const styles = StyleSheet.create({
         borderRadius: theme.border.radius.small
     },
     tagText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: '#065F46',
         marginLeft: 4,
     },
@@ -426,7 +435,8 @@ const styles = StyleSheet.create({
         borderRadius: theme.border.radius.small,
     },
     concoursText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: '#4F46E5',
         marginLeft: 4,
     },
@@ -436,7 +446,8 @@ const styles = StyleSheet.create({
         padding: 32,
     },
     emptyText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#6B7280',
         textAlign: 'center',
         marginTop: 12,
@@ -450,7 +461,8 @@ const styles = StyleSheet.create({
     },
     exploreButtonText: {
         color: '#FFFFFF',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
     },
     ribbonContainer: {
@@ -466,7 +478,8 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     concoursName: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#4CAF50',
         fontWeight: '600',
         marginBottom: 4,
@@ -492,7 +505,8 @@ const styles = StyleSheet.create({
     },
     statText: {
         marginLeft: 4,
-        fontSize: 13,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 13,
         color: '#4B5563',
         fontWeight: '500',
     },
@@ -510,7 +524,8 @@ const styles = StyleSheet.create({
     },
     dateText: {
         marginLeft: 4,
-        fontSize: 13,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 13,
         color: '#92400E',
         fontWeight: '500',
     },

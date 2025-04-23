@@ -266,7 +266,8 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     schoolText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: '500',
         color: '#4B5563',
     },
@@ -288,7 +289,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.primary[500],
     },
     progressText: {
-        fontSize: 11,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 11,
         fontWeight: '600',
         color: theme.color.primary[600],
         marginTop: 2,
@@ -300,7 +302,8 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     title: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: 'bold',
         color: '#1F2937',
         marginBottom: 2,
@@ -309,7 +312,8 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     concoursName: {
-        fontSize: 13,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 13,
         color: theme.color.primary[600],
         fontWeight: '500',
     },
@@ -341,7 +345,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#E5E7EB',
     },
     statText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: '500',
         color: '#1F2937',
         marginLeft: 4,
@@ -350,7 +355,8 @@ const styles = StyleSheet.create({
         color: '#F9FAFB',
     },
     statLabel: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: '#6B7280',
         marginLeft: 2,
     },
@@ -372,7 +378,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(225, 29, 72, 0.1)',
     },
     examText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: '500',
         color: theme.color.primary[600],
         marginLeft: 6,
