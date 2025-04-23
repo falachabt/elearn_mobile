@@ -240,7 +240,8 @@ const styles = StyleSheet.create({
         maxWidth: '80%',
     },
     categoryText: {
-        fontSize: 10,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 10,
         fontWeight: '500',
     },
     pinIcon: {
@@ -259,7 +260,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(129, 140, 248, 0.15)',
     },
     title: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
         color: '#111827',
         marginBottom: 8,
@@ -277,7 +279,8 @@ const styles = StyleSheet.create({
         marginRight: 4,
     },
     questionsText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: '#6B7280',
     },
     questionsTextDark: {
@@ -298,7 +301,8 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
     progressText: {
-        fontSize: 10,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 10,
         fontWeight: '500',
         marginTop: 4,
         textAlign: 'right',

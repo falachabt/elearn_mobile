@@ -14,6 +14,7 @@ import {useSound} from "@/hooks/useSound";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import PreloadWebView from "@/components/shared/learn/WebViewCourrseSection";
 import {programProgressKeys} from "@/constants/swr-path";
+import {theme} from "@/constants/theme";
 
 interface Course extends Courses {
     courses_content: CoursesContent[];
@@ -581,7 +582,8 @@ const styles = StyleSheet.create({
         borderColor: "#4B5563",
     },
     progressIndicatorText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: "600",
         color: "#4B5563",
     },
@@ -626,7 +628,8 @@ const styles = StyleSheet.create({
         borderBottomColor: '#374151',
     },
     modalTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: '700',
         color: '#111827',
     },
@@ -678,7 +681,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#4B5563',
     },
     sectionNumberText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: '600',
         color: '#4B5563',
     },
@@ -686,7 +690,8 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     sectionName: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         flex: 1,
         color: '#4B5563',
     },
@@ -720,7 +725,8 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 16,
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: "#4B5563",
     },
     progressBarContainer: {
@@ -771,7 +777,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     courseTitle: {
-        fontSize: 19,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 19,
         fontWeight: "700",
         color: "#111827",
         marginBottom: 4,
@@ -780,7 +787,8 @@ const styles = StyleSheet.create({
         color: "#FFFFFF",
     },
     courseInfo: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: "#6B7280",
     },
     courseInfoDark: {
@@ -829,7 +837,8 @@ const styles = StyleSheet.create({
     },
     navigationButtonText: {
         color: "#FFFFFF",
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         marginLeft: 8,
         marginRight: 8,
     },

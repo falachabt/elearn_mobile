@@ -147,7 +147,8 @@ const Profile = () => {
                 <Text style={{
                     flex: 1,
                     marginLeft: 12,
-                    fontSize: 16,
+                    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
                     color: isDarkMode ? '#E5E7EB' : '#1F2937',
                 }}>
                     {item.label}
@@ -351,7 +352,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     email: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#374151',
         fontWeight: '500',
     },
@@ -359,7 +361,8 @@ const styles = StyleSheet.create({
         color: '#E5E7EB',
     },
     studentId: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: theme.color.primary[500],
         marginTop: 4,
     },
@@ -378,7 +381,8 @@ const styles = StyleSheet.create({
     },
     editButtonText: {
         color: '#FFFFFF',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
     },
     statsContainer: {
@@ -421,7 +425,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.dark.background.tertiary,
     },
     statValue: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: 'bold',
         color: '#1F2937',
     },
@@ -429,7 +434,8 @@ const styles = StyleSheet.create({
         color: '#E5E7EB',
     },
     statLabel: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: '#6B7280',
         marginTop: 4,
     },
@@ -474,7 +480,8 @@ const styles = StyleSheet.create({
     menuLabel: {
         flex: 1,
         marginLeft: 12,
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#1F2937',
     },
     menuLabelDark: {
@@ -493,7 +500,8 @@ const styles = StyleSheet.create({
     },
     logoutButtonText: {
         color: '#FFFFFF',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
     },
     modalOverlay: {
@@ -524,7 +532,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.dark.background.secondary,
     },
     modalTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: 'bold',
         color: '#1F2937',
         marginBottom: theme.spacing.small,
@@ -533,7 +542,8 @@ const styles = StyleSheet.create({
         color: '#E5E7EB',
     },
     modalMessage: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#374151',
         textAlign: 'center',
         marginBottom: theme.spacing.medium,
@@ -562,7 +572,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#EF4444',
     },
     modalButtonText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         color: '#1F2937',
     },

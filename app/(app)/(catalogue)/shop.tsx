@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef, useCallback, useMemo} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
     View,
     Text,
@@ -10,19 +10,20 @@ import {
     ScrollView,
     Modal,
     FlatList,
-    Dimensions,
-    GestureResponderEvent,
-    ListRenderItemInfo
+    Animated,
+    ListRenderItemInfo,
+    Pressable
 } from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {theme} from "@/constants/theme";
 import {useCart} from "@/hooks/useCart";
-import {Stack, useRouter} from "expo-router";
+import {useRouter} from "expo-router";
 import * as Animatable from 'react-native-animatable';
 import {
     BottomSheetBackdrop,
     BottomSheetModal,
     BottomSheetModalProvider,
+    BottomSheetScrollView,
     BottomSheetBackdropProps
 } from "@gorhom/bottom-sheet";
 import {supabase} from "@/lib/supabase";
@@ -30,7 +31,7 @@ import {ProgramCard} from "@/components/shared/ProgramCard";
 import {useAuth} from "@/contexts/auth";
 import useSWR from 'swr';
 
-// Define proper types for your data structures
+// Types et interfaces (inchangés)
 export interface CourseItem {
     id: number;
     name: string;
@@ -68,6 +69,9 @@ export interface Concour {
     id: string;
     name: string;
     schoolId?: string;
+    image?: {
+        url : string;
+    };
     school: School;
     city_id: string;
     cycle_id: string;
@@ -115,7 +119,45 @@ export interface FilterOptionProps {
     onSelect: () => void;
 }
 
-// Optimized fetcher that gets programs with details in a single query
+// PARAMÈTRE DE MODE PRIX UNIQUE - Modifiez cette valeur pour activer/désactiver
+// true = toutes les formations directement à 7900 FCFA (l'utilisateur a déjà fait son premier achat)
+// false = système de formules normal
+
+
+// Prix en mode prix unique
+const FIXED_PRICE = 7900; // Prix de toutes les formations en mode prix fixe
+
+// Définition des formules de prix (uniquement pour le mode formules)
+const PRICING_PLANS = [
+    {
+        id: 'essential',
+        name: 'Formule Essentielle',
+        description: 'Première formation: 14 900 FCFA + 7900 FCFA pour toutes nouvelles souscriptions à une formation.',
+        basePrice: 14900,
+        additionalPrice: 7900,
+        threshold: 1,
+        color: 'green'
+    },
+    {
+        id: 'advantage',
+        name: 'Formule Avantage',
+        description: 'Pack complet de trois formations',
+        price: 24900,
+        threshold: 3,
+        color: 'orange',
+        recommended: true
+    },
+    {
+        id: 'excellence',
+        name: 'Formule Excellence',
+        description: 'Formations illimitées pendant 12 mois',
+        price: 39500,
+        threshold: 5,
+        color: '#4F46E5'
+    }
+];
+
+// Fonctions fetcher (inchangées)
 const optimizedProgramsFetcher = async (userId: string): Promise<Course[]> => {
     if (!userId) return [];
 
@@ -143,7 +185,6 @@ const optimizedProgramsFetcher = async (userId: string): Promise<Course[]> => {
         }
 
         // Fallback to standard query if RPC fails
-        console.log("Using standard query fallback");
         const { data: fallbackData, error: fallbackError } = await supabase
             .from("concours_learningpaths")
             .select(`
@@ -163,6 +204,7 @@ const optimizedProgramsFetcher = async (userId: string): Promise<Course[]> => {
                     id, 
                     name, 
                     school:school_id(id, name), 
+                    image,
                     city_id, 
                     cycle_id
                 )
@@ -171,10 +213,9 @@ const optimizedProgramsFetcher = async (userId: string): Promise<Course[]> => {
 
         if (fallbackError) throw fallbackError;
 
-        // Calculate missing counts (slightly less efficient)
-        const programsWithCounts = await Promise.all((fallbackData as Course[]).map(async program => {
+        // Calculate missing counts
+        const programsWithCounts = await Promise.all((fallbackData as unknown as Course[]).map(async program => {
             try {
-                // Get exercise count
                 const lpId = program.learning_path.id;
                 const concourId = program.concour.id;
 
@@ -222,7 +263,6 @@ const optimizedProgramsFetcher = async (userId: string): Promise<Course[]> => {
     }
 };
 
-// Load program details on-demand for a specific program
 const loadProgramDetails = async (programId: number): Promise<ProgramDetails | null> => {
     if (!programId) return null;
 
@@ -256,7 +296,6 @@ const loadProgramDetails = async (programId: number): Promise<ProgramDetails | n
     }
 };
 
-// Original fetchProgramDetails function (used as fallback)
 const fetchProgramDetails = async (lpId: string | number, concourId: string): Promise<ProgramDetails> => {
     try {
         // Fetch courses
@@ -282,6 +321,7 @@ const fetchProgramDetails = async (lpId: string | number, concourId: string): Pr
             .eq("lpId", lpId);
 
         // Fetch exercises
+        // @ts-ignore
         const courseIds = coursesData?.map(item => item.course?.id).filter(Boolean) || [];
         let exercisesData: ExerciseItem[] = [];
 
@@ -301,8 +341,8 @@ const fetchProgramDetails = async (lpId: string | number, concourId: string): Pr
             .eq("concour_id", concourId);
 
         return {
-            courses: coursesData?.map(item => item.course) || [],
-            quizzes: quizzesData?.map(item => item.quiz) || [],
+            courses: coursesData?.map(item => item.course) || [] as any,
+            quizzes: quizzesData?.map(item => item.quiz) || [] as any,
             exercises: exercisesData || [],
             archives: archivesData as ArchiveItem[] || []
         };
@@ -317,7 +357,6 @@ const fetchProgramDetails = async (lpId: string | number, concourId: string): Pr
     }
 };
 
-// Prefetch filter options in background
 const prefetchFilterOptions = async (): Promise<FilterOptions> => {
     try {
         // Fetch all filter options in parallel
@@ -340,6 +379,40 @@ const prefetchFilterOptions = async (): Promise<FilterOptions> => {
             schools: []
         };
     }
+};
+
+// Composant de visualisation de progression des formules (utilisé seulement si mode prix fixe désactivé)
+const FormulaProgressBar = ({planId, currentCount, threshold,color,isDark}: {planId: string, currentCount: number,threshold: number,color: string, isDark: boolean}) => {
+    // Calcul du pourcentage de progression
+    const progress = Math.min(currentCount / threshold, 1);
+
+    // Largeur dynamique de la barre de progression
+    const progressWidth = `${progress * 100}%`;
+
+    return (
+        <View style={styles.progressBarContainer}>
+            <View style={[
+                styles.progressBarBackground,
+                isDark && styles.progressBarBackgroundDark
+            ]}>
+                <View
+                    style={[
+                        styles.progressBarFill,
+                        // @ts-ignore
+                        { width: progressWidth, backgroundColor: color }
+                    ]}
+                />
+            </View>
+            <View style={styles.progressLabels}>
+                <Text style={[styles.progressText, isDark && styles.progressTextDark]}>
+                    {currentCount}
+                </Text>
+                <Text style={[styles.progressText, isDark && styles.progressTextDark]}>
+                    {threshold}
+                </Text>
+            </View>
+        </View>
+    );
 };
 
 // Skeleton screen component
@@ -390,24 +463,36 @@ export default function ShopPage(): JSX.Element {
     const isDark = useColorScheme() === "dark";
     const router = useRouter();
     const {user} = useAuth();
+    const FIXED_PRICE_MODE = (user?.user_program_enrollments?.length || 0) > 0 || false;
 
-    // Filter states
+
+
+    // État des filtres (inchangé)
     const [showFilters, setShowFilters] = useState<boolean>(false);
     const [selectedCycle, setSelectedCycle] = useState<string | null>(null);
     const [selectedCity, setSelectedCity] = useState<string | null>(null);
     const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
     const [sortBy, setSortBy] = useState<string>('default');
 
-    // Infinite scroll states
-    const [displayCount, setDisplayCount] = useState<number>(10); // Initial number of items to show
+    // États pour le lazy loading (inchangés)
+    const [displayCount, setDisplayCount] = useState<number>(10);
     const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
-    // Performance Optimizations
+    // États pour l'optimisation des performances (inchangés)
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [showSkeleton, setShowSkeleton] = useState<boolean>(true);
     const programDetailsCache = useRef<Map<number, ProgramDetails>>(new Map());
 
-    // Memoize filter dependencies to prevent unnecessary re-renders
+    // États pour la promotion des tarifs (uniquement en mode formules)
+    const [suggestedPlan, setSuggestedPlan] = useState<any>(null);
+    const [cartIconPulse] = useState(new Animated.Value(1));
+
+    // Configuration pour le bottom sheet des formules (uniquement en mode formules)
+    const formulaDetailsRef = useRef<BottomSheetModal>(null);
+    const formulaProgressRef = useRef<BottomSheetModal>(null);
+    const snapPoints = useMemo(() => ['70%', '90%'], []);
+
+    // Mémoriser les dépendances de filtrage pour éviter des re-rendus inutiles
     const filterDependencies = useMemo(() => ({
         searchQuery,
         selectedCycle,
@@ -416,42 +501,140 @@ export default function ShopPage(): JSX.Element {
         sortBy
     }), [searchQuery, selectedCycle, selectedCity, selectedSchool, sortBy]);
 
-    // 1. Fetch programs with optimized SWR configuration
+    // Animation pour faire pulser l'icône du panier (uniquement en mode formules)
+    useEffect(() => {
+        if (!FIXED_PRICE_MODE && cartItems.length > 0) {
+            const pulseAnimation = Animated.loop(
+                Animated.sequence([
+                    Animated.timing(cartIconPulse, {
+                        toValue: 1.2,
+                        duration: 800,
+                        useNativeDriver: true
+                    }),
+                    Animated.timing(cartIconPulse, {
+                        toValue: 1,
+                        duration: 800,
+                        useNativeDriver: true
+                    })
+                ])
+            );
+
+            // Appliquer l'animation seulement dans certains cas stratégiques
+            if (cartItems.length === 2 || cartItems.length === 4) {
+                pulseAnimation.start();
+            }
+
+            return () => {
+                pulseAnimation.stop();
+            };
+        }
+    }, [cartItems.length, cartIconPulse]);
+
+    // 1. Récupération des programmes avec configuration SWR optimisée
     const { data: programs, error: programsError, isLoading: programsLoading } = useSWR(
         user?.id ? ['programs', user.id] : null,
         () => optimizedProgramsFetcher(user?.id as string),
         {
             revalidateOnFocus: false,
             dedupingInterval: 600000, // 10 minutes
-            focusThrottleInterval: 5000, // 5 seconds
+            focusThrottleInterval: 5000, // 5 secondes
             errorRetryCount: 3,
-            keepPreviousData: true, // Keep showing previous data while fetching
+            keepPreviousData: true,
             onSuccess: () => {
-                // Hide skeleton after data is loaded
                 setTimeout(() => setShowSkeleton(false), 300);
                 setIsInitialLoad(false);
             }
         }
     );
 
-    // 2. Prefetch filter options in the background
+    useEffect(() => {
+        if (programs && programs.length > 0) {
+            setShowSkeleton(false);
+            setIsInitialLoad(false);
+        }
+    }, [programs]);
+
+    // 2. Préchargement des options de filtrage en arrière-plan
     const { data: filterOptions, error: filterOptionsError } = useSWR<FilterOptions>(
         'filterOptions',
         prefetchFilterOptions,
         {
             revalidateOnFocus: false,
-            dedupingInterval: 3600000, // 1 hour
-            suspense: false, // Don't block rendering
+            dedupingInterval: 3600000, // 1 heure
+            suspense: false,
         }
     );
 
-    // 3. Memoize the filtered courses to prevent recalculation
+    // Fonctions de calcul des prix (adaptées pour le mode prix fixe)
+    const calculateTotalPrice = useCallback(() => {
+        if (!cartItems.length) return 0;
+
+        if (FIXED_PRICE_MODE) {
+            // Mode prix fixe: toutes les formations directement au tarif réduit
+            return cartItems.length * FIXED_PRICE;
+        } else {
+            // Mode formules
+            const cartTotalBeforeFormula = cartItems.reduce((sum, item) => sum + item.price, 0);
+
+            // Appliquer les formules selon le nombre d'items
+            if (cartItems.length >= 5) {
+                // Formule Excellence: prix fixe pour nombre illimité
+                return PRICING_PLANS.find(plan => plan.id === 'excellence')?.price || 0;
+            }
+            else if (cartItems.length === 3) { // Exactement 3 pour Avantage
+                // Formule Avantage: seulement pour exactement 3 formations
+                return PRICING_PLANS.find(plan => plan.id === 'advantage')?.price || 0;
+            }
+            else if (cartItems.length > 0) {
+                // Formule Essentielle: première formation + prix réduit pour les suivantes
+                const essentialPlan = PRICING_PLANS.find(plan => plan.id === 'essential');
+                const firstCoursePrice = essentialPlan?.basePrice || 0;
+                const additionalCoursePrice = essentialPlan?.additionalPrice || 0;
+                const additionalCourses = cartItems.length - 1;
+                return firstCoursePrice + (additionalCourses * additionalCoursePrice);
+            }
+
+            return 0;
+        }
+    }, [cartItems]);
+
+    // Détermine quelle formule est applicable (uniquement en mode formules)
+    const getApplicableFormula = useCallback(() => {
+        if (FIXED_PRICE_MODE) return null;
+
+        if (cartItems.length >= 5) {
+            return PRICING_PLANS.find(plan => plan.id === 'excellence');
+        } else if (cartItems.length === 3) {
+            return PRICING_PLANS.find(plan => plan.id === 'advantage');
+        } else if (cartItems.length > 0) {
+            return PRICING_PLANS.find(plan => plan.id === 'essential');
+        }
+        return null;
+    }, [cartItems]);
+
+    // Mise à jour des suggestions de formules (uniquement en mode formules)
+    useEffect(() => {
+        if (!FIXED_PRICE_MODE && cartItems.length > 0) {
+            // Déterminer la meilleure formule
+            const bestPlan = getApplicableFormula();
+
+            if (bestPlan) {
+                setSuggestedPlan(bestPlan);
+            } else {
+                setSuggestedPlan(null);
+            }
+        } else {
+            setSuggestedPlan(null);
+        }
+    }, [cartItems, getApplicableFormula]);
+
+    // 3. Mémoriser les courses filtrées pour éviter de recalculer
     const applyFiltersCallback = useCallback((coursesToFilter: Course[]): Course[] => {
         if (!coursesToFilter || coursesToFilter.length === 0) return [];
 
         let filtered = [...coursesToFilter];
 
-        // Apply search filter
+        // Appliquer le filtre de recherche
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             filtered = filtered.filter(course =>
@@ -461,22 +644,22 @@ export default function ShopPage(): JSX.Element {
             );
         }
 
-        // Apply cycle filter
+        // Appliquer le filtre de cycle
         if (selectedCycle) {
             filtered = filtered.filter(course => course?.concour?.cycle_id === selectedCycle);
         }
 
-        // Apply city filter
+        // Appliquer le filtre de ville
         if (selectedCity) {
             filtered = filtered.filter(course => course?.concour?.city_id === selectedCity);
         }
 
-        // Apply school filter
+        // Appliquer le filtre d'école
         if (selectedSchool) {
             filtered = filtered.filter(course => course?.concour?.school?.id === selectedSchool);
         }
 
-        // Apply sorting
+        // Appliquer le tri
         switch(sortBy) {
             case 'price-asc':
                 filtered.sort((a, b) => a.price - b.price);
@@ -485,7 +668,7 @@ export default function ShopPage(): JSX.Element {
                 filtered.sort((a, b) => b.price - a.price);
                 break;
             default:
-                // Sort by school name by default
+                // Tri par nom d'école par défaut
                 filtered.sort((a, b) =>
                     a.concour.school.name.localeCompare(b.concour.school.name)
                 );
@@ -495,23 +678,45 @@ export default function ShopPage(): JSX.Element {
         return filtered;
     }, [filterDependencies]);
 
-    // 4. Get displayed items based on display count for infinite scroll
+    // 4. Obtenir les éléments affichés en fonction du compte d'affichage pour le défilement infini
     const getDisplayedItems = useCallback((allResults: Course[]): Course[] => {
         return allResults.slice(0, displayCount);
     }, [displayCount]);
 
-    // 5. Apply filters and update state when data or filters change
+    // 5. Appliquer les filtres et mettre à jour l'état lorsque les données ou les filtres changent
     useEffect(() => {
         if (programs) {
             const filtered = applyFiltersCallback(programs);
             setFilteredCourses(filtered);
-
-            // Reset display count when filters change
-            setDisplayCount(10); // Back to initial count
+            setDisplayCount(10); // Revenir au compte initial
         }
     }, [programs, applyFiltersCallback]);
 
-    // Handlers for user interactions
+    // Gestionnaires pour les bottom sheets (utilisé uniquement en mode formules)
+    const handleFormulaDetailsClick = useCallback(() => {
+        if (!FIXED_PRICE_MODE) {
+            formulaDetailsRef.current?.present();
+        }
+    }, []);
+
+    const handleFormulaProgressClick = useCallback(() => {
+        if (!FIXED_PRICE_MODE) {
+            formulaProgressRef.current?.present();
+        }
+    }, []);
+
+    // Gestion du clic sur "Continuer vers le paiement"
+    const handleContinueToPayment = useCallback(() => {
+        formulaProgressRef.current?.dismiss();
+        formulaDetailsRef.current?.dismiss();
+        router.push("/(app)/(catalogue)/cart");
+    }, [router]);
+
+    const isInCart = useCallback((id: number): boolean =>
+            cartItems.some((item) => item.program_id === id),
+        [cartItems]);
+
+    // Gestionnaires pour les interactions de l'utilisateur
     const handleCartAction = useCallback(async (course: Course): Promise<void> => {
         try {
             if (isInCart(course.id)) {
@@ -522,11 +727,7 @@ export default function ShopPage(): JSX.Element {
         } catch (error) {
             console.error("Cart action error:", error);
         }
-    }, [cartItems, addToCart, removeFromCart]);
-
-    const isInCart = useCallback((id: number): boolean =>
-            cartItems.some((item) => item.program_id === id),
-        [cartItems]);
+    }, [cartItems, addToCart, removeFromCart, isInCart]);
 
     const resetFilters = useCallback((): void => {
         setSearchQuery('');
@@ -536,27 +737,21 @@ export default function ShopPage(): JSX.Element {
         setSortBy('default');
     }, []);
 
-    // Enhanced load more function with loading state
+    // Fonction de chargement améliorée avec état de chargement
     const handleLoadMore = useCallback(async (): Promise<void> => {
-        // Check if there are more items to display and not already loading
         if (displayCount < filteredCourses.length && !loadingMore) {
             setLoadingMore(true);
-
-            // Simulate a slight delay for better UX
             await new Promise(resolve => setTimeout(resolve, 300));
-
-            // Increase the number of items to display
             setDisplayCount(prevCount => prevCount + 10);
             setLoadingMore(false);
         }
     }, [displayCount, filteredCourses.length, loadingMore]);
 
-    // Handle program details fetching
+    // Gestion de la récupération des détails du programme
     const handleProgramExpand = useCallback(async (programId: number): Promise<any> => {
-        // Check if we already have details cached
+        // Vérifier si les détails sont déjà en cache
         if (programDetailsCache.current.has(programId)) {
             const cachedDetails = programDetailsCache.current.get(programId);
-            // Also update state so the component re-renders
             setProgramDetailsMap(prev => ({
                 ...prev,
                 [programId]: cachedDetails
@@ -564,19 +759,15 @@ export default function ShopPage(): JSX.Element {
             return cachedDetails;
         }
 
-        // If not, fetch details and cache them
+        // Sinon, récupérer les détails et les mettre en cache
         try {
             const details = await loadProgramDetails(programId);
             if (details) {
-                // Cache for future use
                 programDetailsCache.current.set(programId, details);
-
-                // Also update state so component re-renders with details
                 setProgramDetailsMap(prev => ({
                     ...prev,
                     [programId]: details
                 }));
-
                 return details;
             }
         } catch (error) {
@@ -586,24 +777,107 @@ export default function ShopPage(): JSX.Element {
         return null;
     }, []);
 
-    // UI rendering functions
-    const renderHeaderRight = useCallback((): JSX.Element => (
-        <TouchableOpacity
-            style={styles.cartButton}
-            onPress={() => router.push("/(app)/(catalogue)/cart")}
-        >
-            <MaterialCommunityIcons
-                name="cart"
-                size={24}
-                color={isDark ? "#FFF" : "#000"}
-            />
-            {cartItems.length > 0 && (
-                <View style={styles.cartBadge}>
-                    <Text style={styles.cartBadgeText}>{cartItems.length}</Text>
+    // Rendu de l'arrière-plan amélioré avec animation de fondu
+    const renderBackdrop = useCallback((props: BottomSheetBackdropProps) => (
+        <BottomSheetBackdrop
+            {...props}
+            disappearsOnIndex={-1}
+            appearsOnIndex={0}
+            opacity={0.8}
+            pressBehavior="close"
+        />
+    ), []);
+
+    // Fonctions de rendu de l'interface utilisateur
+    const renderHeaderRight = useCallback((): JSX.Element => {
+        // Si mode prix fixe, afficher simplement l'icône du panier
+        if (FIXED_PRICE_MODE) {
+            return (
+                <View style={styles.headerRightContainer}>
+                    <TouchableOpacity
+                        style={styles.cartButton}
+                        onPress={() => router.push("/(app)/(catalogue)/cart")}
+                    >
+                        <MaterialCommunityIcons
+                            name="cart"
+                            size={24}
+                            color={cartItems.length > 0 ? (isDark ? "#FFFFFF" : "#166534") : (isDark ? "#FFFFFF" : "#000000")}
+                        />
+                        {cartItems.length > 0 && (
+                            <View style={[styles.cartBadge, { backgroundColor: isDark ? "#86EFAC" : "#166534" }]}>
+                                <Text style={styles.cartBadgeText}>{cartItems.length}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 </View>
-            )}
-        </TouchableOpacity>
-    ), [cartItems.length, isDark, router]);
+            );
+        }
+
+        // En mode formules, afficher les badges et le panier
+        const nextTierItems = cartItems.length < 3 ? 3 - cartItems.length : cartItems.length < 5 ? 5 - cartItems.length : 0;
+        const hasEligibleAdvantage = cartItems.length === 3;
+        const hasEligibleExcellence = cartItems.length >= 5;
+        const formulaIconColor = suggestedPlan?.color || (isDark ? '#FFF' : '#000');
+
+        return (
+            <View style={styles.headerRightContainer}>
+                {/* Bouton pour afficher les formules */}
+                {cartItems.length > 0 && (
+                    <TouchableOpacity
+                        style={styles.packageButton}
+                        onPress={handleFormulaProgressClick}
+                    >
+                        <MaterialCommunityIcons
+                            name="tag-multiple"
+                            size={24}
+                            color={formulaIconColor}
+                        />
+
+                        {/* Afficher un badge approprié selon le statut */}
+                        {(hasEligibleAdvantage || hasEligibleExcellence) ? (
+                            <View style={[styles.formulaEligibleBadge, { backgroundColor: suggestedPlan?.color || '#166534' }]}>
+                                <MaterialCommunityIcons name="check" size={12} color="#FFFFFF" />
+                            </View>
+                        ) : nextTierItems === 1 ? (
+                            <View style={[styles.formulaAlmostBadge, { borderColor: suggestedPlan?.color || '#166534' }]}>
+                                <Text style={[styles.formulaAlmostBadgeText, { color: suggestedPlan?.color || '#166534' }]}>
+                                    +1
+                                </Text>
+                            </View>
+                        ) : null}
+                    </TouchableOpacity>
+                )}
+
+                {/* Bouton du panier avec animation */}
+                <Animated.View style={{
+                    transform: [{ scale: cartItems.length > 0 ? cartIconPulse : 1 }]
+                }}>
+                    <TouchableOpacity
+                        style={styles.cartButton}
+                        onPress={() => router.push("/(app)/(catalogue)/cart")}
+                    >
+                        <MaterialCommunityIcons
+                            name="cart"
+                            size={24}
+                            color={cartItems.length > 0 ? (isDark ? "#FFFFFF" : "#166534") : (isDark ? "#FFFFFF" : "#000000")}
+                        />
+                        {cartItems.length > 0 && (
+                            <View style={[styles.cartBadge, { backgroundColor: isDark ? "#86EFAC" : "#166534" }]}>
+                                <Text style={styles.cartBadgeText}>{cartItems.length}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        );
+    }, [
+        cartItems.length,
+        isDark,
+        suggestedPlan,
+        handleFormulaProgressClick,
+        cartIconPulse,
+        router
+    ]);
 
     const renderFilterOption = useCallback(({ item, selected, onSelect }: FilterOptionProps): JSX.Element => (
         <TouchableOpacity
@@ -631,17 +905,6 @@ export default function ShopPage(): JSX.Element {
             )}
         </TouchableOpacity>
     ), [isDark]);
-
-    const renderBackdrop = useCallback(
-        (props: BottomSheetBackdropProps) => (
-            <BottomSheetBackdrop
-                {...props}
-                disappearsOnIndex={-1}
-                appearsOnIndex={0}
-            />
-        ),
-        []
-    );
 
     const renderEmptyState = useCallback((): JSX.Element => (
         <View style={styles.emptyContainer}>
@@ -737,7 +1000,7 @@ export default function ShopPage(): JSX.Element {
         );
     }, [filterOptions, selectedCycle, selectedCity, selectedSchool, sortBy, isDark, resetFilters]);
 
-    // Render filter modal
+    // Rendu du modal de filtre
     const renderFilterModal = useCallback((): JSX.Element | null => {
         if (!filterOptions) return null;
 
@@ -764,7 +1027,7 @@ export default function ShopPage(): JSX.Element {
                         </View>
 
                         <ScrollView style={styles.modalScroll}>
-                            {/* Cycle Filter */}
+                            {/* Filtre de cycle */}
                             <View style={styles.filterSection}>
                                 <Text style={[styles.filterSectionTitle, isDark && styles.filterSectionTitleDark]}>
                                     Niveau d'étude
@@ -783,7 +1046,7 @@ export default function ShopPage(): JSX.Element {
                                 />
                             </View>
 
-                            {/* City Filter */}
+                            {/* Filtre de ville */}
                             <View style={styles.filterSection}>
                                 <Text style={[styles.filterSectionTitle, isDark && styles.filterSectionTitleDark]}>
                                     Ville
@@ -802,7 +1065,7 @@ export default function ShopPage(): JSX.Element {
                                 />
                             </View>
 
-                            {/* School Filter */}
+                            {/* Filtre d'école */}
                             <View style={styles.filterSection}>
                                 <Text style={[styles.filterSectionTitle, isDark && styles.filterSectionTitleDark]}>
                                     École
@@ -821,7 +1084,7 @@ export default function ShopPage(): JSX.Element {
                                 />
                             </View>
 
-                            {/* Sort By */}
+                            {/* Tri */}
                             <View style={styles.filterSection}>
                                 <Text style={[styles.filterSectionTitle, isDark && styles.filterSectionTitleDark]}>
                                     Trier par
@@ -913,17 +1176,556 @@ export default function ShopPage(): JSX.Element {
         );
     }, [filterOptions, showFilters, isDark, selectedCycle, selectedCity, selectedSchool, sortBy, renderFilterOption, resetFilters]);
 
-    // Compute displayed courses once, for all renders
+    // Bottom sheet de détails des formules (uniquement si mode formules)
+    const renderFormulaDetailsSheet = useCallback(() => {
+        if (FIXED_PRICE_MODE) return null;
+
+        return (
+            <BottomSheetModal
+                ref={formulaDetailsRef}
+                index={1}
+                snapPoints={snapPoints}
+                backdropComponent={renderBackdrop}
+                handleIndicatorStyle={styles.sheetHandle}
+                backgroundStyle={[styles.sheetBackground, isDark && styles.sheetBackgroundDark]}
+                enablePanDownToClose={true}
+            >
+                <View style={styles.packageHeader}>
+                    <Text style={[styles.packageTitle, isDark && styles.packageTitleDark]}>
+                        Nos formules d'abonnement
+                    </Text>
+                    <TouchableOpacity onPress={() => formulaDetailsRef.current?.dismiss()}>
+                        <MaterialCommunityIcons
+                            name="close"
+                            size={24}
+                            color={isDark ? theme.color.gray[400] : theme.color.gray[600]}
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                <BottomSheetScrollView contentContainerStyle={styles.packageScrollContent}>
+                    <Text style={[styles.formulasTitle, isDark && styles.formulasTitleDark]}>
+                        Choisissez la formule qui vous convient
+                    </Text>
+
+                    {/* Formule Essentielle */}
+                    <Animatable.View
+                        animation="fadeInUp"
+                        delay={100}
+                        style={[styles.packageCard, isDark && styles.packageCardDark]}
+                    >
+                        <View style={[styles.packageBadge, { backgroundColor: PRICING_PLANS[0].color }]}>
+                            <Text style={styles.packageBadgeText}>
+                                À l'unité
+                            </Text>
+                        </View>
+
+                        <Text style={[styles.packageName, isDark && styles.packageNameDark]}>
+                            {PRICING_PLANS[0].name}
+                        </Text>
+
+                        <Text style={[styles.packageDescription, isDark && styles.packageDescriptionDark]}>
+                            {PRICING_PLANS[0].description}
+                        </Text>
+
+                        <View style={styles.pricingRow}>
+                            <Text style={[styles.packagePrice, isDark && styles.packagePriceDark]}>
+                                À partir de {PRICING_PLANS[0].basePrice?.toLocaleString('fr-FR')} FCFA
+                            </Text>
+                        </View>
+
+                        <View style={styles.featuresList}>
+                            <View style={styles.featureRow}>
+                                <MaterialCommunityIcons
+                                    name="check-circle"
+                                    size={18}
+                                    color={isDark ? PRICING_PLANS[0].color : PRICING_PLANS[0].color}
+                                />
+                                <Text style={[styles.featureText, isDark && styles.featureTextDark]}>
+                                    Première formation: {PRICING_PLANS[0].basePrice?.toLocaleString('fr-FR')} FCFA
+                                </Text>
+                            </View>
+                            <View style={styles.featureRow}>
+                                <MaterialCommunityIcons
+                                    name="check-circle"
+                                    size={18}
+                                    color={isDark ? PRICING_PLANS[0].color : PRICING_PLANS[0].color}
+                                />
+                                <Text style={[styles.featureText, isDark && styles.featureTextDark]}>
+                                    Formations supplémentaires: {PRICING_PLANS[0].additionalPrice?.toLocaleString('fr-FR')} FCFA chacune
+                                </Text>
+                            </View>
+                            <View style={styles.featureRow}>
+                                <MaterialCommunityIcons
+                                    name="check-circle"
+                                    size={18}
+                                    color={isDark ? PRICING_PLANS[0].color : PRICING_PLANS[0].color}
+                                />
+                                <Text style={[styles.featureText, isDark && styles.featureTextDark]}>
+                                    Paiement à l'unité
+                                </Text>
+                            </View>
+                        </View>
+                    </Animatable.View>
+
+                    {/* Formule Avantage */}
+                    <Animatable.View
+                        animation="fadeInUp"
+                        delay={200}
+                        style={[
+                            styles.packageCard,
+                            isDark && styles.packageCardDark,
+                            PRICING_PLANS[1].recommended && styles.recommendedCard,
+                            { borderColor: PRICING_PLANS[1].color }
+                        ]}
+                    >
+                        <View style={[styles.packageBadge, { backgroundColor: PRICING_PLANS[1].color }]}>
+                            <Text style={styles.packageBadgeText}>
+                                Recommandé
+                            </Text>
+                        </View>
+
+                        <Text style={[styles.packageName, isDark && styles.packageNameDark]}>
+                            {PRICING_PLANS[1].name}
+                        </Text>
+
+                        <Text style={[styles.packageDescription, isDark && styles.packageDescriptionDark]}>
+                            {PRICING_PLANS[1].description}
+                        </Text>
+
+                        <View style={styles.pricingRow}>
+                            <Text style={[styles.packagePrice, isDark && styles.packagePriceDark]}>
+                                {PRICING_PLANS[1].price?.toLocaleString('fr-FR')} FCFA
+                            </Text>
+                        </View>
+
+                        <View style={styles.featuresList}>
+                            <View style={styles.featureRow}>
+                                <MaterialCommunityIcons
+                                    name="check-circle"
+                                    size={18}
+                                    color={isDark ? PRICING_PLANS[1].color : PRICING_PLANS[1].color}
+                                />
+                                <Text style={[styles.featureText, isDark && styles.featureTextDark]}>
+                                    Pack de 3 formations au choix
+                                </Text>
+                            </View>
+                            <View style={styles.featureRow}>
+                                <MaterialCommunityIcons
+                                    name="check-circle"
+                                    size={18}
+                                    color={isDark ? PRICING_PLANS[1].color : PRICING_PLANS[1].color}
+                                />
+                                <Text style={[styles.featureText, isDark && styles.featureTextDark]}>
+                                    Économisez par rapport à l'achat à l'unité
+                                </Text>
+                            </View>
+                            <View style={styles.featureRow}>
+                                <MaterialCommunityIcons
+                                    name="check-circle"
+                                    size={18}
+                                    color={isDark ? PRICING_PLANS[1].color : PRICING_PLANS[1].color}
+                                />
+                                <Text style={[styles.featureText, isDark && styles.featureTextDark]}>
+                                    Accès à toutes les ressources
+                                </Text>
+                            </View>
+                        </View>
+                    </Animatable.View>
+
+                    {/* Formule Excellence */}
+                    <Animatable.View
+                        animation="fadeInUp"
+                        delay={300}
+                        style={[
+                            styles.packageCard,
+                            isDark && styles.packageCardDark,
+                            { borderColor: PRICING_PLANS[2].color }
+                        ]}
+                    >
+                        <View style={[styles.packageBadge, { backgroundColor: PRICING_PLANS[2].color }]}>
+                            <Text style={styles.packageBadgeText}>
+                                Illimité
+                            </Text>
+                        </View>
+
+                        <Text style={[styles.packageName, isDark && styles.packageNameDark]}>
+                            {PRICING_PLANS[2].name}
+                        </Text>
+
+                        <Text style={[styles.packageDescription, isDark && styles.packageDescriptionDark]}>
+                            {PRICING_PLANS[2].description}
+                        </Text>
+
+                        <View style={styles.pricingRow}>
+                            <Text style={[styles.packagePrice, isDark && styles.packagePriceDark]}>
+                                {  PRICING_PLANS[2].price?.toLocaleString('fr-FR')} FCFA
+                            </Text>
+                        </View>
+
+                        <View style={styles.featuresList}>
+                            <View style={styles.featureRow}>
+                                <MaterialCommunityIcons
+                                    name="check-circle"
+                                    size={18}
+                                    color={isDark ? PRICING_PLANS[2].color : PRICING_PLANS[2].color}
+                                />
+                                <Text style={[styles.featureText, isDark && styles.featureTextDark]}>
+                                    Accès illimité à toutes les formations pendant 12 mois
+                                </Text>
+                            </View>
+                            <View style={styles.featureRow}>
+                                <MaterialCommunityIcons
+                                    name="check-circle"
+                                    size={18}
+                                    color={isDark ? PRICING_PLANS[2].color : PRICING_PLANS[2].color}
+                                />
+                                <Text style={[styles.featureText, isDark && styles.featureTextDark]}>
+                                    Accès aux formations futures sans frais supplémentaires
+                                </Text>
+                            </View>
+                            <View style={styles.featureRow}>
+                                <MaterialCommunityIcons
+                                    name="check-circle"
+                                    size={18}
+                                    color={isDark ? PRICING_PLANS[2].color : PRICING_PLANS[2].color}
+                                />
+                                <Text style={[styles.featureText, isDark && styles.featureTextDark]}>
+                                    Accès à toutes les ressources premium
+                                </Text>
+                            </View>
+                        </View>
+                    </Animatable.View>
+
+                    {/* Bouton pour voir le panier */}
+                    {cartItems.length > 0 && (
+                        <TouchableOpacity
+                            style={styles.viewCartButton}
+                            onPress={handleContinueToPayment}
+                        >
+                            <MaterialCommunityIcons name="cart" size={20} color="#FFFFFF" />
+                            <Text style={styles.viewCartButtonText}>
+                                Voir mon panier ({cartItems.length})
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+                </BottomSheetScrollView>
+            </BottomSheetModal>
+        );
+    }, [
+        isDark,
+        snapPoints,
+        renderBackdrop,
+        cartItems.length,
+        handleContinueToPayment
+    ]);
+
+    // Bottom sheet de progression vers les formules (uniquement si mode formules)
+    const renderFormulaProgressSheet = useCallback(() => {
+        if (FIXED_PRICE_MODE) return null;
+
+        // Calcul du prix total actuel et avec les formules
+        const currentTotal = cartItems.reduce((sum, item) => sum + item.price, 0) || 0;
+        const formulaPrice = calculateTotalPrice();
+        const savings = Math.max(0, currentTotal - formulaPrice);
+
+        // Obtenir la formule applicable
+        const applicableFormula = getApplicableFormula();
+
+        return (
+            <BottomSheetModal
+                ref={formulaProgressRef}
+                index={1}
+                snapPoints={snapPoints}
+                backdropComponent={renderBackdrop}
+                handleIndicatorStyle={styles.sheetHandle}
+                backgroundStyle={[styles.sheetBackground, isDark && styles.sheetBackgroundDark]}
+                enablePanDownToClose={true}
+            >
+                <View style={styles.packageHeader}>
+                    <Text style={[styles.packageTitle, isDark && styles.packageTitleDark]}>
+                        Votre progression
+                    </Text>
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity
+                            style={styles.infoButton}
+                            onPress={handleFormulaDetailsClick}
+                        >
+                            <MaterialCommunityIcons
+                                name="information-outline"
+                                size={22}
+                                color={isDark ? theme.color.gray[300] : theme.color.gray[600]}
+                            />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => formulaProgressRef.current?.dismiss()}>
+                            <MaterialCommunityIcons
+                                name="close"
+                                size={24}
+                                color={isDark ? theme.color.gray[400] : theme.color.gray[600]}
+                            />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <BottomSheetScrollView contentContainerStyle={styles.packageScrollContent}>
+                    {/* État actuel du panier */}
+                    <View style={[styles.currentStatusCard, isDark && styles.currentStatusCardDark]}>
+                        <Text style={[styles.currentStatusTitle, isDark && styles.currentStatusTitleDark]}>
+                            Votre sélection actuelle
+                        </Text>
+
+                        <View style={styles.currentStatusDetails}>
+                            <Text style={[styles.currentStatusText, isDark && styles.currentStatusTextDark]}>
+                                {cartItems.length} formation{cartItems.length > 1 ? 's' : ''} dans votre panier
+                            </Text>
+
+                            <Text style={[styles.currentStatusPrice, isDark && styles.currentStatusPriceDark]}>
+                                Prix total: {currentTotal.toLocaleString('fr-FR')} FCFA
+                            </Text>
+
+                            {applicableFormula && savings > 0 && (
+                                <View style={[styles.savingsInfoContainer, { backgroundColor: applicableFormula.color + '20', borderColor: applicableFormula.color }]}>
+                                    <MaterialCommunityIcons name="information-outline" size={20} color={applicableFormula.color} />
+                                    <Text style={[styles.savingsInfoText, { color: applicableFormula.color }]}>
+                                        Avec la {applicableFormula.name}, vous économisez {savings.toLocaleString('fr-FR')} FCFA!
+                                    </Text>
+                                </View>
+                            )}
+
+                            <TouchableOpacity
+                                style={styles.continueButton}
+                                onPress={handleContinueToPayment}
+                            >
+                                <MaterialCommunityIcons name="cart" size={20} color="#FFFFFF" />
+                                <Text style={styles.continueButtonText}>
+                                    Voir mon panier
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Progression vers chaque formule */}
+                    <Text style={[styles.progressTitle, isDark && styles.progressTitleDark]}>
+                        Votre progression vers chaque formule
+                    </Text>
+
+                    {/* Formule Avantage */}
+                    <Animatable.View
+                        animation="fadeInUp"
+                        delay={200}
+                        style={[
+                            styles.progressCard,
+                            isDark && styles.progressCardDark,
+                            cartItems.length === 3 && { borderColor: PRICING_PLANS[1].color, borderWidth: 2 }
+                        ]}
+                    >
+                        <View style={styles.progressHeader}>
+                            <View>
+                                <Text style={[styles.progressCardTitle, isDark && styles.progressCardTitleDark]}>
+                                    {PRICING_PLANS[1].name}
+                                </Text>
+                                <Text style={[styles.progressCardPrice, isDark && styles.progressCardPriceDark]}>
+                                    {PRICING_PLANS[1].price?.toLocaleString('fr-FR')} FCFA
+                                </Text>
+                            </View>
+                            {cartItems.length === 3 && (
+                                <View style={[styles.eligibilityBadge, {backgroundColor: PRICING_PLANS[1].color}]}>
+                                    <MaterialCommunityIcons name="check" size={12} color="#FFFFFF" />
+                                    <Text style={styles.eligibilityBadgeText}>Éligible</Text>
+                                </View>
+                            )}
+                        </View>
+
+                        <Text style={[styles.progressCardDescription, isDark && styles.progressCardDescriptionDark]}>
+                            Pack de 3 formations à prix avantageux
+                        </Text>
+
+                        <View style={styles.progressBarWrapper}>
+                            <Text style={[styles.progressLabel, isDark && styles.progressLabelDark]}>
+                                {cartItems.length < 3
+                                    ? `Ajoutez ${3 - cartItems.length} formation${3 - cartItems.length > 1 ? 's' : ''} de plus pour débloquer cette formule`
+                                    : 'Formule débloquée !'}
+                            </Text>
+                            <FormulaProgressBar
+                                planId="advantage"
+                                currentCount={Math.min(cartItems.length, 3)}
+                                threshold={3}
+                                color={PRICING_PLANS[1].color}
+                                isDark={isDark}
+                            />
+                        </View>
+
+                        {cartItems.length === 3 && (
+                            <View style={[styles.savingsSummary, { backgroundColor: PRICING_PLANS[1].color + '15' }]}>
+                                <MaterialCommunityIcons name="cash" size={18} color={PRICING_PLANS[1].color} />
+                                <Text style={[styles.savingsSummaryText, { color: PRICING_PLANS[1].color }]}>
+                                    Économie estimée: {(currentTotal - (PRICING_PLANS[1].price || 0))?.toLocaleString('fr-FR')} FCFA
+                                </Text>
+                            </View>
+                        )}
+                    </Animatable.View>
+
+                    {/* Formule Excellence */}
+                    <Animatable.View
+                        animation="fadeInUp"
+                        delay={300}
+                        style={[
+                            styles.progressCard,
+                            isDark && styles.progressCardDark,
+                            cartItems.length >= 5 && { borderColor: PRICING_PLANS[2].color, borderWidth: 2 }
+                        ]}
+                    >
+                        <View style={styles.progressHeader}>
+                            <View>
+                                <Text style={[styles.progressCardTitle, isDark && styles.progressCardTitleDark]}>
+                                    {PRICING_PLANS[2].name}
+                                </Text>
+                                <Text style={[styles.progressCardPrice, isDark && styles.progressCardPriceDark]}>
+                                    {PRICING_PLANS[2].price?.toLocaleString('fr-FR')} FCFA
+                                </Text>
+                            </View>
+                            {cartItems.length >= 5 && (
+                                <View style={[styles.eligibilityBadge, {backgroundColor: PRICING_PLANS[2].color}]}>
+                                    <MaterialCommunityIcons name="check" size={12} color="#FFFFFF" />
+                                    <Text style={styles.eligibilityBadgeText}>Éligible</Text>
+                                </View>
+                            )}
+                        </View>
+
+                        <Text style={[styles.progressCardDescription, isDark && styles.progressCardDescriptionDark]}>
+                            Accès illimité à toutes les formations pendant 12 mois
+                        </Text>
+
+                        <View style={styles.progressBarWrapper}>
+                            <Text style={[styles.progressLabel, isDark && styles.progressLabelDark]}>
+                                {cartItems.length < 5
+                                    ? `Ajoutez ${5 - cartItems.length} formation${5 - cartItems.length > 1 ? 's' : ''} de plus pour débloquer cette formule`
+                                    : 'Formule débloquée !'}
+                            </Text>
+                            <FormulaProgressBar
+                                planId="excellence"
+                                currentCount={Math.min(cartItems.length, 5)}
+                                threshold={5}
+                                color={PRICING_PLANS[2].color}
+                                isDark={isDark}
+                            />
+                        </View>
+
+                        {cartItems.length >= 5 && (
+                            <View style={[styles.savingsSummary, { backgroundColor: PRICING_PLANS[2].color + '15' }]}>
+                                <MaterialCommunityIcons name="cash" size={18} color={PRICING_PLANS[2].color} />
+                                <Text style={[styles.savingsSummaryText, { color: PRICING_PLANS[2].color }]}>
+                                    Économie estimée: {(currentTotal - (PRICING_PLANS[2].price || 0)).toLocaleString('fr-FR')} FCFA
+                                </Text>
+                            </View>
+                        )}
+                    </Animatable.View>
+
+                    {/* Bannière de prochaine étape si pertinent */}
+                    {cartItems.length === 2 && (
+                        <Animatable.View
+                            animation="fadeIn"
+                            style={[styles.nextStepBanner, { borderColor: PRICING_PLANS[1].color }]}
+                        >
+                            <MaterialCommunityIcons name="lightbulb-outline" size={24} color={PRICING_PLANS[1].color} />
+                            <View style={styles.nextStepContent}>
+                                <Text style={[styles.nextStepTitle, { color: PRICING_PLANS[1].color }]}>
+                                    Plus qu'une formation !
+                                </Text>
+                                <Text style={[styles.nextStepDescription, isDark && styles.nextStepDescriptionDark]}>
+                                    Ajoutez une formation supplémentaire pour débloquer la formule Avantage et économiser.
+                                </Text>
+                            </View>
+                            <Pressable
+                                style={[styles.nextStepButton, { backgroundColor: PRICING_PLANS[1].color }]}
+                                onPress={() => {
+                                    formulaProgressRef.current?.dismiss();
+                                    // Redirection vers la liste des programmes
+                                    setTimeout(() => router.replace('/(app)/(catalogue)/shop'), 300);
+                                }}
+                            >
+                                <Text style={styles.nextStepButtonText}>
+                                    Explorer
+                                </Text>
+                            </Pressable>
+                        </Animatable.View>
+                    )}
+
+                    {cartItems.length === 4 && (
+                        <Animatable.View
+                            animation="fadeIn"
+                            style={[styles.nextStepBanner, { borderColor: PRICING_PLANS[2].color }]}
+                        >
+                            <MaterialCommunityIcons name="lightbulb-outline" size={24} color={PRICING_PLANS[2].color} />
+                            <View style={styles.nextStepContent}>
+                                <Text style={[styles.nextStepTitle, { color: PRICING_PLANS[2].color }]}>
+                                    Plus qu'une formation !
+                                </Text>
+                                <Text style={[styles.nextStepDescription, isDark && styles.nextStepDescriptionDark]}>
+                                    Ajoutez une formation supplémentaire pour débloquer la formule Excellence et profiter d'un accès illimité.
+                                </Text>
+                            </View>
+                            <Pressable
+                                style={[styles.nextStepButton, { backgroundColor: PRICING_PLANS[2].color }]}
+                                onPress={() => {
+                                    formulaProgressRef.current?.dismiss();
+                                    // Redirection vers la liste des programmes
+                                    setTimeout(() => router.replace('/(app)/(catalogue)/shop'), 300);
+                                }}
+                            >
+                                <Text style={styles.nextStepButtonText}>
+                                    Explorer
+                                </Text>
+                            </Pressable>
+                        </Animatable.View>
+                    )}
+                </BottomSheetScrollView>
+            </BottomSheetModal>
+        );
+    }, [
+        cartItems,
+        isDark,
+        snapPoints,
+        renderBackdrop,
+        calculateTotalPrice,
+        getApplicableFormula,
+        handleContinueToPayment,
+        handleFormulaDetailsClick,
+        router
+    ]);
+
+    // Bannière pour le mode prix unique (montré seulement avec ce mode)
+    const renderFixedPriceBanner = useCallback(() => {
+        if (!FIXED_PRICE_MODE) return null;
+
+        return (
+            <Animatable.View
+                animation="fadeIn"
+                style={[styles.priceBanner, isDark && styles.priceBannerDark]}
+            >
+                <MaterialCommunityIcons
+                    name="tag-heart"
+                    size={20}
+                    color={isDark ? "#86EFAC" : "#166534"}
+                />
+                <Text style={[styles.priceBannerText, isDark && styles.priceBannerTextDark]}>
+                    Tarif promotionnel : {FIXED_PRICE.toLocaleString('fr-FR')} FCFA par formation !
+                </Text>
+            </Animatable.View>
+        );
+    }, [isDark]);
+
+    // Calcul des cours affichés une seule fois pour tous les rendus
     const displayedCourses = useMemo(() =>
             getDisplayedItems(filteredCourses),
         [filteredCourses, getDisplayedItems]);
 
-    // Show skeleton screens during initial load
+    // Afficher les écrans squelettes pendant le chargement initial
     if (isInitialLoad && showSkeleton) {
         return <ProgramSkeletonScreen isDark={isDark} />;
     }
 
-    // Show error state
+    // Afficher l'état d'erreur
     if (programsError) {
         return (
             <View style={[styles.centerContainer, isDark && styles.containerDark]}>
@@ -946,78 +1748,117 @@ export default function ShopPage(): JSX.Element {
     }
 
     return (
-        <Animatable.View
-            animation={isInitialLoad ? "fadeIn" : undefined}
-            duration={500}
-            style={[styles.container, isDark && styles.containerDark]}
-        >
-            <View style={[styles.headerView, isDark && styles.headerViewDark]}>
-                <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>
-                    Catalogue
-                </Text>
-                {renderHeaderRight()}
-            </View>
+        <BottomSheetModalProvider>
+            <Animatable.View
+                animation={isInitialLoad ? "fadeIn" : undefined}
+                duration={500}
+                style={[styles.container, isDark && styles.containerDark]}
+            >
+                <View style={[styles.headerView, isDark && styles.headerViewDark]}>
+                    <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>
+                        Catalogue
+                    </Text>
+                    {renderHeaderRight()}
+                </View>
 
-            <View style={styles.searchContainer}>
-                <View style={styles.searchInputWrapper}>
-                    <MaterialCommunityIcons
-                        name="magnify"
-                        size={24}
-                        color={isDark ? theme.color.gray[400] : theme.color.gray[500]}
-                        style={styles.searchIcon}
-                    />
-                    <TextInput
-                        style={[styles.searchInput, isDark && styles.searchInputDark]}
-                        placeholder="Rechercher un cours, une école..."
-                        placeholderTextColor={isDark ? theme.color.gray[400] : theme.color.gray[500]}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                    {searchQuery ? (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <MaterialCommunityIcons
-                                name="close-circle"
-                                size={20}
-                                color={isDark ? theme.color.gray[400] : theme.color.gray[500]}
-                            />
+                <View style={styles.searchContainer}>
+                    <View style={styles.searchInputWrapper}>
+                        <MaterialCommunityIcons
+                            name="magnify"
+                            size={24}
+                            color={isDark ? theme.color.gray[400] : theme.color.gray[500]}
+                            style={styles.searchIcon}
+                        />
+                        <TextInput
+                            style={[styles.searchInput, isDark && styles.searchInputDark]}
+                            placeholder="Rechercher un cours, une école..."
+                            placeholderTextColor={isDark ? theme.color.gray[400] : theme.color.gray[500]}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                        />
+                        {searchQuery ? (
+                            <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                <MaterialCommunityIcons
+                                    name="close-circle"
+                                    size={20}
+                                    color={isDark ? theme.color.gray[400] : theme.color.gray[500]}
+                                />
+                            </TouchableOpacity>
+                        ) : null}
+                    </View>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.filterButton,
+                            isDark && styles.filterButtonDark,
+                            (selectedCycle || selectedCity || selectedSchool || sortBy !== 'default') && styles.filterButtonActive
+                        ]}
+                        onPress={() => setShowFilters(true)}
+                    >
+                        <MaterialCommunityIcons
+                            name="filter-variant"
+                            size={20}
+                            color={
+                                (selectedCycle || selectedCity || selectedSchool || sortBy !== 'default')
+                                    ? 'white'
+                                    : isDark
+                                        ? theme.color.gray[300]
+                                        : theme.color.gray[700]
+                            }
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Bannière pour le mode prix unique */}
+                {renderFixedPriceBanner()}
+
+                {/* Bannières pour les formules (uniquement en mode formules) */}
+                {!FIXED_PRICE_MODE && cartItems.length === 2 && (
+                    <Animatable.View
+                        animation="fadeIn"
+                        style={[styles.dealBanner, { backgroundColor: PRICING_PLANS[1].color + '20', borderColor: PRICING_PLANS[1].color }]}
+                    >
+                        <MaterialCommunityIcons name="tag-heart" size={20} color={PRICING_PLANS[1].color} />
+                        <Text style={[styles.dealBannerText, { color: PRICING_PLANS[1].color }]}>
+                            Plus qu'une formation pour débloquer la formule Avantage !
+                        </Text>
+                        <TouchableOpacity onPress={handleFormulaProgressClick}>
+                            <Text style={[styles.dealBannerButton, { color: PRICING_PLANS[1].color }]}>
+                                Voir
+                            </Text>
                         </TouchableOpacity>
-                    ) : null}
-                </View>
-                <TouchableOpacity
-                    style={[
-                        styles.filterButton,
-                        isDark && styles.filterButtonDark,
-                        (selectedCycle || selectedCity || selectedSchool || sortBy !== 'default') && styles.filterButtonActive
-                    ]}
-                    onPress={() => setShowFilters(true)}
-                >
-                    <MaterialCommunityIcons
-                        name="filter-variant"
-                        size={20}
-                        color={
-                            (selectedCycle || selectedCity || selectedSchool || sortBy !== 'default')
-                                ? 'white'
-                                : isDark
-                                    ? theme.color.gray[300]
-                                    : theme.color.gray[700]
-                        }
-                    />
-                </TouchableOpacity>
-            </View>
+                    </Animatable.View>
+                )}
 
-            {renderActiveFilters()}
+                {!FIXED_PRICE_MODE && cartItems.length === 4 && (
+                    <Animatable.View
+                        animation="fadeIn"
+                        style={[styles.dealBanner, { backgroundColor: PRICING_PLANS[2].color + '20', borderColor: PRICING_PLANS[2].color }]}
+                    >
+                        <MaterialCommunityIcons name="tag-heart" size={20} color={PRICING_PLANS[2].color} />
+                        <Text style={[styles.dealBannerText, { color: PRICING_PLANS[2].color }]}>
+                            Plus qu'une formation pour débloquer la formule Excellence !
+                        </Text>
+                        <TouchableOpacity onPress={handleFormulaProgressClick}>
+                            <Text style={[styles.dealBannerButton, { color: PRICING_PLANS[2].color }]}>
+                                Voir
+                            </Text>
+                        </TouchableOpacity>
+                    </Animatable.View>
+                )}
 
-            <View style={styles.resultsContainer}>
-                <View style={styles.resultsHeader}>
-                    <Text style={[styles.resultsTitle, isDark && styles.resultsTitleDark]}>
-                        Programmes disponibles
-                    </Text>
-                    <Text style={[styles.resultsCount, isDark && styles.resultsCountDark]}>
-                        {filteredCourses.length} résultat{filteredCourses.length !== 1 ? 's' : ''}
-                    </Text>
-                </View>
+                {renderActiveFilters()}
 
-                <BottomSheetModalProvider>
+                <View style={styles.resultsContainer}>
+                    <View style={styles.resultsHeader}>
+                        <Text style={[styles.resultsTitle, isDark && styles.resultsTitleDark]}>
+                            Programmes disponibles
+                        </Text>
+                        <Text style={[styles.resultsCount, isDark && styles.resultsCountDark]}>
+                            {filteredCourses.length} résultat{filteredCourses.length !== 1 ? 's' : ''}
+                        </Text>
+                    </View>
+
                     <FlatList
                         data={displayedCourses}
                         keyExtractor={(item) => `program-${item.id}`}
@@ -1028,7 +1869,7 @@ export default function ShopPage(): JSX.Element {
                                 price={item.price}
                                 level={item.learning_path.status || "Débutant"}
                                 duration={item.learning_path.duration || "6 mois"}
-                                image={item.learning_path.image?.src}
+                                image={item.concour.image?.url}
                                 courseCount={item.learning_path.course_count || 0}
                                 quizCount={item.learning_path.quiz_count || 0}
                                 exerciseCount={item.exerciseCount || 0}
@@ -1040,7 +1881,11 @@ export default function ShopPage(): JSX.Element {
                                 isDark={isDark}
                                 programDetails={programDetailsMap[item.id]}
                                 onExpand={() => handleProgramExpand(item.id)}
-                                features={[]} // Add empty array for required prop
+                                features={[]} // Array vide pour la prop requise
+                                // Si mode prix fixe activé, afficher directement le prix réduit pour toutes les formations
+                                directDiscountPrice={
+                                    FIXED_PRICE_MODE ? FIXED_PRICE : undefined
+                                }
                             />
                         )}
                         contentContainerStyle={styles.listContent}
@@ -1085,21 +1930,18 @@ export default function ShopPage(): JSX.Element {
                             ) : null
                         }
                     />
-                </BottomSheetModalProvider>
-            </View>
+                </View>
 
-            {renderFilterModal()}
-        </Animatable.View>
+                {renderFilterModal()}
+                {renderFormulaDetailsSheet()}
+                {renderFormulaProgressSheet()}
+            </Animatable.View>
+        </BottomSheetModalProvider>
     );
 }
 
 const styles = StyleSheet.create({
-    centerContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: theme.color.background,
-    },
+    // Styles existants
     container: {
         flex: 1,
         backgroundColor: "#F5F5F5",
@@ -1123,6 +1965,7 @@ const styles = StyleSheet.create({
         borderBottomColor: theme.color.dark.border,
     },
     headerTitle: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: theme.typography.fontSize.xlarge,
         fontWeight: "700",
         color: theme.color.text,
@@ -1188,6 +2031,7 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.medium,
     },
     resultsTitle: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: theme.typography.fontSize.large,
         fontWeight: "700",
         color: theme.color.text,
@@ -1196,25 +2040,22 @@ const styles = StyleSheet.create({
         color: theme.color.gray[50],
     },
     resultsCount: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: theme.typography.fontSize.small,
         color: theme.color.gray[600],
     },
     resultsCountDark: {
         color: theme.color.gray[400],
     },
-    scrollContent: {
-        paddingBottom: 60,
-    },
     cartButton: {
-        marginRight: 16,
         padding: 5,
         position: "relative",
+        marginRight: 7,
     },
     cartBadge: {
         position: "absolute",
         top: -8,
         right: -8,
-        backgroundColor: theme.color.error,
         minWidth: 18,
         height: 18,
         borderRadius: 9,
@@ -1223,19 +2064,13 @@ const styles = StyleSheet.create({
     },
     cartBadgeText: {
         color: "#FFF",
+        fontFamily: theme.typography.fontFamily,
         fontSize: 12,
         fontWeight: "600",
     },
-    loadingText: {
-        marginTop: 16,
-        fontSize: 16,
-        color: theme.color.gray[700],
-    },
-    loadingTextDark: {
-        color: theme.color.gray[300],
-    },
     errorText: {
         marginTop: 16,
+        fontFamily: theme.typography.fontFamily,
         fontSize: 18,
         fontWeight: '600',
         color: theme.color.error[700],
@@ -1252,6 +2087,7 @@ const styles = StyleSheet.create({
     },
     retryButtonText: {
         color: 'white',
+        fontFamily: theme.typography.fontFamily,
         fontSize: 16,
         fontWeight: '600',
     },
@@ -1261,6 +2097,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     emptyText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 18,
         fontWeight: '600',
         color: theme.color.gray[800],
@@ -1271,6 +2108,7 @@ const styles = StyleSheet.create({
         color: theme.color.gray[300],
     },
     emptySubtext: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         color: theme.color.gray[600],
         textAlign: 'center',
@@ -1290,10 +2128,11 @@ const styles = StyleSheet.create({
     },
     resetButtonText: {
         color: '#FFFFFF',
+        fontFamily: theme.typography.fontFamily,
         fontSize: theme.typography.fontSize.medium,
         fontWeight: '600',
     },
-    // Active filters styles
+    // Styles pour les filtres actifs
     activeFiltersContainer: {
         marginBottom: theme.spacing.medium,
         paddingHorizontal: theme.spacing.medium,
@@ -1319,6 +2158,7 @@ const styles = StyleSheet.create({
         borderColor: theme.color.gray[700],
     },
     filterChipText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 13,
         color: theme.color.gray[800],
         marginRight: 8,
@@ -1336,13 +2176,14 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.gray[800],
     },
     resetChipButtonText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 13,
         color: theme.color.gray[800],
     },
     resetChipButtonTextDark: {
         color: theme.color.gray[300],
     },
-    // Modal styles
+    // Styles de modal
     modalContainer: {
         flex: 1,
         justifyContent: 'flex-end',
@@ -1371,6 +2212,7 @@ const styles = StyleSheet.create({
         borderBottomColor: theme.color.gray[200],
     },
     modalTitle: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 18,
         fontWeight: '600',
         color: theme.color.gray[900],
@@ -1385,6 +2227,7 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     filterSectionTitle: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 16,
         fontWeight: '600',
         color: theme.color.gray[900],
@@ -1421,6 +2264,7 @@ const styles = StyleSheet.create({
         borderColor: theme.color.primary[700],
     },
     filterOptionText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         color: theme.color.gray[700],
         marginRight: 8,
@@ -1459,6 +2303,7 @@ const styles = StyleSheet.create({
         borderColor: theme.color.primary[700],
     },
     sortButtonText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         color: theme.color.gray[700],
         marginLeft: 8,
@@ -1493,6 +2338,7 @@ const styles = StyleSheet.create({
         borderColor: theme.color.gray[700],
     },
     modalResetButtonText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 16,
         fontWeight: '600',
         color: theme.color.gray[700],
@@ -1513,11 +2359,12 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.primary[600],
     },
     modalApplyButtonText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 16,
         fontWeight: '600',
         color: 'white',
     },
-    // Pagination and list styles
+    // Styles pour pagination et liste
     listContent: {
         paddingBottom: 80,
     },
@@ -1544,6 +2391,7 @@ const styles = StyleSheet.create({
     loadingMoreText: {
         marginLeft: 8,
         color: theme.color.gray[600],
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
     },
     endOfListIndicator: {
@@ -1551,6 +2399,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     endOfListText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         color: theme.color.gray[500],
         fontStyle: 'italic',
@@ -1558,7 +2407,7 @@ const styles = StyleSheet.create({
     endOfListTextDark: {
         color: theme.color.gray[400],
     },
-    // Skeleton styles
+    // Styles pour skeleton
     skeletonHeader: {
         width: 120,
         height: 24,
@@ -1639,5 +2488,515 @@ const styles = StyleSheet.create({
         height: 12,
         backgroundColor: theme.color.gray[300],
         borderRadius: 4,
+    },
+
+    // Nouveaux styles pour les promotions des formules
+    centerContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: theme.color.background,
+    },
+    headerRightContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    packageButton: {
+        marginRight: 16,
+        padding: 5,
+        position: "relative",
+    },
+    formulaEligibleBadge: {
+        position: "absolute",
+        top: -8,
+        right: -8,
+        minWidth: 20,
+        height: 20,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: 'row',
+        paddingHorizontal: 4,
+    },
+    formulaAlmostBadge: {
+        position: "absolute",
+        top: -8,
+        right: -8,
+        minWidth: 20,
+        height: 20,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+    },
+    formulaAlmostBadgeText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 10,
+        fontWeight: "600",
+    },
+    // Styles de bannière promo
+    dealBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 10,
+        marginHorizontal: 16,
+        marginBottom: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+    },
+    dealBannerText: {
+        flex: 1,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        marginHorizontal: 8,
+    },
+    dealBannerButton: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        fontWeight: '600',
+        textDecorationLine: 'underline',
+    },
+    // Styles pour les bottom sheets
+    sheetHandle: {
+        backgroundColor: theme.color.gray[400],
+        width: 40,
+        height: 5,
+        borderRadius: 3,
+        alignSelf: 'center',
+        marginTop: 8
+    },
+    sheetBackground: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+    },
+    sheetBackgroundDark: {
+        backgroundColor: theme.color.dark.background.secondary,
+    },
+    packageHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginHorizontal: 20,
+        marginTop: 4,
+        marginBottom: 16,
+        paddingBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.color.gray[200],
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    infoButton: {
+        marginRight: 12,
+    },
+    packageScrollContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 60,
+    },
+    packageTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
+        fontWeight: '600',
+        color: theme.color.gray[800]
+    },
+    packageTitleDark: {
+        color: theme.color.gray[50]
+    },
+    currentStatusCard: {
+        backgroundColor: theme.color.gray[50],
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: theme.color.gray[200]
+    },
+    currentStatusCardDark: {
+        backgroundColor: theme.color.dark.background.primary,
+        borderColor: theme.color.gray[700]
+    },
+    currentStatusTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '600',
+        color: theme.color.gray[800],
+        marginBottom: 12
+    },
+    currentStatusTitleDark: {
+        color: theme.color.gray[100]
+    },
+    currentStatusDetails: {
+        gap: 8
+    },
+    currentStatusText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        color: theme.color.gray[600]
+    },
+    currentStatusTextDark: {
+        color: theme.color.gray[300]
+    },
+    currentStatusPrice: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '600',
+        color: theme.color.gray[800]
+    },
+    currentStatusPriceDark: {
+        color: theme.color.gray[50]
+    },
+    savingsInfoContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        marginTop: 8
+    },
+    savingsInfoText: {
+        flex: 1,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 13,
+        marginLeft: 8
+    },
+    continueButton: {
+        backgroundColor: theme.color.primary[500],
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        borderRadius: 8,
+        marginTop: 16
+    },
+    continueButtonText: {
+        color: '#FFFFFF',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '600',
+        marginLeft: 8
+    },
+    formulasTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
+        fontWeight: '600',
+        color: theme.color.gray[800],
+        marginBottom: 16
+    },
+    formulasTitleDark: {
+        color: theme.color.gray[50]
+    },
+    packageCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: theme.color.gray[200],
+        position: 'relative',
+        overflow: 'hidden'
+    },
+    packageCardDark: {
+        backgroundColor: theme.color.dark.background.primary,
+        borderColor: theme.color.gray[700]
+    },
+    recommendedCard: {
+        borderWidth: 2
+    },
+    packageBadge: {
+        position: 'absolute',
+        right: 0,
+        top: 16,
+        paddingVertical: 4,
+        paddingHorizontal: 12,
+        borderTopLeftRadius: 12,
+        borderBottomLeftRadius: 12
+    },
+    packageBadgeText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#FFFFFF'
+    },
+    packageName: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '700',
+        color: theme.color.gray[800],
+        marginBottom: 8,
+        marginTop: 8
+    },
+    packageNameDark: {
+        color: theme.color.gray[50]
+    },
+    packageDescription: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        color: theme.color.gray[600],
+        marginBottom: 16
+    },
+    packageDescriptionDark: {
+        color: theme.color.gray[400]
+    },
+    pricingRow: {
+        marginBottom: 16
+    },
+    packagePrice: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 20,
+        fontWeight: '700',
+        color: theme.color.gray[800]
+    },
+    packagePriceDark: {
+        color: theme.color.gray[50]
+    },
+    featuresList: {
+        gap: 12
+    },
+    featureRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8
+    },
+    featureText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        color: theme.color.gray[700]
+    },
+    featureTextDark: {
+        color: theme.color.gray[300]
+    },
+    // Styles pour la progression
+    progressTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
+        fontWeight: '600',
+        color: theme.color.gray[800],
+        marginBottom: 16
+    },
+    progressTitleDark: {
+        color: theme.color.gray[50]
+    },
+    progressCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: theme.color.gray[200],
+    },
+    progressCardDark: {
+        backgroundColor: theme.color.dark.background.primary,
+        borderColor: theme.color.gray[700]
+    },
+    progressHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 8
+    },
+    progressCardTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '700',
+        color: theme.color.gray[800]
+    },
+    progressCardTitleDark: {
+        color: theme.color.gray[50]
+    },
+    progressCardPrice: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        color: theme.color.gray[700],
+        marginTop: 2
+    },
+    progressCardPriceDark: {
+        color: theme.color.gray[300]
+    },
+    progressCardDescription: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        color: theme.color.gray[600],
+        marginBottom: 16
+    },
+    progressCardDescriptionDark: {
+        color: theme.color.gray[400]
+    },
+    eligibilityBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        gap: 4
+    },
+    eligibilityBadgeText: {
+        color: '#FFFFFF',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        fontWeight: '600'
+    },
+    progressBarWrapper: {
+        marginBottom: 12
+    },
+    progressLabel: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 13,
+        color: theme.color.gray[700],
+        marginBottom: 8
+    },
+    progressLabelDark: {
+        color: theme.color.gray[300]
+    },
+    progressBarContainer: {
+        marginBottom: 4
+    },
+    progressBarBackground: {
+        height: 8,
+        backgroundColor: theme.color.gray[200],
+        borderRadius: 4,
+        overflow: 'hidden',
+        marginBottom: 4
+    },
+    progressBarBackgroundDark: {
+        backgroundColor: theme.color.gray[700]
+    },
+    progressBarFill: {
+        height: '100%',
+        borderRadius: 4,
+    },
+    progressLabels: {
+        flexDirection: 'row',
+        justifyContent: 'space-between'
+    },
+    progressText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        color: theme.color.gray[700]
+    },
+    progressTextDark: {
+        color: theme.color.gray[400]
+    },
+    completionBadge: {
+        position: 'absolute',
+        right: 0,
+        top: -16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 12,
+        gap: 4
+    },
+    completionBadgeText: {
+        color: '#FFFFFF',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 10,
+        fontWeight: '600'
+    },
+    savingsSummary: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 8,
+        gap: 8
+    },
+    savingsSummaryText: {
+        flex: 1,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 13,
+        fontWeight: '600'
+    },
+    viewCartButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.color.primary[500],
+        paddingVertical: 14,
+        borderRadius: 8,
+        marginTop: 16
+    },
+    viewCartButtonText: {
+        color: '#FFFFFF',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '600',
+        marginLeft: 8
+    },
+    // Styles pour la bannière de prochaine étape
+    nextStepBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        marginTop: 24,
+        marginBottom: 16,
+        borderWidth: 1,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    nextStepContent: {
+        flex: 1,
+        marginLeft: 12,
+        marginRight: 12
+    },
+    nextStepTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '700',
+        marginBottom: 4
+    },
+    nextStepDescription: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 13,
+        color: theme.color.gray[600]
+    },
+    nextStepDescriptionDark: {
+        color: theme.color.gray[400]
+    },
+    nextStepButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8
+    },
+    nextStepButtonText: {
+        color: '#FFFFFF',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '600'
+    },
+
+    // Nouveaux styles pour le mode prix unique
+    priceBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        marginHorizontal: 16,
+        marginBottom: 16,
+        backgroundColor: '#F0FDF4',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#166534',
+    },
+    priceBannerDark: {
+        backgroundColor: '#064E3B',
+        borderColor: '#10B981',
+    },
+    priceBannerText: {
+        flex: 1,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#166534',
+        marginLeft: 8,
+    },
+    priceBannerTextDark: {
+        color: '#86EFAC',
     }
-});
+})

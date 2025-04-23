@@ -329,12 +329,14 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     categoryTag: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: '600',
         color: 'rgba(255, 255, 255, 0.9)',
     },
     indexNumber: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: 'bold',
         // marginRight: 30,
         color: 'rgba(255, 255, 255, 0.9)',
@@ -344,7 +346,8 @@ const styles = StyleSheet.create({
         marginRight: 36,
     },
     cardTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: 'bold',
         color: '#FFFFFF',
         lineHeight: 22,
@@ -386,7 +389,8 @@ const styles = StyleSheet.create({
         marginHorizontal: 8,
     },
     statText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: 'rgba(255, 255, 255, 0.9)',
         marginLeft: 4,
     },

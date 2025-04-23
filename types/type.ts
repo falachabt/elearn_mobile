@@ -1121,6 +1121,8 @@ export interface Quiz {
   course_content: number | null;
   category: string | null;
   selectedCourses: string[] | null;
+  isExerciseMode: boolean;
+  enonce : object | null;
 }
 export interface QuizInput {
   created_at?: Date;

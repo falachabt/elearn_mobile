@@ -94,12 +94,14 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
     userName: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: 'bold',
         color: '#FFFFFF',
     },
     levelText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: 'rgba(255, 255, 255, 0.8)',
     },
     statsSection: {
@@ -116,7 +118,8 @@ const styles = StyleSheet.create({
     },
     statValue: {
         color: '#FFFFFF',
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: '600',
         marginLeft: 4,
     },

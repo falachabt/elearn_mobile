@@ -540,7 +540,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   appName: {
-    fontSize: 32,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 32,
     fontWeight: 'bold',
     color: '#1A1A1A',
   },
@@ -549,13 +550,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   welcomeTitle: {
-    fontSize: 24,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 24,
     fontWeight: 'bold',
     color: '#1A1A1A',
     marginBottom: 8,
   },
   welcomeSubtitle: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     color: '#666666',
   },
   form: {
@@ -565,7 +568,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '600',
     color: '#1A1A1A',
     marginBottom: 4,
@@ -589,7 +593,8 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 50,
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     color: '#1A1A1A',
   },
   inputDark: {
@@ -613,7 +618,8 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: theme.color.error,
-    fontSize: 12,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 12,
     fontWeight: '500',
   },
   forgotPassword: {
@@ -622,7 +628,8 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     color: theme.color.primary[500],
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     fontWeight: '500',
   },
   loginButton: {
@@ -638,7 +645,8 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '600',
   },
   socialSection: {
@@ -660,7 +668,8 @@ const styles = StyleSheet.create({
   dividerText: {
     paddingHorizontal: 16,
     color: '#666666',
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
   },
   socialButtons: {
     flexDirection: 'row',
@@ -683,7 +692,8 @@ const styles = StyleSheet.create({
   },
   socialButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '500',
   },
   registerSection: {
@@ -694,12 +704,14 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   registerText: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: '#666666',
   },
   registerLink: {
     color: theme.color.primary[500],
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     fontWeight: '600',
   },
   textDark: {
@@ -732,7 +744,8 @@ const styles = StyleSheet.create({
   },
   toastText: {
     color: 'white',
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     fontWeight: '500',
     flex: 1,
     marginHorizontal: 12,

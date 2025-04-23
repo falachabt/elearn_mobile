@@ -11,6 +11,7 @@ import UserActivityTracker from "@/components/shared/UserActivity";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import AuthDeepLinkHandler from "@/components/shared/DeepLinkHandler";
 import {NotificationProvider} from "@/contexts/NotificationContext";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Array of motivational messages to show when user tries to exit
 const MOTIVATIONAL_MESSAGES = [
@@ -35,6 +36,92 @@ const MOTIVATIONAL_MESSAGES = [
   "Votre potentiel est illimité. Continuez à apprendre!",
   "Petit à petit, l'oiseau fait son nid. Continuez votre apprentissage!",
 ];
+
+// Create a provider function that returns a Cache instance compatible with SWR
+function asyncStorageProvider() {
+  const SWR_CACHE_PREFIX = 'swr-cache:';
+  const map = new Map<string, any>();
+  let initialized = false;
+  let initializing = false;
+  let initPromise: Promise<void> | null = null;
+
+  // Initialize cache from AsyncStorage
+  const initCache = async () => {
+    if (initialized || initializing) return initPromise;
+
+    initializing = true;
+    initPromise = (async () => {
+      try {
+        const keys = await AsyncStorage.getAllKeys();
+        const swrKeys = keys.filter(key => key.startsWith(SWR_CACHE_PREFIX));
+
+        if (swrKeys.length > 0) {
+          const items = await AsyncStorage.multiGet(swrKeys);
+
+          items.forEach(([key, value]) => {
+            if (value) {
+              try {
+                const parsedValue = JSON.parse(value);
+                map.set(key.substring(SWR_CACHE_PREFIX.length), parsedValue);
+              } catch (parseError) {
+                console.error('Error parsing cached value:', parseError);
+              }
+            }
+          });
+        }
+        initialized = true;
+      } catch (error) {
+        console.error('Error initializing SWR cache from AsyncStorage:', error);
+      } finally {
+        initializing = false;
+      }
+    })();
+
+    return initPromise;
+  };
+
+  // Initialize the cache immediately
+  initCache();
+
+  // Return a Cache interface compatible with SWR
+  return {
+    keys() {
+      return map.keys();
+    },
+
+    get(key: string) {
+      return map.get(key);
+    },
+
+    set(key: string, value: any) {
+      map.set(key, value);
+
+      // Asynchronously persist to AsyncStorage
+      // We don't await this to avoid blocking
+      (async () => {
+        try {
+          await AsyncStorage.setItem(`${SWR_CACHE_PREFIX}${key}`, JSON.stringify(value));
+        } catch (error) {
+          console.error('Error setting SWR cache in AsyncStorage:', error);
+        }
+      })();
+    },
+
+    delete(key: string) {
+      map.delete(key);
+
+      // Asynchronously remove from AsyncStorage
+      // We don't await this to avoid blocking
+      (async () => {
+        try {
+          await AsyncStorage.removeItem(`${SWR_CACHE_PREFIX}${key}`);
+        } catch (error) {
+          console.error('Error deleting SWR cache from AsyncStorage:', error);
+        }
+      })();
+    }
+  };
+}
 
 export function Provider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -133,10 +220,20 @@ export function Provider({ children }: { children: React.ReactNode }) {
       <ConfigProvider>
         <SWRConfig
             value={{
-              provider: () => new Map(),
-              isVisible: () => {
-                return true;
-              },
+              provider: asyncStorageProvider,
+              isVisible: () => true,
+              revalidateOnFocus: true,
+              revalidateIfStale: true,
+              revalidateOnReconnect: true,
+
+              // Keep the cache for a reasonable time
+              dedupingInterval: 60000, // 1 minute
+
+              // Don't automatically refresh data
+              refreshInterval: 0,
+
+              // Throttle focus revalidations
+              focusThrottleInterval: 5000, // 5 seconds
 
               initFocus(callback) {
                 let appState = AppState.currentState;
@@ -166,18 +263,17 @@ export function Provider({ children }: { children: React.ReactNode }) {
             }}
         >
           <NotificationProvider>
-
-          <AuthDeepLinkHandler />
-          <AuthProvider>
-            <UserProvider>
-              <GestureHandlerRootView>
-                <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
-                  <UserActivityTracker/>
-                  {children}
-                </QuizProvider>
-              </GestureHandlerRootView>
-            </UserProvider>
-          </AuthProvider>
+            <AuthDeepLinkHandler />
+            <AuthProvider>
+              <UserProvider>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
+                    <UserActivityTracker/>
+                    {children}
+                  </QuizProvider>
+                </GestureHandlerRootView>
+              </UserProvider>
+            </AuthProvider>
           </NotificationProvider>
         </SWRConfig>
       </ConfigProvider>

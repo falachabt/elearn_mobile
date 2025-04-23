@@ -448,7 +448,8 @@ const defaultStyles = StyleSheet.create({
     marginTop: 8,
   },
   text: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     color: '#1A1A1A',
     lineHeight: 24,
   },
@@ -485,7 +486,8 @@ const defaultStyles = StyleSheet.create({
     color: '#1A1A1A',
   },
   h1: {
-    fontSize: 40,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 40,
     width: '100%',
     flex: 1,
     letterSpacing: 0.5,
@@ -493,11 +495,13 @@ const defaultStyles = StyleSheet.create({
     lineHeight: 50,
   },
   h2: {
-    fontSize: 28,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 28,
     lineHeight: 36,
   },
   h3: {
-    fontSize: 20,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 20,
     lineHeight: 32,
   },
   listItem: {
@@ -526,13 +530,14 @@ const defaultStyles = StyleSheet.create({
     backgroundColor: theme.color.dark.background.secondary,
   },
   codeLanguage: {
-    fontSize: 12,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 12,
     color: theme.color.gray[600],
     marginBottom: 8,
   },
   code: {
     fontFamily: 'monospace',
-    fontSize: 14,
+fontSize: 14,
     color: theme.color.gray[800],
   },
   codeDark: {
@@ -572,7 +577,8 @@ const defaultStyles = StyleSheet.create({
     borderRadius: 8,
   },
   caption: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: theme.color.gray[600],
     marginTop: 8,
     textAlign: 'center',

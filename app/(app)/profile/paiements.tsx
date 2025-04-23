@@ -379,7 +379,8 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(129, 140, 248, 0.2)",
     },
     headerTitle: {
-        fontSize: 19,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 19,
         fontWeight: "700",
         color: "#111827",
     },
@@ -396,12 +397,14 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     paymentAmount: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: "600",
         marginBottom: 4,
     },
     paymentDate: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: "#6B7280",
     },
     statusBadge: {
@@ -413,7 +416,8 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
     statusText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: "500",
         marginLeft: 4,
     },
@@ -429,7 +433,8 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     programName: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         marginLeft: 8,
         flex: 1,
     },
@@ -443,12 +448,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     detailText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: "#6B7280",
         marginLeft: 4,
     },
     transactionId: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         color: "#9CA3AF",
         marginTop: 4,
     },
@@ -458,7 +465,8 @@ const styles = StyleSheet.create({
         padding: 32,
     },
     emptyStateText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: "#6B7280",
         marginTop: 16,
         textAlign: "center",

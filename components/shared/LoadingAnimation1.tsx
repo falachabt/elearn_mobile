@@ -96,7 +96,8 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 20,
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
     }
 })

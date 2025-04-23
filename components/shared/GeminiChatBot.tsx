@@ -21,6 +21,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import {theme} from "@/constants/theme";
 
 // Types
 interface Message {
@@ -560,6 +561,7 @@ const GeminiChatbot: React.FC<ChatbotProps> = ({
 
     // Scroll to bottom of chat
     const scrollToBottom = () => {
+        if(currentSession)
         if (flatListRef.current && currentSession?.messages.length > 0) {
             flatListRef.current.scrollToEnd({ animated: true });
         }
@@ -982,7 +984,8 @@ const styles = StyleSheet.create({
     },
     chatHeaderTitle: {
         color: '#FFFFFF',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
         flex: 1,
         textAlign: 'center',
@@ -1017,11 +1020,13 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     messageText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         lineHeight: 20,
     },
     messageTimestamp: {
-        fontSize: 10,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 10,
         position: 'absolute',
         bottom: 6,
         right: 12,
@@ -1060,7 +1065,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#2D3748',
     },
     typingText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         marginLeft: 8,
         fontStyle: 'italic',
     },
@@ -1082,7 +1088,8 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         paddingHorizontal: 15,
         paddingVertical: 8,
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     },
     sendButton: {
         width: 40,
@@ -1124,7 +1131,8 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     modalTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: '600',
         color: '#111827',
     },
@@ -1142,7 +1150,8 @@ const styles = StyleSheet.create({
     newChatButtonText: {
         color: '#FFFFFF',
         fontWeight: '500',
-        fontSize: 15,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 15,
         marginLeft: 8,
     },
     historyList: {
@@ -1176,7 +1185,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     historyItemTitle: {
-        fontSize: 15,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 15,
         fontWeight: '500',
         color: '#111827',
         marginBottom: 4,
@@ -1188,7 +1198,8 @@ const styles = StyleSheet.create({
         color: '#4F46E5',
     },
     historyItemSubtitle: {
-        fontSize: 13,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 13,
         color: '#6B7280',
         marginBottom: 4,
     },
@@ -1196,7 +1207,8 @@ const styles = StyleSheet.create({
         color: '#D1D5DB',
     },
     historyItemDate: {
-        fontSize: 11,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 11,
         color: '#9CA3AF',
     },
     historyItemDateDark: {

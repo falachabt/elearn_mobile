@@ -735,11 +735,13 @@ const styles = StyleSheet.create({
         marginLeft: 12,
     },
     headerTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: 'bold',
     },
     headerSubtitle: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         marginTop: 2,
     },
     concoursText: {
@@ -779,7 +781,8 @@ const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         marginLeft: 8,
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#111827',
         height: 40,
     },
@@ -800,7 +803,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#1F2937',
     },
     quizCountText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: '500',
         color: '#6B7280',
     },
@@ -837,14 +841,16 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     emptyStateTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: '600',
         marginTop: 16,
         color: '#111827',
         textAlign: 'center',
     },
     emptyStateText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#6B7280',
         marginTop: 8,
         textAlign: 'center',
@@ -853,14 +859,16 @@ const styles = StyleSheet.create({
 
     // Error state styles
     errorTitle: {
-        fontSize: 18,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 18,
         fontWeight: '600',
         marginTop: 16,
         color: '#EF4444',
         textAlign: 'center',
     },
     errorText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#6B7280',
         marginTop: 8,
         textAlign: 'center',
@@ -883,7 +891,8 @@ const styles = StyleSheet.create({
     retryButtonText: {
         color: '#FFFFFF',
         fontWeight: '500',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     },
 
     // Skeleton styles

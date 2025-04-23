@@ -637,7 +637,8 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   headerTitle: {
-    fontSize: 20,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 20,
     fontWeight: "600",
     color: "#1A1A1A",
     flex: 1,
@@ -667,7 +668,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.primary[500],
   },
   filterButtonText: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: theme.color.gray[600],
   },
   filterButtonTextDark: {
@@ -694,7 +696,8 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: 8,
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     color: "#1A1A1A",
   },
   categoriesScroll: {
@@ -720,7 +723,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.primary[500],
   },
   categoryText: {
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     color: theme.color.gray[600],
   },
   selectedCategoryText: {

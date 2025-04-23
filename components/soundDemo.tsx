@@ -7,6 +7,7 @@ import {
     Platform,
 } from 'react-native';
 import { useSound } from '@/hooks/useSound';
+import {theme} from "@/constants/theme";
 
 
 // TODO : remove this component
@@ -67,7 +68,8 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     title: {
-        fontSize: 24,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 30,
         color: '#333',
@@ -97,7 +99,8 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#FFFFFF',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
         textAlign: 'center',
     },

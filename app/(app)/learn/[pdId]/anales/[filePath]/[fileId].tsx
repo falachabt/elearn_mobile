@@ -361,7 +361,8 @@ const viewerStyles = StyleSheet.create({
     marginRight: 8,
   },
   title: {
-    fontSize: 16,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 16,
     fontWeight: '500',
     flex: 1,
   },
@@ -382,7 +383,8 @@ const viewerStyles = StyleSheet.create({
   },
   toggleButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontFamily : theme.typography.fontFamily,
+fontSize: 14,
     marginLeft: 4,
   },
   correctionButton: {

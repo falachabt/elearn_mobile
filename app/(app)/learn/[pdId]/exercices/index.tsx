@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, {useState} from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -9,15 +9,15 @@ import {
     useColorScheme,
     View,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { ScrollView } from "react-native-gesture-handler";
-import { supabase } from "@/lib/supabase";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { theme } from "@/constants/theme";
-import { useAuth } from "@/contexts/auth";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {ScrollView} from "react-native-gesture-handler";
+import {supabase} from "@/lib/supabase";
+import {useLocalSearchParams, useRouter} from "expo-router";
+import {theme} from "@/constants/theme";
+import {useAuth} from "@/contexts/auth";
 import useSWR from "swr";
 import CategoryFilter from "@/components/shared/learn/CategoryFilter";
-import { HapticType, useHaptics } from "@/hooks/useHaptics";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import ExerciseCard from "@/components/shared/learn/exercices/ExerciceCard";
 
 // Types
@@ -45,11 +45,11 @@ export const ExercisesList = () => {
     const params = useLocalSearchParams();
     const pdId = params["pdId"];
     const router = useRouter();
-    const { user } = useAuth();
+    const {user} = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [filterType, setFilterType] = useState<FilterType>("all");
-    const { trigger } = useHaptics();
+    const {trigger} = useHaptics();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
 
@@ -131,7 +131,7 @@ export const ExercisesList = () => {
         const uniqueCategories = Array.from(categoryMap.values());
 
         return {
-            pathName:  pathRes.data.title || "",
+            pathName: pathRes.data.title || "",
             categories: uniqueCategories,
             exercises: exerciseRes.data.map((ex) => ({
                 ...ex,
@@ -141,7 +141,7 @@ export const ExercisesList = () => {
         };
     };
 
-    const { data, error, isLoading, mutate } = useSWR(`exercises/${pdId}`, fetcher , {
+    const {data, error, isLoading, mutate} = useSWR(`exercises/${pdId}`, fetcher, {
         revalidateOnFocus: false,
         revalidateOnReconnect: false,
         refreshWhenHidden: false,
@@ -207,7 +207,7 @@ export const ExercisesList = () => {
         try {
             const userId = user?.id;
 
-            const { data: updatedData, error } = await supabase
+            const {data: updatedData, error} = await supabase
                 .from("exercices_pin")
                 .upsert(
                     {
@@ -254,7 +254,7 @@ export const ExercisesList = () => {
         try {
             const userId = user?.id;
 
-            const { data: updatedData, error } = await supabase
+            const {data: updatedData, error} = await supabase
                 .from("exercices_complete")
                 .upsert(
                     {
@@ -306,7 +306,7 @@ export const ExercisesList = () => {
                         color={"white"}
                     />
                 </TouchableOpacity>
-                <Text numberOfLines={3} style={[styles.headerTitle, isDark && styles.textDark]}>
+                <Text numberOfLines={2} style={[styles.headerTitle, isDark && styles.textDark]}>
                     {data?.pathName}
                 </Text>
             </View>
@@ -455,7 +455,7 @@ export const ExercisesList = () => {
             {filteredExercises.length > 0 ? (
                 <FlatList
                     data={filteredExercises}
-                    renderItem={({ item }) => (
+                    renderItem={({item}) => (
                         <ExerciseCard
                             exercise={item as unknown as Exercise}
                             onPress={() => handleViewExercise(item as unknown as Exercise)}
@@ -507,7 +507,8 @@ const styles = StyleSheet.create({
         marginRight: 16,
     },
     headerTitle: {
-        fontSize: 20,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
         fontWeight: "600",
         color: "#FFFFFF",
         flex: 1,
@@ -538,6 +539,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.primary[500],
     },
     filterButtonText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         lineHeight: 24,
         color: theme.color.gray[600],
@@ -566,6 +568,7 @@ const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         marginLeft: 8,
+        fontFamily: theme.typography.fontFamily,
         fontSize: 16,
         color: "#1A1A1A",
     },
@@ -574,6 +577,7 @@ const styles = StyleSheet.create({
         paddingBottom: 8,
     },
     resultCountText: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         color: theme.color.gray[600],
         fontStyle: "italic",
@@ -598,6 +602,7 @@ const styles = StyleSheet.create({
         padding: 32,
     },
     emptyStateTitle: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 18,
         fontWeight: "600",
         color: "#1A1A1A",
@@ -605,6 +610,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     emptyStateDescription: {
+        fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         color: theme.color.gray[600],
         textAlign: "center",

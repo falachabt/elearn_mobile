@@ -402,13 +402,15 @@ const styles = StyleSheet.create({
     backButton: {
     },
     headerTitle: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '700',
         color: '#1A1A1A',
         marginLeft: 48,
     },
     headerTitleDark: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '700',
         color: '#FFFFFF',
         marginLeft: 48,
@@ -429,13 +431,15 @@ const styles = StyleSheet.create({
         marginBottom: 0,
     },
     sectionTitle: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '700',
         color: '#1A1A1A',
         marginBottom: 16,
     },
     sectionTitleDark: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '700',
         color: '#FFFFFF',
         marginBottom: 16,
@@ -444,13 +448,15 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     label: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: '600',
         color: '#1A1A1A',
         marginBottom: 8,
     },
     labelDark: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: '600',
         color: '#FFFFFF',
         marginBottom: 8,
@@ -470,12 +476,14 @@ const styles = StyleSheet.create({
         borderColor: '#333333',
     },
     inputText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#1A1A1A',
 
     },
     inputTextDark: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#FFFFFF',
     },
     inputError: {
@@ -484,7 +492,8 @@ const styles = StyleSheet.create({
     errorText: {
 
         color: theme.color.error,
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         width: "100%",
         textAlign: "center"
     },
@@ -513,7 +522,8 @@ const styles = StyleSheet.create({
         borderColor: theme.color.primary[500],
     },
     chipText: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         fontWeight: '500',
         color: '#666666',
         width: '100%',
@@ -548,7 +558,8 @@ const styles = StyleSheet.create({
     submitButtonText: {
         color: '#FFFFFF',
         textAlign: 'center',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
         width: '100%',
         justifyContent: 'center',

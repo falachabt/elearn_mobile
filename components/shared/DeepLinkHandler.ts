@@ -2,6 +2,8 @@ import React, {useEffect} from 'react';
 import {Linking} from 'react-native';
 import {supabase} from '@/lib/supabase';
 import axios from "axios";
+import {useRouter} from "expo-router";
+
 
 // Define prop types for the component
 interface AuthDeepLinkHandlerProps {
@@ -13,9 +15,11 @@ interface AuthDeepLinkHandlerProps {
 
 /**
  * Component that handles deep link authentication callbacks
- * This should be placed high in your component tree (e.g., alongside your existing auth listener)
  */
 const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess, onAuthError}) => {
+
+    const router = useRouter();
+
     useEffect(() => {
         // Handler function to process deep link URLs
         const handleDeepLink = async (url: string) => {
@@ -55,13 +59,13 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                                 refresh_token: params.refresh_token,
                             });
 
-                          setTimeout(async () => {
+                            setTimeout(async () => {
                                 const { data } = await supabase.auth.getUser();
 
                                 if (params?.access_token) {
                                     // await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
                                     await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
-                                    { email: data?.user?.email, phone: data?.user?.phone },
+                                        { email: data?.user?.email, phone: data?.user?.phone },
                                         {
                                             headers: {
                                                 'Content-Type': 'application/json',
@@ -97,6 +101,38 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                     console.error('Error processing deep link:', error);
                     onAuthError?.(error instanceof Error ? error : new Error('Unknown deep link error'));
                 }
+            } else if (url && (url.includes("payment/callback") || url.includes("payment-callback"))) {
+                try {
+                    // Parse the URL and extract payment parameters
+                    const parsedURL = new URL(url);
+                    const params = Object.fromEntries(parsedURL.searchParams.entries());
+
+
+                    console.log("params", params)
+                    // Redirect to the payment callback page with the parameters
+                    const urlParams = new URLSearchParams(params).toString();
+
+                    if(params?.status === "complete"){
+                    // Navigate to the payment callback page
+
+                    router.replace({
+                        pathname: "/(callbacks)/payment",
+                    });
+
+                    }else {
+                    router.replace({
+                        pathname: "/(callbacks)/payment_failed"
+                    });
+
+                    }
+
+
+
+                } catch (error) {
+                    console.error('Error processing payment callback:', error);
+                    // Fallback to learn page if there's an error
+                    router.replace("/(app)/learn");
+                }
             }
         };
 
@@ -116,7 +152,7 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
         return () => {
             subscription.remove();
         };
-    }, [onAuthSuccess, onAuthError]);
+    }, [onAuthSuccess, onAuthError, router]);
 
     // This component doesn't render anything
     return null;

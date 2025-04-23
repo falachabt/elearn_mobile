@@ -127,7 +127,8 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     ticketDate: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#6B7280',
     },
     ticketDateDark: {
@@ -151,7 +152,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#F3F4F6',
     },
     statusText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: '500',
         color: '#1F2937',
     },
@@ -163,11 +165,13 @@ const styles = StyleSheet.create({
     },
     unreadText: {
         color: '#FFFFFF',
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: '600',
     },
     lastMessage: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#4B5563',
         marginBottom: 8,
     },

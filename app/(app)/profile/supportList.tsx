@@ -263,7 +263,8 @@ const styles = StyleSheet.create({
         borderBottomColor: theme.color.dark.border,
     },
     headerTitle: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '600',
         color: '#1F2937',
     },
@@ -297,7 +298,8 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     errorText: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#EF4444',
         marginBottom: 16,
         textAlign: 'center',
@@ -310,7 +312,8 @@ const styles = StyleSheet.create({
     },
     retryText: {
         color: '#FFFFFF',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
     },
     ticketItem: {
@@ -343,7 +346,8 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     ticketTitle: {
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '500',
         color: '#1F2937',
         marginBottom: 4,
@@ -352,7 +356,8 @@ const styles = StyleSheet.create({
         color: '#E5E7EB',
     },
     ticketDate: {
-        fontSize: 14,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
         color: '#6B7280',
     },
     ticketDateDark: {
@@ -364,7 +369,8 @@ const styles = StyleSheet.create({
         borderRadius: theme.border.radius.small,
     },
     statusText: {
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: '500',
         color: '#1F2937',
     },
@@ -382,7 +388,8 @@ const styles = StyleSheet.create({
     },
     unreadText: {
         color: '#FFFFFF',
-        fontSize: 12,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 12,
         fontWeight: '600',
     },
     separator: {
@@ -420,7 +427,8 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     modalTitle: {
-        fontSize: 20,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 20,
         fontWeight: '600',
         color: '#1F2937',
     },
@@ -434,7 +442,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#F3F4F6',
         borderRadius: 8,
         padding: 12,
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         color: '#1F2937',
         minHeight: 100,
         textAlignVertical: 'top',
@@ -455,7 +464,8 @@ const styles = StyleSheet.create({
     },
     createButtonText: {
         color: '#FFFFFF',
-        fontSize: 16,
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
         fontWeight: '600',
     },
 });

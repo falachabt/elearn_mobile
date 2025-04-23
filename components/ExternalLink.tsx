@@ -10,7 +10,8 @@ export function ExternalLink({ href, ...rest }: Props) {
     <Link
       target="_blank"
       {...rest}
-      href={href}
+        // TODO remove the as any and try to fix
+      href={href as any}
       onPress={async (event) => {
         if (Platform.OS !== 'web') {
           // Prevent the default behavior of linking to the default browser on native.
