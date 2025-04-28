@@ -357,8 +357,14 @@ const Register: React.FC = () => {
         }
 
         const regex = /^6[5-9]{1}[0-9]{7}$/;
+
+        if (!regex.test(phone)) {
+            setPhoneError("Format invalide. Ex: 65XXXXXXX, 66XXXXXXX");
+            return false;
+        }
+
         setPhoneError("");
-        return true
+        return true;
     }
 
     const validatePassword = (password: string): boolean => {
@@ -395,7 +401,7 @@ const Register: React.FC = () => {
     const handleSignUp = async (): Promise<void> => {
         try {
             // Validate fields
-            const isEmailValid = validateEmail(email);
+            const isPhoneValid = validatePhone(phone);
             const isPasswordValid = validatePassword(password);
             const isConfirmPasswordValid = validateConfirmPassword(
                 password,
@@ -403,7 +409,7 @@ const Register: React.FC = () => {
             );
             const isTermsValid = validateTerms();
 
-            if (!isEmailValid || !isPasswordValid || !isConfirmPasswordValid || !isTermsValid ) {
+            if (!isPhoneValid || !isPasswordValid || !isConfirmPasswordValid || !isTermsValid ) {
                 shakeError();
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                 return;
@@ -412,8 +418,9 @@ const Register: React.FC = () => {
             setIsLoading(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-            await signUp(email, password);
+            await signUp(phone, password);
 
+            // TODO : remove in update case we trust user and validate after
             setIsOtpStep(true);
             startCountdown();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -581,7 +588,7 @@ const Register: React.FC = () => {
                                     ]}
                                 >
                                     <Text style={[styles.subtitle, isDark && styles.textGray]}>
-                                        Créez votre compte pour accéder à la plateforme
+                                        Inscrivez vous avec
                                     </Text>
 
                                     {/* Social Login Options */}
@@ -602,52 +609,48 @@ const Register: React.FC = () => {
                                         <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
                                     </View>
 
-                                    {/* Email Input */}
+                                    {/* Phone Input */}
                                     <View style={styles.inputContainer}>
                                         <Text style={[styles.label, isDark && styles.textDark]}>
-                                            Email
+                                            Numéro de téléphone
                                         </Text>
                                         <View style={[
                                             styles.inputWrapper,
                                             isDark && styles.inputWrapperDark,
-                                            emailError && styles.inputError
+                                            phoneError && styles.inputError
                                         ]}>
                                             <MaterialCommunityIcons
-                                                name="email-outline"
+                                                name="phone-outline"
                                                 size={24}
-                                                color={emailError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
+                                                color={phoneError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
                                                 style={styles.inputIcon}
                                             />
                                             <TextInput
-                                                value={email}
+                                                value={phone}
                                                 onChangeText={(text) => {
-                                                    setEmail(text);
-                                                    if (emailError) validateEmail(text);
+                                                    const numericText = text.replace(/[^0-9]/g, '');
+                                                    if (numericText.length <= 9) {
+                                                        setPhone(numericText);
+                                                        if (phoneError) validatePhone(numericText);
+                                                    }
                                                 }}
                                                 style={[styles.input, isDark && styles.inputDark]}
-                                                placeholder="Votre email"
+                                                placeholder="65X XX XX XX"
                                                 placeholderTextColor={isDark ? "#666666" : "#999999"}
-                                                keyboardType="email-address"
-                                                autoCapitalize="none"
+                                                keyboardType="numeric"
+                                                maxLength={9}
                                                 returnKeyType="next"
                                                 onSubmitEditing={() => passwordRef.current?.focus()}
                                             />
-                                            {emailError && (
-                                                <MaterialCommunityIcons
-                                                    name="alert-circle"
-                                                    size={20}
-                                                    color={theme.color.error}
-                                                    style={styles.errorIcon}
-                                                />
-                                            )}
+                                           
                                         </View>
-                                        {emailError && (
+                                        {phoneError && (
                                             <Animated.View
                                                 style={[
                                                     styles.errorContainer,
                                                     {
-                                                        opacity: emailErrorAnim, transform: [{
-                                                            translateY: emailErrorAnim.interpolate({
+                                                        opacity: phoneErrorAnim, transform: [{
+                                                            translateY: phoneErrorAnim.interpolate({
                                                                 inputRange: [0, 1],
                                                                 outputRange: [-10, 0]
                                                             })
@@ -660,7 +663,7 @@ const Register: React.FC = () => {
                                                     size={16}
                                                     color={theme.color.error}
                                                 />
-                                                <Text style={styles.errorText}>{emailError}</Text>
+                                                <Text style={styles.errorText}>{phoneError}</Text>
                                             </Animated.View>
                                         )}
                                     </View>

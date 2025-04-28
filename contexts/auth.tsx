@@ -27,8 +27,8 @@ type AuthContextType = {
     isLoading: boolean
     signIn: (email: string, password: string) => Promise<void>
     signOut: () => Promise<void>
-    signUp: (email: string,  password: string) => Promise<void>
-    verifyOtp: (email: string,  token: string, password: string, type?: string) => Promise<void>
+    signUp: (phone: number,  password: string) => Promise<void>
+    verifyOtp: (phone: number,  token: string, password: string, type?: string) => Promise<void>
     mutateUser: () => Promise<Account | null | undefined>
     checkStreak: () => Promise<void>
 }
@@ -85,13 +85,13 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     );
 
     // Helper function to wait for account data to be created
-    const waitForAccountData = async (email: string, maxRetries = 5, retryDelay = 1000) => {
+    const waitForAccountData = async (phone: number, maxRetries = 5, retryDelay = 1000) => {
         for (let i = 0; i < maxRetries; i++) {
             try {
                 const { data, error } = await supabase
                     .from("accounts")
                     .select("*")
-                    .eq("email", email)
+                    .eq("phone", phone)
                     .single();
 
                 if (data) {
@@ -298,7 +298,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         }
     };
 
-    const verifyOtp = async (email: string, token: string, password: string, type: string = "signup") => {
+    const verifyOtp = async (phone: number, token: string, password: string, type: string = "signup") => {
         try {
             setIsLoading(true);
 
@@ -308,14 +308,14 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             }
 
             // Verify OTP
-            const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+            const {error} = await supabase.auth.verifyOtp({phone : phone.toString(), token, type: "sms"});
 
             if (error) {
                 throw error;
             }
 
             // Get the session after verification
-            const { data: { session } } = await supabase.auth.getSession();
+            const {data: {session}} = await supabase.auth.getSession();
 
             if (!session?.access_token) {
                 throw new Error('Session not created after OTP verification');
@@ -327,7 +327,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     console.log("Creating account...");
                     // Account creation API call
                     await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
-                        { email, password },
+                        {phone, password},
                         {
                             headers: {
                                 'Content-Type': 'application/json',
@@ -339,7 +339,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     console.log("Account creation API call successful, waiting for database...");
 
                     // Wait for the account data to be available in the database
-                    await waitForAccountData(email);
+                    await waitForAccountData(phone);
 
                     // Force revalidation of user data
                     await mutateUser();
@@ -364,16 +364,15 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // For signup, loading state will be managed by the useEffect when user data loads
         }
     };
-
-    const signUp = async (email: string, password: string) => {
+    const signUp = async (phone: number, password: string) => {
         try {
             setIsLoading(true);
             streakCheckedRef.current = false;
 
             try {
                 setIsAccountCreating(true);
-                const { data  , error } = await supabase.auth.signUp({
-                    email,
+                const {data, error} = await supabase.auth.signUp({
+                    phone: phone.toString(),
                     password
                 });
 
@@ -385,7 +384,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         console.log("Creating account...");
                         // Account creation API call
                         await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
-                            { email, password },
+                            { phone, password },
                             {
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -397,7 +396,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         console.log("Account creation API call successful, waiting for database...");
 
                         // Wait for the account data to be available in the database
-                        await waitForAccountData(email);
+                        await waitForAccountData(phone);
 
                         // Force revalidation of user data
                         await mutateUser();
