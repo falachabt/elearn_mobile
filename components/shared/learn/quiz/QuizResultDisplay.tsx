@@ -350,7 +350,7 @@ const QuizResultsDisplay = ({ currentQuestion, attempt, isDark }) => {
               <ActivityIndicator size="small" color={theme.color.primary[500]} />
             ) : (
               <MixedContentRenderer
-                text={correction || 'No correction available'}
+                text={correction || 'Pas de correction disponible'}
                 style={[styles.correctionText, isDark && styles.correctionTextDark]}
                 isDark={isDark}
                 containerWidth={questionWidth}
