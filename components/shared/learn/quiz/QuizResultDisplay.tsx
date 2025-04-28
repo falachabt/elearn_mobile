@@ -345,7 +345,7 @@ const QuizResultsDisplay = ({ currentQuestion, attempt, isDark }) => {
 
           {/* Correction Section */}
           <View style={styles.correctionContainer}>
-            <ThemedText style={styles.correctionTitle}>Correction</ThemedText>
+            <ThemedText style={styles.correctionTitle}>Explications</ThemedText>
             {isLoadingCorrection ? (
               <ActivityIndicator size="small" color={theme.color.primary[500]} />
             ) : (
