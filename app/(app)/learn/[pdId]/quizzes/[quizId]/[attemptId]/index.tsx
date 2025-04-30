@@ -664,7 +664,7 @@ const QuizContent = () => {
                 isDark={isDark}
                 onFinish={handleFinish}
             />
-
+ 
             {showResult && quizResults && (
                 <QuizResultDialog
                     visible={showResult}

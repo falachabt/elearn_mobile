@@ -16,7 +16,7 @@ import { theme } from '@/constants/theme';
 import { QuizAttempt, QuizQuestion } from '@/types/quiz.type';
 import { useQuizContext } from '@/contexts/quizContext';
 import Katex from 'react-native-katex';
-import { CorrectionService } from '@/services/correction.service'; // Import the CorrectionService
+import { CorrectionService } from '@/services/correction.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -190,10 +190,17 @@ const QuizResultsDisplay = ({ currentQuestion, attempt, isDark }) => {
 
   useEffect(() => {
     if (currentQuestion) {
-      setIsLoadingCorrection(true);
-      CorrectionService.generateAnswer(currentQuestion)
-        .then(setCorrection)
-        .finally(() => setIsLoadingCorrection(false));
+      // Vérifie d'abord si le champ justificatif existe déjà
+      if (currentQuestion.justificatif && currentQuestion.justificatif.trim() !== '') {
+        // Si oui, on l'utilise directement sans appeler l'API
+        setCorrection(currentQuestion.justificatif);
+      } else {
+        // Sinon, on fait une requête à l'API Gemini via le service
+        setIsLoadingCorrection(true);
+        CorrectionService.generateAnswer(currentQuestion)
+          .then(setCorrection)
+          .finally(() => setIsLoadingCorrection(false));
+      }
     }
   }, [currentQuestion]);
 
@@ -419,7 +426,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     lineHeight: 28,
-    color: '#1A1A1A',
+    color: '#000000',
   },
   questionTitleDark: {
     color: '#FFFFFF',
@@ -460,7 +467,7 @@ const styles = StyleSheet.create({
   optionText: {
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
-    color: '#1A1A1A',
+    color: '#000000',
   },
   optionTextDark: {
     color: '#FFFFFF',
@@ -491,6 +498,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: '600',
+    color: '#000000',
   },
   explanationContent: {
     marginTop: 12,
@@ -506,10 +514,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 8,
-    color: '#4B5563',
+    color: '#000000',
   },
   explanationTextDark: {
-    color: '#D1D5DB', // Lighter gray for dark mode
+    color: '#D1D5DB',
   },
   correctionContainer: {
     marginTop: 20,
@@ -522,17 +530,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
+    color: '#000000',
   },
   correctionText: {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     lineHeight: 20,
-    color: '#4B5563',
+    color: '#000000',
   },
   correctionTextDark: {
-    color: '#D1D5DB', // Lighter gray for dark mode
+    color: '#D1D5DB',
   },
-  // KaTeX styles - updated to match main component
   katexComponent: {
     minHeight: 50,
     backgroundColor: 'transparent',
@@ -540,5 +548,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 });
+
 
 export default QuizResultsDisplay;
