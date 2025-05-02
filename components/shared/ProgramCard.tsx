@@ -387,7 +387,7 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
 
                       {/* Course List */}
                       {programDetails?.courses && programDetails.courses.length > 0 && (
-                          <View style={styles.detailSection}>
+                          <View style={[styles.detailSection , isDark && styles.detailSectionDark]}>
                             <TouchableOpacity
                                 style={styles.sectionHeader}
                                 onPress={() => toggleSection('courses')}
@@ -437,7 +437,7 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
 
                       {/* Quiz List */}
                       {programDetails?.quizzes && programDetails.quizzes.length > 0 && (
-                          <View style={styles.detailSection}>
+                          <View style={[styles.detailSection , isDark && styles.detailSectionDark]}>
                             <TouchableOpacity
                                 style={styles.sectionHeader}
                                 onPress={() => toggleSection('quizzes')}
@@ -487,7 +487,7 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
 
                       {/* Exercises List */}
                       {programDetails?.exercises && programDetails.exercises.length > 0 && (
-                          <View style={styles.detailSection}>
+                          <View style={[styles.detailSection , isDark && styles.detailSectionDark]}>
                             <TouchableOpacity
                                 style={styles.sectionHeader}
                                 onPress={() => toggleSection('exercises')}
@@ -537,7 +537,7 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
 
                       {/* Archives List */}
                       {programDetails?.archives && programDetails.archives.length > 0 && (
-                          <View style={styles.detailSection}>
+                          <View style={[styles.detailSection , isDark && styles.detailSectionDark]}>
                             <TouchableOpacity
                                 style={styles.sectionHeader}
                                 onPress={() => toggleSection('archives')}
@@ -1075,4 +1075,7 @@ fontSize: 16,
   spinner: {
     transform: [{ rotate: '0deg' }],
   },
+  detailSectionDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+  }
 });

@@ -964,7 +964,7 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
         return (
             <View style={[styles.section, isDark && styles.sectionDark]}>
                 <Text style={[styles.label, isDark && styles.labelDark]}>
-                    Numéro Mobile Money
+                    Numéro OM ou MOMO
                 </Text>
                 <View style={styles.phoneInputContainer}>
                     <View style={[styles.networkIndicator, isDark && styles.networkIndicatorDark]}>

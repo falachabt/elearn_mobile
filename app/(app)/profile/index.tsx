@@ -24,7 +24,6 @@ interface MenuItem {
     route: string;
 }
 
-
 const fetcher = async (key: string): Promise<{
     total_time_in_second: number;
     completed_courses: number | null;
@@ -50,8 +49,6 @@ const fetcher = async (key: string): Promise<{
         }
     }
 
-
-
     return {
         total_time_in_second: user_activty?.reduce((acc, curr) => acc + curr.duration, 0) || 0,
         completed_courses: completed_courses_count,
@@ -73,8 +70,6 @@ const Profile = () => {
 
     console.log("data", data);
 
-
-
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
 
@@ -94,16 +89,6 @@ const Profile = () => {
             label: 'Mes programmes',
             route: '/(app)/learn',
         },
-        // {
-        //     icon: <Ionicons name="stats-chart" size={24} color={theme.color.primary[500]}/>,
-        //     label: 'Statistiques',
-        //     route: '/profile/statistics',
-        // },
-        // {
-        //     icon: <MaterialCommunityIcons name="trophy-outline" size={24} color={theme.color.primary[500]}/>,
-        //     label: 'Classement',
-        //     route: '/profile/leaderboard',
-        // },
         {
             icon: <Ionicons name="settings-outline" size={24} color={theme.color.primary[500]}/>,
             label: 'Paramètres',
@@ -118,6 +103,11 @@ const Profile = () => {
             icon: <MaterialIcons name="support-agent" size={24} color={theme.color.primary[500]}/>,
             label: 'Service client',
             route: '/profile/supportList',
+        },
+        {
+            icon: <MaterialIcons name="delete-forever" size={24} color="#EF4444"/>,
+            label: 'Supprimer mon compte',
+            route: '/(app)/profile/delete-account',
         },
     ];
 
@@ -147,8 +137,8 @@ const Profile = () => {
                 <Text style={{
                     flex: 1,
                     marginLeft: 12,
-                    fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+                    fontFamily: theme.typography.fontFamily,
+                    fontSize: 16,
                     color: isDarkMode ? '#E5E7EB' : '#1F2937',
                 }}>
                     {item.label}
@@ -184,8 +174,7 @@ fontSize: 16,
                 userName={userData.name}
                 streaks={userData.streaks}
                 xp={userData.xp}
-                onChangeProgram={() => {
-                }}
+                onChangeProgram={() => {}}
             />
 
             <ScrollView
@@ -222,21 +211,29 @@ fontSize: 16,
                 {/* Stats Section */}
                 <View style={styles.statsContainer}>
                     <StatCard
-                        icon={<MaterialCommunityIcons name="book-open-variant" size={24}
-                                                      color={isDarkMode ? theme.color.primary[400] : theme.color.primary[600]}/>}
+                        icon={<MaterialCommunityIcons
+                            name="book-open-variant"
+                            size={24}
+                            color={isDarkMode ? theme.color.primary[400] : theme.color.primary[600]}
+                        />}
                         value={data?.completed_courses || 0}
                         label="Cours"
                     />
                     <StatCard
-                        icon={<MaterialIcons name="timer" size={24}
-                                             color={isDarkMode ? theme.color.warning : theme.color.primary[400]}/>}
-                        // well format the time
-                        value={((data?.total_time_in_second || 0) / 3600).toFixed(2) +  " h" || 0}
+                        icon={<MaterialIcons
+                            name="timer"
+                            size={24}
+                            color={isDarkMode ? theme.color.warning : theme.color.primary[400]}
+                        />}
+                        value={((data?.total_time_in_second || 0) / 3600).toFixed(2) + " h" || 0}
                         label="Temps total"
                     />
                     <StatCard
-                        icon={<FontAwesome5 name="fire" size={20}
-                                            color={"red"}/>}
+                        icon={<FontAwesome5
+                            name="fire"
+                            size={20}
+                            color={"red"}
+                        />}
                         value={data?.streaks || 0}
                         label="max série"
                     />
@@ -352,8 +349,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     email: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         color: '#374151',
         fontWeight: '500',
     },
@@ -361,8 +358,8 @@ fontSize: 16,
         color: '#E5E7EB',
     },
     studentId: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
         color: theme.color.primary[500],
         marginTop: 4,
     },
@@ -381,8 +378,8 @@ fontSize: 14,
     },
     editButtonText: {
         color: '#FFFFFF',
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         fontWeight: '600',
     },
     statsContainer: {
@@ -425,8 +422,8 @@ fontSize: 16,
         backgroundColor: theme.color.dark.background.tertiary,
     },
     statValue: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 20,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#1F2937',
     },
@@ -434,8 +431,8 @@ fontSize: 20,
         color: '#E5E7EB',
     },
     statLabel: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
         color: '#6B7280',
         marginTop: 4,
     },
@@ -480,8 +477,8 @@ fontSize: 12,
     menuLabel: {
         flex: 1,
         marginLeft: 12,
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         color: '#1F2937',
     },
     menuLabelDark: {
@@ -500,8 +497,8 @@ fontSize: 16,
     },
     logoutButtonText: {
         color: '#FFFFFF',
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         fontWeight: '600',
     },
     modalOverlay: {
@@ -532,8 +529,8 @@ fontSize: 16,
         backgroundColor: theme.color.dark.background.secondary,
     },
     modalTitle: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 18,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#1F2937',
         marginBottom: theme.spacing.small,
@@ -542,8 +539,8 @@ fontSize: 18,
         color: '#E5E7EB',
     },
     modalMessage: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         color: '#374151',
         textAlign: 'center',
         marginBottom: theme.spacing.medium,
@@ -556,7 +553,6 @@ fontSize: 16,
         justifyContent: 'space-between',
         width: '100%',
         gap: 12,
-        marginBottom: theme.spacing.medium,
     },
     modalButton: {
         flex: 1,
@@ -572,8 +568,8 @@ fontSize: 16,
         backgroundColor: '#EF4444',
     },
     modalButtonText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         fontWeight: '500',
         color: '#1F2937',
     },

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import {Button, Alert, TouchableOpacity} from 'react-native';
+import {Button, Alert, TouchableOpacity, Platform} from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
 import {supabase} from "@/lib/supabase";
@@ -66,7 +66,7 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
         <TouchableOpacity
             onPress={signInWithGoogle}
             disabled={loading}
-            style={{ opacity: loading ? 0.5 : 1, width: '100%' }}
+            style={{ opacity: loading ? 0.5 : 1, flex: 1 }}
         >
             {children}
         </TouchableOpacity>

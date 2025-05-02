@@ -68,7 +68,7 @@ const fetchLastCourse = async (userId: string) => {
     .select(`
       courses (
         *,
-        course_learningpath(learning_paths(*)),
+        course_learningpath(learning_paths(id)),
         course_progress_summary!course_progress_summary_course_id_fkey(*)
       ),
       sectionid,
