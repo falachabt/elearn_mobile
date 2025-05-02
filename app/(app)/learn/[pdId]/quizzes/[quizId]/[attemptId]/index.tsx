@@ -10,7 +10,7 @@ import {
     Alert,
     Dimensions,
     Image,
-    Text,
+    Text, DimensionValue,
 } from "react-native";
 import {useRouter, useLocalSearchParams} from "expo-router";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
@@ -19,9 +19,6 @@ import {useColorScheme} from "@/hooks/useColorScheme";
 import {theme} from "@/constants/theme";
 import {
     useQuiz,
-    useQuizQuestions,
-    useQuizAttempt,
-    useQuizResults,
 } from "@/hooks/useQuiz";
 import {QuizProvider, useQuizContext} from "@/contexts/quizContext";
 import LottieView from "lottie-react-native";
@@ -204,7 +201,7 @@ const MixedContentRenderer = memo(({
         true;
     `;
 
-    const onMessage = (event) => {
+    const onMessage = (event: { nativeEvent: { data: string } }) => {
         try {
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === 'dimensions') {
@@ -288,7 +285,7 @@ const QuizHeader = memo(({isDark}: QuizHeaderProps) => {
                 }
                 <View style={styles.progressBar}>
                     <View
-                        style={[styles.progressFill, {width: progressWidth}]}/>
+                        style={[styles.progressFill, {width: progressWidth as DimensionValue}]}/>
                 </View>
             </View>
         </View>
@@ -412,7 +409,7 @@ const QuestionContent = memo(({isDark}: QuestionContentProps) => {
                 ))}
             </View>
 
-            <BlockNoteContent blocks={currentQuestion.details}/>
+            <BlockNoteContent blocks={currentQuestion.details || []}/>
         </View>
     );
 });
@@ -540,7 +537,7 @@ const QuizFooter = memo(({
                                 showInstructions && styles.exerciseButtonTextActive
                             ]}
                         >
-                            Instructions
+                            Enoncer
                         </ThemedText>
                     </Pressable>
                 )}

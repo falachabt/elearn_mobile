@@ -26,6 +26,7 @@ import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import OTPInput from "../../components/ui/OTPInput";
 import GoogleAuth from "@/components/GoogleLogin";
+import {AppleLogin} from "@/components/AppleLogin";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -168,7 +169,7 @@ const Register: React.FC = () => {
 
     // States
     const [email, setEmail] = useState<string>("");
-    const [phone, setPhone] = useState<string>("");
+    const [phone, setPhone] = useState<number>();
     const [password, setPassword] = useState<string>("");
     const [confirmPassword, setConfirmPassword] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -350,7 +351,7 @@ const Register: React.FC = () => {
         return true;
     };
 
-    const validatePhone = (phone: string): boolean => {
+    const validatePhone = (phone: number | undefined ): boolean => {
         if (!phone) {
             setPhoneError("Le numéro de téléphone est requis");
             return false;
@@ -358,7 +359,7 @@ const Register: React.FC = () => {
 
         const regex = /^6[5-9]{1}[0-9]{7}$/;
 
-        if (!regex.test(phone)) {
+        if (!regex.test(String(phone))) {
             setPhoneError("Format invalide. Ex: 65XXXXXXX, 66XXXXXXX");
             return false;
         }
@@ -414,6 +415,8 @@ const Register: React.FC = () => {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                 return;
             }
+            
+           
 
             setIsLoading(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -435,10 +438,11 @@ const Register: React.FC = () => {
             shakeError();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
-            if (error.message === "email exists") {
+            console.log("error",error.message);
+            if (error.message === "email exists" || error.message === "User already registered") {
                 setToast({
                     visible: true,
-                    message: "Cet email ou phone est déjà utilisé",
+                    message: "Ce numéro est déjà associé à un compte",
                     type: "error",
                     action: {
                         label: "Se connecter",
@@ -466,8 +470,18 @@ const Register: React.FC = () => {
         try {
             setIsLoading(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            
+            if(!phone){
+                setToast({
+                    visible: true,
+                    message: "Numéro de téléphone invalide",
+                    type: "error",
+                    action: null
+                });
+                return;
+            }
 
-            await verifyOtp(email, otp, password);
+            await verifyOtp(phone, otp, password);
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             setToast({
@@ -494,8 +508,10 @@ const Register: React.FC = () => {
     const handleResendOtp = async (): Promise<void> => {
         try {
             setIsLoading(true);
-            await supabase.auth.signInWithOtp({phone: phone});
-            startCountdown();
+            if (phone) {
+                await supabase.auth.signInWithOtp({phone: phone.toString()});
+                startCountdown();
+            }
 
             setToast({
                 visible: true,
@@ -599,6 +615,7 @@ const Register: React.FC = () => {
                                                 <Text style={styles.socialButtonText}>Google</Text>
                                             </View>
                                         </GoogleAuth>
+                                        <AppleLogin />
                                     </View>
 
                                     <View style={styles.divider}>
@@ -626,12 +643,12 @@ const Register: React.FC = () => {
                                                 style={styles.inputIcon}
                                             />
                                             <TextInput
-                                                value={phone}
+                                                value={phone?.toString()}
                                                 onChangeText={(text) => {
                                                     const numericText = text.replace(/[^0-9]/g, '');
                                                     if (numericText.length <= 9) {
-                                                        setPhone(numericText);
-                                                        if (phoneError) validatePhone(numericText);
+                                                        setPhone(parseInt(numericText) || undefined);
+                                                        if (phoneError) validatePhone(parseInt(numericText) || undefined);
                                                     }
                                                 }}
                                                 style={[styles.input, isDark && styles.inputDark]}
@@ -814,7 +831,7 @@ const Register: React.FC = () => {
                                             J'accepte les{" "}
                                             <Text
                                                 style={styles.link}
-                                                onPress={() => router.push("/(app)/(CGU)/terms" as any)}
+                                                onPress={() => router.push("/(cgu_privacy)/cgu" as any)}
                                             >
                                                 conditions d'utilisation
                                             </Text>
@@ -1193,6 +1210,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         gap: rs(12),
     },
+
     socialButton: {
         flex: 1,
         flexDirection: "row",

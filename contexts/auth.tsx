@@ -25,23 +25,24 @@ type AuthContextType = {
     session: Session | null
     user: Account | null
     isLoading: boolean
-    signIn: (email: string, password: string) => Promise<void>
+    signIn: (phone: string, password: string) => Promise<void>
     signOut: () => Promise<void>
-    signUp: (phone: number,  password: string) => Promise<void>
+    signUp: (phone: number | undefined, password: string) => Promise<void>
     verifyOtp: (phone: number,  token: string, password: string, type?: string) => Promise<void>
     mutateUser: () => Promise<Account | null | undefined>
     checkStreak: () => Promise<void>
+    setIsAccountCreating: (isCreating: boolean) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // SWR fetcher function
-const fetcher = async (email: string) => {
+const fetcher = async (authId: string) => {
     try {
         const {data, error} = await supabase
             .from("accounts")
             .select("*, user_xp(*), user_streaks(*), user_program_enrollments(*)")
-            .eq("email", email)
+            .eq("authId", authId)
             .single();
 
         if (error) throw error;
@@ -62,7 +63,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
     // User data fetching with SWR
     const {data: user, error: userError, mutate: mutateUser} = useSWR<Account | null>(
-        session?.user?.email ? session.user.email : null,
+        session?.user.id ? session.user.id : null,
         fetcher,
         {
             refreshInterval: 0,
@@ -140,6 +141,9 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 setIsLoading(true);
                 const {data: {session}} = await supabase.auth.getSession();
                 setSession(session);
+
+
+
 
                 // If no session, we're done loading
                 if (!session) {
@@ -223,7 +227,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     event: '*',
                     schema: 'public',
                     table: 'accounts',
-                    filter: `email=eq.${user.email}`
+                    filter: `authId=eq.${user.authId}`
                 },
                 () => {
                     // Just mutate data, don't set loading state
@@ -270,14 +274,14 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     }, [user?.id]); // Only depend on stable ID
 
     // Auth methods
-    const signIn = async (email: string, password: string) => {
+    const signIn = async (phone: string, password: string) => {
         try {
             setIsLoading(true);
             streakCheckedRef.current = false;
 
             console.log("Signing in...");
             const { data, error } = await supabase.auth.signInWithPassword({
-                email,
+                phone: phone.toString(),
                 password,
             });
 
@@ -364,10 +368,15 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // For signup, loading state will be managed by the useEffect when user data loads
         }
     };
-    const signUp = async (phone: number, password: string) => {
+    const signUp = async (phone: number | undefined, password: string) => {
         try {
             setIsLoading(true);
             streakCheckedRef.current = false;
+
+            if(!phone) {
+                setIsLoading(false);
+                throw new Error('Phone number is required');
+            }
 
             try {
                 setIsAccountCreating(true);
@@ -384,6 +393,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         console.log("Creating account...");
                         // Account creation API call
                         await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
+                        // await axios.post('http://192.168.1.168:3000/api/mobile/auth/createAccount',
                             { phone, password },
                             {
                                 headers: {
@@ -488,7 +498,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         signUp,
         verifyOtp,
         mutateUser,
-        checkStreak
+        checkStreak,
+        setIsAccountCreating,
     };
 
     return (

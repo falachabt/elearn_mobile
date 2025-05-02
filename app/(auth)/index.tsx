@@ -166,7 +166,10 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.dark.background.primary,
   },
   scrollViewContent: {
-    flexGrow: 1,
+    flex : 1,
+    width : Dimensions.get('screen').width,
+    height : Dimensions.get('screen').height,
+    flexGrow: 0,
     minHeight: '100%',
   },
   content: {

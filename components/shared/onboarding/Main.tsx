@@ -68,6 +68,7 @@ const MainOnboarding = () => {
     motivation: ''
   });
   const [programs, setPrograms] = useState<number[]>([]);
+  const [isEndingonboarding, setIsEndingOnboarding] = useState(false);
   const [isPaymentLoading, setIsPaymentLoading] = useState(false);
   const [isWatingForPayment, setIsWatingForPayment] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -313,6 +314,15 @@ const MainOnboarding = () => {
         return;
       }else{
         await updateAccountInDatabase();
+        if(Platform.OS === 'ios'){
+          setIsEndingOnboarding(true);
+          // skip the rest of the onboarding
+            await handleSkipOnboarding();
+
+            setTimeout(() => {
+              setIsEndingOnboarding(false);
+            }, 1500);
+        }
       }
     }
 
@@ -418,6 +428,8 @@ const MainOnboarding = () => {
       return isWatingForPayment ? "Paiement en cours..." : programs?.length ? "Payer" :  "Sauter";
     }else if(step === 6){
       return programs?.length ? "Suivant" : "Sauter";
+    } else if(isEndingonboarding) {
+      return <ActivityIndicator color={theme.color.primary[500]} />;
     }
     return "Suivant";
   }
@@ -442,7 +454,7 @@ const MainOnboarding = () => {
                         styles.secondaryButton,
                         isDark && styles.secondaryButtonDark
                       ]}
-                      disabled={isPaymentLoading}
+                      disabled={isPaymentLoading || isOnboardingLoading || loading || isEndingonboarding}
                       onPress={() => {
                         if (step == 6 && knowsProgram) {
                           setStep(step - 2);
@@ -465,10 +477,10 @@ const MainOnboarding = () => {
                   style={[
                     styles.button,
                     styles.primaryButton,
-                    ((step === 4 && knowsProgram === null) || loading || isPaymentLoading) && styles.disabledButton,
+                    ((step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding) && styles.disabledButton,
                   ]}
                   onPress={handleNextStep}
-                  disabled={(step === 4 && knowsProgram === null) || loading || isPaymentLoading}
+                  disabled={(step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding}
               >
                 <Text style={styles.buttonText}>
                   {renderNextButtonLabel()}

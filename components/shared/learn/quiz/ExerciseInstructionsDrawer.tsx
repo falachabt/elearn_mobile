@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import React, {useEffect, useRef, useState, useMemo, useCallback} from 'react';
 import {
     View,
     StyleSheet,
@@ -12,16 +12,16 @@ import {
     Image,
     ImageURISource
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ThemedText } from '@/components/ThemedText';
-import { theme } from '@/constants/theme';
-import { supabase } from '@/lib/supabase';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import {MaterialCommunityIcons} from '@expo/vector-icons';
+import {ThemedText} from '@/components/ThemedText';
+import {theme} from '@/constants/theme';
+import {supabase} from '@/lib/supabase';
+import {useColorScheme} from '@/hooks/useColorScheme';
 import * as Haptics from 'expo-haptics';
 import Markdown from 'react-native-markdown-display';
 import FitImage from "react-native-fit-image";
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const {height: SCREEN_HEIGHT, width: SCREEN_WIDTH} = Dimensions.get('window');
 
 type ExerciseInstructionsDrawerProps = {
     quizId: string;
@@ -194,8 +194,8 @@ const getImageDimensions = (src: string): Promise<{ width: number, height: numbe
             src,
             (width, height) => {
                 // Store in cache
-                imageDimensionsCache[src] = { width, height };
-                resolve({ width, height });
+                imageDimensionsCache[src] = {width, height};
+                resolve({width, height});
             },
             (error) => {
                 console.error('Error getting image dimensions:', error);
@@ -206,7 +206,7 @@ const getImageDimensions = (src: string): Promise<{ width: number, height: numbe
 };
 
 // Separate Image component to prevent unnecessary re-renders of the parent
-const MarkdownImage = React.memo(({ src, alt, isDark }: { src: string; alt?: string; isDark: boolean }) => {
+const MarkdownImage = React.memo(({src, alt, isDark}: { src: string; alt?: string; isDark: boolean }) => {
     const [loadingState, setLoadingState] = useState<'loading' | 'loaded' | 'error'>('loading');
     const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
     const imageWidth = SCREEN_WIDTH - 64; // Full width minus padding
@@ -281,7 +281,7 @@ const MarkdownImage = React.memo(({ src, alt, isDark }: { src: string; alt?: str
     if (!imageSource) {
         return (
             <View style={styles.imageErrorContainer}>
-                <MaterialCommunityIcons name="image-off" size={24} color="#EF4444" />
+                <MaterialCommunityIcons name="image-off" size={24} color="#EF4444"/>
                 <ThemedText style={styles.imageErrorText}>Image invalide</ThemedText>
             </View>
         );
@@ -291,7 +291,7 @@ const MarkdownImage = React.memo(({ src, alt, isDark }: { src: string; alt?: str
         <View style={styles.imageContainer}>
             {loadingState === 'loading' && (
                 <View style={styles.imageLoadingContainer}>
-                    <ActivityIndicator size="small" color={theme.color.primary[500]} />
+                    <ActivityIndicator size="small" color={theme.color.primary[500]}/>
                 </View>
             )}
 
@@ -300,8 +300,8 @@ const MarkdownImage = React.memo(({ src, alt, isDark }: { src: string; alt?: str
                 source={imageSource}
                 style={[
                     styles.markdownImage,
-                    imageDimensions && { height: imageDimensions.height },
-                    { display: loadingState === 'loaded' ? 'flex' : 'none' }
+                    imageDimensions && {height: imageDimensions.height},
+                    {display: loadingState === 'loaded' ? 'flex' : 'none'}
                 ]}
                 resizeMode="contain"
                 onLoad={handleLoad}
@@ -310,7 +310,7 @@ const MarkdownImage = React.memo(({ src, alt, isDark }: { src: string; alt?: str
 
             {loadingState === 'error' && (
                 <View style={styles.imageErrorContainer}>
-                    <MaterialCommunityIcons name="image-off" size={24} color="#EF4444" />
+                    <MaterialCommunityIcons name="image-off" size={24} color="#EF4444"/>
                     <ThemedText style={styles.imageErrorText}>Impossible de charger l'image</ThemedText>
                 </View>
             )}
@@ -380,7 +380,7 @@ export default function ExerciseInstructionsDrawer({
         setError(null);
         try {
             // Fetch exercise data from the quiz table
-            const { data, error } = await supabase
+            const {data, error} = await supabase
                 .from('quiz')
                 .select('name, enonce')
                 .eq('id', quizId)
@@ -433,7 +433,7 @@ export default function ExerciseInstructionsDrawer({
             indicator: false,
             style: styles._VIEW_SAFE_image,
             source: {
-                uri:  src,
+                uri: src,
             },
         };
 
@@ -444,7 +444,7 @@ export default function ExerciseInstructionsDrawer({
 
         delete imageProps.key
 
-        return <FitImage indicator={false}  key={Math.random()} {...imageProps} />;
+        return <FitImage   key={"soemid"} {...imageProps} />;
     }, [isDark]);
 
     // Define markdown styles based on the theme
@@ -563,7 +563,7 @@ export default function ExerciseInstructionsDrawer({
                         <TouchableOpacity
                             style={styles.closeButton}
                             onPress={handleClose}
-                            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                            hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}
                         >
                             <MaterialCommunityIcons
                                 name="close"
@@ -582,12 +582,12 @@ export default function ExerciseInstructionsDrawer({
                     >
                         {isLoading ? (
                             <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="large" color={theme.color.primary[500]} />
+                                <ActivityIndicator size="large" color={theme.color.primary[500]}/>
                                 <ThemedText style={styles.loadingText}>Chargement des instructions...</ThemedText>
                             </View>
                         ) : error ? (
                             <View style={styles.errorContainer}>
-                                <MaterialCommunityIcons name="alert-circle-outline" size={32} color="#EF4444" />
+                                <MaterialCommunityIcons name="alert-circle-outline" size={32} color="#EF4444"/>
                                 <ThemedText style={styles.errorText}>{error}</ThemedText>
                                 <TouchableOpacity
                                     style={styles.retryButton}
@@ -607,7 +607,7 @@ export default function ExerciseInstructionsDrawer({
                                         <Markdown
                                             key={contentKey.current} // Use stable key to prevent re-renders
                                             style={markdownStyles}
-                                            allowedImageHandlers ={['data:image/png;base64', 'data:image/gif;base64', 'data:image/jpeg;base64', 'https://', 'http://']}
+                                            allowedImageHandlers={['data:image/png;base64', 'data:image/gif;base64', 'data:image/jpeg;base64', 'https://', 'http://']}
                                             rules={{
                                                 image: renderImage
                                             }}
