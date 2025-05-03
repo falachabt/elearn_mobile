@@ -267,4 +267,12 @@ export class QuizService {
         if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
         return data;
     }
+
+    static async saveJustification(questionId : number, jusification : string) {
+        const { data, error} = await  supabase.from("quiz_questions").update({justification: jusification}).eq('id', questionId).single();
+
+        if(error) {
+            throw error
+        }
+    }
 }

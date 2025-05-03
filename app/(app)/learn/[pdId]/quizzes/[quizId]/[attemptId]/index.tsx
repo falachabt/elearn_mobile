@@ -357,6 +357,7 @@ const QuestionContent = memo(({isDark}: QuestionContentProps) => {
     if (results?.status !== "in_progress" || isCompleted) {
         return (
             <QuizResultsDisplay
+                key={currentQuestion.id}
                 currentQuestion={currentQuestion}
                 attempt={results}
                 isDark={isDark}

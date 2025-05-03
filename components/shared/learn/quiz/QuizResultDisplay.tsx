@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 import {
   View,
   StyleSheet,
@@ -7,7 +7,7 @@ import {
   ScrollView,
   Platform,
   Text,
-  Dimensions,
+  Dimensions, ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
@@ -16,6 +16,8 @@ import { QuizAttempt, QuizQuestion, QuizResults } from '@/types/quiz.type';
 import { Attempt } from '@/hooks/useQuiz';
 import { useQuizContext } from '@/contexts/quizContext';
 import Katex from 'react-native-katex';
+import {CorrectionService} from "@/services/correrction.service";
+import {QuizService} from "@/services/quiz.service";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -25,17 +27,22 @@ const MixedContentRenderer = React.memo(({
                                            style,
                                            isDark,
                                            containerWidth: customWidth
-                                         }) => {
+                                         }: {
+  text: string;
+  style?: any;
+  isDark?: boolean;
+  containerWidth?: number;
+}) => {
   const [katexHeight, setKatexHeight] = useState(50);
 
   // Calculate container width (accounting for padding)
   const containerWidth = customWidth || SCREEN_WIDTH;
 
   // Detect if text contains math expressions
-  const hasMath = String(text)?.includes('$$');
+  const hasMath = String(text)?.includes('$$') ;
 
   // Convert mixed content to LaTeX expression
-  const convertToLatexExpression = useCallback((mixedText) => {
+  const convertToLatexExpression = useCallback((mixedText : string) => {
     const tempMarker = "___DOLLAR___";
     let processedText = mixedText.replace(/\\\$/g, tempMarker);
 
@@ -130,7 +137,7 @@ const MixedContentRenderer = React.memo(({
     true;
   `;
 
-  const onMessage = (event) => {
+  const onMessage = (event: { nativeEvent: { data: string } }) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'dimensions') {
@@ -177,13 +184,57 @@ const MixedContentRenderer = React.memo(({
   }
 });
 
-const QuizResultsDisplay = ({ currentQuestion, attempt, isDark }) => {
+const QuizResultsDisplay = ({currentQuestion, attempt, isDark}: {
+  currentQuestion: QuizQuestion,
+  attempt: Attempt,
+  isDark: boolean
+}) => {
   const [isExplanationVisible, setIsExplanationVisible] = useState(false);
-  const { results, handleNextQuestion } = useQuizContext();
+  const { handleSaveJustification } = useQuizContext();
+  const [correction, setCorrection] = useState<string|null>(null);
+  const [isLoadingCorrection, setIsLoadingCorrection] = useState(false);
 
   // Calculate available widths
   const questionWidth = SCREEN_WIDTH - 72;
   const optionWidth = SCREEN_WIDTH - 120; // Account for icon and padding
+
+    // Save justification to context
+  useEffect(() => {
+    if (currentQuestion && correction) {
+      QuizService.saveJustification(currentQuestion.id, correction)
+    }
+  })
+
+  useEffect(() => {
+
+    if (currentQuestion) {
+
+      // Vérifie d'abord si le champ justificatif existe déjà
+
+      if (currentQuestion.justificatif && currentQuestion.justificatif.trim() !== '') {
+
+        // Si oui, on l'utilise directement sans appeler l'API
+
+        setCorrection(currentQuestion.justificatif);
+
+      } else {
+
+        // Sinon, on fait une requête à l'API Gemini via le service
+
+        setIsLoadingCorrection(true);
+
+        CorrectionService.generateAnswer(currentQuestion)
+
+            .then(setCorrection)
+
+            .finally(() => setIsLoadingCorrection(false));
+
+      }
+
+    }
+
+  }, [currentQuestion]);
+
 
   if (!currentQuestion || !attempt) {
     return (
@@ -200,7 +251,7 @@ const QuizResultsDisplay = ({ currentQuestion, attempt, isDark }) => {
   };
 
   const isAnswerIncorrect = (optionId) => {
-    const isSelected = attempt.answers?.[currentQuestion?.id]?.selectedOptions.includes(optionId) ?? false;
+    const isSelected = attempt.answers?.[currentQuestion?.id  as any]?.selectedOptions.includes(optionId) ?? false ;
     const isCorrect = currentQuestion.correct.includes(String(optionId));
     return isSelected && !isCorrect;
   };
@@ -290,6 +341,33 @@ const QuizResultsDisplay = ({ currentQuestion, attempt, isDark }) => {
                 );
               })}
             </View>
+                  {/* Correction Section */}
+
+            <View style={[styles.correctionContainer, isDark && styles.correctionContainerDark]}>
+
+              <ThemedText style={[styles.correctionTitle, isDark && styles.correctionTitleDark ]}>Explications</ThemedText>
+
+              {isLoadingCorrection ? (
+
+                  <ActivityIndicator size="small" color={theme.color.primary[500]} />
+
+              ) : (
+
+                  <MixedContentRenderer
+
+                      text={correction || 'Pas de correction disponible'}
+
+                      style={[styles.correctionText, isDark && styles.correctionTextDark]}
+
+                      isDark={isDark}
+
+                      containerWidth={questionWidth}
+
+                  />
+
+              )}
+
+            </View>
 
             {/* Explanation Section */}
             {currentQuestion.hasDetails && currentQuestion.details && (
@@ -328,6 +406,7 @@ const QuizResultsDisplay = ({ currentQuestion, attempt, isDark }) => {
                         ))}
                       </View>
                   )}
+
                 </View>
             )}
           </View>
@@ -483,6 +562,35 @@ const styles = StyleSheet.create({
   },
   explanationTextDark: {
     color: '#D1D5DB', // Lighter gray for dark mode
+  },
+
+  correctionContainer: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: '#F3F4F6',
+    borderRadius: theme.border.radius.small,
+  },
+  correctionContainerDark: {
+    backgroundColor: '#1F2937',
+  },
+  correctionTitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#000000',
+  },
+  correctionTitleDark: {
+    color: '#FFFFFF',
+  },
+  correctionText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#000000',
+  },
+  correctionTextDark: {
+    color: '#D1D5DB',
   },
   // KaTeX styles - updated to match main component
   katexComponent: {
