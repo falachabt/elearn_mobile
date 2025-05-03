@@ -47,6 +47,7 @@ interface QuizContextType {
     handleAnswerSelect: (answer: string) => void;
     handleNextQuestion: () => Promise<QuizResults | void>;
     handlePreviousQuestion: () => void;
+    handleSaveJustification: (justification: string) => Promise<void>;
     isLastQuestion: boolean;
     isFirstQuestion: boolean;
     progress: number;
@@ -404,6 +405,20 @@ export function QuizProvider({
         dispatch({type: 'PREVIOUS_QUESTION'});
     };
 
+    const handleSaveJustification = async (justification: string) => {
+        if (!currentQuestion) return;
+
+        try {
+            await QuizService.saveJustification(
+                currentQuestion.id,
+                justification
+            );
+        } catch (error) {
+            console.error('Error saving justification:', error);
+            Alert.alert('Error', 'Failed to save justification. Please try again.');
+        }
+    }
+
     const resetQuiz = async () => {
         try {
             dispatch({type: 'SET_SUBMITTING', payload: true});
@@ -433,6 +448,7 @@ export function QuizProvider({
         handleAnswerSelect,
         handleNextQuestion,
         handlePreviousQuestion,
+        handleSaveJustification,
         isLastQuestion: state.currentQuestionIndex === totalQuestions - 1,
         isFirstQuestion: state.currentQuestionIndex === 0,
         progress: ((state.currentQuestionIndex + 1) / totalQuestions) * 100,

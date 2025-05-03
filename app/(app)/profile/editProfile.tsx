@@ -22,6 +22,7 @@ import useSWR from 'swr';
 const { width } = Dimensions.get('window');
 
 const validateEmail = (email: string) => {
+    if (!email) return true;
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
