@@ -70,7 +70,7 @@ const DeleteAccount = () => {
         try {
             const { data: session } = await supabase.auth.getSession();
 
-            const response = await axios.delete('http://192.168.208.16:3000/api/mobile/auth/delete', {
+            const response = await axios.delete('https://elearn.ezadrive.com/api/mobile/auth/delete', {
                 headers: {
                     'Authorization': `Bearer ${session?.session?.access_token}`
                 }

@@ -94,7 +94,7 @@ const CourseDetail = () => {
         async () => {
             const {data, error} = await supabase
                 .from("quiz_courses")
-                .select("quiz(*, questions:quiz_questions(id))")
+                .select("quiz(id, name  , questions:quiz_questions(id))")
                 .eq("courseId", courseId)
             return data?.map((d: any) => d.quiz);
         }

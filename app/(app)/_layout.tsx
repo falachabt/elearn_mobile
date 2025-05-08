@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { Redirect, router, Tabs, useNavigation } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useAuth } from "@/contexts/auth";
+import React, {useEffect, useState, useCallback} from "react";
+import {Redirect, router, Tabs, useNavigation} from "expo-router";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {useAuth} from "@/contexts/auth";
 import {
     AccessibilityState,
     GestureResponderEvent,
@@ -11,20 +11,20 @@ import {
     View,
     Text,
 } from "react-native";
-import { theme } from "@/constants/theme";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useSWRConfig } from "swr";
-import { HapticType, useHaptics } from "@/hooks/useHaptics";
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { LoadingAnimation } from "@/components/shared/LoadingAnimation1";
+import {theme} from "@/constants/theme";
+import {SafeAreaView} from "react-native-safe-area-context";
+import {useSWRConfig} from "swr";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
+import {useColorScheme} from '@/hooks/useColorScheme';
+import {LoadingAnimation} from "@/components/shared/LoadingAnimation1";
 
 export default function AppLayout() {
-    const { session, isLoading, user } = useAuth();
+    const {session, isLoading, user} = useAuth();
     const navigation = useNavigation();
     const colorScheme = useColorScheme();
-    const isDarkMode = colorScheme === 'dark';
-    const { mutate } = useSWRConfig();
-    const { trigger } = useHaptics();
+    const isDarkMode = colorScheme != 'light';
+    const {mutate} = useSWRConfig();
+    const {trigger} = useHaptics();
     const [needsRedirect, setNeedsRedirect] = useState(false);
 
     // Check redirect conditions once and store result, don't re-evaluate on every render
@@ -40,32 +40,32 @@ export default function AppLayout() {
 
     // Handle tab press with memoized callback to avoid recreation on each render
 //     @ts-ignore
-const handleTabPress = useCallback((e ) => {
-    // Accéder à l'ID du tab via la propriété routeNames si disponible
-    const currentRoute = e.target?.toString() || '';
-    const target = currentRoute.includes('-') ? currentRoute.split('-')[0] : currentRoute;
+    const handleTabPress = useCallback((e) => {
+        // Accéder à l'ID du tab via la propriété routeNames si disponible
+        const currentRoute = e.target?.toString() || '';
+        const target = currentRoute.includes('-') ? currentRoute.split('-')[0] : currentRoute;
 
-    // Use focus event to trigger haptics to avoid unnecessary renders
-    trigger(HapticType.SELECTION);
+        // Use focus event to trigger haptics to avoid unnecessary renders
+        trigger(HapticType.SELECTION);
 
-    // Selective mutation based on tab
-    if (target === 'index') {
-        mutate(`userPrograms-${user?.id}`);
-    } else if (target === 'learn') {
-        mutate("my-learning-paths");
-        e.preventDefault?.();
-        router.replace('/learn');
-    }
-}, [trigger, mutate, user?.id]);
+        // Selective mutation based on tab
+        if (target === 'index') {
+            mutate(`userPrograms-${user?.id}`);
+        } else if (target === 'learn') {
+            mutate("my-learning-paths");
+            e.preventDefault?.();
+            router.replace('/learn');
+        }
+    }, [trigger, mutate, user?.id]);
     // CRITICAL: This is a protected route - no session means redirect immediately
     if (needsRedirect) {
         // Handle onboarding redirect if needed
         if (user && !user.onboarding_done) {
-            return <Redirect href="/(auth)/onboarding" />;
+            return <Redirect href="/(auth)/onboarding"/>;
         }
 
         if (!session) {
-            return <Redirect href="/(auth)" />;
+            return <Redirect href="/(auth)"/>;
         }
 
 
@@ -80,14 +80,15 @@ const handleTabPress = useCallback((e ) => {
                 alignItems: 'center',
                 backgroundColor: isDarkMode ? theme.color.dark.background.primary : theme.color.light.background.primary
             }}>
-                <LoadingAnimation isDarkMode={isDarkMode} />
+                <LoadingAnimation isDarkMode={isDarkMode}/>
             </View>
         );
     }
 
     return (
         <SafeAreaView
-            style={{flex: 1, backgroundColor: isDarkMode ? theme.color.dark.background.primary : "transparent"}}>
+            style={{flex: 1, backgroundColor: isDarkMode ? theme.color.dark.background.primary : "transparent"}}
+        >
             <Tabs
                 screenOptions={{
                     headerShown: false,
@@ -199,10 +200,8 @@ const styles = StyleSheet.create({
     tabBar: {
         position: "absolute",
         bottom: Platform.OS === "ios" ? 0 : 0,
-        left: 10,
-        right: 10,
         height: 65,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: theme.color.light.background.primary,
         borderRadius: 2,
         shadowColor: "#000",
         shadowOffset: {
@@ -218,10 +217,10 @@ const styles = StyleSheet.create({
     tabBarDark: {
         position: "absolute",
         bottom: Platform.OS === "ios" ? 0 : 0,
-        left: 10,
-        right: 10,
+        // left: 10,
+        // right: 10,
         height: 65,
-        backgroundColor: theme.color.dark.background.secondary,
+        backgroundColor: theme.color.dark.background.primary,
         borderRadius: 2,
         shadowColor: "#000",
         shadowOffset: {
@@ -240,8 +239,8 @@ const styles = StyleSheet.create({
         height: "100%",
     },
     tabLabel: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
         fontWeight: "500",
         marginTop: -5,
         marginBottom: 5,
@@ -259,13 +258,13 @@ fontSize: 12,
         borderRadius: theme.border.radius.small,
     },
     tabButtonContentDark: {
-        backgroundColor: theme.color.dark.background.secondary,
+        backgroundColor: theme.color.dark.background.primary,
     },
     tabButtonActive: {
         position: "relative",
     },
     tabButtonContentActive: {
-        fontFamily : "Outfit",
+        fontFamily: "Outfit",
         backgroundColor: `${theme.color.primary[500]}10`,
     },
 });
