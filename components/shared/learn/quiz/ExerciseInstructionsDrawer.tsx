@@ -1,25 +1,24 @@
-import React, {useEffect, useRef, useState, useMemo, useCallback} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
-    View,
-    StyleSheet,
-    TouchableOpacity,
+    ActivityIndicator,
     Animated,
     Dimensions,
-    ScrollView,
-    ActivityIndicator,
+    Image,
     Modal,
     SafeAreaView,
-    Image,
-    ImageURISource
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {ThemedText} from '@/components/ThemedText';
 import {theme} from '@/constants/theme';
 import {supabase} from '@/lib/supabase';
 import {useColorScheme} from '@/hooks/useColorScheme';
-import * as Haptics from 'expo-haptics';
 import Markdown from 'react-native-markdown-display';
 import FitImage from "react-native-fit-image";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
 
 const {height: SCREEN_HEIGHT, width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -334,6 +333,7 @@ export default function ExerciseInstructionsDrawer({
                                                    }: ExerciseInstructionsDrawerProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+    const { trigger } = useHaptics();
     const [exerciseData, setExerciseData] = useState<ExerciseData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -404,18 +404,18 @@ export default function ExerciseInstructionsDrawer({
     };
 
     const handleClose = useCallback(() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        trigger(HapticType.LIGHT)
         onClose();
     }, [onClose]);
 
     // Configure custom image renderer
     const renderImage = useCallback((
-        node,
-        children,
-        parent,
-        styles,
-        allowedImageHandlers,
-        defaultImageHandler,
+        node: { attributes: { src: any; alt: any; }; },
+        children: any,
+        parent: any,
+        styles: { _VIEW_SAFE_image: any; },
+        allowedImageHandlers: { filter: (arg0: (value: any) => any) => { (): any; new(): any; length: number; }; },
+        defaultImageHandler: null,
     ) => {
         const {src, alt} = node.attributes;
 
@@ -435,6 +435,9 @@ export default function ExerciseInstructionsDrawer({
             source: {
                 uri: src,
             },
+            accessible: false,
+            accessibilityLabel: undefined,
+            key: undefined
         };
 
         if (alt) {
@@ -444,6 +447,7 @@ export default function ExerciseInstructionsDrawer({
 
         delete imageProps.key
 
+        // @ts-ignore
         return <FitImage   key={"soemid"} {...imageProps} />;
     }, [isDark]);
 

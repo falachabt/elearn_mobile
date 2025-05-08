@@ -1,27 +1,29 @@
-import React, {useState, useRef} from "react";
+import React, {useRef, useState} from "react";
 import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
+    ActivityIndicator,
+    Animated,
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
     StyleSheet,
-    ActivityIndicator,
-    Image,
+    Text,
+    TextInput,
+    TouchableOpacity,
     useColorScheme,
-    Animated,
+    View,
 } from "react-native";
 import {Redirect, useRouter} from "expo-router";
 import {StatusBar} from "expo-status-bar";
-import * as Haptics from "expo-haptics";
 import {useAuth} from "@/contexts/auth";
 import {theme} from "@/constants/theme";
 import {Pressable} from "react-native-gesture-handler";
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import GoogleAuth from "@/components/GoogleLogin";
 import {AppleLogin} from "@/components/AppleLogin";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
+import Head from "expo-router/head";
+
 
 const PHONE_REGEX = /^\+?[1-9]\d{1,14}$/;
 
@@ -129,6 +131,7 @@ export default function Login() {
     const {signIn} = useAuth();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+    const { trigger } = useHaptics();
 
     // States
     const [phone, setPhone] = useState("");
@@ -240,16 +243,17 @@ export default function Login() {
             const isPasswordValid = validatePassword(password);
 
             if (!isPhoneValid || !isPasswordValid) {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                trigger(HapticType.ERROR);
                 shakeForm();
                 return;
             }
 
             setIsLoading(true);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            trigger(HapticType.LIGHT);
 
             await signIn(phone, password);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            trigger(HapticType.SUCCESS);
+
             setToast({
                 visible: true,
                 message: "Connexion réussie",
@@ -257,7 +261,7 @@ export default function Login() {
             });
             return <Redirect href={"/(app)"}/>;
         } catch (error) {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            trigger(HapticType.ERROR);
             shakeForm();
             setToast({
                 visible: true,
@@ -274,6 +278,13 @@ export default function Login() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={[styles.container, isDark && styles.containerDark]}
         >
+            <Head>
+                ( <title>E{"lear Prepa | Connexion"} </title>)
+                <meta name="description" content="Préparez les concours de vos reves" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="icon" href="/favicon.ico" />
+
+            </Head>
             <StatusBar style={isDark ? "light" : "dark"}/>
 
             {/* Toast notification */}
@@ -349,7 +360,7 @@ export default function Login() {
                                         setPhone(text);
                                         if (phoneError) validatePhone(text);
                                     }}
-                                    style={[styles.input, isDark && styles.inputDark]}
+                                    style={[styles.input, isDark && styles.inputDark, {outline: 'none'}]}
                                     placeholder="6XX XX XX XX"
                                     placeholderTextColor={isDark ? "#666666" : "#999999"}
                                     keyboardType="phone-pad"
@@ -412,7 +423,7 @@ export default function Login() {
                                         setPassword(text);
                                         if (passwordError) validatePassword(text);
                                     }}
-                                    style={[styles.input, isDark && styles.inputDark]}
+                                    style={[styles.input, isDark && styles.inputDark, {outline: 'none'}]}
                                     placeholder="Votre mot de passe"
                                     placeholderTextColor={isDark ? "#666666" : "#999999"}
                                     secureTextEntry={!showPassword}

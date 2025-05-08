@@ -31,6 +31,7 @@ const VideoPlayerScreen = () => {
         player.loop = false; // Changed from true to false to enable playlist behavior
         player.play();
 
+
         // Handle video ended event to play next video
         const endedListener = () => {
             setIsVideoDone(true);

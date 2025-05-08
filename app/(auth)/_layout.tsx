@@ -25,7 +25,7 @@ export default function AuthLayout() {
         // Authenticated users who completed onboarding
         if (session && user?.onboarding_done) {
             // Allow access to forgot password even if authenticated
-            if (!pathname.includes("/forgot_password")) {
+            if (!pathname.includes("/forgot_passworddsd") ) {
                 setRedirectPath("/(app)");
                 return;
             }

@@ -6,37 +6,29 @@ import {
     Image,
     KeyboardAvoidingView,
     Platform,
+    SafeAreaView,
     ScrollView,
+    StatusBar as RNStatusBar,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
     useColorScheme,
-    Dimensions,
-    StatusBar as RNStatusBar,
-    SafeAreaView,
+    View,
 } from "react-native";
 
 import {theme} from "@/constants/theme";
 import {useAuth} from "@/contexts/auth";
 import {supabase} from "@/lib/supabase";
 import {StatusBar} from "expo-status-bar";
-import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import OTPInput from "../../components/ui/OTPInput";
 import GoogleAuth from "@/components/GoogleLogin";
 import {AppleLogin} from "@/components/AppleLogin";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
+import Head from "expo-router/head";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Get screen dimensions
-const { width, height } = Dimensions.get('window');
-const isSmallDevice = width < 375;
-const scale = width / 390; // Base scale on standard iPhone size
-
-// Helper function to get responsive sizes
-const rs = (size: number) => Math.round(size * scale);
 
 interface ToastProps {
     visible: boolean;
@@ -166,6 +158,7 @@ const Register: React.FC = () => {
     const {signUp, verifyOtp} = useAuth();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+    const { trigger } = useHaptics();
 
     // States
     const [email, setEmail] = useState<string>("");
@@ -412,21 +405,21 @@ const Register: React.FC = () => {
 
             if (!isPhoneValid || !isPasswordValid || !isConfirmPasswordValid || !isTermsValid ) {
                 shakeError();
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                trigger(HapticType.ERROR);
                 return;
             }
-            
-           
+
+
 
             setIsLoading(true);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            trigger(HapticType.LIGHT);
 
             await signUp(phone, password);
 
             // TODO : remove in update case we trust user and validate after
             setIsOtpStep(true);
             startCountdown();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            trigger(HapticType.SUCCESS);
 
             setToast({
                 visible: true,
@@ -436,7 +429,7 @@ const Register: React.FC = () => {
             });
         } catch (error: any) {
             shakeError();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            trigger(HapticType.ERROR);
 
             console.log("error",error.message);
             if (error.message === "email exists" || error.message === "User already registered") {
@@ -469,8 +462,7 @@ const Register: React.FC = () => {
     const handleVerifyOtp = async (): Promise<void> => {
         try {
             setIsLoading(true);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            
+            trigger(HapticType.LIGHT);
             if(!phone){
                 setToast({
                     visible: true,
@@ -483,7 +475,8 @@ const Register: React.FC = () => {
 
             await verifyOtp(phone, otp, password);
 
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            trigger(HapticType.SUCCESS);
+
             setToast({
                 visible: true,
                 message: "Votre compte a été créé avec succès",
@@ -492,7 +485,7 @@ const Register: React.FC = () => {
             });
         } catch (error) {
             shakeError();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            trigger(HapticType.ERROR);
 
             setToast({
                 visible: true,
@@ -538,6 +531,13 @@ const Register: React.FC = () => {
 
     return (
         <SafeAreaView style={[styles.safeArea, isDark && styles.safeAreaDark]}>
+            <Head>
+                ( <title>E{"lear Prepa | Inscription"} </title>)
+                <meta name="description" content="Préparez les concours de vos reves" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="icon" href="/favicon.ico" />
+
+            </Head>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={[styles.container, isDark && styles.containerDark]}
@@ -651,7 +651,7 @@ const Register: React.FC = () => {
                                                         if (phoneError) validatePhone(parseInt(numericText) || undefined);
                                                     }
                                                 }}
-                                                style={[styles.input, isDark && styles.inputDark]}
+                                                style={[styles.input, isDark && styles.inputDark, { outline : "none"}]}
                                                 placeholder="65X XX XX XX"
                                                 placeholderTextColor={isDark ? "#666666" : "#999999"}
                                                 keyboardType="numeric"
@@ -659,7 +659,7 @@ const Register: React.FC = () => {
                                                 returnKeyType="next"
                                                 onSubmitEditing={() => passwordRef.current?.focus()}
                                             />
-                                           
+
                                         </View>
                                         {phoneError && (
                                             <Animated.View
@@ -710,7 +710,7 @@ const Register: React.FC = () => {
                                                     if (confirmPassword && confirmPasswordError)
                                                         validateConfirmPassword(text, confirmPassword);
                                                 }}
-                                                style={[styles.input, isDark && styles.inputDark]}
+                                                style={[styles.input, isDark && styles.inputDark, { outline : "none"}]}
                                                 placeholder="Votre mot de passe"
                                                 placeholderTextColor={isDark ? "#666666" : "#999999"}
                                                 secureTextEntry={!showPassword}
@@ -775,7 +775,7 @@ const Register: React.FC = () => {
                                                     setConfirmPassword(text);
                                                     if (confirmPasswordError) validateConfirmPassword(password, text);
                                                 }}
-                                                style={[styles.input, isDark && styles.inputDark]}
+                                                style={[styles.input, isDark && styles.inputDark, { outline : "none"}]}
                                                 placeholder="Confirmez votre mot de passe"
                                                 placeholderTextColor={isDark ? "#666666" : "#999999"}
                                                 secureTextEntry={!showPassword}
@@ -992,31 +992,25 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         justifyContent: "center",
-        padding: width * 0.05,
-        paddingBottom: height * 0.05,
+        padding: 20,
+        paddingBottom: 50,
     },
     formContainer: {
         width: "100%",
-        maxWidth: Math.min(400, width * 0.95),
+        maxWidth: 400,
         alignSelf: "center",
     },
     logoSection: {
         alignItems: "center",
         flexDirection: "row",
-        gap: rs(12),
-        marginBottom: rs(20),
+        gap: 12,
+        marginBottom: 20,
     },
     logo: {
-        width: isSmallDevice ? 60 : 80,
-        height: isSmallDevice ? 60 : 80,
-        marginBottom: rs(12),
+        width: 80,
+        height: 80,
+        marginBottom: 12,
         borderRadius: 16,
-    },
-    appName: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: rs(28),
-        fontWeight: "bold",
-        color: "#1A1A1A",
     },
     contentContainer: {
         position: "relative",
@@ -1026,47 +1020,41 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     title: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(22) : rs(26),
+        fontSize: 26,
         fontWeight: "bold",
-        lineHeight : isSmallDevice ? rs(28) : rs(32),
+        lineHeight: 32,
         color: "#1A1A1A",
-        textAlign: "center",
-        marginBottom: rs(12),
+        marginBottom: 12,
     },
     otpTitle: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(22) : rs(26),
+        fontSize: 26,
         fontWeight: "bold",
         color: "#1A1A1A",
         textAlign: "center",
-        marginBottom: rs(12),
-        marginTop: rs(20),
+        marginBottom: 12,
+        marginTop: 20,
     },
     subtitle: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(14) : rs(15),
+        fontSize: 15,
         color: "#666666",
         textAlign: "center",
-        marginBottom: rs(24),
+        marginBottom: 24,
     },
     emailHighlight: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(15) : rs(16),
+        fontSize: 16,
         fontWeight: "600",
         color: "#1A1A1A",
         textAlign: "center",
-        marginBottom: rs(24),
+        marginBottom: 24,
     },
     inputContainer: {
-        marginBottom: rs(20),
+        marginBottom: 20,
     },
     label: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(14) : rs(15),
+        fontSize: 15,
         fontWeight: "600",
         color: "#1A1A1A",
-        marginBottom: rs(8),
+        marginBottom: 8,
     },
     inputWrapper: {
         flexDirection: "row",
@@ -1076,20 +1064,19 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: "#FFFFFF",
         overflow: "hidden",
-        height: isSmallDevice ? rs(45) : rs(50),
+        height: 50,
     },
     inputWrapperDark: {
         backgroundColor: theme.color.dark.background.secondary,
         borderColor: "#333333",
     },
     inputIcon: {
-        padding: isSmallDevice ? rs(10) : rs(12),
+        padding: 12,
     },
     input: {
         flex: 1,
-        height: isSmallDevice ? rs(45) : rs(50),
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(15) : rs(16),
+        height: 50,
+        fontSize: 16,
         color: "#1A1A1A",
     },
     inputDark: {
@@ -1099,38 +1086,37 @@ const styles = StyleSheet.create({
         borderColor: theme.color.error,
     },
     eyeIcon: {
-        padding: isSmallDevice ? rs(10) : rs(12),
+        padding: 12,
     },
     errorIcon: {
-        padding: isSmallDevice ? rs(10) : rs(12),
+        padding: 12,
     },
     errorContainer: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: rs(6),
-        marginTop: rs(4),
-        gap: rs(6),
+        paddingHorizontal: 6,
+        marginTop: 4,
+        gap: 6,
     },
     errorText: {
         color: theme.color.error,
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(11) : rs(12),
+        fontSize: 12,
         fontWeight: "500",
     },
     checkboxContainer: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: rs(10),
+        marginBottom: 10,
     },
     checkbox: {
-        width: isSmallDevice ? rs(22) : rs(24),
-        height: isSmallDevice ? rs(22) : rs(24),
+        width: 24,
+        height: 24,
         borderWidth: 2,
         borderColor: "#E5E5E5",
         borderRadius: 6,
         justifyContent: "center",
         alignItems: "center",
-        marginRight: rs(10),
+        marginRight: 10,
     },
     checkboxError: {
         borderColor: theme.color.error,
@@ -1140,8 +1126,7 @@ const styles = StyleSheet.create({
         borderColor: theme.color.primary[500],
     },
     checkboxLabel: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(13) : rs(14),
+        fontSize: 14,
         color: "#666666",
         flex: 1,
     },
@@ -1150,21 +1135,20 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     primaryButton: {
-        height: isSmallDevice ? rs(45) : rs(50),
+        height: 50,
         backgroundColor: theme.color.primary[500],
         borderRadius: 12,
         justifyContent: "center",
         alignItems: "center",
-        marginVertical: rs(20),
+        marginVertical: 20,
     },
     primaryButtonText: {
         color: "#FFFFFF",
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(15) : rs(16),
+        fontSize: 16,
         fontWeight: "600",
     },
     secondaryButton: {
-        height: isSmallDevice ? rs(45) : rs(50),
+        height: 50,
         backgroundColor: "transparent",
         borderWidth: 2,
         borderColor: theme.color.primary[100],
@@ -1175,12 +1159,11 @@ const styles = StyleSheet.create({
     },
     secondaryButtonText: {
         color: theme.color.primary[500],
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(15) : rs(16),
+        fontSize: 16,
         fontWeight: "600",
     },
     buttonIcon: {
-        marginRight: rs(8),
+        marginRight: 8,
     },
     buttonDisabled: {
         opacity: 0.6,
@@ -1188,7 +1171,7 @@ const styles = StyleSheet.create({
     divider: {
         flexDirection: "row",
         alignItems: "center",
-        marginVertical: rs(20),
+        marginVertical: 20,
     },
     dividerLine: {
         flex: 1,
@@ -1199,31 +1182,28 @@ const styles = StyleSheet.create({
         backgroundColor: "#333333",
     },
     dividerText: {
-        paddingHorizontal: rs(5),
+        paddingHorizontal: 5,
         color: "#666666",
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(13) : rs(14),
+        fontSize: 14,
     },
     socialButtons: {
-        marginVertical: rs(0),
+        marginVertical: 0,
         flexDirection: "row",
         justifyContent: "space-between",
-        gap: rs(12),
+        gap: 12,
     },
-
     socialButton: {
         flex: 1,
         flexDirection: "row",
-        height: isSmallDevice ? rs(45) : rs(48),
+        height: 48,
         borderRadius: 12,
         justifyContent: "center",
         alignItems: "center",
-        gap: rs(8),
+        gap: 8,
     },
     socialButtonText: {
         color: "#FFFFFF",
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(14) : rs(15),
+        fontSize: 15,
         fontWeight: "500",
     },
     googleButton: {
@@ -1236,42 +1216,38 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginTop: rs(24),
-        marginBottom: rs(16),
+        marginTop: 24,
+        marginBottom: 16,
     },
     footerLabel: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(13) : rs(14),
+        fontSize: 14,
         color: "#666666",
     },
     footerLink: {
         color: theme.color.primary[500],
-        lineHeight: isSmallDevice ? rs(18) : rs(20),
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(13) : rs(14),
+        lineHeight: 20,
+        fontSize: 14,
         fontWeight: "600",
     },
     otpContainer: {
         alignItems: "center",
-        marginVertical: rs(24),
+        marginVertical: 24,
     },
     countdownContainer: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        marginTop: rs(20),
-        gap: rs(10),
+        marginTop: 20,
+        gap: 10,
     },
     countdownText: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(15) : rs(16),
+        fontSize: 16,
         color: "#666666",
         fontWeight: "500",
     },
     resendLink: {
         color: theme.color.primary[500],
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(13) : rs(14),
+        fontSize: 14,
         fontWeight: "600",
         textDecorationLine: "underline",
     },
@@ -1282,7 +1258,7 @@ const styles = StyleSheet.create({
         color: "#999999",
     },
     otpButtonsContainer: {
-        gap: rs(12),
+        gap: 12,
     },
     textDark: {
         color: "#FFFFFF",
@@ -1293,14 +1269,14 @@ const styles = StyleSheet.create({
     // Toast styles
     toastContainer: {
         position: "absolute",
-        bottom: height * 0.03,
-        left: width * 0.05,
-        right: width * 0.05,
+        bottom: 20,
+        left: 20,
+        right: 20,
         maxWidth: 600,
         alignSelf: 'center',
         backgroundColor: theme.color.primary[500],
         borderRadius: 12,
-        padding: rs(16),
+        padding: 16,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
@@ -1321,27 +1297,25 @@ const styles = StyleSheet.create({
     },
     toastText: {
         color: "white",
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(13) : rs(14),
+        fontSize: 14,
         fontWeight: "500",
-        marginLeft: rs(12),
+        marginLeft: 12,
         flex: 1,
     },
     toastAction: {
-        paddingHorizontal: rs(12),
-        paddingVertical: rs(4),
+        paddingHorizontal: 12,
+        paddingVertical: 4,
         backgroundColor: "rgba(255, 255, 255, 0.2)",
         borderRadius: 8,
-        marginHorizontal: rs(8),
+        marginHorizontal: 8,
     },
     toastActionText: {
         color: "white",
-        fontFamily: theme.typography.fontFamily,
-        fontSize: isSmallDevice ? rs(12) : rs(13),
+        fontSize: 13,
         fontWeight: "600",
     },
     toastClose: {
-        padding: rs(4),
+        padding: 4,
     },
 });
 

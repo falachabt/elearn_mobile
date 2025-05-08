@@ -1,9 +1,8 @@
 // components/ArchiveCard.tsx
 import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, useColorScheme} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, useColorScheme, Platform} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
-import {FileViewer} from './FileViewer';
 import {theme} from '@/constants/theme';
 import {Archive} from '@/app/(app)/learn/[pdId]/anales';
 
@@ -101,22 +100,24 @@ export const ArchiveCard: React.FC<ArchiveCardProps> = ({
                     )}
 
                     {/* Download Button */}
-                    <TouchableOpacity
-                        onPress={() => !downloading && onDownload(item)}
-                        style={styles.actionButton}
-                    >
-                        {downloading ? (
-                            <View style={styles.progressContainer}>
-                                <Text style={styles.progressText}>{Math.round(progress || 0)}%</Text>
-                            </View>
-                        ) : (
-                            <MaterialCommunityIcons
-                                name={localPath ? "check-circle-outline" : "download-outline"}
-                                size={24}
-                                color={localPath ? theme.color.success[500] : theme.color.primary[500]}
-                            />
-                        )}
-                    </TouchableOpacity>
+                    {Platform.OS !== 'web' && (
+                        <TouchableOpacity
+                            onPress={() => !downloading && onDownload(item)}
+                            style={styles.actionButton}
+                        >
+                            {downloading ? (
+                                <View style={styles.progressContainer}>
+                                    <Text style={styles.progressText}>{Math.round(progress || 0)}%</Text>
+                                </View>
+                            ) : (
+                                <MaterialCommunityIcons
+                                    name={localPath ? "check-circle-outline" : "download-outline"}
+                                    size={24}
+                                    color={localPath ? theme.color.success[500] : theme.color.primary[500]}
+                                />
+                            )}
+                        </TouchableOpacity>
+                    )}
 
                     {/* Pin Button */}
                     <TouchableOpacity onPress={() => onPin(item.id)} style={styles.actionButton}>
@@ -232,8 +233,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.primary["500"],
     },
     cardTitle: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         fontWeight: '600',
         color: '#1A1A1A',
         flex: 1,
@@ -267,8 +268,8 @@ fontSize: 16,
         gap: 4,
     },
     metaText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
         color: theme.color.gray[600],
     },
     metaTextDark: {
@@ -298,8 +299,8 @@ fontSize: 12,
         alignItems: 'center',
     },
     progressText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
         fontWeight: '500',
         color: theme.color.primary[500],
     }
