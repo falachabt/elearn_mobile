@@ -1,16 +1,32 @@
 // services/quizService.ts
-import { supabase } from '@/lib/supabase';
-import { QuizQuestion, QuizAttempt, QuizResults } from '@/types/quiz.type';
-
+import {supabase} from '@/lib/supabase';
+import {QuizQuestion, QuizAttempt, QuizResults} from '@/types/quiz.type';
 
 
 // TODO - on database increment the user total_xp
 export class QuizService {
+    //  Get the quiz by id
+    static async getQuizById(quizId: string) {
+        if(!quizId) {
+            return null;
+        }
+        const {data, error} = await supabase
+            .from('quiz')
+            .select(`
+            *
+        `)
+            .eq('id', quizId)
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
     /**
      * Create a new quiz attempt
      */
     static async createAttempt(quizId: string, userId: string): Promise<QuizAttempt> {
-        const { data, error } = await supabase
+        const {data, error} = await supabase
             .from('quiz_attempts')
             .insert({
                 quiz_id: quizId,
@@ -18,7 +34,7 @@ export class QuizService {
                 start_time: new Date().toISOString(),
                 status: 'in_progress',
                 timeSpent: 0,
-                current_question_index :0,
+                current_question_index: 0,
                 selectedAnswers: [],
                 answers: {}
             })
@@ -43,7 +59,7 @@ export class QuizService {
         try {
 
             // Save user answer
-            const { error: answerError } = await supabase
+            const {error: answerError} = await supabase
                 .from('user_answers')
                 .insert({
                     attempt_id: attemptId,
@@ -56,7 +72,7 @@ export class QuizService {
             if (answerError) throw answerError;
 
             // Update attempt progress
-            const { data: attempt } = await supabase
+            const {data: attempt} = await supabase
                 .from('quiz_attempts')
                 .select('answers, current_question_index')
                 .eq('id', attemptId)
@@ -75,7 +91,7 @@ export class QuizService {
                 }
             };
 
-            const { error: updateError } = await supabase
+            const {error: updateError} = await supabase
                 .from('quiz_attempts')
                 .update({
                     answers: updatedAnswers,
@@ -101,7 +117,7 @@ export class QuizService {
         timeSpent: number,
         currentQuestionIndex: number
     ) {
-        const { error } = await supabase
+        const {error} = await supabase
             .from('quiz_attempts')
             .update({
                 timeSpent,
@@ -118,7 +134,7 @@ export class QuizService {
     static async finishQuiz(attemptId: string): Promise<QuizResults> {
         try {
             // Get attempt details
-            const { data: attempt } = await supabase
+            const {data: attempt} = await supabase
                 .from('quiz_attempts')
                 .select('*, user_answers(*)')
                 .eq('id', attemptId)
@@ -137,7 +153,7 @@ export class QuizService {
             const xpGained = Math.round(baseXP * scoreMultiplier * (1 + timeBonus));
 
             // Update attempt
-            const { error: updateError } = await supabase
+            const {error: updateError} = await supabase
                 .from('quiz_attempts')
                 .update({
                     status: 'completed',
@@ -149,7 +165,7 @@ export class QuizService {
             if (updateError) throw updateError;
 
             // Award XP
-            const { error: xpError } = await supabase
+            const {error: xpError} = await supabase
                 .from('xp_history')
                 .insert({
                     userid: attempt.user_id,
@@ -194,7 +210,7 @@ export class QuizService {
      * Get quiz attempt status
      */
     static async getAttemptStatus(attemptId: number) {
-        const { data, error } = await supabase
+        const {data, error} = await supabase
             .from('quiz_attempts')
             .select(`
                 *,
@@ -226,7 +242,7 @@ export class QuizService {
     static async resetAttempt(quizId: string, userId: string) {
         try {
             // Get previous attempt
-            const { data: previousAttempt } = await supabase
+            const {data: previousAttempt} = await supabase
                 .from('quiz_attempts')
                 .select('id')
                 .eq('quiz_id', quizId)
@@ -254,17 +270,28 @@ export class QuizService {
      * Get user's best attempt for a quiz
      */
     static async getBestAttempt(quizId: string, userId: string) {
-        const { data, error } = await supabase
+        const {data, error} = await supabase
             .from('quiz_attempts')
             .select('*')
             .eq('quiz_id', quizId)
             .eq('user_id', userId)
             .eq('status', 'completed')
-            .order('score', { ascending: false })
+            .order('score', {ascending: false})
             .limit(1)
             .single();
 
         if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
         return data;
+    }
+
+    static async saveJustification(questionId: number, jusification: string) {
+        const {
+            data,
+            error
+        } = await supabase.from("quiz_questions").update({justification: jusification}).eq('id', questionId).single();
+
+        if (error) {
+            throw error
+        }
     }
 }

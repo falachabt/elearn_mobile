@@ -1,5 +1,4 @@
 import {AuthProvider} from "@/contexts/auth";
-import {ConfigProvider} from "antd-mobile";
 import {AppState, AppStateStatus, BackHandler, ToastAndroid} from "react-native";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import {SWRConfig} from "swr";
@@ -217,65 +216,63 @@ export function Provider({ children }: { children: React.ReactNode }) {
   }, [router, exitAppCount, trigger]);
 
   return (
-      <ConfigProvider>
-        <SWRConfig
-            value={{
-              provider: asyncStorageProvider,
-              isVisible: () => true,
-              revalidateOnFocus: true,
-              revalidateIfStale: true,
-              revalidateOnReconnect: true,
+      <SWRConfig
+          value={{
+            provider: asyncStorageProvider,
+            isVisible: () => true,
+            revalidateOnFocus: true,
+            revalidateIfStale: true,
+            revalidateOnReconnect: true,
 
-              // Keep the cache for a reasonable time
-              dedupingInterval: 60000, // 1 minute
+            // Keep the cache for a reasonable time
+            dedupingInterval: 60000, // 1 minute
 
-              // Don't automatically refresh data
-              refreshInterval: 0,
+            // Don't automatically refresh data
+            refreshInterval: 0,
 
-              // Throttle focus revalidations
-              focusThrottleInterval: 5000, // 5 seconds
+            // Throttle focus revalidations
+            focusThrottleInterval: 5000, // 5 seconds
 
-              initFocus(callback) {
-                let appState = AppState.currentState;
+            initFocus(callback) {
+              let appState = AppState.currentState;
 
-                const onAppStateChange = (nextAppState: AppStateStatus) => {
-                  /* If it's resuming from background or inactive mode to active one */
-                  console.log(appState, nextAppState);
-                  if (
-                      appState.match(/inactive|background/) &&
-                      nextAppState === "active"
-                  ) {
-                    callback();
-                  }
-                  appState = nextAppState;
-                };
+              const onAppStateChange = (nextAppState: AppStateStatus) => {
+                /* If it's resuming from background or inactive mode to active one */
+                console.log(appState, nextAppState);
+                if (
+                    appState.match(/inactive|background/) &&
+                    nextAppState === "active"
+                ) {
+                  callback();
+                }
+                appState = nextAppState;
+              };
 
-                // Subscribe to the app state change events
-                const subscription = AppState.addEventListener(
-                    "change",
-                    onAppStateChange
-                );
+              // Subscribe to the app state change events
+              const subscription = AppState.addEventListener(
+                  "change",
+                  onAppStateChange
+              );
 
-                return () => {
-                  subscription.remove();
-                };
-              },
-            }}
-        >
-          <NotificationProvider>
-            <AuthDeepLinkHandler />
-            <AuthProvider>
-              <UserProvider>
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                  <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
-                    <UserActivityTracker/>
-                    {children}
-                  </QuizProvider>
-                </GestureHandlerRootView>
-              </UserProvider>
-            </AuthProvider>
-          </NotificationProvider>
-        </SWRConfig>
-      </ConfigProvider>
+              return () => {
+                subscription.remove();
+              };
+            },
+          }}
+      >
+        <NotificationProvider>
+          <AuthDeepLinkHandler />
+          <AuthProvider>
+            <UserProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
+                  <UserActivityTracker/>
+                  {children}
+                </QuizProvider>
+              </GestureHandlerRootView>
+            </UserProvider>
+          </AuthProvider>
+        </NotificationProvider>
+      </SWRConfig>
   );
 }

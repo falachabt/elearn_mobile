@@ -271,15 +271,16 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                         return data as ExerciceComplete[] || [];
                     }),
 
+
                 // Fetch only relevant archive progress
                 supabase
                     .from("user_completed_archives")
                     .select("id")
                     .eq("user_id", userId)
-                    .in("id", relevantArchivesIds)
+                    .in("archive_id", relevantArchivesIds)
                     .then(({data, error}) => {
                         if (error) {
-                            console.error("Error fetching completed archives:", error);
+                            console.log("Error fetching completed archives:", error);
                             return [];
                         }
                         return data as ArchiveComplete[] || [];

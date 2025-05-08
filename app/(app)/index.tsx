@@ -12,6 +12,8 @@ import {useNotification} from "@/contexts/NotificationContext";
 import {checkAndUpdateNotifications} from "@/utils/notification-utils";
 import CustomizableGoals from "@/components/CustimizableHomeScreenGoals";
 import GeminiChatbot from "@/components/shared/GeminiChatBot";
+import JustificationGenerator from "@/components/GQ";
+import Head from "expo-router/head";
 
 const {width} = Dimensions.get('window');
 const HORIZONTAL_PADDING = 16;
@@ -34,6 +36,7 @@ export default function Index() {
 
     return (
         <View style={isDarkMode ? styles.containerDark : styles.container}>
+
             <TopBar
                 userName={`${user?.firstname ?? ''} ${user?.lastname ?? ''}`.trim()}
                 streaks={streaks}
@@ -77,6 +80,7 @@ export default function Index() {
                         Prêt à continuer votre apprentissage ?
                     </Text>
                 </View>
+                {/*<JustificationGenerator />*/}
 
                 {/* Current Course */}
                 <View style={styles.section}>

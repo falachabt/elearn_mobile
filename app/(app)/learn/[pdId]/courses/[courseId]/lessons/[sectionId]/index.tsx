@@ -1,4 +1,15 @@
-import {ActivityIndicator, Pressable, StyleSheet, View, Text, Platform, Modal, FlatList, TouchableOpacity} from "react-native";
+import {
+    ActivityIndicator,
+    Pressable,
+    StyleSheet,
+    View,
+    Text,
+    Platform,
+    Modal,
+    FlatList,
+    TouchableOpacity,
+    Dimensions
+} from "react-native";
 import React, {useEffect, useState, useRef} from "react";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import {ThemedText} from "@/components/ThemedText";
@@ -106,7 +117,6 @@ const SectionDetail = () => {
     );
 
     useEffect(() => {
-
         mutate();
         mutateC();
         globalMutate(["courseProgress", user?.id, courseId]);
@@ -166,6 +176,14 @@ const SectionDetail = () => {
     }, [nextSection]);
 
     function handleNext() {
+        // Skip the scrolledToEnd check for web platform
+        const shouldCheckScroll = Platform.OS !== 'web';
+
+        if (shouldCheckScroll && !scrolledToEnd && progress?.progress !== 1) {
+            // Optionally, show a message to the user indicating they need to scroll to the end
+            return;
+        }
+
         if (progress?.progress !== 1) {
             markSectionComplete(Number(sectionId));
         } else if (progress === undefined) {
@@ -183,21 +201,147 @@ const SectionDetail = () => {
         }, 1000);
 
         if (nextSection) {
-            if (scrolledToEnd || progress?.progress === 1) {
-                playNextLesson();
-                trigger(HapticType.LIGHT);
-                router.push(
-                    `/(app)/learn/${pdId}/courses/${courseId}/lessons/${nextSection.id}`
-                );
-            }
+            playNextLesson();
+            trigger(HapticType.LIGHT);
+            router.push(
+                `/(app)/learn/${pdId}/courses/${courseId}/lessons/${nextSection.id}`
+            );
         } else {
-            if (scrolledToEnd || progress?.progress === 1) {
-                playCorrect();
-                trigger(HapticType.LIGHT);
-                router.push(`/(app)/learn/${pdId}/courses/${courseId}`);
-            }
+            playCorrect();
+            trigger(HapticType.LIGHT);
+            router.push(`/(app)/learn/${pdId}/courses/${courseId}`);
         }
     }
+
+    // Enhanced dark mode script for better iframe integration
+    const darkModeScript = `(function() {
+        function applyDarkMode() {
+            if (${isDark}) {
+                const container = document.querySelector('.bn-container');
+                if (container) {
+                    container.classList.add('dark');
+                    container.setAttribute('data-color-scheme', 'dark');
+                    
+                    // Add custom CSS variables for dark mode colors
+                    document.documentElement.style.setProperty('--bn-colors-editor-text', '#FFFFFF');
+                    document.documentElement.style.setProperty('--bn-colors-editor-background', '#111827');
+                    document.documentElement.style.setProperty('--bn-colors-menu-text', '#F3F4F6');
+                    document.documentElement.style.setProperty('--bn-colors-menu-background', '#1F2937');
+                    document.documentElement.style.setProperty('--bn-colors-editor-border', '#374151');
+
+                    // Add custom styles for specific elements
+                    const style = document.createElement('style');
+                    style.textContent = \`
+                        body { 
+                            background-color: #111827;
+                            color: #FFFFFF;
+                        }
+                        .bn-container[data-color-scheme=dark] {
+                            --bn-colors-editor-text: #FFFFFF;
+                            --bn-colors-editor-background: #111827;
+                            --bn-colors-menu-text: #F3F4F6;
+                            --bn-colors-menu-background: #1F2937;
+                            background-color: #111827;
+                            color: #FFFFFF;
+                        }
+                        .bn-container[data-color-scheme=dark] * {
+                            border-color: #374151 !important;
+                        }
+                        .bn-container[data-color-scheme=dark] .content {
+                            background-color: #111827;
+                            color: #FFFFFF;
+                        }
+                    \`;
+                    document.head.appendChild(style);
+                }
+            }
+        }
+
+        function checkIfContentLoaded() {
+            if (document.readyState === 'complete') {
+                document.body.style.userSelect = 'none';
+                applyDarkMode();
+                
+                // Send a message immediately to tell React Native the content is loaded
+                if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                        type: "contentLoaded",
+                        windowInnerHeight: window.innerHeight,
+                        windowScrollY: window.scrollY,
+                        documentBodyOffsetHeight: document.body.offsetHeight
+                    }));
+                } else {
+                    // For web platform
+                    window.parent.postMessage(JSON.stringify({
+                        type: "contentLoaded",
+                        windowInnerHeight: window.innerHeight,
+                        windowScrollY: window.scrollY,
+                        documentBodyOffsetHeight: document.body.offsetHeight
+                    }), '*');
+                }
+                
+                // Setup scroll event handling
+                window.onscroll = function() {
+                    if ((window.innerHeight + window.scrollY + 120) >= document.body.offsetHeight) {
+                        const message = JSON.stringify({
+                            type: "scrolledToEnd",
+                            windowInnerHeight: window.innerHeight,
+                            windowScrollY: window.scrollY,
+                            documentBodyOffsetHeight: document.body.offsetHeight
+                        });
+                        
+                        if (window.ReactNativeWebView) {
+                            window.ReactNativeWebView.postMessage(message);
+                        } else {
+                            // For web platform
+                            window.parent.postMessage(message, '*');
+                        }
+                    }
+                };
+            } else {
+                setTimeout(checkIfContentLoaded, 100);
+            }
+        }
+
+        // Initialize checks immediately
+        checkIfContentLoaded();
+
+        // Preload images to improve rendering speed
+        function preloadImages() {
+            const images = document.querySelectorAll('img');
+            images.forEach(img => {
+                const src = img.getAttribute('src');
+                if (src) {
+                    const preloadLink = document.createElement('link');
+                    preloadLink.rel = 'preload';
+                    preloadLink.as = 'image';
+                    preloadLink.href = src;
+                    document.head.appendChild(preloadLink);
+                }
+            });
+        }
+
+        // Preload images once DOM is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', preloadImages);
+        } else {
+            preloadImages();
+        }
+
+        const observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.addedNodes.length) {
+                    applyDarkMode();
+                    preloadImages();
+                }
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    })();`;
 
     // Custom loading indicator component with progress
     const LoadingIndicator = () => (
@@ -217,6 +361,29 @@ const SectionDetail = () => {
             </ThemedText>
         </View>
     );
+
+    // Add message listener for web platform
+    useEffect(() => {
+        if (Platform.OS === 'web') {
+            const handleMessage = (event: { data: string; }) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === "contentLoaded") {
+                        setIsListening(true);
+                        setIsWebViewLoaded(true);
+                    }
+                    if (isListening && data.type === "scrolledToEnd") {
+                        setScrolledToEnd(true);
+                    }
+                } catch (e) {
+                    // Ignore malformed messages
+                }
+            };
+
+            window.addEventListener('message', handleMessage);
+            return () => window.removeEventListener('message', handleMessage);
+        }
+    }, [isListening]);
 
     if (categoryLoading || courseLoading) {
         return <LoadingIndicator />;
@@ -267,155 +434,70 @@ const SectionDetail = () => {
                 </View>
             </View>
 
+            {/* Conditional rendering for web and mobile platforms */}
             {!isWebViewLoaded && <LoadingIndicator />}
 
-            <WebView
-                ref={webViewRef}
-                source={{
-                    uri: `https://elearn.ezadrive.com/webview/courseContent/${sectionId}?theme=${
-                        isDark ? "dark" : "light"
-                    }`,
-                    headers: {
-                        Authorization: `Bearer ${session?.access_token}`,
-                        "color-scheme": isDark ? "dark" : "light",
-                    },
-                }}
-                style={[
-                    styles.webView,
-                    isDark && styles.webViewDark,
-                    !isWebViewLoaded && styles.hiddenWebView
-                ]}
-                originWhitelist={["*"]}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                cacheEnabled={true}
-                cacheMode="LOAD_CACHE_ELSE_NETWORK"
-                onShouldStartLoadWithRequest={() => true}
-                startInLoadingState={true}
-                onLoadProgress={({ nativeEvent }) => {
-                    setLoadingProgress(nativeEvent.progress);
-                }}
-                onLoadEnd={() => {
-                    setIsWebViewLoaded(true);
-                }}
-                renderLoading={() => <View />} // Empty view since we handle loading UI ourselves
-                injectedJavaScript={`(function() {
-                    function applyDarkMode() {
-                        if (${isDark}) {
-                            const container = document.querySelector('.bn-container');
-                            if (container) {
-                                container.classList.add('dark');
-                                container.setAttribute('data-color-scheme', 'dark');
-                                
-                                // Add custom CSS variables for dark mode colors
-                                document.documentElement.style.setProperty('--bn-colors-editor-text', '#FFFFFF');
-                                document.documentElement.style.setProperty('--bn-colors-editor-background', '#111827');
-                                document.documentElement.style.setProperty('--bn-colors-menu-text', '#F3F4F6');
-                                document.documentElement.style.setProperty('--bn-colors-menu-background', '#1F2937');
-                                document.documentElement.style.setProperty('--bn-colors-editor-border', '#374151');
-
-                                // Add custom styles for specific elements
-                                const style = document.createElement('style');
-                                style.textContent = \`
-                                    .bn-container[data-color-scheme=dark] {
-                                        --bn-colors-editor-text: #FFFFFF;
-                                        --bn-colors-editor-background: #111827;
-                                        --bn-colors-menu-text: #F3F4F6;
-                                        --bn-colors-menu-background: #1F2937;
-                                        background-color: #111827;
-                                        color: #FFFFFF;
-                                    }
-                                    .bn-container[data-color-scheme=dark] * {
-                                        border-color: #374151 !important;
-                                    }
-                                    .bn-container[data-color-scheme=dark] .content {
-                                        background-color: #111827;
-                                        color: #FFFFFF;
-                                    }
-                                \`;
-                                document.head.appendChild(style);
-                            }
+            {Platform.OS === 'web' ? (
+                <View style={styles.webViewContainer}>
+                    <iframe
+                        src={`https://elearn.ezadrive.com/fr/webview/courseContent/${sectionId}${isDark ? '?theme=dark' : '?theme=light'}&device=web`}
+                        style={{
+                            width: Dimensions.get("window").width >= 640 ? '100%' : '117%',
+                            left: Dimensions.get("window").width  >= 640 ? 0 : "-8%",
+                            position: Dimensions.get("window").width  >= 640 ? 'relative' : 'absolute',
+                            height: '100%',
+                            border: 'none',
+                            backgroundColor: isDark ? "#111827" : '#FFFFFF',
+                        }}
+                        onLoad={() => {
+                            setIsWebViewLoaded(true);
+                            setLoadingProgress(1);
+                        }}
+                    />
+                </View>
+            ) : (
+                <WebView
+                    ref={webViewRef}
+                    source={{
+                        uri: `https://elearn.ezadrive.com/fr/webview/courseContent/${sectionId}?theme=${
+                            isDark ? "dark" : "light"
+                        }`,
+                        headers: {
+                            Authorization: `Bearer ${session?.access_token}`,
+                            "color-scheme": isDark ? "dark" : "light",
+                        },
+                    }}
+                    style={[
+                        styles.webView,
+                        isDark && styles.webViewDark,
+                        !isWebViewLoaded && styles.hiddenWebView
+                    ]}
+                    originWhitelist={["*"]}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    cacheEnabled={true}
+                    cacheMode="LOAD_CACHE_ELSE_NETWORK"
+                    onShouldStartLoadWithRequest={() => true}
+                    startInLoadingState={true}
+                    onLoadProgress={({ nativeEvent }) => {
+                        setLoadingProgress(nativeEvent.progress);
+                    }}
+                    onLoadEnd={() => {
+                        setIsWebViewLoaded(true);
+                    }}
+                    renderLoading={() => <View />} // Empty view since we handle loading UI ourselves
+                    injectedJavaScript={darkModeScript}
+                    onMessage={(event) => {
+                        const data = JSON.parse(event.nativeEvent.data);
+                        if (data.type === "contentLoaded") {
+                            setIsListening(true);
                         }
-                    }
-
-                    function checkIfContentLoaded() {
-                        if (document.readyState === 'complete') {
-                            document.body.style.userSelect = 'none';
-                            applyDarkMode();
-                            
-                            // Send a message immediately to tell React Native the content is loaded
-                            window.ReactNativeWebView.postMessage(JSON.stringify({
-                                type: "contentLoaded",
-                                windowInnerHeight: window.innerHeight,
-                                windowScrollY: window.scrollY,
-                                documentBodyOffsetHeight: document.body.offsetHeight
-                            }));
-                            
-                            window.onscroll = function() {
-                                if ((window.innerHeight + window.scrollY + 120) >= document.body.offsetHeight) {
-                                    window.ReactNativeWebView.postMessage(JSON.stringify({
-                                        type: "scrolledToEnd",
-                                        windowInnerHeight: window.innerHeight,
-                                        windowScrollY: window.scrollY,
-                                        documentBodyOffsetHeight: document.body.offsetHeight
-                                    }));
-                                }
-                            };
-                        } else {
-                            setTimeout(checkIfContentLoaded, 100); // Reduced from 500ms to 100ms
+                        if (isListening && data.type === "scrolledToEnd") {
+                            setScrolledToEnd(true);
                         }
-                    }
-
-                    // Initialize checks immediately
-                    checkIfContentLoaded();
-
-                    // Preload images to improve rendering speed
-                    function preloadImages() {
-                        const images = document.querySelectorAll('img');
-                        images.forEach(img => {
-                            const src = img.getAttribute('src');
-                            if (src) {
-                                const preloadLink = document.createElement('link');
-                                preloadLink.rel = 'preload';
-                                preloadLink.as = 'image';
-                                preloadLink.href = src;
-                                document.head.appendChild(preloadLink);
-                            }
-                        });
-                    }
-
-                    // Preload images once DOM is loaded
-                    if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', preloadImages);
-                    } else {
-                        preloadImages();
-                    }
-
-                    const observer = new MutationObserver((mutations) => {
-                        for (const mutation of mutations) {
-                            if (mutation.addedNodes.length) {
-                                applyDarkMode();
-                                preloadImages();
-                            }
-                        }
-                    });
-
-                    observer.observe(document.body, {
-                        childList: true,
-                        subtree: true
-                    });
-                })();`}
-                onMessage={(event) => {
-                    const data = JSON.parse(event.nativeEvent.data);
-                    if (data.type === "contentLoaded") {
-                        setIsListening(true);
-                    }
-                    if (isListening && data.type === "scrolledToEnd") {
-                        setScrolledToEnd(true);
-                    }
-                }}
-            />
-
+                    }}
+                />
+            )}
 
             <View style={[styles.navigationContainer, isDark && styles.navigationContainerDark]}>
                 {previousSection && (
@@ -450,17 +532,19 @@ const SectionDetail = () => {
                     style={[
                         styles.navigationButton,
                         isDark && styles.navigationButtonDark,
-                        !scrolledToEnd && progress?.progress !== 1 && styles.disabledButton,
-                        !scrolledToEnd && progress?.progress !== 1 && isDark && styles.disabledButtonDark,
+                        (!scrolledToEnd && progress?.progress !== 1 && Platform.OS !== 'web') && styles.disabledButton,
+                        (!scrolledToEnd && progress?.progress !== 1 && Platform.OS !== 'web' && isDark) && styles.disabledButtonDark,
                     ]}
                     onPress={() => handleNext()}
-                    disabled={!scrolledToEnd && progress?.progress !== 1}
+                    disabled={!scrolledToEnd && progress?.progress !== 1 && Platform.OS !== 'web'}
                 >
                     <MaterialCommunityIcons name={nextSection ? "arrow-right" : "check"} size={24} color="#FFFFFF" />
                 </Pressable>
+
             </View>
-            {/* Use the PreloadWebView component for next section */}
-            {nextSection && (
+
+            {/* Preload next section - only on mobile */}
+            {Platform.OS !== 'web' && nextSection && (
                 <PreloadWebView
                     uri={`https://elearn.ezadrive.com/webview/courseContent/${nextSection.id}?theme=${isDark ? "dark" : "light"}`}
                     accessToken={session?.access_token}
@@ -556,7 +640,6 @@ const SectionDetail = () => {
                     </View>
                 </View>
             </Modal>
-
         </View>
     );
 };
@@ -582,8 +665,8 @@ const styles = StyleSheet.create({
         borderColor: "#4B5563",
     },
     progressIndicatorText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
         fontWeight: "600",
         color: "#4B5563",
     },
@@ -593,7 +676,6 @@ fontSize: 14,
     sectionListModal: {
         flex: 1,
         margin: 0,
-
         justifyContent: 'flex-end',
     },
     modalContent: {
@@ -613,7 +695,6 @@ fontSize: 14,
     modalContentDark: {
         backgroundColor: '#1F2937',
         borderColor: "#374151",
-
     },
     modalHeader: {
         flexDirection: 'row',
@@ -628,8 +709,8 @@ fontSize: 14,
         borderBottomColor: '#374151',
     },
     modalTitle: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 18,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
         fontWeight: '700',
         color: '#111827',
     },
@@ -681,8 +762,8 @@ fontSize: 18,
         backgroundColor: '#4B5563',
     },
     sectionNumberText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
         fontWeight: '600',
         color: '#4B5563',
     },
@@ -690,8 +771,8 @@ fontSize: 12,
         color: '#FFFFFF',
     },
     sectionName: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         flex: 1,
         color: '#4B5563',
     },
@@ -725,8 +806,8 @@ fontSize: 16,
     },
     loadingText: {
         marginTop: 16,
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         color: "#4B5563",
     },
     progressBarContainer: {
@@ -777,8 +858,8 @@ fontSize: 16,
         flex: 1,
     },
     courseTitle: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 19,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 19,
         fontWeight: "700",
         color: "#111827",
         marginBottom: 4,
@@ -787,12 +868,16 @@ fontSize: 19,
         color: "#FFFFFF",
     },
     courseInfo: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
         color: "#6B7280",
     },
     courseInfoDark: {
         color: "#9CA3AF",
+    },
+    webViewContainer: {
+        flex: 1,
+        backgroundColor: "#FFFFFF",
     },
     webView: {
         flex: 1,
@@ -837,8 +922,8 @@ fontSize: 14,
     },
     navigationButtonText: {
         color: "#FFFFFF",
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         marginLeft: 8,
         marginRight: 8,
     },
