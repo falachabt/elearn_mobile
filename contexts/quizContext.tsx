@@ -4,8 +4,9 @@ import {useQuizQuestions, useQuizAttempt, Attempt} from '@/hooks/useQuiz';
 import {QuizAttempt, QuizOption, QuizProgress, QuizQuestion, QuizResults} from '@/types/quiz.type';
 import {Alert} from 'react-native';
 import {QuizService} from '@/services/quiz.service';
-import {useRouter} from "expo-router";
-import pdId from "@/app/(app)/learn/[pdId]";
+import {useGlobalSearchParams, useLocalSearchParams, useRouter} from "expo-router";
+import {Quiz} from "@/types/type";
+import useSWR from "swr";
 
 type QuizAction =
     | { type: 'SELECT_ANSWER'; payload: string }
@@ -43,10 +44,15 @@ export interface QuizAttemptState {
 interface QuizContextType {
     attempt: QuizAttemptState;
     currentQuestion: QuizQuestion | undefined;
+    quizId: string;
+    attemptId: string;
+    pdId: string;
+    quiz: Quiz;
     totalQuestions: number;
     handleAnswerSelect: (answer: string) => void;
     handleNextQuestion: () => Promise<QuizResults | void>;
     handlePreviousQuestion: () => void;
+    handleSaveJustification: (justification: string) => Promise<void>;
     isLastQuestion: boolean;
     isFirstQuestion: boolean;
     progress: number;
@@ -200,18 +206,25 @@ const QuizContext = createContext<QuizContextType | null>(null);
 
 export function QuizProvider({
                                  children,
-                                 quizId,
                                  attemptId,
                              }: {
     children: React.ReactNode;
     quizId: string;
     attemptId: string;
 }) {
+    const params = useLocalSearchParams();
+    const {pdId} = useGlobalSearchParams();
+    const quizId = String(params.quizId);
     const [state, dispatch] = useReducer(quizReducer, initialState);
     const {questions, isLoading: questionsLoading} = useQuizQuestions(quizId);
     const {attempt, isLoading: attemptLoading} = useQuizAttempt(attemptId);
     const prevAttemptStatus = useRef<'in_progress' | 'completed' | null>(null);
     const router = useRouter();
+    const {data: quiz, error: quizError} = useSWR(`/api/quizzes/${quizId}`, async () => {
+        return await QuizService.getQuizById(String(quizId));
+    });
+
+
 
     useEffect(() => {
         if (attempt) {
@@ -302,6 +315,7 @@ export function QuizProvider({
 
         updateProgress();
     }, [state.timeSpent, attemptId, state.currentQuestionIndex, state.status, attempt?.status]);
+
 
     const currentQuestion = state.questions[state.currentQuestionIndex];
     const totalQuestions = state.questions.length;
@@ -404,6 +418,20 @@ export function QuizProvider({
         dispatch({type: 'PREVIOUS_QUESTION'});
     };
 
+    const handleSaveJustification = async (justification: string) => {
+        if (!currentQuestion) return;
+
+        try {
+            await QuizService.saveJustification(
+                currentQuestion.id,
+                justification
+            );
+        } catch (error) {
+            console.error('Error saving justification:', error);
+            Alert.alert('Error', 'Failed to save justification. Please try again.');
+        }
+    }
+
     const resetQuiz = async () => {
         try {
             dispatch({type: 'SET_SUBMITTING', payload: true});
@@ -433,11 +461,13 @@ export function QuizProvider({
         handleAnswerSelect,
         handleNextQuestion,
         handlePreviousQuestion,
+        handleSaveJustification,
         isLastQuestion: state.currentQuestionIndex === totalQuestions - 1,
         isFirstQuestion: state.currentQuestionIndex === 0,
         progress: ((state.currentQuestionIndex + 1) / totalQuestions) * 100,
         results: attempt,
         resetQuiz,
+        quiz,
         isCompleted,
         isNewlyCompleted,
     };

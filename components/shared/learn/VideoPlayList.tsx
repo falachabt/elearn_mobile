@@ -76,7 +76,7 @@ export const VideoPlaylist: React.FC<VideoPlaylistProps> = ({
                 <View style={styles.itemRightContainer}>
                     {isActive ? (
                         <View style={styles.playingIndicator}>
-                            <ThemedText style={styles.playingText}>NOW PLAYING</ThemedText>
+                            <ThemedText style={styles.playingText}>En cours de lecture</ThemedText>
                         </View>
                     ) : (
                         <MaterialCommunityIcons 

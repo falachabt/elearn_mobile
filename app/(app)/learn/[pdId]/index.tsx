@@ -55,6 +55,7 @@ const ProgramDetails = () => {
     useEffect(() => {
         if (program) {
             setActionCards([
+
                 {
                     id: "courses",
                     title: "Cours",
@@ -202,6 +203,22 @@ const ProgramDetails = () => {
                             </ThemedText>
                         </View>
                     ),
+                },
+                {
+                    id: "path",
+                    title: "Parcours Recommandé",
+                    subtitle: "Suivez le parcours recommandé",
+
+                    icon: (
+                        <MaterialCommunityIcons
+                            name="map-marker-path"
+                            size={24}
+                            color={isDark ? "#6EE7B7" : "#4CAF50"}
+                        />
+                    ),
+                    route: `/(app)/learn/${id}/path`,
+                    color: isDark ? "#6EE7B7" : "#4CAF50",
+
                 },
             ]);
         }

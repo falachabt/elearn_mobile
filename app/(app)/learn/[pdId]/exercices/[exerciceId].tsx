@@ -6,41 +6,17 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     useColorScheme,
+    Platform
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import {useRouter, useLocalSearchParams, useNavigation} from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { theme } from "@/constants/theme";
-import ExerciseContent, { Block as ContentBlock } from "@/components/shared/BlockNoteContent";
-import WebView from "react-native-webview";
 import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useSound } from "@/hooks/useSound";
 import useSWR from "swr";
-
-interface Exercise {
-    id: string;
-    title: string;
-    description: string;
-    content: ContentBlock[];
-    correction: ContentBlock[];
-    course: {
-        name: string;
-        id: string;
-        courses_categories?: {
-            name: string;
-            id: string;
-        };
-    };
-}
-
-interface ExercisePin {
-    is_pinned: boolean;
-}
-
-interface ExerciseComplete {
-    is_completed: boolean;
-}
+import WebView from "react-native-webview"; // Ensure this is imported for mobile
 
 const ExercisePage = () => {
     const { exerciceId, pdId } = useLocalSearchParams();
@@ -55,7 +31,7 @@ const ExercisePage = () => {
     const [contentLoading, setContentLoading] = useState(true);
     const { session, user } = useAuth();
 
-    // Fetcher pour les données d'exercice
+    // Fetcher for exercise data
     const exerciseFetcher = useCallback(async () => {
         const { data, error } = await supabase
             .from("exercices")
@@ -77,7 +53,7 @@ const ExercisePage = () => {
         return data;
     }, [exerciceId]);
 
-    // Fetcher pour l'état épinglé
+    // Fetcher for pin state
     const pinFetcher = useCallback(async () => {
         if (!user?.id) return { is_pinned: false };
 
@@ -88,14 +64,13 @@ const ExercisePage = () => {
             .eq("user_id", user.id)
             .single();
 
-        // Si l'entrée n'existe pas encore, on retourne false par défaut
         if (error && error.code === "PGRST116") return { is_pinned: false };
         if (error) throw error;
 
         return data;
     }, [exerciceId, user?.id]);
 
-    // Fetcher pour l'état complété
+    // Fetcher for completion state
     const completeFetcher = useCallback(async () => {
         if (!user?.id) return { is_completed: false };
 
@@ -106,29 +81,24 @@ const ExercisePage = () => {
             .eq("user_id", user.id)
             .single();
 
-        // Si l'entrée n'existe pas encore, on retourne false par défaut
         if (error && error.code === "PGRST116") return { is_completed: false };
         if (error) throw error;
 
         return data;
     }, [exerciceId, user?.id]);
 
-    // Fetcher pour l'exercice suivant
+    // Fetcher for next exercise
     const nextExerciseFetcher = useCallback(async () => {
         if (!exerciceId) return null;
 
-        // Étape 1: Obtenir les détails de l'exercice actuel
         const { data: currentExercise } = await supabase
             .from("exercices")
             .select(`course_id, created_at`)
             .eq("id", exerciceId)
             .single();
 
-        console.log("currentExercise", currentExercise);
-
         if (!currentExercise) return null;
 
-        // Étape 2: Trouver les exercices dans la même catégorie
         const { data: nextExo } = await supabase
             .from("exercices")
             .select("id")
@@ -137,49 +107,36 @@ const ExercisePage = () => {
             .order('created_at', { ascending: true })
             .gt("created_at", currentExercise?.created_at)
             .limit(1)
-            .single()
+            .single();
 
-        console.log("nextExo", nextExo);
-
-        if (!nextExo) return null;
-
-
-        return nextExo.id;
+        return nextExo?.id || null;
     }, [exerciceId]);
 
-
-    // Fetcher pour l'exercice précédent
+    // Fetcher for previous exercise
     const previousExerciseFetcher = useCallback(async () => {
         if (!exerciceId) return null;
 
-        // Étape 1: Obtenir les détails de l'exercice actuel
-        const {data: currentExercise} = await supabase
+        const { data: currentExercise } = await supabase
             .from("exercices")
             .select(`course_id, created_at`)
             .eq("id", exerciceId)
             .single();
 
-
         if (!currentExercise) return null;
 
-        const {data: previousExo} = await supabase
+        const { data: previousExo } = await supabase
             .from("exercices")
             .select("id")
             .eq("course_id", currentExercise?.course_id)
             .neq("id", exerciceId)
-            .order('created_at', {ascending: false})
+            .order('created_at', { ascending: false })
             .lt("created_at", currentExercise?.created_at)
             .limit(1)
-            .single()
+            .single();
 
-        console.log("previousExo", previousExo);
-
-        if (!previousExo) return null;
-
-        return previousExo.id;
+        return previousExo?.id || null;
     }, [exerciceId]);
 
-    // Utilisation de SWR pour optimiser les appels à la base de données
     const { data: exercise, error: exerciseError, isLoading: exerciseLoading } =
         useSWR(`exercise-${exerciceId}`, exerciseFetcher);
 
@@ -195,17 +152,12 @@ const ExercisePage = () => {
     const { data: previousExerciseId } =
         useSWR(`previous-exercise-${exerciceId}`, previousExerciseFetcher);
 
-    // Obtenir les états booléens
     const isPinned = pinData?.is_pinned || false;
     const isCompleted = completeData?.is_completed || false;
 
-    // Gérer le marquage de l'exercice comme terminé
     const handleToggleComplete = async () => {
         const newCompletionState = !isCompleted;
-
-        // Update optimiste pour l'UI
         mutateCompleteData({ is_completed: newCompletionState }, false);
-
         trigger(HapticType.SUCCESS);
 
         if (newCompletionState) {
@@ -225,28 +177,22 @@ const ExercisePage = () => {
                     { onConflict: ["user_id", "exercice_id"] }
                 );
 
-            // Revalider les données
             mutateCompleteData();
         } catch (error) {
             console.error("Error updating completion state:", error);
-            // Revert on error
             mutateCompleteData({ is_completed: isCompleted }, false);
         }
     };
 
-    // Gérer l'épinglage de l'exercice
     const handleTogglePin = async () => {
         const newPinState = !isPinned;
-
-        // Update optimiste pour l'UI
         mutatePinData({ is_pinned: newPinState }, false);
-
         trigger(HapticType.SUCCESS);
 
         try {
             await supabase
                 .from("exercices_pin")
-                // @ts-ignore
+            // @ts-ignore
                 .upsert(
                     {
                         user_id: user?.id,
@@ -256,16 +202,13 @@ const ExercisePage = () => {
                     { onConflict: ["user_id", "exercice_id"] }
                 );
 
-            // Revalider les données
             mutatePinData();
         } catch (error) {
             console.error("Error updating pin state:", error);
-            // Revert on error
             mutatePinData({ is_pinned: isPinned }, false);
         }
     };
 
-    // Passer à l'exercice suivant
     const handleNextExercise = () => {
         if (nextExerciseId) {
             playNextLesson();
@@ -280,7 +223,6 @@ const ExercisePage = () => {
         }
     };
 
-    // passer à l'exercice précédent
     const handlePreviousExercise = () => {
         if (previousExerciseId) {
             playNextLesson();
@@ -295,49 +237,65 @@ const ExercisePage = () => {
         }
     };
 
-    // Toggle entre l'exercice et la correction
     const toggleCorrection = () => {
         trigger(HapticType.LIGHT);
         playNextLesson();
         setIsCorrection(!isCorrection);
     };
 
+    // Enhanced dark mode script for better iframe integration
     const darkModeScript = `(function() {
         function applyDarkMode() {
             if (${isDark}) {
+                // Apply dark mode to the container
                 const container = document.querySelector('.bn-container');
                 if (container) {
                     container.classList.add('dark');
                     container.setAttribute('data-color-scheme', 'dark');
                     
+                    // Add custom CSS variables for dark mode
                     document.documentElement.style.setProperty('--bn-colors-editor-text', '#FFFFFF');
-                    document.documentElement.style.setProperty('--bn-colors-editor-background', '#111827');
+                    document.documentElement.style.setProperty('--bn-colors-editor-background', '#0F172A');
                     document.documentElement.style.setProperty('--bn-colors-menu-text', '#F3F4F6');
-                    document.documentElement.style.setProperty('--bn-colors-menu-background', '#1F2937');
+                    document.documentElement.style.setProperty('--bn-colors-menu-background', '#0F172A');
                     document.documentElement.style.setProperty('--bn-colors-editor-border', '#374151');
-      
-                    const style = document.createElement('style');
-                    style.textContent = \`
+                    
+                    // Inject dark mode style
+                    const darkModeStyle = document.createElement('style');
+                    darkModeStyle.textContent = \`
+                        body { 
+                            background-color: #0F172A;
+                            color: #FFFFFF;
+                        }
                         .bn-container[data-color-scheme=dark] {
                             --bn-colors-editor-text: #FFFFFF;
-                            --bn-colors-editor-background: #111827;
+                            --bn-colors-editor-background: #0F172A;
                             --bn-colors-menu-text: #F3F4F6;
-                            --bn-colors-menu-background: #1F2937;
-                            background-color: #111827;
+                            --bn-colors-menu-background: #0F172A;
+                            background-color: #0F172A;
                             color: #FFFFFF;
                         }
                         .bn-container[data-color-scheme=dark] * {
                             border-color: #374151 !important;
                         }
                         .bn-container[data-color-scheme=dark] .content {
-                            background-color: #111827;
+                            background-color: #0F172A;
                             color: #FFFFFF;
                         }
                     \`;
-                    document.head.appendChild(style);
+                    document.head.appendChild(darkModeStyle);
                 }
             }
         }
+        
+        // Apply dark mode on load
+        if (document.readyState === 'complete') {
+            applyDarkMode();
+        } else {
+            window.addEventListener('load', applyDarkMode);
+        }
+        
+        // Set up observer to apply dark mode on DOM changes
         const observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 if (mutation.addedNodes.length) {
@@ -345,10 +303,21 @@ const ExercisePage = () => {
                 }
             }
         });
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
+        
+        // Start observing once DOM is ready
+        if (document.readyState !== 'loading') {
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        } else {
+            document.addEventListener('DOMContentLoaded', () => {
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            });
+        }
     })();`;
 
     const commonWebViewProps = {
@@ -449,66 +418,130 @@ const ExercisePage = () => {
                 </View>
             </View>
 
-            <View style={styles.contentContainer}>
-                {/* Correction WebView */}
-                <View style={[
-                    styles.webViewContainer,
-                    !isCorrection && styles.hidden
-                ]}>
-                    <WebView
-                        source={{
-                            uri: `https://elearn.ezadrive.com/fr/webview/exercices/${exerciceId}/correction?theme=${isDark ? "dark" : "light"}`,
-                            headers: {
-                                Authorization: `Bearer ${session?.access_token}`,
-                                "color-scheme": isDark ? "dark" : "light",
-                            },
-                        }}
-                        style={[
-                            styles.webView,
-                            isDark && styles.webViewDark,
-                        ]}
-                        {...commonWebViewProps}
-                        onLoadStart={() => setCorrectionLoading(true)}
-                        onLoadEnd={() => setCorrectionLoading(false)}
-                        onError={() => setCorrectionLoading(true)}
-                    />
-                </View>
+            {/* Conditional rendering for web and mobile platforms */}
+            {Platform.OS === 'web' ? (
+                <>
+                    {/* Web-specific rendering using iframes */}
+                    <View style={styles.contentContainer}>
+                        {/* Loading indicators for web */}
+                        {(contentLoading || correctionLoading) && (
+                            <View style={[styles.loadingContainer, isDark && styles.loadingContainerDark]}>
+                                <ActivityIndicator size="large" color={theme.color.primary[500]} />
+                                <Text style={[styles.loadingText, isDark && styles.textDark]}>
+                                    {isCorrection ? "Chargement de la correction..." : "Chargement de l'exercice..."}
+                                </Text>
+                            </View>
+                        )}
 
-                {/* Content WebView */}
-                <View style={[
-                    styles.webViewContainer,
-                    isCorrection && styles.hidden
-                ]}>
-                    <WebView
-                        source={{
-                            uri: `https://elearn.ezadrive.com/fr/webview/exercices/${exerciceId}/content?theme=${isDark ? "dark" : "light"}`,
-                            headers: {
-                                Authorization: `Bearer ${session?.access_token}`,
-                                "color-scheme": isDark ? "dark" : "light",
-                            },
-                        }}
-                        style={[
-                            styles.webView,
-                            isDark && styles.webViewDark,
-                        ]}
-                        {...commonWebViewProps}
-                        onLoadStart={() => setContentLoading(true)}
-                        onLoadEnd={() => setContentLoading(false)}
-                        onError={() => setContentLoading(true)}
-                    />
-                </View>
-            </View>
+                        {/* Correction iframe */}
+                        <View style={[
+                            styles.webViewContainer,
+                            !isCorrection && styles.hidden
+                        ]}>
+                            <iframe
+                                src={`https://elearn.ezadrive.com/fr/webview/exercices/${exerciceId}/correction?theme=${isDark ? "dark" : "light"}`}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    border: 'none',
+                                    backgroundColor: isDark ? theme.color.dark.background.primary : '#FFFFFF',
+                                }}
+                                onLoad={() => setCorrectionLoading(false)}
+                            />
+                        </View>
+
+                        {/* Content iframe */}
+                        <View style={[
+                            styles.webViewContainer,
+                            isCorrection && styles.hidden
+                        ]}>
+                            <iframe
+                                src={`https://elearn.ezadrive.com/fr/webview/exercices/${exerciceId}/content?theme=${isDark ? "dark" : "light"}`}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    border: 'none',
+                                    backgroundColor: isDark ? theme.color.dark.background.primary : '#FFFFFF',
+                                }}
+                                onLoad={() => setContentLoading(false)}
+                            />
+                        </View>
+                    </View>
+                </>
+            ) : (
+                <>
+                    {/* Mobile-specific rendering using WebView component */}
+                    <View style={styles.contentContainer}>
+                        {/* Loading indicators for mobile */}
+                        {(contentLoading || correctionLoading) && (
+                            <View style={[styles.loadingContainer, isDark && styles.loadingContainerDark]}>
+                                <ActivityIndicator size="large" color={theme.color.primary[500]} />
+                                <Text style={[styles.loadingText, isDark && styles.textDark]}>
+                                    {isCorrection ? "Chargement de la correction..." : "Chargement de l'exercice..."}
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* Correction WebView */}
+                        <View style={[
+                            styles.webViewContainer,
+                            !isCorrection && styles.hidden
+                        ]}>
+                            <WebView
+                                source={{
+                                    uri: `https://elearn.ezadrive.com/fr/webview/exercices/${exerciceId}/correction?theme=${isDark ? "dark" : "light"}`,
+                                    headers: {
+                                        Authorization: `Bearer ${session?.access_token}`,
+                                        "color-scheme": isDark ? "dark" : "light",
+                                    },
+                                }}
+                                style={[
+                                    styles.webView,
+                                    isDark && styles.webViewDark,
+                                ]}
+                                {...commonWebViewProps}
+                                onLoadStart={() => setCorrectionLoading(true)}
+                                onLoadEnd={() => setCorrectionLoading(false)}
+                                onError={() => setCorrectionLoading(false)}
+                            />
+                        </View>
+
+                        {/* Content WebView */}
+                        <View style={[
+                            styles.webViewContainer,
+                            isCorrection && styles.hidden
+                        ]}>
+                            <WebView
+                                source={{
+                                    uri: `https://elearn.ezadrive.com/fr/webview/exercices/${exerciceId}/content?theme=${isDark ? "dark" : "light"}`,
+                                    headers: {
+                                        Authorization: `Bearer ${session?.access_token}`,
+                                        "color-scheme": isDark ? "dark" : "light",
+                                    },
+                                }}
+                                style={[
+                                    styles.webView,
+                                    isDark && styles.webViewDark,
+                                ]}
+                                {...commonWebViewProps}
+                                onLoadStart={() => setContentLoading(true)}
+                                onLoadEnd={() => setContentLoading(false)}
+                                onError={() => setContentLoading(false)}
+                            />
+                        </View>
+                    </View>
+                </>
+            )}
 
             <View style={styles.bottomButtonsContainer}>
                 {previousExerciseId && (
                     <TouchableOpacity
-                        style={[styles.nextButton, {marginRight: 8}]}
+                        style={[styles.nextButton, { marginRight: 8 }]}
                         onPress={handlePreviousExercise}
                     >
                         <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
                 )}
-
 
                 <TouchableOpacity
                     style={[
@@ -563,8 +596,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     courseName: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         fontWeight: "600",
         color: "#1A1A1A",
     },
@@ -575,8 +608,8 @@ fontSize: 16,
         flexWrap: 'wrap',
     },
     categoryName: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
         color: theme.color.gray[600],
         marginRight: 8,
     },
@@ -595,8 +628,8 @@ fontSize: 14,
         marginRight: 6,
     },
     statusText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
         marginLeft: 4,
         color: theme.color.gray[700],
     },
@@ -612,6 +645,26 @@ fontSize: 12,
         flex: 1,
         position: 'relative',
     },
+    loadingContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        zIndex: 10,
+    },
+    loadingContainerDark: {
+        backgroundColor: theme.color.dark.background.primary,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        color: theme.color.gray[600],
+    },
     webViewContainer: {
         flex: 1,
         position: 'absolute',
@@ -623,8 +676,8 @@ fontSize: 12,
     webView: {
         flex: 1,
         backgroundColor: "#FFFFFF",
-        left: "-10%",
-        width: "120%",
+        left: Platform.OS !== "web" ? "-10%" : 0,
+        width: Platform.OS !== "web" ? "120%" : "100%",
         marginBottom: 20,
         marginTop: 20,
     },
@@ -665,8 +718,8 @@ fontSize: 12,
     },
     correctionButtonText: {
         color: "#FFFFFF",
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         fontWeight: "600",
         lineHeight: 24,
     },
@@ -674,8 +727,8 @@ fontSize: 16,
         color: "#FFFFFF",
     },
     errorText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 18,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
         color: theme.color.gray[600],
     },
 });

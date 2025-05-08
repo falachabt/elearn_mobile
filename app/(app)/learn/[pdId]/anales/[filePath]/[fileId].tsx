@@ -1,15 +1,16 @@
 // FileViewerScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '@/constants/theme';
-import { FileViewer } from '@/components/FileViewer';
 import { Archive } from '..';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import useSWR from 'swr';
+import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
+import {FileViewer as FileViewerNative } from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
 
 // Define TypeScript interfaces for our data
 interface ArchiveData {
@@ -308,15 +309,28 @@ export const FileViewerScreen = () => {
           </View>
         </View>
 
-        {isLoading ? (
+        {isLoading ?
             <ActivityIndicator
                 size="large"
                 color={theme.color.primary[500]}
                 style={viewerStyles.loader}
             />
-        ) : (
-            currentFile && (
-                <FileViewer
+         :
+            currentFile ?
+
+                // Use the appropriate FileViewer component based on the platform
+                Platform.OS === 'web' ?
+                    <FileViewer
+                        file={{
+                            id: currentFile.id + new Date().toISOString(),
+                            file_url: currentFile.file_url,
+                            file_type: typeof currentFile.file_url === 'string' &&
+                            currentFile.file_url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'other'
+                        } as Archive}
+                        style={viewerStyles.viewer}
+                    />
+                :
+                <FileViewerNative
                     file={{
                       id: currentFile.id+ new Date().toISOString(),
                       file_url: currentFile.file_url,
@@ -325,8 +339,10 @@ export const FileViewerScreen = () => {
                     } as Archive}
                     style={viewerStyles.viewer}
                 />
-            )
-        )}
+
+                : null
+
+        }
       </View>
   );
 };

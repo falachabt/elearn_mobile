@@ -39,13 +39,13 @@ interface ContactInfo {
 const contactNumbers: ContactInfo[] = [
     {
         title: 'Support Technique',
-        number: '+33 1 23 45 67 89',
+        number: '+237 6 57 27 37 53',
         hours: 'Lun-Ven: 9h-18h',
         description: 'Pour toute assistance technique avec la plateforme'
     },
     {
         title: 'Support Commercial',
-        number: '+33 1 23 45 67 90',
+        number: '+237 6 51 05 56 63',
         hours: 'Lun-Ven: 9h-17h',
         description: 'Pour les questions concernant votre abonnement'
     }
@@ -336,7 +336,7 @@ const CustomerService: React.FC = () => {
                     <View style={[styles.modalContent, isDarkMode && styles.modalContentDark]}>
                         <View style={styles.modalHeader}>
                             <Text style={[styles.modalTitle, isDarkMode && styles.modalTitleDark]}>
-                                Appelez-nous
+                                Écrivez-nous sur WhatsApp
                             </Text>
                             <TouchableOpacity
                                 onPress={() => setShowContactInfo(false)}
@@ -366,21 +366,24 @@ const CustomerService: React.FC = () => {
                                     <Text style={[styles.contactHours, isDarkMode && styles.contactHoursDark]}>
                                         {contact.hours}
                                     </Text>
-                                    <Text style={[styles.contactDescription, isDarkMode && styles.contactDescriptionDark]}>
+                                    <Text
+                                        style={[styles.contactDescription, isDarkMode && styles.contactDescriptionDark]}>
                                         {contact.description}
                                     </Text>
                                 </View>
                                 <TouchableOpacity
-                                    style={styles.callButton}
-                                    onPress={() => handleCall(contact.number)}
+                                    style={[styles.callButton, {backgroundColor: '#25D366'}]}
+                                    onPress={() => Linking.openURL(`whatsapp://send?phone=${contact.number.replace(/\s+/g, '')}`)}
                                 >
-                                    <MaterialIcons name="phone" size={20} color="#FFFFFF" />
-                                    <Text style={styles.callButtonText}>Appeler</Text>
+                                    <MaterialIcons name="chat" size={20} color="#FFFFFF"/>
+                                    <Text style={styles.callButtonText}>WhatsApp</Text>
                                 </TouchableOpacity>
                             </View>
                         ))}
                     </View>
                 </View>
+            
+            
             </Modal>
 
             {/* Image Preview Modal */}

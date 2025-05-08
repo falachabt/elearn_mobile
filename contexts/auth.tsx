@@ -368,6 +368,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // For signup, loading state will be managed by the useEffect when user data loads
         }
     };
+
     const signUp = async (phone: number | undefined, password: string) => {
         try {
             setIsLoading(true);
@@ -399,7 +400,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                                 headers: {
                                     'Content-Type': 'application/json',
                                     'Authorization': `Bearer ${data.session.access_token}`
-                                }
+                                },
+                                timeout : 1500,
                             }
                         );
 

@@ -1,6 +1,7 @@
 // types/quiz.ts
 
 export interface QuizQuestion {
+    justificatif: string;
     id: number;
     title: string;
     content: any;

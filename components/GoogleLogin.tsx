@@ -66,7 +66,7 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
         <TouchableOpacity
             onPress={signInWithGoogle}
             disabled={loading}
-            style={{ opacity: loading ? 0.5 : 1, flex: 1 }}
+            style={{opacity: loading ? 0.5 : 1, flex: 1, ...(Platform.OS === 'web' && {height: 40})}}
         >
             {children}
         </TouchableOpacity>

@@ -1,9 +1,22 @@
 // src/hooks/useHaptics.ts
-import * as Haptics from 'expo-haptics';
 import { Platform, AppState, AppStateStatus } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { STORAGE_KEY_SETTINGS } from "@/constants/storage-keys";
+
+// Platform-specific imports
+let Haptics: any = null;
+let AsyncStorage: any = null;
+
+// Only attempt to load native modules on non-web platforms
+if (Platform.OS !== 'web') {
+    try {
+        // Dynamic imports to avoid bundling issues on web
+        Haptics = require('expo-haptics');
+        AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    } catch (e) {
+        console.warn('Failed to load native haptics modules:', e);
+    }
+}
 
 export enum HapticType {
     LIGHT = 'light',
@@ -61,24 +74,50 @@ export const HapticPatterns = {
     ]
 } as const;
 
+// Cross-platform storage helper
+const Storage = {
+    getItem: async (key: string): Promise<string | null> => {
+        if (Platform.OS === 'web') {
+            try {
+                return localStorage.getItem(key);
+            } catch (e) {
+                console.warn('localStorage not available', e);
+                return null;
+            }
+        } else if (AsyncStorage) {
+            return AsyncStorage.getItem(key);
+        }
+        return null;
+    },
+
+    setItem: async (key: string, value: string): Promise<void> => {
+        if (Platform.OS === 'web') {
+            try {
+                localStorage.setItem(key, value);
+            } catch (e) {
+                console.warn('localStorage not available', e);
+            }
+        } else if (AsyncStorage) {
+            await AsyncStorage.setItem(key, value);
+        }
+    }
+};
+
 export const useHaptics = (options: HapticOptions = { disableOnAndroid: false }) => {
     const isAndroid = Platform.OS === 'android';
-    const [hapticEnabled, setHapticEnabled] = useState(true); // Default to true if setting not found
+    const isWeb = Platform.OS === 'web';
+    const [hapticEnabled, setHapticEnabled] = useState(true);
 
-    // Load haptic settings from AsyncStorage
+    // Load haptic settings from storage
     const loadHapticSettings = async () => {
-        // console.log("we are triging to load apptick setting")
         try {
-            const storedSettings = await AsyncStorage.getItem(STORAGE_KEY_SETTINGS);
+            const storedSettings = await Storage.getItem(STORAGE_KEY_SETTINGS);
             if (storedSettings) {
                 const settings = JSON.parse(storedSettings);
-                // If hapticEnabled is explicitly set to false, use that value
-                // Otherwise, default to true (assume haptics are enabled)
                 setHapticEnabled(settings.hapticEnabled !== false);
             }
         } catch (error) {
             console.error('Error loading haptic settings:', error);
-            // If there's an error, default to enabling haptics
             setHapticEnabled(true);
         }
     };
@@ -86,7 +125,6 @@ export const useHaptics = (options: HapticOptions = { disableOnAndroid: false })
     // Handle app state changes to check for settings updates
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
         if (nextAppState === 'active') {
-            // App has come to the foreground, reload settings
             loadHapticSettings();
         }
     };
@@ -95,20 +133,60 @@ export const useHaptics = (options: HapticOptions = { disableOnAndroid: false })
         // Load haptic settings on first mount
         loadHapticSettings();
 
-        // Set up AppState listener for detecting when app comes to foreground
-        const subscription = AppState.addEventListener('change', handleAppStateChange);
+        // Only set up AppState listener on mobile platforms
+        if (!isWeb) {
+            const subscription = AppState.addEventListener('change', handleAppStateChange);
+            return () => {
+                subscription.remove();
+            };
+        }
 
-        return () => {
-            // Clean up the AppState listener
-            subscription.remove();
-        };
+        return () => {};
     }, []);
+
+    // Web vibration API implementation
+    const webVibrate = (pattern: number | number[]): boolean => {
+        if (isWeb && typeof window !== 'undefined' &&
+            typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            try {
+                return navigator.vibrate(pattern);
+            } catch (error) {
+                console.warn('Web vibration failed:', error);
+            }
+        }
+        return false;
+    };
+
+    // Convert HapticType to vibration duration for web
+    const getVibrationDuration = (type: HapticType): number => {
+        switch (type) {
+            case HapticType.LIGHT: return 10;
+            case HapticType.MEDIUM: return 20;
+            case HapticType.HEAVY: return 30;
+            case HapticType.SUCCESS: return 25;
+            case HapticType.WARNING: return 20;
+            case HapticType.ERROR: return 30;
+            case HapticType.SELECTION: return 5;
+            default: return 15;
+        }
+    };
+
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     const triggerSingle = async (type: HapticType) => {
         // Don't trigger haptics if disabled in settings
         if (!hapticEnabled || (isAndroid && options.disableOnAndroid)) {
             return;
         }
+
+        // Web implementation
+        if (isWeb) {
+            webVibrate(getVibrationDuration(type));
+            return;
+        }
+
+        // Mobile implementation
+        if (!Haptics) return; // Skip if haptics module is not available
 
         try {
             switch (type) {
@@ -139,8 +217,6 @@ export const useHaptics = (options: HapticOptions = { disableOnAndroid: false })
         }
     };
 
-    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
     const triggerPattern = async (pattern: readonly HapticStep[]) => {
         // Don't trigger haptics if disabled in settings
         if (!hapticEnabled || (isAndroid && options.disableOnAndroid)) {
@@ -149,17 +225,24 @@ export const useHaptics = (options: HapticOptions = { disableOnAndroid: false })
 
         try {
             for (const step of pattern) {
+                // Wait for the delay if specified
                 if (step.delay) {
                     await sleep(step.delay);
                 }
-                await triggerSingle(step.type);
+
+                // Then trigger the haptic
+                if (isWeb) {
+                    webVibrate(getVibrationDuration(step.type));
+                } else {
+                    await triggerSingle(step.type);
+                }
             }
         } catch (error) {
             console.warn('Haptic pattern failed:', error);
         }
     };
 
-    // Create your own custom pattern
+    // Create a custom pattern
     const createPattern = (steps: readonly HapticStep[]): HapticPatternDefinition => {
         return steps;
     };
@@ -170,6 +253,7 @@ export const useHaptics = (options: HapticOptions = { disableOnAndroid: false })
         createPattern,
         patterns: HapticPatterns,
         loadHapticSettings,
-        hapticEnabled // Expose the current haptic enabled state
+        hapticEnabled,
+        isWebPlatform: isWeb // Expose platform information if needed
     };
 };

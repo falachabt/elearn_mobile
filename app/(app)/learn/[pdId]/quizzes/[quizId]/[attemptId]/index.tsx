@@ -21,16 +21,14 @@ import {
     useQuiz,
 } from "@/hooks/useQuiz";
 import {QuizProvider, useQuizContext} from "@/contexts/quizContext";
-import LottieView from "lottie-react-native";
 import {QuizResultDialog} from "@/components/shared/learn/quiz/ResultModal";
-import {QuizService} from "@/services/quiz.service";
 import {supabase} from "@/lib/supabase";
 import {useAuth} from "@/contexts/auth";
-import {QuizResults} from "@/types/quiz.type";
 import QuizResultsDisplay from "@/components/shared/learn/quiz/QuizResultDisplay";
 import BlockNoteContent from "@/components/shared/BlockNoteContent";
 import ExerciseInstructionsDrawer from "@/components/shared/learn/quiz/ExerciseInstructionsDrawer";
 import Katex from 'react-native-katex';
+import MathLiveTextRenderer from "@/components/shared/learn/quiz/MathLiveTextRender";
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -218,6 +216,10 @@ const MixedContentRenderer = memo(({
         return <Text style={style}>{text}</Text>;
     }
 
+    if (Platform.OS == "web") {
+        return <MathLiveTextRenderer text={text} />
+    }
+
     try {
         const latexExpression = convertToLatexExpression(text);
         return (
@@ -357,6 +359,7 @@ const QuestionContent = memo(({isDark}: QuestionContentProps) => {
     if (results?.status !== "in_progress" || isCompleted) {
         return (
             <QuizResultsDisplay
+                key={currentQuestion.id}
                 currentQuestion={currentQuestion}
                 attempt={results}
                 isDark={isDark}
@@ -537,7 +540,7 @@ const QuizFooter = memo(({
                                 showInstructions && styles.exerciseButtonTextActive
                             ]}
                         >
-                            Enoncer
+                            Enoncé
                         </ThemedText>
                     </Pressable>
                 )}

@@ -1,0 +1,14 @@
+digraph INFRA {
+  node [ color = "black", fillcolor = "#E6E6E6", height =1, style = "filled,bold,rounded", fontname = "Arial" ];
+  "Firebase Storage Bucket" [ label = "Firebase Storage Bucket
+(Firebase::Storage::Bucket)", shape =cylinder, fillcolor = "#FFF5CD" ];
+  "Firebase Authentication" [ label = "Firebase Authentication
+(Firebase::Auth::Service)", shape =rectangle ];
+  "Firebase Cloud Messaging" [ label = "Firebase Cloud Messaging
+(Firebase::Messaging::Service)", shape =rectangle, fillcolor = "#CCE0AC" ];
+  "Google Cloud Service Account" [ label = "Google Cloud Service Account
+(Google::IAM::ServiceAccount)", shape =rectangle ];
+  "Firebase Admin SDK" [ label = "Firebase Admin SDK
+(Firebase::Admin::SDK)", shape =rectangle ];
+  "Firebase Admin SDK" -> "Google Cloud Service Account";
+}
