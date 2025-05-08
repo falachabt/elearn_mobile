@@ -21,6 +21,8 @@ import CourseCard from '@/components/shared/learn/CourseCard';
 import CategoryFilter from '@/components/shared/learn/CategoryFilter';
 import {CourseGridByCategory} from "@/components/shared/learn/CourseGrid";
 import CourseList from "@/components/CourseList";
+import FloatingChatButton from '@/components/shared/FloatingChatButton';
+import ChatBox from '@/components/shared/ChatBox';
 // import CourseGridByCategory from '@/components/shared/learn/CourseGrid';
 
 // TypeScript interfaces
@@ -77,9 +79,18 @@ const CourseScreen: React.FC<null> = () => {
   const { trigger } = useHaptics();
 
   // State
+  const [chatVisible, setChatVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const handleOpenChat = () => {
+    setChatVisible(true);
+  };
+
+  const handleCloseChat = () => {
+    setChatVisible(false);
+  };
 
   // Fetch program data
   const { data: program, isLoading: isLoadingProgram } = useSWR<Program>(
@@ -226,6 +237,19 @@ const CourseScreen: React.FC<null> = () => {
 
   return (
       <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
+        <FloatingChatButton 
+          onPress={handleOpenChat} 
+          isDark={isDark} 
+        />
+
+        <ChatBox 
+          visible={chatVisible}
+          onClose={handleCloseChat}
+          isDark={isDark}
+          coursesData={courses}
+          programTitle={title}
+        />
+
         {/* Header */}
         <View style={[styles.header, isDark && styles.headerDark]}>
           <Pressable

@@ -19,6 +19,8 @@ import useSWR from "swr";
 import CategoryFilter from "@/components/shared/learn/CategoryFilter";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import ExerciseCard from "@/components/shared/learn/exercices/ExerciceCard";
+import FloatingChatButton from "@/components/shared/FloatingChatButton";
+import ChatBox from "@/components/shared/ChatBox";
 
 // Types
 interface Exercise {
@@ -41,6 +43,8 @@ interface Exercise {
 
 type FilterType = "all" | "pinned" | "uncompleted";
 
+
+
 export const ExercisesList = () => {
     const params = useLocalSearchParams();
     const pdId = params["pdId"];
@@ -52,6 +56,15 @@ export const ExercisesList = () => {
     const {trigger} = useHaptics();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
+    const [chatVisible, setChatVisible] = useState(false);
+
+    const handleOpenChat = () => {
+        setChatVisible(true);
+    };
+  
+    const handleCloseChat = () => {
+        setChatVisible(false);
+    };
 
     const fetcher = async () => {
         // Run all database queries in parallel
@@ -294,6 +307,34 @@ export const ExercisesList = () => {
 
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
+
+        <FloatingChatButton 
+            onPress={handleOpenChat} 
+            isDark={isDark} 
+        />
+        <ChatBox 
+            visible={chatVisible}
+            onClose={handleCloseChat}
+            isDark={isDark}
+            coursesData={[]} // We don't have course data directly here
+            programTitle={data?.pathName || ''}
+            customContext={
+                filteredExercises.length > 0 
+                  ? `
+            Programme d'exercices: ${data?.pathName || ''}
+            
+            Liste des exercices disponibles:
+            ${filteredExercises.map((exercise, index) => `
+            ${index + 1}. Titre: ${exercise.title}
+               Description: ${exercise.description || 'Pas de description'}
+               Catégorie: ${exercise.course?.courses_categories?.name || 'Non catégorisé'}
+               Complété: ${exercise.is_completed ? 'Oui' : 'Non'}
+            `).join('')}
+                  `
+                  : `Programme d'exercices: ${data?.pathName || ''}\n\nAucun exercice disponible pour le moment.`
+              }
+        />
+
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
