@@ -70,7 +70,8 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                                             headers: {
                                                 'Content-Type': 'application/json',
                                                 'Authorization': `Bearer ${params?.access_token}`
-                                            }
+                                            },
+                                            timeout : 1500,
                                         }
                                     );
                                 }
