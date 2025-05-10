@@ -16,7 +16,7 @@ import {ThemedText} from '@/components/ThemedText';
 import {theme} from '@/constants/theme';
 import {supabase} from '@/lib/supabase';
 import {useColorScheme} from '@/hooks/useColorScheme';
-import Markdown from 'react-native-markdown-display';
+import Markdown, {RenderImageFunction} from 'react-native-markdown-display';
 import FitImage from "react-native-fit-image";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 
@@ -333,7 +333,7 @@ export default function ExerciseInstructionsDrawer({
                                                    }: ExerciseInstructionsDrawerProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
-    const { trigger } = useHaptics();
+    const {trigger} = useHaptics();
     const [exerciseData, setExerciseData] = useState<ExerciseData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -448,7 +448,7 @@ export default function ExerciseInstructionsDrawer({
         delete imageProps.key
 
         // @ts-ignore
-        return <FitImage   key={"soemid"} {...imageProps} />;
+        return <FitImage key={"soemid"} {...imageProps} />;
     }, [isDark]);
 
     // Define markdown styles based on the theme
@@ -610,9 +610,10 @@ export default function ExerciseInstructionsDrawer({
                                     <View style={styles.instructionsContainer}>
                                         <Markdown
                                             key={contentKey.current} // Use stable key to prevent re-renders
-                                            style={markdownStyles}
+                                            style={markdownStyles as any}
                                             allowedImageHandlers={['data:image/png;base64', 'data:image/gif;base64', 'data:image/jpeg;base64', 'https://', 'http://']}
                                             rules={{
+                                                /*@ts-ignore */
                                                 image: renderImage
                                             }}
                                             allowFontScaling={false}

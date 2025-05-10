@@ -19,6 +19,7 @@ import { ArchiveCard } from "@/components/ArchiveCard";
 import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import useSWR from "swr";
+import ChatBox from "@/components/shared/ChatBot";
 
 export interface Archive {
   id: string;
@@ -450,6 +451,8 @@ export const ArchivesList = () => {
                 Tout
               </Text>
             </TouchableOpacity>
+
+
 
             <TouchableOpacity
                 style={[

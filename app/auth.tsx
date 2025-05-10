@@ -14,10 +14,10 @@ function Auth() {
         : theme.color.light.background.secondary;
 
     useEffect(() => {
-        // Afficher le bouton après 45 secondes
+        // Afficher le bouton après 5 secondes
         const timer = setTimeout(() => {
             setShowButton(true);
-        }, 45000); // 45 secondes
+        }, 5000); // 5 secondes
 
         return () => clearTimeout(timer);
     }, []);
@@ -39,7 +39,7 @@ function Auth() {
                     onPress={handleNavigateHome}
                 >
                     <Text style={styles.buttonText as TextStyle}>
-                        Continuer sans attendre
+                        Continuer
                     </Text>
                 </TouchableOpacity>
             )}

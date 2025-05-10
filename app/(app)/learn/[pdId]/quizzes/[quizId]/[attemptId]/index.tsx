@@ -361,6 +361,7 @@ const QuestionContent = memo(({isDark}: QuestionContentProps) => {
             <QuizResultsDisplay
                 key={currentQuestion.id}
                 currentQuestion={currentQuestion}
+                /* @ts-ignore  */
                 attempt={results}
                 isDark={isDark}
             />
