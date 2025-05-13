@@ -50,6 +50,8 @@ export function AppleLogin() {
                                     );
                                 }, 500);
                             }
+
+
                         } else {
                             throw new Error('No identityToken.')
                         }

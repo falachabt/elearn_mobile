@@ -11,16 +11,17 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
     useColorScheme,
+    View,
 } from "react-native";
 
 import {theme} from "@/constants/theme";
 import {supabase} from "@/lib/supabase";
 import {StatusBar} from "expo-status-bar";
-import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import OTPInput from "../../components/ui/OTPInput";
+import {useSearchParams} from "expo-router/build/hooks";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -161,11 +162,17 @@ const ResetPassword: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [countdown, setCountdown] = useState<number>(60);
     const [isOtpValid, setIsOtpValid] = useState<boolean>(false);
+    const { trigger } = useHaptics();
 
     // Error states
     const [emailError, setEmailError] = useState<string>("");
     const [passwordError, setPasswordError] = useState<string>("");
     const [confirmPasswordError, setConfirmPasswordError] = useState<string>("");
+
+
+    const b = useSearchParams();
+
+    console.log(b.get('come_from'));
 
     // Toast state
     const [toast, setToast] = useState<ToastState>({
@@ -368,12 +375,12 @@ const ResetPassword: React.FC = () => {
             const isEmailValid = validateEmail(email);
             if (!isEmailValid) {
                 shakeError();
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+               trigger(HapticType.LIGHT)
                 return;
             }
 
             setIsLoading(true);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            trigger(HapticType.LIGHT)
 
             // Send reset password email with OTP
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -385,7 +392,7 @@ const ResetPassword: React.FC = () => {
             // Move to OTP verification step
             setCurrentStep(2);
             startCountdown();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            trigger(HapticType.SUCCESS)
 
             setToast({
                 visible: true,
@@ -395,7 +402,7 @@ const ResetPassword: React.FC = () => {
             });
         } catch (error: any) {
             shakeError();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            trigger(HapticType.ERROR)
 
             setToast({
                 visible: true,
@@ -412,12 +419,12 @@ const ResetPassword: React.FC = () => {
         try {
             if (!isOtpValid) {
                 shakeError();
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                trigger(HapticType.ERROR)
                 return;
             }
 
             setIsLoading(true);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            trigger(HapticType.LIGHT)
 
             // Verify OTP
             const { error } = await supabase.auth.verifyOtp({
@@ -430,10 +437,10 @@ const ResetPassword: React.FC = () => {
 
             // Move to new password step
             setCurrentStep(3);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            trigger(HapticType.LIGHT)
         } catch (error) {
             shakeError();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            trigger(HapticType.ERROR)
 
             setToast({
                 visible: true,
@@ -457,12 +464,12 @@ const ResetPassword: React.FC = () => {
 
             if (!isPasswordValid || !isConfirmPasswordValid) {
                 shakeError();
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                trigger(HapticType.ERROR)
                 return;
             }
 
             setIsLoading(true);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            trigger(HapticType.LIGHT)
 
             // Update password
             const { error } = await supabase.auth.updateUser({
@@ -471,20 +478,22 @@ const ResetPassword: React.FC = () => {
 
             if (error) throw error;
 
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            trigger(HapticType.SUCCESS)
             setToast({
                 visible: true,
                 message: "Mot de passe réinitialisé avec succès",
                 type: "success",
                 action: {
                     label: "Se connecter",
-                    onPress: () => router.push("/login")
+                    onPress: () => b.get('come_from') === "mobile"
+                        ? router.push("com.ezadrive.elearn://login")
+                        : router.push("/login")
                 }
             });
 
             // Reset form after successful password reset
             setTimeout(() => {
-                router.push("/login");
+                b.get('come_from') === "mobile" ? router.push("com.ezadrive.elearn://login") : router.push("/login");
             }, 2000);
         }  catch (error: unknown) {
             if (error instanceof Error) {
@@ -505,7 +514,7 @@ const ResetPassword: React.FC = () => {
                 });
             }
             shakeError();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            trigger(HapticType.ERROR)
         } finally {
             setIsLoading(false);
         }
@@ -593,6 +602,7 @@ const ResetPassword: React.FC = () => {
                         }}>
                             <Text style={[styles.title, isDark && styles.textDark]}>
                                 Elearn Prepa
+
                             </Text>
                             <Text style={[styles.subtitle, isDark && styles.textGray]}>
                                 Réinitialisation de mot de passe
@@ -636,7 +646,7 @@ const ResetPassword: React.FC = () => {
                                                 setEmail(text);
                                                 if (emailError) validateEmail(text);
                                             }}
-                                            style={[styles.input, isDark && styles.inputDark]}
+                                            style={[styles.input, isDark && styles.inputDark, { outline : "none"}]}
                                             placeholder="Votre email"
                                             placeholderTextColor={isDark ? "#666666" : "#999999"}
                                             keyboardType="email-address"
@@ -699,9 +709,19 @@ const ResetPassword: React.FC = () => {
                                     <Text style={[styles.footerLabel, isDark && styles.textGray]}>
                                         Revenir à{" "}
                                     </Text>
-                                    <TouchableOpacity onPress={() => router.push("/login")}>
-                                        <Text style={styles.footerLink}>la connexion</Text>
-                                    </TouchableOpacity>
+                                    {
+                                        b.get('come_from') === "mobile" ? (
+                                            // Handle mobile deep link redirect
+                                            <TouchableOpacity
+                                                onPress={() => router.push("com.ezadrive.elearn://login")}>
+                                                <Text style={styles.footerLink}>la connexion</Text>
+                                            </TouchableOpacity>
+                                        ) : (
+                                            <TouchableOpacity onPress={() => router.push("/login")}>
+                                                <Text style={styles.footerLink}>la connexion</Text>
+                                            </TouchableOpacity>
+                                        )
+                                    }
                                 </View>
                             </Animated.View>
                         )}
@@ -806,7 +826,8 @@ const ResetPassword: React.FC = () => {
                                     <View style={[
                                         styles.inputWrapper,
                                         isDark && styles.inputWrapperDark,
-                                        passwordError && styles.inputError
+                                        passwordError && styles.inputError,
+                                        { outline : "none"}
                                     ]}>
                                         <MaterialCommunityIcons
                                             name={"lock-outline" as const}
