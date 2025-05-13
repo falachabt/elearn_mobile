@@ -3,7 +3,7 @@ import {
     ActivityIndicator,
     Animated,
     Image,
-    KeyboardAvoidingView,
+    KeyboardAvoidingView, Linking,
     Platform,
     ScrollView,
     StyleSheet,
@@ -273,8 +273,7 @@ export default function Login() {
         }
     };
 
-    return (
-        <KeyboardAvoidingView
+    return (<KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={[styles.container, isDark && styles.containerDark]}
         >
@@ -466,9 +465,12 @@ export default function Login() {
                         </View>
 
                         {/* Forgot Password */}
+
                         <TouchableOpacity
                             style={styles.forgotPassword}
-                            onPress={() => router.push("/(auth)/forgot_password")}
+                            onPress={() => Platform.OS === 'ios'
+                                ? Linking.openURL('https://app.elearnprepa.com/forgot_password?come_from=mobile')
+                                : router.push("/(auth)/forgot_password")}
                         >
                             <Text style={styles.forgotPasswordText}>
                                 Mot de passe oublié ?
@@ -489,6 +491,9 @@ export default function Login() {
                         </Pressable>
 
                         {/* Social Login Section */}
+                        {
+                         Platform.OS !== "ios" &&
+
                         <View style={styles.socialSection}>
                             <View style={styles.divider}>
                                 <View style={[styles.dividerLine, isDark && styles.dividerLineDark]}/>
@@ -509,14 +514,19 @@ export default function Login() {
                                 <AppleLogin/>
                             </View>
                         </View>
-
+                        }
                         {/* Register Link */}
                         <View style={styles.registerSection}>
                             <Text style={[styles.registerText, isDark && styles.textGray]}>
                                 Vous n'avez pas de compte ?
                             </Text>
-                            <TouchableOpacity onPress={() => router.push("/register")}>
+                            <TouchableOpacity onPress={() => router.push(Platform.OS === "ios" ? "/(auth)" : "/register")}>
+                                {
+                                    Platform.OS === "ios" ?
+                                <Text style={styles.registerLink}>Créez votre compte</Text>
+                                        :
                                 <Text style={styles.registerLink}>S'inscrire</Text>
+                                }
                             </TouchableOpacity>
                         </View>
                     </View>

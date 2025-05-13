@@ -8,8 +8,8 @@ import {SchedulableTriggerInputTypes} from "expo-notifications";
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
         shouldShowAlert: true,
-        shouldPlaySound: false,
-        shouldSetBadge: false,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
     }),
 });
 
@@ -106,12 +106,12 @@ export async function registerForPushNotificationsAsync() {
             finalStatus = status;
         }
         if (finalStatus !== 'granted') {
-            alert('Failed to get push token for push notification!');
+            Platform.OS !== 'web' &&
+            alert('Permissions de notifications refusé !');
             return;
         }
-        // Learn more about projectId:
-        // https://docs.expo.dev/push-notifications/push-notifications-setup/#configure-projectid
-        // EAS projectId is used here.
+
+
         try {
             const projectId =
                 Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;

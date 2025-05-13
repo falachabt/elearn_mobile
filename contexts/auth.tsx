@@ -382,7 +382,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             try {
                 setIsAccountCreating(true);
                 const {data, error} = await supabase.auth.signUp({
-                    phone: phone.toString(),
+                    phone: "+237"+ phone.toString(),
                     password
                 });
 
