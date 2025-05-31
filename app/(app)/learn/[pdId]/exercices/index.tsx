@@ -18,6 +18,7 @@ import {useAuth} from "@/contexts/auth";
 import useSWR from "swr";
 import CategoryFilter from "@/components/shared/learn/CategoryFilter";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
+import {useUser} from "@/contexts/useUserInfo";
 import ExerciseCard from "@/components/shared/learn/exercices/ExerciceCard";
 
 // Types
@@ -52,6 +53,24 @@ export const ExercisesList = () => {
     const {trigger} = useHaptics();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
+    const { isLearningPathEnrolled } = useUser();
+
+    // Check if user is enrolled in this program
+    const isEnrolled = isLearningPathEnrolled(pdId);
+
+    // Set preview mode based on enrollment status
+    const [isPreviewMode] = useState<boolean>(!isEnrolled);
+
+    // Handle purchase flow
+    const handlePurchaseFlow = () => {
+        trigger(HapticType.SELECTION);
+        router.push({
+            pathname : `/(app)/(catalogue)/shop`,
+            params : {
+                selectedProgramId : pdId,
+            }
+        });
+    };
 
     const fetcher = async () => {
         // Run all database queries in parallel
@@ -150,7 +169,9 @@ export const ExercisesList = () => {
 
     const getFilteredExercises = () => {
         if (!data?.exercises) return [];
-        return data.exercises.filter((exercise) => {
+
+        // Get all exercises that match the filters
+        let exercises = data.exercises.filter((exercise) => {
             const matchesSearch =
                 exercise.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 exercise.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -168,6 +189,13 @@ export const ExercisesList = () => {
 
             return matchesSearch && matchesCategory && matchesFilter;
         });
+
+        // If in preview mode, only show the first 2 exercises
+        if (isPreviewMode) {
+            exercises = exercises.slice(0, 2);
+        }
+
+        return exercises;
     };
 
     const handleViewExercise = (exercise: Exercise) => {
@@ -422,7 +450,7 @@ export const ExercisesList = () => {
             </View>
 
             {/* Search */}
-            <View style={styles.searchContainer}>
+            { !isPreviewMode &&  <View style={styles.searchContainer}>
                 <View style={[styles.searchBox, isDark && styles.searchBoxDark]}>
                     <MaterialCommunityIcons
                         name="magnify"
@@ -439,7 +467,7 @@ export const ExercisesList = () => {
                         onChangeText={setSearchQuery}
                     />
                 </View>
-            </View>
+            </View>}
 
             {/* Display result count when filtering */}
             {(searchQuery || selectedCategory || filterType !== "all") && (
@@ -453,20 +481,49 @@ export const ExercisesList = () => {
             {/* Exercises List with Enhanced Cards */}
             {/* TODO fix the type issue and remove the unknow */}
             {filteredExercises.length > 0 ? (
-                <FlatList
-                    data={filteredExercises}
-                    renderItem={({item}) => (
-                        <ExerciseCard
-                            exercise={item as unknown as Exercise}
-                            onPress={() => handleViewExercise(item as unknown as Exercise)}
-                            onPinPress={(e) => handlePin(item as unknown as Exercise, e)}
-                            onCompletePress={(e) => handleComplete(item as unknown as Exercise, e)}
-                        />
-                    )}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.listContainer}
-                    showsVerticalScrollIndicator={false}
-                />
+                <>
+                    <FlatList
+                        data={filteredExercises}
+                        renderItem={({item}) => (
+                            <ExerciseCard
+                                exercise={item as unknown as Exercise}
+                                onPress={() => handleViewExercise(item as unknown as Exercise)}
+                                onPinPress={(e) => handlePin(item as unknown as Exercise, e)}
+                                onCompletePress={(e) => handleComplete(item as unknown as Exercise, e)}
+                            />
+                        )}
+                        keyExtractor={(item) => item.id}
+                        contentContainerStyle={styles.listContainer}
+                        showsVerticalScrollIndicator={false}
+                        ListFooterComponent={
+                            isPreviewMode && data?.exercises && data.exercises.length > 2 ? (
+                                <View style={[styles.previewBanner, isDark && styles.previewBannerDark]}>
+                                    <MaterialCommunityIcons
+                                        name="lock"
+                                        size={24}
+                                        color={isDark ? "#6EE7B7" : "#65B741"}
+                                    />
+                                    <View style={styles.previewBannerTextContainer}>
+                                        <Text style={[styles.previewBannerTitle, isDark && styles.previewBannerTitleDark]}>
+                                            Accédez à {data.exercises.length - 2} exercices supplémentaires
+                                        </Text>
+                                        <Text style={styles.previewBannerDescription}>
+                                            Achetez ce programme pour débloquer tous les exercices
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.previewBannerButton}
+                                        onPress={handlePurchaseFlow}
+                                    >
+                                        <Text style={styles.previewBannerButtonText}>
+                                            Acheter
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ) : null
+                        }
+                    />
+                </>
             ) : (
                 <View style={styles.emptyStateContainer}>
                     <MaterialCommunityIcons
@@ -617,6 +674,53 @@ const styles = StyleSheet.create({
     },
     emptyStateDescriptionDark: {
         color: theme.color.gray[400],
+    },
+    previewBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F0FDF4',
+        padding: 16,
+        marginHorizontal: 16,
+        marginBottom: 16,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#D1FAE5',
+    },
+    previewBannerDark: {
+        backgroundColor: '#064E3B',
+        borderColor: '#065F46',
+    },
+    previewBannerTextContainer: {
+        flex: 1,
+        marginLeft: 12,
+        marginRight: 8,
+    },
+    previewBannerTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#065F46',
+        marginBottom: 2,
+    },
+    previewBannerTitleDark: {
+        color: '#6EE7B7',
+    },
+    previewBannerDescription: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        color: '#047857',
+    },
+    previewBannerButton: {
+        backgroundColor: '#10B981',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 6,
+    },
+    previewBannerButtonText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
 });
 

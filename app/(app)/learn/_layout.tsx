@@ -1,9 +1,10 @@
 import {Stack} from "expo-router";
 import {Portal} from "@gorhom/portal";
 import FloatingChatButton from "@/components/shared/FloatingChatButton";
-import ChatBox from "@/components/shared/ChatBot";
-import {useState} from "react";
+import React, {useState} from "react";
 import ChatFab from "@/components/shared/FloatingChatButton";
+import {useChatBox} from "@/contexts/chatBotContext";
+import NewChatBot from "@/components/shared/NewChatBot";
 
 export const unstable_settings = {
     // Ensure any route can link back to `/`
@@ -11,17 +12,8 @@ export const unstable_settings = {
 };
 
 export default function ProgramLayout() {
-    const [chatVisible, setChatVisible] = useState(false);
-    const [courses, setCourses] = useState([]);
-    const [title, setTitle] = useState('lol');
+    const { closeChat, isChatVisible, currentChatSessionId, initialChatSessionId, initialContextElements } = useChatBox();
 
-    const handleOpenChat = () => {
-        setChatVisible(true);
-    };
-
-    const handleCloseChat = () => {
-        setChatVisible(false);
-    };
 
     return (
         <>
@@ -41,9 +33,11 @@ export default function ProgramLayout() {
                 />
             </Stack>
                 <ChatFab showContextBadge={true}/>
-            <ChatBox
-                visible={chatVisible}
-                onClose={handleCloseChat}
+            <NewChatBot
+                visible={isChatVisible}
+                onClose={closeChat}
+                initialContextElements={initialContextElements}
+                initialChatSessionId={currentChatSessionId || undefined}
             />
 
         </>

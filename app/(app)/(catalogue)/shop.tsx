@@ -17,7 +17,7 @@ import {
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {theme} from "@/constants/theme";
 import {useCart} from "@/hooks/useCart";
-import {useRouter} from "expo-router";
+import {useLocalSearchParams, useRouter} from "expo-router";
 import * as Animatable from 'react-native-animatable';
 import {
     BottomSheetBackdrop,
@@ -464,6 +464,11 @@ export default function ShopPage(): JSX.Element {
     const router = useRouter();
     const {user} = useAuth();
     const FIXED_PRICE_MODE = (user?.user_program_enrollments?.length || 0) > 0 || false;
+    
+    // The user was redirected to this page with a specific program ID
+    const { selectedProgramId } = useLocalSearchParams();
+
+    console.log("selectedProgramId:", selectedProgramId);
 
 
 
@@ -692,6 +697,8 @@ export default function ShopPage(): JSX.Element {
         }
     }, [programs, applyFiltersCallback]);
 
+
+
     // Gestionnaires pour les bottom sheets (utilisé uniquement en mode formules)
     const handleFormulaDetailsClick = useCallback(() => {
         if (!FIXED_PRICE_MODE) {
@@ -776,6 +783,32 @@ export default function ShopPage(): JSX.Element {
 
         return null;
     }, []);
+
+
+    useEffect(() => {
+        if (selectedProgramId) {
+            const selectPrograms = programs?.filter(program => program.learning_path.id == selectedProgramId);
+
+            if (!selectPrograms || selectPrograms.length === 0) {
+                console.warn(`No program found with ID: ${selectedProgramId}`);
+                return;
+            }
+            if (selectPrograms && selectPrograms.length > 0) {
+                // Set search query to match program name
+                setSearchQuery(selectPrograms[0].learning_path.title);
+
+                // Expand program details
+                handleProgramExpand(selectPrograms[0].id);
+
+                // Set relevant filters if available
+                if (selectPrograms[0].concour) {
+                    setSelectedCycle(selectPrograms[0].concour.cycle_id);
+                    setSelectedCity(selectPrograms[0].concour.city_id);
+                    setSelectedSchool(selectPrograms[0].concour.school?.id);
+                }
+            }
+        }
+    }, [selectedProgramId, handleProgramExpand]);
 
     // Rendu de l'arrière-plan amélioré avec animation de fondu
     const renderBackdrop = useCallback((props: BottomSheetBackdropProps) => (
@@ -1772,7 +1805,7 @@ export default function ShopPage(): JSX.Element {
                         <TextInput
                             style={[styles.searchInput, isDark && styles.searchInputDark]}
                             placeholder="Rechercher un cours, une école..."
-                            placeholderTextColor={isDark ? theme.color.gray[400] : theme.color.gray[500]}
+                            placeholderTextColor={isDark ? theme.color.gray[900] : theme.color.gray[500]}
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                         />
@@ -1997,7 +2030,7 @@ const styles = StyleSheet.create({
         marginLeft: theme.spacing.small,
     },
     searchInputDark: {
-        color: theme.color.gray[50],
+        color: theme.color.gray[800],
     },
     searchIcon: {
         marginRight: theme.spacing.small,

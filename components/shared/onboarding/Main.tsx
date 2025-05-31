@@ -312,16 +312,16 @@ const MainOnboarding = () => {
       const isValid = userInfoFormRef.current.validate();
       if (!isValid) {
         return;
-      }else{
+      } else {
         await updateAccountInDatabase();
-        if(Platform.OS === 'ios'){
+        if (Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web') {
           setIsEndingOnboarding(true);
-          // skip the rest of the onboarding
-            await handleSkipOnboarding();
+          await handleSkipOnboarding();
 
-            setTimeout(() => {
-              setIsEndingOnboarding(false);
-            }, 1500);
+          setTimeout(() => {
+            setIsEndingOnboarding(false);
+          }, 1500);
+          return; // Stop here at step 3
         }
       }
     }
@@ -352,6 +352,7 @@ const MainOnboarding = () => {
       }
     }
   };
+
 
   const getImageSource = (step: number) => {
     switch (step) {
@@ -442,7 +443,7 @@ const MainOnboarding = () => {
         >
           <View style={[styles.container, isDark && styles.containerDark]}>
             <View style={styles.group1}>
-              <StepProgress step={step} totalSteps={stepsContent.length} />
+              <StepProgress step={step} totalSteps={3} />
               {renderStepContent()}
             </View>
 

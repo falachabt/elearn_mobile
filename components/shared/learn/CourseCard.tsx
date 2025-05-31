@@ -44,6 +44,7 @@ interface CourseCardProps {
     pdId: string;
     index?: number;
     onPress?: () => void;
+    isEnrolled?: boolean;
 }
 
 // Categories color themes
@@ -115,7 +116,8 @@ const CourseCard: React.FC<CourseCardProps> = ({
                                                    courseItem,
                                                    pdId,
                                                    index = 1,
-                                                   onPress
+                                                   onPress,
+                                                   isEnrolled = false
                                                }) => {
     const router = useRouter();
     const colorScheme = useColorScheme();
@@ -264,6 +266,17 @@ const CourseCard: React.FC<CourseCardProps> = ({
                 <View style={styles.statsContainer}>
                     {getStatusIcon()}
 
+                    {!isEnrolled && (
+                        <View style={styles.previewBadge}>
+                            <MaterialCommunityIcons
+                                name="eye-outline"
+                                size={12}
+                                color="#FFFFFF"
+                            />
+                            <Text style={styles.previewText}>Aperçu</Text>
+                        </View>
+                    )}
+
                     <View style={styles.statItem}>
                         <MaterialCommunityIcons
                             name="file-document-outline"
@@ -316,6 +329,22 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         marginRight: 12,
         marginBottom: 8,
+    },
+    previewBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+        borderRadius: 12,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        marginRight: 8,
+    },
+    previewText: {
+        color: '#FFFFFF',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 10,
+        fontWeight: '600',
+        marginLeft: 2,
     },
     cardTop: {
         flex: 1,

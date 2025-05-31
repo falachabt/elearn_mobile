@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, {useState, useMemo, useEffect, useRef} from 'react';
 import {
     View,
     Text,
@@ -12,18 +12,19 @@ import {
     FlatList,
     Easing
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { ThemedText } from '@/components/ThemedText';
-import { HapticType, useHaptics } from '@/hooks/useHaptics';
-import { theme } from '@/constants/theme';
+import {useLocalSearchParams, useRouter} from 'expo-router';
+import {MaterialCommunityIcons} from '@expo/vector-icons';
+import {useColorScheme} from '@/hooks/useColorScheme';
+import {ThemedText} from '@/components/ThemedText';
+import {HapticType, useHaptics} from '@/hooks/useHaptics';
+import {theme} from '@/constants/theme';
 import useSWR from 'swr';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/auth';
+import {supabase} from '@/lib/supabase';
+import {useAuth} from '@/contexts/auth';
 import EnhancedQuizCard from '@/components/shared/learn/quiz/QuizCard';
 import EnhancedQuizRowItem from '@/components/shared/learn/quiz/QuizRowItem';
 import EnhancedQuizCategoryFilter from '@/components/shared/learn/quiz/QuizCategoryFilter';
+import {useUser} from "@/contexts/useUserInfo";
 
 // ==========================
 // Types
@@ -76,7 +77,7 @@ interface Program {
 // Skeleton Loading Component
 // ==========================
 
-const QuizSkeleton = ({ isDark } : { isDark : boolean}) => {
+const QuizSkeleton = ({isDark}: { isDark: boolean }) => {
     // Animation for the skeleton loading effect
     const pulseAnim = useRef(new Animated.Value(0)).current;
 
@@ -110,29 +111,30 @@ const QuizSkeleton = ({ isDark } : { isDark : boolean}) => {
         <View style={[styles.container, isDark && styles.containerDark]}>
             {/* Header Skeleton */}
             <View style={[styles.header, isDark && styles.headerDark]}>
-                <Animated.View style={[styles.skeletonCircle, { backgroundColor }]} />
-                <View style={{ flex: 1, marginLeft: 16 }}>
-                    <Animated.View style={[styles.skeletonLine, { width: '70%', height: 20, backgroundColor }]} />
-                    <Animated.View style={[styles.skeletonLine, { width: '40%', height: 16, marginTop: 8, backgroundColor }]} />
+                <Animated.View style={[styles.skeletonCircle, {backgroundColor}]}/>
+                <View style={{flex: 1, marginLeft: 16}}>
+                    <Animated.View style={[styles.skeletonLine, {width: '70%', height: 20, backgroundColor}]}/>
+                    <Animated.View
+                        style={[styles.skeletonLine, {width: '40%', height: 16, marginTop: 8, backgroundColor}]}/>
                 </View>
             </View>
 
             {/* Search Skeleton */}
             <View style={[styles.searchContainer, isDark && styles.searchContainerDark]}>
-                <Animated.View style={[styles.searchBox, isDark && styles.searchBoxDark, { backgroundColor }]} />
+                <Animated.View style={[styles.searchBox, isDark && styles.searchBoxDark, {backgroundColor}]}/>
             </View>
 
             {/* Category Filter Skeleton */}
-            <View style={{ height: 56, marginTop: 8 }}>
+            <View style={{height: 56, marginTop: 8}}>
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+                    contentContainerStyle={{paddingHorizontal: 16, gap: 8}}
                 >
                     {[1, 2, 3, 4, 5].map((_, index) => (
                         <Animated.View
                             key={index}
-                            style={[styles.skeletonCategory, { width: 80 + index * 20, backgroundColor }]}
+                            style={[styles.skeletonCategory, {width: 80 + index * 20, backgroundColor}]}
                         />
                     ))}
                 </ScrollView>
@@ -140,28 +142,36 @@ const QuizSkeleton = ({ isDark } : { isDark : boolean}) => {
 
             {/* Quiz Count Skeleton */}
             <View style={[styles.quizCountContainer, isDark && styles.quizCountContainerDark]}>
-                <Animated.View style={[styles.skeletonLine, { width: 120, height: 14, backgroundColor }]} />
+                <Animated.View style={[styles.skeletonLine, {width: 120, height: 14, backgroundColor}]}/>
             </View>
 
             {/* Quiz Items Skeleton */}
-            <ScrollView style={{ flex: 1 }}>
+            <ScrollView style={{flex: 1}}>
                 {[1, 2, 3, 4, 5, 6].map((_, index) => (
                     <View key={index} style={[styles.quizItem, isDark && styles.quizItemDark]}>
                         <View style={styles.quizContent}>
                             <View style={styles.quizHeader}>
-                                <Animated.View style={[styles.skeletonQuizIcon, { backgroundColor }]} />
-                                <View style={{ flex: 1, marginLeft: 12 }}>
-                                    <Animated.View style={[styles.skeletonLine, { width: '80%', height: 16, backgroundColor }]} />
-                                    <Animated.View style={[styles.skeletonLine, { width: '60%', height: 12, marginTop: 8, backgroundColor }]} />
+                                <Animated.View style={[styles.skeletonQuizIcon, {backgroundColor}]}/>
+                                <View style={{flex: 1, marginLeft: 12}}>
+                                    <Animated.View
+                                        style={[styles.skeletonLine, {width: '80%', height: 16, backgroundColor}]}/>
+                                    <Animated.View style={[styles.skeletonLine, {
+                                        width: '60%',
+                                        height: 12,
+                                        marginTop: 8,
+                                        backgroundColor
+                                    }]}/>
                                 </View>
-                                <Animated.View style={[styles.skeletonCircle, { width: 24, height: 24, backgroundColor }]} />
+                                <Animated.View
+                                    style={[styles.skeletonCircle, {width: 24, height: 24, backgroundColor}]}/>
                             </View>
 
                             <View style={styles.badgeContainer}>
-                                <Animated.View style={[styles.skeletonBadge, { width: 80, backgroundColor }]} />
+                                <Animated.View style={[styles.skeletonBadge, {width: 80, backgroundColor}]}/>
                             </View>
 
-                            <Animated.View style={[styles.progressBar, isDark && styles.progressBarDark, { backgroundColor }]} />
+                            <Animated.View
+                                style={[styles.progressBar, isDark && styles.progressBarDark, {backgroundColor}]}/>
                         </View>
                     </View>
                 ))}
@@ -174,7 +184,7 @@ const QuizSkeleton = ({ isDark } : { isDark : boolean}) => {
 // Empty State Component
 // ==========================
 
-const EmptyState = ({ searchQuery, selectedCategory, isDark }) => {
+const EmptyState = ({searchQuery, selectedCategory, isDark}) => {
     return (
         <View style={styles.emptyState}>
             <MaterialCommunityIcons
@@ -182,12 +192,12 @@ const EmptyState = ({ searchQuery, selectedCategory, isDark }) => {
                 size={64}
                 color={isDark ? "#818CF8" : "#2563EB"}
             />
-            <ThemedText style={[styles.emptyStateTitle, isDark && { color: '#D1D5DB' }]}>
+            <ThemedText style={[styles.emptyStateTitle, isDark && {color: '#D1D5DB'}]}>
                 {searchQuery || selectedCategory !== "all"
                     ? "Aucun quiz trouvé"
                     : "Aucun quiz disponible"}
             </ThemedText>
-            <ThemedText style={[styles.emptyStateText, isDark && { color: '#9CA3AF' }]}>
+            <ThemedText style={[styles.emptyStateText, isDark && {color: '#9CA3AF'}]}>
                 {searchQuery || selectedCategory !== "all"
                     ? "Essayez de modifier vos critères de recherche"
                     : "Revenez plus tard pour voir les nouveaux quiz"}
@@ -200,9 +210,9 @@ const EmptyState = ({ searchQuery, selectedCategory, isDark }) => {
 // Error State Component
 // ==========================
 
-const ErrorState = ({ onRetry, isDark }) => {
+const ErrorState = ({onRetry, isDark}) => {
     return (
-        <View style={[styles.centerContent, isDark && { backgroundColor: "#111827" }]}>
+        <View style={[styles.centerContent, isDark && {backgroundColor: "#111827"}]}>
             <MaterialCommunityIcons
                 name="alert-circle-outline"
                 size={64}
@@ -218,7 +228,7 @@ const ErrorState = ({ onRetry, isDark }) => {
                 style={[styles.retryButton, isDark && styles.retryButtonDark]}
                 onPress={onRetry}
             >
-                <MaterialCommunityIcons name="reload" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <MaterialCommunityIcons name="reload" size={20} color="#FFFFFF" style={{marginRight: 8}}/>
                 <ThemedText style={styles.retryButtonText}>Réessayer</ThemedText>
             </Pressable>
         </View>
@@ -231,23 +241,26 @@ const ErrorState = ({ onRetry, isDark }) => {
 
 const EnhancedQuizScreen = () => {
     const router = useRouter();
-    const { pdId } = useLocalSearchParams();
+    const {pdId} = useLocalSearchParams();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list'); // Add view mode toggle
-    const { user } = useAuth();
+    const {user} = useAuth();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
-    const { trigger } = useHaptics();
+    const {trigger} = useHaptics();
+    const {isLearningPathEnrolled} = useUser();
+    const isEnrolled = isLearningPathEnrolled(pdId as string);
+
 
     // Animation refs
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
     // Fetch program data
-    const { data: program, isLoading: programLoading, error: programError, mutate: reloadProgram } = useSWR(
+    const {data: program, isLoading: programLoading, error: programError, mutate: reloadProgram} = useSWR(
         pdId ? `program-quizzes-${pdId}` : null,
         async () => {
-            const { data, error } = await supabase
+            const {data, error} = await supabase
                 .from("learning_paths")
                 .select(`
           id, 
@@ -268,10 +281,10 @@ const EnhancedQuizScreen = () => {
     );
 
     // Fetch quizzes data
-    const { data: quizzes, isLoading: quizzesLoading, error: quizzesError, mutate: reloadQuizzes } = useSWR(
+    const {data: quizzes, isLoading: quizzesLoading, error: quizzesError, mutate: reloadQuizzes} = useSWR(
         pdId ? `quizzes-${pdId}` : null,
         async () => {
-            const { data, error } = await supabase
+            const {data, error} = await supabase
                 .from("quiz_learningpath")
                 .select(`
           *,
@@ -290,7 +303,7 @@ const EnhancedQuizScreen = () => {
             const quizIds = data.map((quiz) => quiz.quizId);
 
             // Fetch pinned status for all quizzes
-            const { data: quiz_pinned, error: pinnedError } = await supabase
+            const {data: quiz_pinned, error: pinnedError} = await supabase
                 .from("quiz_pin")
                 .select("*")
                 .in("quiz_id", quizIds)
@@ -310,11 +323,11 @@ const EnhancedQuizScreen = () => {
     );
 
     // Fetch quiz attempts to calculate progress
-    const { data: attempts } = useSWR(
+    const {data: attempts} = useSWR(
         pdId && quizzes ? `quiz-attempts-${pdId}-${user?.id}` : null,
         async () => {
             const quizIds = quizzes?.map(q => q.quizId);
-            const { data, error } = await supabase
+            const {data, error} = await supabase
                 .from("quiz_attempts")
                 .select("*, quiz_id, score")
                 .in("quiz_id", quizIds || [])
@@ -371,14 +384,15 @@ const EnhancedQuizScreen = () => {
     // Filter quizzes based on search and category
     const filteredQuizzes = useMemo(() => {
         if (!quizzesWithProgress) return [];
-        return quizzesWithProgress.filter((quizItem) => {
+        const filteredList = quizzesWithProgress.filter((quizItem) => {
             const quiz = quizItem.quiz;
             if (!quiz) return false;
             const matchesSearch = quiz.name.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesCategory = selectedCategory === "all" || quiz.category?.name === selectedCategory;
             return matchesSearch && matchesCategory;
         });
-    }, [quizzesWithProgress, searchQuery, selectedCategory]);
+        return isEnrolled ? filteredList : filteredList.slice(0, 2);
+    }, [quizzesWithProgress, searchQuery, selectedCategory, isEnrolled]);
 
     // Handle quiz press
     const handleQuizPress = (quizItem) => {
@@ -412,7 +426,7 @@ const EnhancedQuizScreen = () => {
     // Get program title and school info
     const getProgramInfo = () => {
         if (!program) {
-            return { title: 'Programme', school: '', concours: '' };
+            return {title: 'Programme', school: '', concours: ''};
         }
 
         const concours = program.concours_learningpaths?.[0]?.concour;
@@ -423,16 +437,29 @@ const EnhancedQuizScreen = () => {
         };
     };
 
-    const { title, school, concours } = getProgramInfo();
+
+    // Handle purchase flow
+    const handlePurchaseFlow = () => {
+        trigger(HapticType.SELECTION);
+        router.push({
+            pathname : `/(app)/(catalogue)/shop`,
+            params : {
+                selectedProgramId : pdId,
+            }
+        });
+    };
+
+
+    const {title, school, concours} = getProgramInfo();
 
     // Loading state
     if (programLoading || quizzesLoading) {
-        return <QuizSkeleton isDark={isDark} />;
+        return <QuizSkeleton isDark={isDark}/>;
     }
 
     // Error state
     if (programError || quizzesError) {
-        return <ErrorState onRetry={handleRetry} isDark={isDark} />;
+        return <ErrorState onRetry={handleRetry} isDark={isDark}/>;
     }
 
     // Check if no quizzes are available
@@ -472,7 +499,7 @@ const EnhancedQuizScreen = () => {
                 </View>
 
                 {/* Search */}
-                <View style={[styles.searchContainer, isDark && styles.searchContainerDark]}>
+                {isEnrolled && <View style={[styles.searchContainer, isDark && styles.searchContainerDark]}>
                     <View style={[styles.searchBox, isDark && styles.searchBoxDark]}>
                         <MaterialCommunityIcons
                             name="magnify"
@@ -496,10 +523,10 @@ const EnhancedQuizScreen = () => {
                             </Pressable>
                         )}
                     </View>
-                </View>
+                </View>}
 
                 {/* Categories */}
-                <View style={{ height: 56 }}>
+                <View style={{height: 56}}>
                     <EnhancedQuizCategoryFilter
                         categories={categories}
                         selectedCategory={selectedCategory}
@@ -532,7 +559,7 @@ const EnhancedQuizScreen = () => {
                 style={[
                     styles.header,
                     isDark && styles.headerDark,
-                    { opacity: fadeAnim }
+                    {opacity: fadeAnim}
                 ]}
             >
                 <Pressable
@@ -572,11 +599,11 @@ const EnhancedQuizScreen = () => {
             </Animated.View>
 
             {/* Search */}
-            <Animated.View
+            { isEnrolled && <Animated.View
                 style={[
                     styles.searchContainer,
                     isDark && styles.searchContainerDark,
-                    { opacity: fadeAnim }
+                    {opacity: fadeAnim}
                 ]}
             >
                 <View style={[styles.searchBox, isDark && styles.searchBoxDark]}>
@@ -605,10 +632,10 @@ const EnhancedQuizScreen = () => {
                         </Pressable>
                     )}
                 </View>
-            </Animated.View>
+            </Animated.View>}
 
             {/* Categories */}
-            <Animated.View style={{ height: 56, opacity: fadeAnim }}>
+            <Animated.View style={{height: 56, opacity: fadeAnim}}>
                 <EnhancedQuizCategoryFilter
                     categories={categories}
                     selectedCategory={selectedCategory}
@@ -622,7 +649,7 @@ const EnhancedQuizScreen = () => {
                 style={[
                     styles.quizCountContainer,
                     isDark && styles.quizCountContainerDark,
-                    { opacity: fadeAnim }
+                    {opacity: fadeAnim}
                 ]}
             >
                 <ThemedText style={[styles.quizCountText, isDark && styles.quizCountTextDark]}>
@@ -634,16 +661,41 @@ const EnhancedQuizScreen = () => {
             <Animated.View
                 style={[
                     styles.contentContainer,
-                    { opacity: fadeAnim }
+                    {opacity: fadeAnim}
                 ]}
             >
+                {!isEnrolled && quizzesWithProgress.length > 2 &&
+                    <View style={[styles.previewBanner, isDark && styles.previewBannerDark]}>
+                        <MaterialCommunityIcons
+                            name="lock"
+                            size={24}
+                            color={isDark ? "#6EE7B7" : "#65B741"}
+                        />
+                        <View style={styles.previewBannerTextContainer}>
+                            <ThemedText style={[styles.previewBannerTitle, isDark && styles.previewBannerTitleDark]}>
+                                Accédez à {quizzesWithProgress.length - 1} Quiz supplémentaires
+                            </ThemedText>
+                            <ThemedText style={styles.previewBannerDescription}>
+                                Achetez ce programme pour débloquer tous les quiz disponibles.
+                            </ThemedText>
+                        </View>
+                        <Pressable
+                            style={styles.previewBannerButton}
+                            onPress={handlePurchaseFlow}
+                        >
+                            <ThemedText style={styles.previewBannerButtonText}>
+                                Acheter
+                            </ThemedText>
+                        </Pressable>
+                    </View>
+                }
                 {/* Use conditional rendering instead of changing numColumns on the fly */}
                 {viewMode === 'list' ? (
                     <FlatList
                         key="list" // Key changes when viewMode changes
                         data={filteredQuizzes}
                         keyExtractor={(item) => `quiz-row-${item.quizId}`}
-                        renderItem={({ item, index }) => (
+                        renderItem={({item, index}) => (
                             <EnhancedQuizRowItem
                                 quizItem={item}
                                 pdId={String(pdId)}
@@ -659,7 +711,7 @@ const EnhancedQuizScreen = () => {
                         key="grid" // Key changes when viewMode changes
                         data={filteredQuizzes}
                         keyExtractor={(item) => `grid-quiz-card-${item.quizId}`}
-                        renderItem={({ item, index }) => (
+                        renderItem={({item, index}) => (
                             <EnhancedQuizCard
                                 quizItem={item}
                                 pdId={String(pdId)}
@@ -673,6 +725,8 @@ const EnhancedQuizScreen = () => {
                         showsVerticalScrollIndicator={false}
                     />
                 )}
+
+
             </Animated.View>
         </SafeAreaView>
     );
@@ -735,13 +789,13 @@ const styles = StyleSheet.create({
         marginLeft: 12,
     },
     headerTitle: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 18,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
         fontWeight: 'bold',
     },
     headerSubtitle: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
         marginTop: 2,
     },
     concoursText: {
@@ -781,8 +835,8 @@ fontSize: 14,
     searchInput: {
         flex: 1,
         marginLeft: 8,
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         color: '#111827',
         height: 40,
     },
@@ -803,8 +857,8 @@ fontSize: 16,
         backgroundColor: '#1F2937',
     },
     quizCountText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
         fontWeight: '500',
         color: '#6B7280',
     },
@@ -841,16 +895,16 @@ fontSize: 14,
         padding: 24,
     },
     emptyStateTitle: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 18,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
         fontWeight: '600',
         marginTop: 16,
         color: '#111827',
         textAlign: 'center',
     },
     emptyStateText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
         color: '#6B7280',
         marginTop: 8,
         textAlign: 'center',
@@ -859,16 +913,16 @@ fontSize: 14,
 
     // Error state styles
     errorTitle: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 18,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
         fontWeight: '600',
         marginTop: 16,
         color: '#EF4444',
         textAlign: 'center',
     },
     errorText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
         color: '#6B7280',
         marginTop: 8,
         textAlign: 'center',
@@ -891,8 +945,8 @@ fontSize: 14,
     retryButtonText: {
         color: '#FFFFFF',
         fontWeight: '500',
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
     },
 
     // Skeleton styles
@@ -937,6 +991,54 @@ fontSize: 16,
     },
     progressBarDark: {
         backgroundColor: "#374151",
+    },
+    previewBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F0FDF4',
+        padding: 16,
+        marginTop: 16,
+        marginHorizontal: 16,
+        marginBottom: 16,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#D1FAE5',
+    },
+    previewBannerDark: {
+        backgroundColor: '#064E3B',
+        borderColor: '#065F46',
+    },
+    previewBannerTextContainer: {
+        flex: 1,
+        marginLeft: 12,
+        marginRight: 8,
+    },
+    previewBannerTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#065F46',
+        marginBottom: 2,
+    },
+    previewBannerTitleDark: {
+        color: '#6EE7B7',
+    },
+    previewBannerDescription: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        color: '#047857',
+    },
+    previewBannerButton: {
+        backgroundColor: '#10B981',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 6,
+    },
+    previewBannerButtonText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
 });
 

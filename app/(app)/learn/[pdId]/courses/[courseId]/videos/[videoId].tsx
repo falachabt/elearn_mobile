@@ -9,6 +9,54 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { VideoPlaylist } from '@/components/shared/learn/VideoPlayList';
 import { theme } from '@/constants/theme';
 import { useSound } from '@/hooks/useSound';
+import { useUser } from '@/contexts/useUserInfo';
+import { HapticType, useHaptics } from '@/hooks/useHaptics';
+
+// Locked Content Component
+const LockedContent = ({ 
+    isDarkMode, 
+    onPurchase, 
+    onBack,
+    pdId,
+    courseId 
+}: { 
+    isDarkMode: boolean, 
+    onPurchase: () => void,
+    onBack: () => void,
+    pdId: string,
+    courseId: string
+}) => (
+    <View style={[styles.lockedContainer, isDarkMode && styles.lockedContainerDark]}>
+        <MaterialCommunityIcons
+            name="lock"
+            size={64}
+            color={isDarkMode ? "#6EE7B7" : "#65B741"}
+        />
+        <ThemedText style={[styles.lockedTitle, isDarkMode && styles.lockedTitleDark]}>
+            Contenu verrouillé
+        </ThemedText>
+        <ThemedText style={[styles.lockedDescription, isDarkMode && styles.lockedDescriptionDark]}>
+            Cette vidéo fait partie du contenu premium. Inscrivez-vous au programme pour accéder à toutes les vidéos.
+        </ThemedText>
+        <Pressable
+            style={[styles.purchaseButton, isDarkMode && styles.purchaseButtonDark]}
+            onPress={onPurchase}
+        >
+            <MaterialCommunityIcons name="cart" size={20} color="#FFFFFF" />
+            <ThemedText style={styles.purchaseButtonText}>
+                S'inscrire au programme
+            </ThemedText>
+        </Pressable>
+        <Pressable
+            style={[styles.backToCourseButton, isDarkMode && styles.backToCourseButtonDark]}
+            onPress={onBack}
+        >
+            <ThemedText style={[styles.backToCourseButtonText, isDarkMode && styles.backToCourseButtonTextDark]}>
+                Retour au cours
+            </ThemedText>
+        </Pressable>
+    </View>
+);
 
 const VideoPlayerScreen = () => {
     const { videoId, courseId, pdId } = useLocalSearchParams();
@@ -24,6 +72,17 @@ const VideoPlayerScreen = () => {
     const [isVideoDone, setIsVideoDone] = useState(false);
     const pathname = usePathname();
     const { playClick } = useSound();
+    const { trigger } = useHaptics();
+    const { isLearningPathEnrolled } = useUser();
+
+    // Check if user is enrolled in this program
+    const isEnrolled = isLearningPathEnrolled(pdId);
+
+    // Handle purchase flow
+    const handlePurchaseFlow = () => {
+        trigger(HapticType.SELECTION);
+        router.push(`/(app)/(catalogue)/shop`);
+    };
 
     const videoSource = currentVideo ? `https://stream.mux.com/${currentVideo.mux_playback_id}.m3u8` : '';
 
@@ -125,6 +184,29 @@ const VideoPlayerScreen = () => {
             <View style={[styles.errorContainer, isDarkMode && styles.errorContainerDark]}>
                 <ThemedText style={styles.errorText}>{error}</ThemedText>
             </View>
+        );
+    }
+
+    // Optional: Add a loading state while checking enrollment
+    if (typeof isEnrolled === 'undefined') {
+        return (
+            <View style={[styles.loadingContainer, isDarkMode && styles.loadingContainerDark]}>
+                <ActivityIndicator size="large" color={theme.color.primary[500]} />
+                <ThemedText style={styles.loadingText}>Vérification de l'inscription...</ThemedText>
+            </View>
+        );
+    }
+
+    // Check if user is not enrolled and this is not the first video
+    if (!isEnrolled && currentVideoIndex > 0) {
+        return (
+            <LockedContent 
+                isDarkMode={isDarkMode} 
+                onPurchase={handlePurchaseFlow}
+                onBack={() => router.push(`/(app)/learn/${pdId}/courses/${courseId}`)}
+                pdId={String(pdId)}
+                courseId={String(courseId)}
+            />
         );
     }
 
@@ -312,9 +394,87 @@ fontSize: 14,
         marginTop: 8,
     },
     progressText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
         opacity: 0.6,
+    },
+    lockedContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 32,
+        backgroundColor: theme.color.light.background.primary,
+    },
+    lockedContainerDark: {
+        backgroundColor: theme.color.dark.background.primary,
+    },
+    lockedTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 24,
+        fontWeight: '700',
+        color: theme.color.light.text.primary,
+        marginTop: 16,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    lockedTitleDark: {
+        color: theme.color.dark.text.primary,
+    },
+    lockedDescription: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        color: theme.color.light.text.secondary,
+        textAlign: 'center',
+        marginBottom: 32,
+        lineHeight: 24,
+        maxWidth: '80%',
+    },
+    lockedDescriptionDark: {
+        color: theme.color.dark.text.secondary,
+    },
+    purchaseButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#10B981',
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 8,
+        marginBottom: 16,
+    },
+    purchaseButtonDark: {
+        backgroundColor: '#059669',
+    },
+    purchaseButtonText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FFFFFF',
+        marginLeft: 8,
+    },
+    backToCourseButton: {
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+    },
+    backToCourseButtonDark: {
+        borderColor: '#4B5563',
+    },
+    backToCourseButtonText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    backToCourseButtonTextDark: {
+        color: '#9CA3AF',
+    },
+    loadingText: {
+        marginTop: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        color: theme.color.light.text.secondary,
     },
 });
 

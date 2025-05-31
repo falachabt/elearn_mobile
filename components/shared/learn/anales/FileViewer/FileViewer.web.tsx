@@ -1,5 +1,6 @@
+
 import React from 'react';
-import {View, useColorScheme, StyleSheet, Dimensions} from 'react-native';
+import {View, useColorScheme, StyleSheet, Dimensions, Platform} from 'react-native';
 import {Archive} from "@/app/(app)/learn/[pdId]/anales";
 import {theme} from "@/constants/theme";
 
@@ -39,15 +40,17 @@ export const FileViewer: React.FC<FileViewerProps> = ({ file }) => {
 
     return (
         <View style={[styles.container, isDark && styles.pdfDark]}>
-            <iframe
-                src={`https://docs.google.com/viewer?url=${encodeURIComponent(file.file_url)}&embedded=true`}
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 'none'
-                }}
-                title="PDF Viewer"
-            />
+            {
+                Platform.OS === 'web' && (
+                    <iframe src={`https://docs.google.com/viewer?url=${encodeURIComponent(file.file_url)}&embedded=true`}
+                            style={{
+                                width : '100%',
+                                height : '100%',
+                                border : 'none'
+                            }}
+                            />
+                )
+            }
         </View>
     );
 };

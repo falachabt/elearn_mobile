@@ -1,11 +1,15 @@
 import React, {createContext, useContext, useState, ReactNode, useEffect} from 'react';
 import {usePathname} from 'expo-router';
 import {useSWRConfig} from 'swr';
-import ChatBox, {ContextElement} from '@/components/shared/ChatBot'; // Import the ContextElement type
+import {ContextElement} from '@/components/shared/ChatBot'; // Import the ContextElement type
 
 // Define the context interface
 interface ChatContextType {
     isChatVisible: boolean;
+    initialContextElements?: ContextElement[];
+
+    initialChatSessionId?: string | null | undefined;
+
     openChat: (initialContextElements?: ContextElement[], chatSessionId?: string) => void;
     closeChat: () => void;
     addContextElement: (element: ContextElement) => void;
@@ -36,6 +40,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({children}) => {
             }
         }
     }, [pathname, isChatVisible, cache]);
+
 
     const openChat = (initialContextElements?: ContextElement[], chatSessionId?: string) => {
         // If initialContextElements is provided, use it
@@ -76,6 +81,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({children}) => {
         <ChatContext.Provider
             value={{
                 isChatVisible,
+                initialContextElements: contextElements,
+                initialChatSessionId: currentChatSessionId || null,
                 openChat,
                 closeChat,
                 addContextElement,
@@ -86,12 +93,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({children}) => {
             }}
         >
             {children}
-            <ChatBox
-                visible={isChatVisible}
-                onClose={closeChat}
-                initialContextElements={contextElements}
-                initialChatSessionId={currentChatSessionId || undefined}
-            />
+
         </ChatContext.Provider>
     );
 };
