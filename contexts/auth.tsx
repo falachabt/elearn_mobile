@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState, useRef } from 'react'
-import { RealtimeChannel, Session} from '@supabase/supabase-js'
+import {createContext, useContext, useEffect, useState, useRef} from 'react'
+import {RealtimeChannel, Session} from '@supabase/supabase-js'
 import {supabase} from '@/lib/supabase'
 import axios from 'axios'
 import {Accounts, tables, UserXp} from '@/types/type'
@@ -14,11 +14,26 @@ interface UserStreak {
     next_deadline: string
 }
 
+interface UserProgramEnrollment {
+    id: string
+    user_id: string
+    program_id: {
+        concourId: string
+        id: string
+        isActive: boolean
+        learningPathId: string
+        created_at: string
+        price: number
+    }
+    enrolled_at: string
+    status: string
+}
+
 interface Account extends Accounts {
     user_xp: UserXp
     user_streaks: UserStreak
     image: { url: string }
-    user_program_enrollments: { id : string}[]
+    user_program_enrollments: UserProgramEnrollment[]
 }
 
 type AuthContextType = {
@@ -28,25 +43,50 @@ type AuthContextType = {
     signIn: (phone: string, password: string) => Promise<void>
     signOut: () => Promise<void>
     signUp: (phone: number | undefined, password: string) => Promise<void>
-    verifyOtp: (phone: number,  token: string, password: string, type?: string) => Promise<void>
+    verifyOtp: (phone: number, token: string, password: string, type?: string) => Promise<void>
     mutateUser: () => Promise<Account | null | undefined>
     checkStreak: () => Promise<void>
     setIsAccountCreating: (isCreating: boolean) => void
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+// Create context with unique name
+const AuthProviderContext = createContext<AuthContextType | undefined>(undefined)
 
-// SWR fetcher function
-const fetcher = async (authId: string) => {
+// SWR fetcher functions with unique names
+// @ts-ignore
+const getUserEnrollments = async (userId: string) => {
+    const {data, error} = await supabase
+        .from('user_program_enrollments')
+        .select('*, program_id(*)')
+        .eq('user_id', userId);
+
+    if (error) throw error;
+    return data;
+}
+
+const getUserAccountData = async (authId: string) => {
+    const {data, error} = await supabase
+        .from("accounts")
+        .select("*, user_xp(*), user_streaks(*)")
+        .eq("authId", authId)
+        .single();
+
+    if (error) throw error;
+    return data;
+};
+
+// Main fetcher function with unique name
+const userDataFetcher = async (authId: string) => {
     try {
-        const {data, error} = await supabase
-            .from("accounts")
-            .select("*, user_xp(*), user_streaks(*), user_program_enrollments(*)")
-            .eq("authId", authId)
-            .single();
+        const userData = await getUserAccountData(authId);
+        const enrollments = await getUserEnrollments(userData.id);
 
-        if (error) throw error;
-        return data as Account;
+        console.log(enrollments);
+
+        return {
+            ...userData,
+            user_program_enrollments: enrollments || []
+        } as Account;
     } catch (error) {
         console.error("Error fetching user data:", error);
         throw error;
@@ -64,9 +104,9 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     // User data fetching with SWR
     const {data: user, error: userError, mutate: mutateUser} = useSWR<Account | null>(
         session?.user.id ? session.user.id : null,
-        fetcher,
+        userDataFetcher,
         {
-            refreshInterval: 0,
+            refreshInterval: 60000, // Refresh every 60 seconds
             revalidateOnFocus: false,
             dedupingInterval: 2000,
             onSuccess: () => {
@@ -89,7 +129,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     const waitForAccountData = async (phone: number, maxRetries = 5, retryDelay = 1000) => {
         for (let i = 0; i < maxRetries; i++) {
             try {
-                const { data, error } = await supabase
+                const {data, error} = await supabase
                     .from("accounts")
                     .select("*")
                     .eq("phone", phone)
@@ -99,11 +139,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     return data;
                 }
 
-                console.log(`Account data not available yet, retry ${i+1}/${maxRetries}`);
+                console.log(`Account data not available yet, retry ${i + 1}/${maxRetries}`);
                 // Wait before retrying
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
             } catch (err) {
-                console.log(`Error checking account data, retry ${i+1}/${maxRetries}`, err);
+                console.log(`Error checking account data, retry ${i + 1}/${maxRetries}`, err);
                 if (i === maxRetries - 1) throw err;
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
             }
@@ -141,9 +181,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 setIsLoading(true);
                 const {data: {session}} = await supabase.auth.getSession();
                 setSession(session);
-
-
-
 
                 // If no session, we're done loading
                 if (!session) {
@@ -188,8 +225,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         if (!session) {
             // No session = not loading
             setIsLoading(false);
-        }
-        else if (session && userError) {
+        } else if (session && userError) {
             // Check if this is an expected error during signup
             if (isAccountCreating) {
                 // This is expected during signup - stay in loading state
@@ -199,8 +235,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // Handle other errors
             console.error("Error loading user data:", userError);
             setIsLoading(false);
-        }
-        else if (session && user !== undefined) {
+        } else if (session && user !== undefined) {
             // User data loaded
             setIsLoading(false);
         }
@@ -244,7 +279,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 () => {
                     mutateUser();
                 }
-            ) .on('postgres_changes',
+            ).on('postgres_changes',
                 {
                     event: '*',
                     schema: 'public',
@@ -280,7 +315,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             streakCheckedRef.current = false;
 
             console.log("Signing in...");
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const {data, error} = await supabase.auth.signInWithPassword({
                 phone: phone.toString(),
                 password,
             });
@@ -312,7 +347,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             }
 
             // Verify OTP
-            const {error} = await supabase.auth.verifyOtp({phone : phone.toString(), token, type: "sms"});
+            const {error} = await supabase.auth.verifyOtp({phone: phone.toString(), token, type: "sms"});
 
             if (error) {
                 throw error;
@@ -374,7 +409,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             setIsLoading(true);
             streakCheckedRef.current = false;
 
-            if(!phone) {
+            if (!phone) {
                 setIsLoading(false);
                 throw new Error('Phone number is required');
             }
@@ -382,7 +417,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             try {
                 setIsAccountCreating(true);
                 const {data, error} = await supabase.auth.signUp({
-                    phone: "+237"+ phone.toString(),
+                    phone: "+237" + phone.toString(),
                     password
                 });
 
@@ -394,21 +429,27 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         console.log("Creating account...");
                         // Account creation API call
                         await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
-                        // await axios.post('http://192.168.1.168:3000/api/mobile/auth/createAccount',
-                            { phone, password },
+                            // await axios.post('http://192.168.1.168:3000/api/mobile/auth/createAccount',
+                            {phone, password},
                             {
                                 headers: {
                                     'Content-Type': 'application/json',
                                     'Authorization': `Bearer ${data.session.access_token}`
                                 },
-                                timeout : 1500,
+                                timeout: 1500,
                             }
                         );
 
                         console.log("Account creation API call successful, waiting for database...");
 
                         // Wait for the account data to be available in the database
+
+                        try {
                         await waitForAccountData(phone);
+
+                        }catch (error) {
+                           console.log("Error waiting for account data", error);
+                        }
 
                         // Force revalidation of user data
                         await mutateUser();
@@ -425,9 +466,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     console.log("Sign up successful, no session");
                 }
 
-
-
-
                 if (error) {
                     console.error("Sign up error:", error);
                     setIsLoading(false);
@@ -438,37 +476,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 setIsLoading(false);
                 throw error;
             }
-
-
-
-            // try {
-            //     await axios.post('https://elearn.ezadrive.com/api/mobile/auth/create',
-            //         {
-            //             email,
-            //             password
-            //         },
-            //         {
-            //             headers: {
-            //                 'Content-Type': 'application/json'
-            //             }
-            //         }
-            //     );
-            // } catch (error) {
-            //     axios.isAxiosError(error) && console.log("error", error.response?.data?.error);
-            //     if (axios.isAxiosError(error) && error.response?.data?.error === "Email already exists in the system") {
-            //         setIsLoading(false);
-            //         throw new Error('email exists');
-            //     }
-            // }
-            //
-            // const { error } = await supabase.auth.signInWithOtp({
-            //     email
-            // });
-            // if (error) {
-            //     setIsLoading(false);
-            //     throw error;
-            // }
-            //
 
         } catch (error) {
             console.error('Error signing up:', error);
@@ -481,7 +488,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         try {
             setIsLoading(true);
             streakCheckedRef.current = false;
-            const { error } = await supabase.auth.signOut();
+            const {error} = await supabase.auth.signOut();
             if (error) throw error;
             // Session will be updated by the onAuthStateChange listener
         } catch (error) {
@@ -505,15 +512,15 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={value}>
+        <AuthProviderContext.Provider value={value}>
             {children}
-        </AuthContext.Provider>
+        </AuthProviderContext.Provider>
     );
 }
 
 // Custom hook to use auth context
 export function useAuth() {
-    const context = useContext(AuthContext);
+    const context = useContext(AuthProviderContext);
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
     }

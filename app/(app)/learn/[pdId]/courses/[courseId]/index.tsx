@@ -1,5 +1,5 @@
 import {ActivityIndicator, Pressable, ScrollView, StyleSheet, View,} from "react-native";
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import {ThemedText} from "@/components/ThemedText";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useLocalSearchParams, useRouter} from "expo-router";
@@ -11,6 +11,7 @@ import {Courses, CoursesCategories, CoursesContent, CourseVideos,} from "@/types
 import {useColorScheme} from "@/hooks/useColorScheme";
 import {useAuth} from "@/contexts/auth";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
+import {useUser} from "@/contexts/useUserInfo";
 
 interface Course extends Courses {
     course_category: CoursesCategories;
@@ -67,6 +68,61 @@ const CourseDetail = () => {
     const {user, session} = useAuth();
     const { trigger } = useHaptics();
 
+    // Check if user is enrolled in this program
+    const { isLearningPathEnrolled } = useUser();
+    const isEnrolled = isLearningPathEnrolled(pdId);
+
+    // Set preview mode based on enrollment status
+    const [isPreviewMode, setIsPreviewMode] = useState<boolean>(!isEnrolled);
+
+    // Update preview mode when enrollment status changes
+    useEffect(() => {
+        setIsPreviewMode(!isEnrolled);
+    }, [isEnrolled]);
+
+    // Handle purchase or enrollment flow
+    const handlePurchaseFlow = () => {
+        trigger(HapticType.SELECTION);
+        router.push({
+            pathname : `/(app)/(catalogue)/shop`,
+            params : {
+                selectedProgramId : pdId,
+            }
+        });
+    };
+
+    // Handle locked content access attempts
+    const handleLockedContentAccess = (contentType: string) => {
+        trigger(HapticType.NOTIFICATION_ERROR);
+        // Show alert or navigate to purchase
+        // Alert.alert(
+        //     "Contenu verrouillé",
+        //     `Vous devez vous inscrire à ce cours pour accéder à ce ${contentType}.`,
+        //     [
+        //         { text: "Annuler", style: "cancel" },
+        //         { text: "S'inscrire", onPress: handlePurchaseFlow }
+        //     ]
+        // );
+        handlePurchaseFlow();
+    };
+
+    // Get enrollment badge
+    const getEnrollmentBadge = () => {
+        if (isEnrolled) {
+            return (
+                <View style={[styles.enrollmentBadge, styles.enrolledBadge]}>
+                    <MaterialCommunityIcons name="check-circle" size={14} color="#10B981" />
+                    <ThemedText style={styles.enrolledBadgeText}>Inscrit</ThemedText>
+                </View>
+            );
+        }
+        return (
+            <View style={[styles.enrollmentBadge, styles.previewBadge]}>
+                <MaterialCommunityIcons name="eye-outline" size={14} color="#F59E0B" />
+                <ThemedText style={styles.previewBadgeText}>Aperçu</ThemedText>
+            </View>
+        );
+    };
 
     const {
         data: course,
@@ -119,6 +175,16 @@ const CourseDetail = () => {
         return highestScore || 0;
     };
 
+    // Optional: Add a loading state while checking enrollment
+    if (typeof isEnrolled === 'undefined') {
+        return (
+            <View style={[styles.loadingContainer, isDark && styles.loadingContainerDark]}>
+                <ActivityIndicator size="large" color={isDark ? "#6EE7B7" : "#65B741"} />
+                <ThemedText style={styles.loadingText}>Vérification de l'inscription...</ThemedText>
+            </View>
+        );
+    }
+
     if (courseLoading) {
         return (
             <View
@@ -169,7 +235,10 @@ const CourseDetail = () => {
                     return <EmptyState type="content" isDark={isDark}/>;
                 }
 
-                return sections.map((section, index) => {
+                // In preview mode, only show the first 2 sections
+                const visibleSections = isPreviewMode ? sections.slice(0, 1) : sections;
+
+                const sectionItems = visibleSections.map((section, index) => {
                     const progress = sectionsProgress?.find(
                         (sp) => sp.sectionid == Number(section.id)
                     );
@@ -180,6 +249,10 @@ const CourseDetail = () => {
                             key={section.id}
                             style={[styles.contentItem, isDark && styles.contentItemDark]}
                             onPress={() => {
+                                if (isPreviewMode && index >= 2) {
+                                    handleLockedContentAccess("section");
+                                    return;
+                                }
                                 trigger(HapticType.SELECTION);
                                 router.push(
                                     `/(app)/learn/${pdId}/courses/${courseId}/lessons/${section.id}`
@@ -199,12 +272,6 @@ const CourseDetail = () => {
                                         numberOfLines={1}
                                     >
                                         {section.name}
-                                        {/*{ (index < 4) && <PreloadWebView*/}
-                                        {/*    uri={`https://elearn.ezadrive.com/webview/courseContent/${section.id}?theme=${isDark ? "dark" : "light"}`}*/}
-                                        {/*    accessToken={session?.access_token}*/}
-                                        {/*    isDark={isDark}*/}
-
-                                        {/*/>}*/}
                                     </ThemedText>
 
                                     {progress && (
@@ -218,9 +285,6 @@ const CourseDetail = () => {
                                                     ]}
                                                 />
                                             </View>
-                                            {/*<ThemedText style={styles.progressText}>*/}
-                                            {/*    {progress.completed}/{progress.total} complété*/}
-                                            {/*</ThemedText>*/}
                                         </View>
                                     )}
                                 </View>
@@ -242,16 +306,57 @@ const CourseDetail = () => {
                     );
                 });
 
+                // Add purchase banner if in preview mode
+                if (isPreviewMode && sections.length > 1) {
+                    return (
+                        <>
+                            {sectionItems}
+                            <View style={[styles.previewBanner, isDark && styles.previewBannerDark]}>
+                                <MaterialCommunityIcons
+                                    name="lock"
+                                    size={24}
+                                    color={isDark ? "#6EE7B7" : "#65B741"}
+                                />
+                                <View style={styles.previewBannerTextContainer}>
+                                    <ThemedText style={[styles.previewBannerTitle, isDark && styles.previewBannerTitleDark]}>
+                                        Accédez à {sections.length - 1} sections supplémentaires
+                                    </ThemedText>
+                                    <ThemedText style={styles.previewBannerDescription}>
+                                        Achetez ce cours pour débloquer tout le contenu
+                                    </ThemedText>
+                                </View>
+                                <Pressable
+                                    style={styles.previewBannerButton}
+                                    onPress={handlePurchaseFlow}
+                                >
+                                    <ThemedText style={styles.previewBannerButtonText}>
+                                        Acheter
+                                    </ThemedText>
+                                </Pressable>
+                            </View>
+                        </>
+                    );
+                }
+
+                return sectionItems;
+
             case "videos":
                 if (videos.length === 0) {
                     return <EmptyState type="videos" isDark={isDark}/>;
                 }
 
-                return videos.map((video, index) => (
+                // In preview mode, only show the first video
+                const visibleVideos = isPreviewMode ? videos.slice(0, 0) : videos;
+
+                const videoItems = visibleVideos.map((video, index) => (
                     <Pressable
                         key={video.id}
                         style={[styles.videoItem, isDark && styles.videoItemDark]}
                         onPress={() => {
+                            if (isPreviewMode && index >= 1) {
+                                handleLockedContentAccess("vidéo");
+                                return;
+                            }
                             trigger(HapticType.SELECTION);
                             router.push(
                                 `/(app)/learn/${pdId}/courses/${courseId}/videos/${video.id}`
@@ -293,21 +398,60 @@ const CourseDetail = () => {
                     </Pressable>
                 ));
 
+                // Add purchase banner if in preview mode
+                if (isPreviewMode && videos.length > 0) {
+                    return (
+                        <>
+                            {videoItems}
+                            <View style={[styles.previewBanner, isDark && styles.previewBannerDark]}>
+                                <MaterialCommunityIcons
+                                    name="lock"
+                                    size={24}
+                                    color={isDark ? "#6EE7B7" : "#65B741"}
+                                />
+                                <View style={styles.previewBannerTextContainer}>
+                                    <ThemedText style={[styles.previewBannerTitle, isDark && styles.previewBannerTitleDark]}>
+                                        Accédez à {videos.length} vidéos
+                                    </ThemedText>
+                                    <ThemedText style={styles.previewBannerDescription}>
+                                        Achetez ce programme pour débloquer toutes les vidéos
+                                    </ThemedText>
+                                </View>
+                                <Pressable
+                                    style={styles.previewBannerButton}
+                                    onPress={handlePurchaseFlow}
+                                >
+                                    <ThemedText style={styles.previewBannerButtonText}>
+                                        Acheter
+                                    </ThemedText>
+                                </Pressable>
+                            </View>
+                        </>
+                    );
+                }
+
+                return videoItems;
+
             case "quizzes":
                 if (!quizzes || quizzes.length === 0) {
                     return <EmptyState type="quizzes" isDark={isDark}/>;
                 }
 
-                return quizzes.map((quiz, index) => quiz?.id && (
+                // In preview mode, only show the first two quizzes
+                const visibleQuizzes = isPreviewMode ? quizzes.slice(0, 0) : quizzes;
+
+                const quizItems = visibleQuizzes.map((quiz, index) => quiz?.id && (
                     <Pressable
                         key={quiz.id + index}
                         style={[styles.quizItem, isDark && styles.quizItemDark]}
-                        onPress={() =>
-                        {
+                        onPress={() => {
+                            if (isPreviewMode && index >= 2) {
+                                handleLockedContentAccess("quiz");
+                                return;
+                            }
                             trigger(HapticType.SELECTION);
                             router.push(`/(app)/learn/${pdId}/quizzes/${quiz.id}`)
-                        }
-                        }
+                        }}
                     >
                         <View style={[
                             styles.quizIconContainer,
@@ -353,22 +497,20 @@ const CourseDetail = () => {
                                     </View>
                                 )}
 
-                                {(
-                                    <View style={[
-                                        styles.quizChip,
-                                        isDark ? styles.quizChipDark : styles.quizChipLight
-                                    ]}>
-                                        <MaterialCommunityIcons
-                                            name="star-outline"
-                                            size={14}
-                                            color={isDark ? "#818CF8" : "#6366F1"}
-                                            style={styles.quizChipIcon}
-                                        />
-                                        <ThemedText style={styles.quizChipText}>
-                                            Score le plus élevé: {getHighestScore(quiz.id)}%
-                                        </ThemedText>
-                                    </View>
-                                )}
+                                <View style={[
+                                    styles.quizChip,
+                                    isDark ? styles.quizChipDark : styles.quizChipLight
+                                ]}>
+                                    <MaterialCommunityIcons
+                                        name="star-outline"
+                                        size={14}
+                                        color={isDark ? "#818CF8" : "#6366F1"}
+                                        style={styles.quizChipIcon}
+                                    />
+                                    <ThemedText style={styles.quizChipText}>
+                                        Score le plus élevé: {getHighestScore(quiz.id)}%
+                                    </ThemedText>
+                                </View>
                             </View>
                         </View>
                         <MaterialCommunityIcons
@@ -378,6 +520,40 @@ const CourseDetail = () => {
                         />
                     </Pressable>
                 ));
+
+                // Add purchase banner if in preview mode
+                if (isPreviewMode && quizzes.length > 0) {
+                    return (
+                        <>
+                            {quizItems}
+                            <View style={[styles.previewBanner, isDark && styles.previewBannerDark]}>
+                                <MaterialCommunityIcons
+                                    name="lock"
+                                    size={24}
+                                    color={isDark ? "#6EE7B7" : "#65B741"}
+                                />
+                                <View style={styles.previewBannerTextContainer}>
+                                    <ThemedText style={[styles.previewBannerTitle, isDark && styles.previewBannerTitleDark]}>
+                                        Accédez à {quizzes.length} quiz
+                                    </ThemedText>
+                                    <ThemedText style={styles.previewBannerDescription}>
+                                        Achetez ce programme pour débloquer tous les quiz
+                                    </ThemedText>
+                                </View>
+                                <Pressable
+                                    style={styles.previewBannerButton}
+                                    onPress={handlePurchaseFlow}
+                                >
+                                    <ThemedText style={styles.previewBannerButtonText}>
+                                        Acheter
+                                    </ThemedText>
+                                </Pressable>
+                            </View>
+                        </>
+                    );
+                }
+
+                return quizItems;
         }
     };
 
@@ -399,12 +575,15 @@ const CourseDetail = () => {
                     />
                 </Pressable>
                 <View style={styles.headerContent}>
-                    <ThemedText
-                        style={[styles.courseTitle, isDark && styles.courseTitleDark]}
-                        numberOfLines={1}
-                    >
-                        {course?.name}
-                    </ThemedText>
+                    <View style={styles.headerTitleRow}>
+                        <ThemedText
+                            style={[styles.courseTitle, isDark && styles.courseTitleDark]}
+                            numberOfLines={1}
+                        >
+                            {course?.name}
+                        </ThemedText>
+                        {getEnrollmentBadge()}
+                    </View>
                     <ThemedText
                         style={[styles.courseInfo, isDark && styles.courseInfoDark]}
                     >
@@ -531,6 +710,53 @@ const styles = StyleSheet.create({
     containerDark: {
         backgroundColor: "#111827",
     },
+    previewBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F0FDF4',
+        padding: 16,
+        marginHorizontal: 16,
+        marginBottom: 16,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#D1FAE5',
+    },
+    previewBannerDark: {
+        backgroundColor: '#064E3B',
+        borderColor: '#065F46',
+    },
+    previewBannerTextContainer: {
+        flex: 1,
+        marginLeft: 12,
+        marginRight: 8,
+    },
+    previewBannerTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#065F46',
+        marginBottom: 2,
+    },
+    previewBannerTitleDark: {
+        color: '#6EE7B7',
+    },
+    previewBannerDescription: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        color: '#047857',
+    },
+    previewBannerButton: {
+        backgroundColor: '#10B981',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 6,
+    },
+    previewBannerButtonText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#FFFFFF',
+    },
     loadingContainer: {
         flex: 1,
         justifyContent: "center",
@@ -543,7 +769,7 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 16,
         fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontSize: 16,
         color: "#6B7280",
     },
     errorContainer: {
@@ -595,23 +821,57 @@ fontSize: 16,
     headerContent: {
         flex: 1,
     },
+    headerTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+    },
     courseTitle: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 19,
+        fontSize: 19,
         fontWeight: "700",
         color: "#111827",
-        marginBottom: 4,
+        flex: 1,
+        marginRight: 8,
     },
     courseTitleDark: {
         color: "#FFFFFF",
     },
     courseInfo: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontSize: 14,
         color: "#6B7280",
     },
     courseInfoDark: {
         color: "#9CA3AF",
+    },
+    enrollmentBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    enrolledBadge: {
+        backgroundColor: '#DCFCE7',
+    },
+    enrolledBadgeText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#10B981',
+        marginLeft: 4,
+    },
+    previewBadge: {
+        backgroundColor: '#FEF3C7',
+    },
+    previewBadgeText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#F59E0B',
+        marginLeft: 4,
     },
     tabsContainer: {
         height: 60,
@@ -652,7 +912,7 @@ fontSize: 14,
     },
     chipText: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontSize: 14,
         color: "#4B5563",
         fontWeight: "500",
     },
@@ -710,7 +970,7 @@ fontSize: 14,
     },
     sectionNumberText: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontSize: 14,
         fontWeight: "700",
     },
     contentTextContainer: {
@@ -719,7 +979,7 @@ fontSize: 14,
     },
     contentTitle: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontSize: 16,
         fontWeight: "600",
         color: "#111827",
     },
@@ -750,7 +1010,7 @@ fontSize: 16,
     },
     progressText: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontSize: 12,
         color: "#6B7280",
     },
     // Video styles
@@ -776,7 +1036,7 @@ fontSize: 12,
     },
     videoTitle: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontSize: 16,
         color: "#111827",
         fontWeight: "500",
         marginBottom: 4,
@@ -795,7 +1055,7 @@ fontSize: 16,
     },
     videoMetaText: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontSize: 14,
         color: "#6B7280",
         marginLeft: 4,
     },
@@ -833,7 +1093,7 @@ fontSize: 14,
     },
     quizTitle: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontSize: 16,
         color: "#111827",
         fontWeight: "500",
         marginBottom: 8,
@@ -865,7 +1125,7 @@ fontSize: 16,
     },
     quizChipText: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontSize: 12,
         color: "#6366F1",
         fontWeight: "500",
     },
@@ -878,7 +1138,7 @@ fontSize: 12,
     },
     emptyStateTitle: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 18,
+        fontSize: 18,
         fontWeight: "600",
         marginTop: 16,
         marginBottom: 8,
@@ -886,7 +1146,7 @@ fontSize: 18,
     },
     emptyStateDescription: {
         fontFamily : theme.typography.fontFamily,
-fontSize: 14,
+        fontSize: 14,
         textAlign: "center",
         color: "#6B7280",
         maxWidth: "80%",

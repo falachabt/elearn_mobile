@@ -19,7 +19,7 @@ import { ArchiveCard } from "@/components/ArchiveCard";
 import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import useSWR from "swr";
-import ChatBox from "@/components/shared/ChatBot";
+import { useUser } from "@/contexts/useUserInfo";
 
 export interface Archive {
   id: string;
@@ -134,6 +134,24 @@ export const ArchivesList = () => {
   const scheme = useColorScheme();
   const isDark = scheme === "dark";
   const { user } = useAuth();
+  const { isLearningPathEnrolled } = useUser();
+
+  // Check if user is enrolled in this program
+  const isEnrolled = isLearningPathEnrolled(pdId);
+
+  // Set preview mode based on enrollment status
+  const [isPreviewMode] = useState<boolean>(!isEnrolled);
+
+  // Handle purchase flow
+  const handlePurchaseFlow = () => {
+    trigger(HapticType.SELECTION);
+    router.push({
+      pathname : `/(app)/(catalogue)/shop`,
+      params : {
+        selectedProgramId : pdId,
+      }
+    });
+  };
 
   // Use SWR to fetch path data with dedicated fetcher
   const { data: pathData, error: pathError } = useSWR<PathData>(
@@ -365,7 +383,8 @@ export const ArchivesList = () => {
   };
 
   const getFilteredArchives = () => {
-    return archives.filter((archive) => {
+    // First filter archives based on search, category, and filter type
+    let filteredArchives = archives.filter((archive) => {
       const matchesSearch = archive.name
           .toLowerCase()
           .includes(searchQuery.toLowerCase());
@@ -394,6 +413,13 @@ export const ArchivesList = () => {
 
       return matchesSearch && matchesCategory && matchesFilter;
     });
+
+    // If in preview mode, only show the first 2 archives
+    if (isPreviewMode) {
+      filteredArchives = filteredArchives.slice(0, 0);
+    }
+
+    return filteredArchives;
   };
 
   return (
@@ -614,6 +640,33 @@ export const ArchivesList = () => {
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContainer}
                 showsVerticalScrollIndicator={false}
+                ListFooterComponent={
+                    isPreviewMode && archives.length > 2 ? (
+                        <View style={[styles.previewBanner, isDark && styles.previewBannerDark]}>
+                            <MaterialCommunityIcons
+                                name="lock"
+                                size={24}
+                                color={isDark ? "#6EE7B7" : "#65B741"}
+                            />
+                            <View style={styles.previewBannerTextContainer}>
+                                <Text style={[styles.previewBannerTitle, isDark && styles.previewBannerTitleDark]}>
+                                    Accédez à {archives.length - 2} annales supplémentaires
+                                </Text>
+                                <Text style={styles.previewBannerDescription}>
+                                    Achetez ce programme pour débloquer toutes les annales
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.previewBannerButton}
+                                onPress={handlePurchaseFlow}
+                            >
+                                <Text style={styles.previewBannerButtonText}>
+                                    Acheter
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : null
+                }
             />
         )}
       </View>
@@ -744,6 +797,53 @@ fontSize: 14,
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  previewBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  previewBannerDark: {
+    backgroundColor: '#064E3B',
+    borderColor: '#065F46',
+  },
+  previewBannerTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
+  },
+  previewBannerTitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#065F46',
+    marginBottom: 2,
+  },
+  previewBannerTitleDark: {
+    color: '#6EE7B7',
+  },
+  previewBannerDescription: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    color: '#047857',
+  },
+  previewBannerButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  previewBannerButtonText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

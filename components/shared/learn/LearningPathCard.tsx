@@ -6,15 +6,16 @@ import {
     Pressable,
     Image,
     useColorScheme,
-    Dimensions
+    Dimensions,
+    Alert
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import { theme } from '@/constants/theme';
-import { useAuth } from '@/contexts/auth';
-import { useProgramProgress } from "@/hooks/useProgramProgress";
-import { HapticType, useHaptics } from "@/hooks/useHaptics";
-import { useRouter } from 'expo-router';
+import {LinearGradient} from 'expo-linear-gradient';
+import {MaterialCommunityIcons, Ionicons} from '@expo/vector-icons';
+import {theme} from '@/constants/theme';
+import {useAuth} from '@/contexts/auth';
+import {useProgramProgress} from "@/hooks/useProgramProgress";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
+import {useRouter} from 'expo-router';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -24,16 +25,15 @@ import Animated, {
 } from 'react-native-reanimated';
 import {LearningPath} from "@/app/(app)/learn";
 
-const { width } = Dimensions.get('window');
+const {width} = Dimensions.get('window');
 
-
-
-const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
+const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPath, previewMode?: boolean }) => {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
-    const { user } = useAuth();
-    const { totalProgress } = useProgramProgress(path.id, user?.id || "");
-    const { trigger } = useHaptics();
+    const isEnrolled = path.enrollmentId || false
+    const {user} = useAuth();
+    const {totalProgress} = isEnrolled ? useProgramProgress(path.id, user?.id || "") : {totalProgress: 0};
+    const {trigger} = useHaptics();
     const router = useRouter();
 
     const concours = path.concours_learningpaths?.[0]?.concour;
@@ -45,7 +45,7 @@ const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
     const animatedCardStyle = useAnimatedStyle(() => {
         return {
             transform: [
-                { scale: interpolate(pressed.value, [0, 1], [1, 0.98], Extrapolate.CLAMP) },
+                {scale: interpolate(pressed.value, [0, 1], [1, 0.98], Extrapolate.CLAMP)},
             ],
         };
     });
@@ -58,14 +58,44 @@ const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
         pressed.value = withSpring(0);
     };
 
-    const handlePress = () => {
+    const handleCardPress = () => {
         trigger(HapticType.LIGHT);
+        // Navigation vers le contenu (même pour les non-enrollés avec accès limité)
         router.push(`/(app)/learn/${path.id}`);
+    };
+
+    const handleShopPress = () => {
+        trigger(HapticType.MEDIUM);
+        router.push(`/(app)/(catalogue)/shop`);
+    };
+
+    const handleLongPress = () => {
+        if (!isEnrolled && !previewMode) {
+            trigger(HapticType.HEAVY);
+            Alert.alert(
+                "Actions disponibles",
+                "Que souhaitez-vous faire ?",
+                [
+                    {
+                        text: "Accès limité",
+                        onPress: () => router.push(`/(app)/learn/${path.id}`),
+                    },
+                    {
+                        text: "Voir l'offre",
+                        onPress: () => router.push(`/(app)/(catalogue)/shop`),
+                    },
+                    {
+                        text: "Annuler",
+                        style: "cancel"
+                    }
+                ]
+            );
+        }
     };
 
     const formatDate = (dateString: Date) => {
         const date = new Date(dateString);
-        const options = { day: 'numeric', month: 'short' };
+        const options = {day: 'numeric', month: 'short'};
         // @ts-ignore
         return date.toLocaleDateString('fr-FR', options);
     };
@@ -86,19 +116,35 @@ const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
     const daysRemaining = getDaysRemaining();
 
     return (
-        <Animated.View style={[styles.cardContainer, animatedCardStyle]}>
+        <Animated.View style={[
+            styles.cardContainer,
+            animatedCardStyle,
+            !isEnrolled && !previewMode && styles.notEnrolledCard
+        ]}>
             <Pressable
                 style={[
                     styles.card,
                     isDarkMode && styles.cardDark,
+                    !isEnrolled && !previewMode && styles.notEnrolledCardInner
                 ]}
                 onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
-                onPress={handlePress}
-                android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
+                onPress={handleCardPress}
+                onLongPress={handleLongPress}
+                android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}
             >
+                {/* Not enrolled badge */}
+                {!isEnrolled && !previewMode && (
+                    <View style={styles.notEnrolledBadge}>
+                        <Text style={styles.notEnrolledText}>Accès limité</Text>
+                    </View>
+                )}
+
                 {/* Left color accent */}
-                <View style={styles.accent} />
+                <View style={[
+                    styles.accent,
+                    !isEnrolled && !previewMode && styles.notEnrolledAccent
+                ]}/>
 
                 {/* Card content */}
                 <View style={styles.contentContainer}>
@@ -106,7 +152,7 @@ const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
                     <View style={styles.header}>
                         <View style={styles.schoolBadge}>
                             <Image
-                                source={{ uri: school?.imageUrl || `https://api.dicebear.com/9.x/initials/png?seed=${school?.name}` }}
+                                source={{uri: school?.imageUrl || `https://api.dicebear.com/9.x/initials/png?seed=${school?.name}`}}
                                 style={styles.schoolLogo}
                             />
                             <Text style={[styles.schoolText, isDarkMode && styles.schoolTextDark]}>
@@ -115,24 +161,30 @@ const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
                         </View>
 
                         {/* Progress circle */}
-                        <View style={styles.progressCircleContainer}>
-                            <View style={styles.progressBackground}>
-                                <View
-                                    style={[
-                                        styles.progressFill,
-                                        { width: `${totalProgress}%` }
-                                    ]}
-                                />
+                        {(isEnrolled || previewMode) && (
+                            <View style={styles.progressCircleContainer}>
+                                <View style={styles.progressBackground}>
+                                    <View
+                                        style={[
+                                            styles.progressFill,
+                                            {width: `${totalProgress}%`}
+                                        ]}
+                                    />
+                                </View>
+                                <Text style={[styles.progressText, isDarkMode && styles.progressTextDark]}>
+                                    {totalProgress}%
+                                </Text>
                             </View>
-                            <Text style={[styles.progressText, isDarkMode && styles.progressTextDark]}>
-                                {totalProgress}%
-                            </Text>
-                        </View>
+                        )}
                     </View>
 
                     {/* Title and description */}
                     <View style={styles.titleContainer}>
-                        <Text style={[styles.title, isDarkMode && styles.titleDark]} numberOfLines={2}>
+                        <Text style={[
+                            styles.title,
+                            isDarkMode && styles.titleDark,
+                            !isEnrolled && !previewMode && styles.notEnrolledTitle
+                        ]} numberOfLines={2}>
                             {path.title}
                         </Text>
                         <Text style={[styles.concoursName, isDarkMode && styles.concoursNameDark]}>
@@ -146,7 +198,7 @@ const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
                             <MaterialCommunityIcons
                                 name="book-open-page-variant"
                                 size={16}
-                                color={theme.color.primary[500]}
+                                color={!isEnrolled && !previewMode ? '#9CA3AF' : theme.color.primary[500]}
                             />
                             <Text style={[styles.statText, isDarkMode && styles.statTextDark]}>
                                 {path.course_count}
@@ -156,13 +208,13 @@ const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
                             </Text>
                         </View>
 
-                        <View style={styles.statDivider} />
+                        <View style={styles.statDivider}/>
 
                         <View style={styles.statItem}>
                             <MaterialCommunityIcons
                                 name="help-circle-outline"
                                 size={16}
-                                color={theme.color.primary[500]}
+                                color={!isEnrolled && !previewMode ? '#9CA3AF' : theme.color.primary[500]}
                             />
                             <Text style={[styles.statText, isDarkMode && styles.statTextDark]}>
                                 {path.quiz_count}
@@ -171,8 +223,6 @@ const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
                                 quiz
                             </Text>
                         </View>
-
-
                     </View>
 
                     {/* Exam date countdown */}
@@ -185,7 +235,7 @@ const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
                             <Ionicons
                                 name="calendar"
                                 size={16}
-                                color={daysRemaining && daysRemaining < 30 ? "#E11D48" : theme.color.primary[600]}
+                                color={daysRemaining && daysRemaining < 30 ? "#E11D48" : (!isEnrolled && !previewMode ? '#9CA3AF' : theme.color.primary[600])}
                             />
                             <Text style={[
                                 styles.examText,
@@ -201,15 +251,55 @@ const ModernLearningPathCard = ({ path } : { path : LearningPath}) => {
                     )}
                 </View>
 
-                {/* Continue button */}
-                <LinearGradient
-                    colors={[theme.color.primary[500], theme.color.primary[700]]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.continueButton}
-                >
-                    <MaterialCommunityIcons name="arrow-right" size={20} color="#FFFFFF" />
-                </LinearGradient>
+                {/* Action buttons - Double bouton pour les non-enrollés */}
+                {!isEnrolled && !previewMode ? (
+                    <View style={styles.doubleButtonContainer}>
+                        {/* Bouton d'accès limité */}
+                        <Pressable
+                            style={styles.limitedAccessButton}
+                            onPress={handleCardPress}
+                        >
+                            <MaterialCommunityIcons
+                                name="eye"
+                                size={18}
+                                color={theme.color.primary[600]}
+                            />
+                        </Pressable>
+
+                        {/* Bouton shop */}
+                        <LinearGradient
+                            colors={[theme.color.primary[500], theme.color.primary[700]]}
+                            start={{x: 0, y: 0}}
+                            end={{x: 1, y: 0}}
+                            style={styles.shopButton}
+                        >
+                            <Pressable
+                                style={styles.shopButtonPressable}
+                                onPress={handleShopPress}
+                            >
+                                <MaterialCommunityIcons
+                                    name="cart"
+                                    size={18}
+                                    color="#FFFFFF"
+                                />
+                            </Pressable>
+                        </LinearGradient>
+                    </View>
+                ) : (
+                    /* Bouton continuer pour les enrollés */
+                    <LinearGradient
+                        colors={[theme.color.primary[500], theme.color.primary[700]]}
+                        start={{x: 0, y: 0}}
+                        end={{x: 1, y: 0}}
+                        style={styles.continueButton}
+                    >
+                        <MaterialCommunityIcons
+                            name="arrow-right"
+                            size={20}
+                            color="#FFFFFF"
+                        />
+                    </LinearGradient>
+                )}
             </Pressable>
         </Animated.View>
     );
@@ -220,11 +310,42 @@ const styles = StyleSheet.create({
         marginBottom: 0,
         borderRadius: 6,
         overflow: 'hidden',
-        elevation: 3,
+        elevation: 2,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.22,
-        shadowRadius: 2.22,
+        shadowOffset: {width: 0, height: 1},
+        shadowOpacity: 0.15,
+        shadowRadius: 1.5,
+    },
+    notEnrolledCard: {
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        elevation: 1,
+        shadowOpacity: 0.08,
+    },
+    notEnrolledCardInner: {
+        opacity: 0.92,
+    },
+    notEnrolledAccent: {
+        backgroundColor: '#D1D5DB',
+    },
+    notEnrolledBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: '#F59E0B',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        zIndex: 1,
+    },
+    notEnrolledText: {
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: '600',
+        fontFamily: theme.typography.fontFamily,
+    },
+    notEnrolledTitle: {
+        color: '#4B5563',
     },
     card: {
         flexDirection: 'row',
@@ -254,7 +375,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         width: '80%',
-        backgroundColor: 'rgba(209, 213, 219, 0.2)',
+        backgroundColor: 'rgba(209, 213, 219, 0.15)',
         borderRadius: 4,
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -266,8 +387,8 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     schoolText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
         fontWeight: '500',
         color: '#4B5563',
     },
@@ -289,8 +410,8 @@ fontSize: 12,
         backgroundColor: theme.color.primary[500],
     },
     progressText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 11,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 11,
         fontWeight: '600',
         color: theme.color.primary[600],
         marginTop: 2,
@@ -302,8 +423,8 @@ fontSize: 11,
         marginBottom: 12,
     },
     title: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#1F2937',
         marginBottom: 2,
@@ -312,8 +433,8 @@ fontSize: 16,
         color: '#FFFFFF',
     },
     concoursName: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 13,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 13,
         color: theme.color.primary[600],
         fontWeight: '500',
     },
@@ -331,7 +452,6 @@ fontSize: 13,
     },
     statsRowDark: {
         backgroundColor: '#374151',
-
     },
     statItem: {
         flexDirection: 'row',
@@ -345,8 +465,8 @@ fontSize: 13,
         backgroundColor: '#E5E7EB',
     },
     statText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
         fontWeight: '500',
         color: '#1F2937',
         marginLeft: 4,
@@ -355,8 +475,8 @@ fontSize: 12,
         color: '#F9FAFB',
     },
     statLabel: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
         color: '#6B7280',
         marginLeft: 2,
     },
@@ -378,8 +498,8 @@ fontSize: 12,
         backgroundColor: 'rgba(225, 29, 72, 0.1)',
     },
     examText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 12,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
         fontWeight: '500',
         color: theme.color.primary[600],
         marginLeft: 6,
@@ -392,6 +512,26 @@ fontSize: 12,
     },
     continueButton: {
         width: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    doubleButtonContainer: {
+        width: 40,
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+    },
+    limitedAccessButton: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+        marginBottom: 1,
+    },
+    shopButton: {
+        flex: 1,
+    },
+    shopButtonPressable: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },

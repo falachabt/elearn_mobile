@@ -40,6 +40,7 @@ type UserContextType = {
   mutateTodayXp: () => void;
   mutateTodayExercises: () => void;
   mutateUserPrograms: () => void;
+  isLearningPathEnrolled: (learningPathId: string) => boolean;
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -222,6 +223,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     () => fetchUserPrograms(authUser!.id)
   );
 
+  const isLearningPathEnrolled = (learningPathId: string) => {
+    return userPrograms?.some(program => program.id === learningPathId);
+  }
+
   useEffect(() => {
     setIsLoading(!user || !lastCourse || toDayXp === undefined || toDayExo === undefined || !userPrograms);
   }, [user, lastCourse, toDayXp, toDayExo, userPrograms]);
@@ -365,6 +370,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     mutateTodayXp,
     mutateTodayExercises,
     mutateUserPrograms,
+    isLearningPathEnrolled,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

@@ -137,7 +137,7 @@ const ChatFab: React.FC<ChatFabProps> = ({
     // Position styles
     const positionStyle = {
         'bottom-right': {
-            bottom: 120,
+            bottom: 140,
             right: 20
         },
         'bottom-left': {
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     },
     button: {
         backgroundColor: theme.color.primary[500],
-        borderRadius: 30,
+        borderRadius: theme.border.radius.medium,
         justifyContent: 'center',
         alignItems: 'center',
     },

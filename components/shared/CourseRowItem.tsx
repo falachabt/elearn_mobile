@@ -11,9 +11,10 @@ interface CourseRowItemProps {
     courseItem: any;
     pdId: string;
     isDark: boolean;
+    isEnrolled?: boolean;
 }
 
-const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, isDark}) => {
+const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, isDark, isEnrolled = false}) => {
     const router = useRouter();
     const sections = courseItem.course?.courses_content?.length || 0;
     const videos = courseItem.course?.course_videos?.length || 0;
@@ -89,9 +90,21 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, isDark})
                         >
                             {courseItem.course?.name}
                         </ThemedText>
-                        <ThemedText style={[styles.courseMetrics, isDark && styles.courseMetricsDark]}>
-                            {courseItem.course?.category?.name} • {sections} sections • {videos} vidéos
-                        </ThemedText>
+                        <View style={styles.courseMetricsContainer}>
+                            <ThemedText style={[styles.courseMetrics, isDark && styles.courseMetricsDark]}>
+                                {courseItem.course?.category?.name} • {sections} sections • {videos} vidéos
+                            </ThemedText>
+                            {!isEnrolled && (
+                                <View style={[styles.previewBadge, isDark && styles.previewBadgeDark]}>
+                                    <MaterialCommunityIcons
+                                        name="eye-outline"
+                                        size={12}
+                                        color="#FFFFFF"
+                                    />
+                                    <ThemedText style={styles.previewText}>Aperçu</ThemedText>
+                                </View>
+                            )}
+                        </View>
                     </View>
                     <MaterialCommunityIcons
                         name="chevron-right"
@@ -123,6 +136,30 @@ const styles = StyleSheet.create({
     courseItemDark: {
         backgroundColor: "#1F2937",
         borderBottomColor: "#374151",
+    },
+    courseMetricsContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexWrap: "wrap",
+    },
+    previewBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+        borderRadius: 12,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        marginLeft: 8,
+    },
+    previewBadgeDark: {
+        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+    },
+    previewText: {
+        color: '#FFFFFF',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 10,
+        fontWeight: '600',
+        marginLeft: 2,
     },
     courseContent: {
         padding: 16,

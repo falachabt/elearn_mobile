@@ -42,6 +42,7 @@ interface CourseListProps {
     pdId: string;
     onCoursePress?: (courseItem: CourseItem) => void;
     emptyMessage?: string;
+    isEnrolled?: boolean;
 }
 
 /**
@@ -53,7 +54,8 @@ const CourseList: React.FC<CourseListProps> = ({
                                                    courses,
                                                    pdId,
                                                    onCoursePress,
-                                                   emptyMessage = "Aucun cours disponible"
+                                                   emptyMessage = "Aucun cours disponible",
+                                                   isEnrolled = false
                                                }) => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
@@ -79,6 +81,7 @@ const CourseList: React.FC<CourseListProps> = ({
                     courseItem={courseItem}
                     pdId={pdId}
                     isDark={isDark}
+                    isEnrolled={isEnrolled}
                 />
             ))}
         </ScrollView>

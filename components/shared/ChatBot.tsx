@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -14,7 +14,6 @@ import {
     TouchableOpacity,
     FlatList,
     Dimensions,
-    Animated,
     SafeAreaView,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -24,15 +23,15 @@ import { theme } from '@/constants/theme';
 import { ThemedText } from '@/components/ThemedText';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { useSWRConfig } from 'swr';
-import run from '@/config/gemini'; // Adjust the import path as necessary
-import Markdown from 'react-native-markdown-display'; // Importation de la bibliothèque Markdown
+import run from '@/config/gemini';
+import Markdown from 'react-native-markdown-display';
 
-// Define interfaces for context elements
+// Types
 export interface ContextElement {
     id: string;
     type: 'program' | 'course' | 'lesson' | 'exercise' | 'quiz' | 'archive' | 'video';
     title: string;
-    data: any; // Actual data from SWR cache
+    data: any;
 }
 
 interface Message {
@@ -46,7 +45,7 @@ interface ChatSession {
     id: string;
     title: string;
     messages: Message[];
-    contextElementIds: string[]; // Store IDs rather than full objects
+    contextElementIds: string[];
     createdAt: Date;
     updatedAt: Date;
 }
@@ -58,6 +57,12 @@ interface ChatBoxProps {
     initialChatSessionId?: string;
 }
 
+// Constantes
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const STORAGE_KEYS = {
+    CHAT_HISTORY: 'ezadrive_chat_history_v2',
+};
+
 const ChatBox: React.FC<ChatBoxProps> = ({
                                              visible,
                                              onClose,
@@ -65,6 +70,12 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                                              initialChatSessionId,
                                          }) => {
     const isDark = useColorScheme() === 'dark';
+    const { trigger } = useHaptics();
+    const scrollViewRef = useRef<ScrollView>(null);
+    const pathname = usePathname();
+    const { cache } = useSWRConfig();
+
+    // États principaux
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -72,18 +83,11 @@ const ChatBox: React.FC<ChatBoxProps> = ({
     const [suggestedElements, setSuggestedElements] = useState<ContextElement[]>([]);
     const [currentChatSession, setCurrentChatSession] = useState<string | null>(initialChatSessionId || null);
     const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
-    const [showChatHistory, setShowChatHistory] = useState(false);
-    const [showContextDrawer, setShowContextDrawer] = useState(false);
 
-    const { trigger } = useHaptics();
-    const scrollViewRef = useRef<ScrollView>(null);
-    const contextDrawerAnimation = useRef(new Animated.Value(0)).current;
-    const pathname = usePathname();
+    // États des modaux/drawers
+    const [activeModal, setActiveModal] = useState<'none' | 'history' | 'context'>('none');
 
-    // Access SWR cache via the cache property
-    const { cache } = useSWRConfig();
-
-    // Styles Markdown personnalisés avec support du mode sombre
+    // Styles Markdown
     const markdownStyles = {
         body: {
             color: isDark ? '#FFFFFF' : '#111827',
@@ -121,16 +125,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({
             marginBottom: 2,
             color: isDark ? '#FFFFFF' : '#111827',
         },
-        bullet_list: {
-            marginTop: 0,
-            marginBottom: 5,
-            color: isDark ? '#FFFFFF' : '#111827',
-        },
-        ordered_list: {
-            marginTop: 0,
-            marginBottom: 5,
-            color: isDark ? '#FFFFFF' : '#111827',
-        },
         code_block: {
             backgroundColor: isDark ? '#374151' : '#F3F4F6',
             padding: 8,
@@ -160,259 +154,87 @@ const ChatBox: React.FC<ChatBoxProps> = ({
         link: {
             color: isDark ? theme.color.primary[400] : theme.color.primary[500],
         },
-        em: {
-            fontStyle: 'italic',
-            color: isDark ? '#FFFFFF' : '#111827',
-        },
         strong: {
             fontWeight: 'bold',
             color: isDark ? '#FFFFFF' : '#111827',
         },
-        hr: {
-            backgroundColor: isDark ? '#374151' : '#E5E7EB',
-            height: 1,
-            marginTop: 8,
-            marginBottom: 8,
-        },
-        // Ajouts pour d'autres éléments Markdown
-        table: {
-            borderWidth: 1,
-            borderColor: isDark ? '#4B5563' : '#D1D5DB',
-            marginTop: 10,
-            marginBottom: 10,
-        },
-        thead: {
-            backgroundColor: isDark ? '#374151' : '#F3F4F6',
-        },
-        th: {
-            padding: 8,
-            color: isDark ? '#FFFFFF' : '#111827',
-            fontWeight: 'bold',
-            borderWidth: 1,
-            borderColor: isDark ? '#4B5563' : '#D1D5DB',
-        },
-        tr: {
-            borderBottomWidth: 1,
-            borderColor: isDark ? '#4B5563' : '#D1D5DB',
-        },
-        td: {
-            padding: 8,
-            color: isDark ? '#FFFFFF' : '#111827',
-            borderWidth: 1,
-            borderColor: isDark ? '#4B5563' : '#D1D5DB',
-        },
-        // Autres listes
-        ordered_list_icon: {
-            color: isDark ? '#FFFFFF' : '#111827',
-            marginRight: 5,
-        },
-        bullet_list_icon: {
-            color: isDark ? '#FFFFFF' : '#111827',
-            marginRight: 5,
-        },
-        // Image
-        image: {
-            marginTop: 8,
-            marginBottom: 8,
-        },
     };
 
-    // Load chat history and current chat on mount
+    // Générateur d'ID unique
+    const generateUniqueId = useCallback(() => {
+        return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }, []);
+
+    // Reset complet quand le modal se ferme
     useEffect(() => {
-        loadChatHistory();
-
-        if (initialChatSessionId) {
-            loadChatSession(initialChatSessionId);
-        } else if (currentChatSession) {
-            loadChatSession(currentChatSession);
-        } else {
-            // Start with a welcome message
-            setMessages([
-                {
-                    id: '0',
-                    text: 'Bonjour! Je suis votre assistant. Comment puis-je vous aider aujourd\'hui?',
-                    isUser: false,
-                    timestamp: new Date(),
-                },
-            ]);
+        if (!visible) {
+            setActiveModal('none');
+            // Reset après un délai pour éviter les animations glitchées
+            const timer = setTimeout(() => {
+                // Ne reset que si le modal reste fermé
+                if (!visible) {
+                    setActiveModal('none');
+                }
+            }, 300);
+            return () => clearTimeout(timer);
         }
-    }, [initialChatSessionId]);
+    }, [visible]);
 
-    // Effect to update context elements when initialContextElements changes
+    // Chargement initial
+    useEffect(() => {
+        if (visible) {
+            loadChatHistory();
+            if (initialChatSessionId) {
+                loadChatSession(initialChatSessionId);
+            } else if (currentChatSession) {
+                loadChatSession(currentChatSession);
+            } else {
+                initializeWelcomeMessage();
+            }
+        }
+    }, [visible, initialChatSessionId]);
+
+    // Mise à jour des éléments de contexte initiaux
     useEffect(() => {
         if (initialContextElements && initialContextElements.length > 0) {
             setContextElements(initialContextElements);
         }
     }, [initialContextElements]);
 
-    // Generate suggested context elements based on current route and SWR cache
+    // Génération des suggestions
     useEffect(() => {
-        const generateSuggestedElementsFromCache = () => {
-            try {
-                const suggestions: ContextElement[] = [];
-                const segments = pathname.split('/').filter(Boolean);
+        if (visible) {
+            generateSuggestedElements();
+        }
+    }, [pathname, contextElements, cache, visible]);
 
-                // Get indexes for different route segments
-                const pdIndex = segments.findIndex(s => s === 'learn') + 1;
-                const courseIndex = segments.findIndex(s => s === 'courses') + 1;
-                const lessonIndex = segments.findIndex(s => s === 'lessons') + 1;
-                const exerciseIndex = segments.findIndex(s => s === 'exercices') + 1;
-                const quizIndex = segments.findIndex(s => s === 'quizzes') + 1;
-                const archiveIndex = segments.findIndex(s => s === 'anales') + 1;
-                const videoIndex = segments.findIndex(s => s === 'videos') + 1;
+    // Auto-scroll
+    useEffect(() => {
+        if (scrollViewRef.current && messages.length > 0) {
+            const timer = setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [messages]);
 
-                // Get IDs from route segments
-                const pdId = pdIndex >= 0 && pdIndex < segments.length ? segments[pdIndex] : null;
-                const courseId = courseIndex >= 0 && courseIndex < segments.length ? segments[courseIndex] : null;
-                const lessonId = lessonIndex >= 0 && lessonIndex < segments.length ? segments[lessonIndex] : null;
-                const exerciseId = exerciseIndex >= 0 && exerciseIndex < segments.length ? segments[exerciseIndex] : null;
-                const quizId = quizIndex >= 0 && quizIndex < segments.length ? segments[quizIndex] : null;
-                const archiveId = archiveIndex >= 0 && archiveIndex < segments.length ? segments[archiveIndex] : null;
-                const videoId = videoIndex >= 0 && videoIndex < segments.length ? segments[videoIndex] : null;
-
-                // Check for program data in SWR cache
-                if (pdId) {
-                    const programKey = `program-index-${pdId}`;
-                    const programData = cache.get(programKey)?.data;
-
-                    if (programData) {
-                        suggestions.push({
-                            id: `program-${pdId}`,
-                            type: 'program',
-                            title: `Programme: ${programData?.title || 'Programme actuel'}`,
-                            data: programData
-                        });
-                    }
-
-                    // Check for courses list in SWR cache
-                    const coursesKey = `program-courses-${pdId}`;
-                    const coursesData = cache.get(coursesKey)?.data;
-
-                    if (coursesData && Array.isArray(coursesData)) {
-                        // Don't add all courses as suggestions, but note the availability
-                        if (coursesData.length > 0 && !courseId) {
-                            suggestions.push({
-                                id: `courses-${pdId}`,
-                                type: 'course',
-                                title: `Tous les cours du programme (${coursesData.length})`,
-                                data: coursesData
-                            });
-                        }
-                    }
-                }
-
-                // Check for course data in SWR cache
-                if (courseId) {
-                    const courseKey = `course-${courseId}`;
-                    const courseData = cache.get(courseKey)?.data;
-
-                    if (courseData) {
-                        suggestions.push({
-                            id: `course-${courseId}`,
-                            type: 'course',
-                            title: `Cours: ${courseData?.name || 'Cours actuel'}`,
-                            data: courseData
-                        });
-                    }
-                }
-
-                // Check for lesson data in SWR cache
-                if (lessonId) {
-                    const contentKey = `content-${lessonId}`;
-                    const lessonData = cache.get(contentKey)?.data;
-
-                    if (lessonData) {
-                        suggestions.push({
-                            id: `lesson-${lessonId}`,
-                            type: 'lesson',
-                            title: `Leçon: ${lessonData?.name || 'Leçon actuelle'}`,
-                            data: lessonData
-                        });
-                    }
-                }
-
-                // Check for exercise data in SWR cache
-                if (exerciseId) {
-                    const exerciseKey = `exercise-${exerciseId}`;
-                    const exerciseData = cache.get(exerciseKey)?.data;
-
-                    if (exerciseData) {
-                        suggestions.push({
-                            id: `exercise-${exerciseId}`,
-                            type: 'exercise',
-                            title: `Exercice: ${exerciseData?.title || 'Exercice actuel'}`,
-                            data: exerciseData
-                        });
-                    }
-                }
-
-                // Check for quiz data in SWR cache
-                if (quizId) {
-                    const quizKey = `quiz-${quizId}`;
-                    const quizData = cache.get(quizKey)?.data;
-
-                    if (quizData) {
-                        suggestions.push({
-                            id: `quiz-${quizId}`,
-                            type: 'quiz',
-                            title: `Quiz: ${quizData?.name || 'Quiz actuel'}`,
-                            data: quizData
-                        });
-                    }
-                }
-
-                // Check for archive data in SWR cache
-                if (archiveId) {
-                    const archiveKey = `archives/${archiveId}`;
-                    const archiveData = cache.get(archiveKey)?.data;
-
-                    if (archiveData) {
-                        suggestions.push({
-                            id: `archive-${archiveId}`,
-                            type: 'archive',
-                            title: `Archive: ${archiveData?.name || 'Archive actuelle'}`,
-                            data: archiveData
-                        });
-                    }
-                }
-
-                // Check for video data in SWR cache
-                if (videoId) {
-                    const videoKey = `video-${videoId}`;
-                    const videoData = cache.get(videoKey)?.data;
-
-                    if (videoData) {
-                        suggestions.push({
-                            id: `video-${videoId}`,
-                            type: 'video',
-                            title: `Vidéo: ${videoData?.title || 'Vidéo actuelle'}`,
-                            data: videoData
-                        });
-                    }
-                }
-
-                // Filter out any suggestions that are already in the context
-                const filteredSuggestions = suggestions.filter(
-                    (suggestion) => !contextElements.some((element) => element.id === suggestion.id)
-                );
-
-                setSuggestedElements(filteredSuggestions);
-            } catch (error) {
-                console.error('Error generating suggestions from cache:', error);
-                setSuggestedElements([]);
-            }
+    // Fonctions utilitaires
+    const initializeWelcomeMessage = () => {
+        const welcomeMessage: Message = {
+            id: generateUniqueId(),
+            text: 'Bonjour! Je suis votre assistant. Comment puis-je vous aider aujourd\'hui?',
+            isUser: false,
+            timestamp: new Date(),
         };
+        setMessages([welcomeMessage]);
+    };
 
-        generateSuggestedElementsFromCache();
-    }, [pathname, contextElements, cache]);
-
-    // Load chat history from AsyncStorage
     const loadChatHistory = async () => {
         try {
-            const chatHistoryString = await AsyncStorage.getItem('ezadrive_chat_history');
-            if (chatHistoryString) {
-                const history = JSON.parse(chatHistoryString) as ChatSession[];
-                // Convert date strings back to Date objects
+            const historyString = await AsyncStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
+            if (historyString) {
+                const history = JSON.parse(historyString) as ChatSession[];
+                // Convertir les dates
                 history.forEach(session => {
                     session.createdAt = new Date(session.createdAt);
                     session.updatedAt = new Date(session.updatedAt);
@@ -423,25 +245,23 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                 setChatHistory(history);
             }
         } catch (error) {
-            console.error('Error loading chat history:', error);
+            console.error('Erreur lors du chargement de l\'historique:', error);
         }
     };
 
-    // Save chat history to AsyncStorage
     const saveChatHistory = async (history: ChatSession[]) => {
         try {
-            await AsyncStorage.setItem('ezadrive_chat_history', JSON.stringify(history));
+            await AsyncStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(history));
         } catch (error) {
-            console.error('Error saving chat history:', error);
+            console.error('Erreur lors de la sauvegarde:', error);
         }
     };
 
-    // Load a specific chat session
     const loadChatSession = async (sessionId: string) => {
         try {
-            const chatHistoryString = await AsyncStorage.getItem('ezadrive_chat_history');
-            if (chatHistoryString) {
-                const history = JSON.parse(chatHistoryString) as ChatSession[];
+            const historyString = await AsyncStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
+            if (historyString) {
+                const history = JSON.parse(historyString) as ChatSession[];
                 const session = history.find(s => s.id === sessionId);
 
                 if (session) {
@@ -450,88 +270,148 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                         timestamp: new Date(msg.timestamp)
                     })));
 
-                    // Rehydrate context elements from SWR cache or create empty placeholders
-                    const rehydratedContextElements: ContextElement[] = [];
-
-                    for (const elementId of session.contextElementIds) {
-                        // Parse the element ID to get the type and actual ID
-                        const [type, id] = elementId.split('-');
-
-                        // Try to find the corresponding data in SWR cache
-                        // You'll need to adjust the cache keys based on your actual SWR key patterns
-                        let data = null;
-                        let cacheKey = '';
-                        let title = 'Élément de contexte';
-
-                        switch (type) {
-                            case 'program':
-                                cacheKey = `program-index-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Programme: ${data?.title || 'Programme'}`;
-                                break;
-                            case 'course':
-                                cacheKey = `course-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Cours: ${data?.name || 'Cours'}`;
-                                break;
-                            case 'lesson':
-                                cacheKey = `content-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Leçon: ${data?.name || 'Leçon'}`;
-                                break;
-                            case 'exercise':
-                                cacheKey = `exercise-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Exercice: ${data?.title || 'Exercice'}`;
-                                break;
-                            case 'quiz':
-                                cacheKey = `quiz-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Quiz: ${data?.name || 'Quiz'}`;
-                                break;
-                            case 'archive':
-                                cacheKey = `archives/${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Archive: ${data?.name || 'Archive'}`;
-                                break;
-                            case 'video':
-                                cacheKey = `video-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Vidéo: ${data?.title || 'Vidéo'}`;
-                                break;
-                        }
-
-                        // Add the element to the list
-                        rehydratedContextElements.push({
-                            id: elementId,
-                            type: type as any,
-                            title: title,
-                            data: data || {}
-                        });
-                    }
-
-                    setContextElements(rehydratedContextElements);
+                    // Rehydrater les éléments de contexte
+                    const rehydratedElements = await rehydrateContextElements(session.contextElementIds);
+                    setContextElements(rehydratedElements);
                     setCurrentChatSession(sessionId);
                 }
             }
         } catch (error) {
-            console.error('Error loading chat session:', error);
+            console.error('Erreur lors du chargement de la session:', error);
         }
     };
 
-    // Create a new chat session
+    const rehydrateContextElements = async (elementIds: string[]): Promise<ContextElement[]> => {
+        const elements: ContextElement[] = [];
+
+        for (const elementId of elementIds) {
+            const [type, id] = elementId.split('-');
+            let data = null;
+            let title = 'Élément de contexte';
+
+            try {
+                switch (type) {
+                    case 'program':
+                        data = cache.get(`program-index-${id}`)?.data;
+                        title = `Programme: ${data?.title || 'Programme'}`;
+                        break;
+                    case 'course':
+                        data = cache.get(`course-${id}`)?.data;
+                        title = `Cours: ${data?.name || 'Cours'}`;
+                        break;
+                    case 'lesson':
+                        data = cache.get(`content-${id}`)?.data;
+                        title = `Leçon: ${data?.name || 'Leçon'}`;
+                        break;
+                    case 'exercise':
+                        data = cache.get(`exercise-${id}`)?.data;
+                        title = `Exercice: ${data?.title || 'Exercice'}`;
+                        break;
+                    case 'quiz':
+                        data = cache.get(`quiz-${id}`)?.data;
+                        title = `Quiz: ${data?.name || 'Quiz'}`;
+                        break;
+                    case 'archive':
+                        data = cache.get(`archives/${id}`)?.data;
+                        title = `Archive: ${data?.name || 'Archive'}`;
+                        break;
+                    case 'video':
+                        data = cache.get(`video-${id}`)?.data;
+                        title = `Vidéo: ${data?.title || 'Vidéo'}`;
+                        break;
+                }
+
+                elements.push({
+                    id: elementId,
+                    type: type as any,
+                    title,
+                    data: data || {}
+                });
+            } catch (error) {
+                console.error(`Erreur lors de la rehydratation de l'élément ${elementId}:`, error);
+            }
+        }
+
+        return elements;
+    };
+
+    const generateSuggestedElements = () => {
+        try {
+            const suggestions: ContextElement[] = [];
+            const segments = pathname.split('/').filter(Boolean);
+
+            // Extraire les IDs des segments d'URL
+            const indices = {
+                pd: segments.findIndex(s => s === 'learn') + 1,
+                course: segments.findIndex(s => s === 'courses') + 1,
+                lesson: segments.findIndex(s => s === 'lessons') + 1,
+                exercise: segments.findIndex(s => s === 'exercices') + 1,
+                quiz: segments.findIndex(s => s === 'quizzes') + 1,
+                archive: segments.findIndex(s => s === 'anales') + 1,
+                video: segments.findIndex(s => s === 'videos') + 1,
+            };
+
+            const ids = {
+                pd: indices.pd >= 0 && indices.pd < segments.length ? segments[indices.pd] : null,
+                course: indices.course >= 0 && indices.course < segments.length ? segments[indices.course] : null,
+                lesson: indices.lesson >= 0 && indices.lesson < segments.length ? segments[indices.lesson] : null,
+                exercise: indices.exercise >= 0 && indices.exercise < segments.length ? segments[indices.exercise] : null,
+                quiz: indices.quiz >= 0 && indices.quiz < segments.length ? segments[indices.quiz] : null,
+                archive: indices.archive >= 0 && indices.archive < segments.length ? segments[indices.archive] : null,
+                video: indices.video >= 0 && indices.video < segments.length ? segments[indices.video] : null,
+            };
+
+            // Générer les suggestions basées sur le cache SWR
+            const cacheChecks = [
+                { id: ids.pd, type: 'program', key: `program-index-${ids.pd}`, titleField: 'title' },
+                { id: ids.course, type: 'course', key: `course-${ids.course}`, titleField: 'name' },
+                { id: ids.lesson, type: 'lesson', key: `content-${ids.lesson}`, titleField: 'name' },
+                { id: ids.exercise, type: 'exercise', key: `exercise-${ids.exercise}`, titleField: 'title' },
+                { id: ids.quiz, type: 'quiz', key: `quiz-${ids.quiz}`, titleField: 'name' },
+                { id: ids.archive, type: 'archive', key: `archives/${ids.archive}`, titleField: 'name' },
+                { id: ids.video, type: 'video', key: `video-${ids.video}`, titleField: 'title' },
+            ];
+
+            cacheChecks.forEach(({ id, type, key, titleField }) => {
+                if (id) {
+                    const data = cache.get(key)?.data;
+                    if (data) {
+                        const elementId = `${type}-${id}`;
+                        const title = `${type.charAt(0).toUpperCase() + type.slice(1)}: ${data[titleField] || `${type} actuel`}`;
+
+                        suggestions.push({
+                            id: elementId,
+                            type: type as any,
+                            title,
+                            data
+                        });
+                    }
+                }
+            });
+
+            // Filtrer les suggestions déjà présentes dans le contexte
+            const filteredSuggestions = suggestions.filter(
+                suggestion => !contextElements.some(element => element.id === suggestion.id)
+            );
+
+            setSuggestedElements(filteredSuggestions);
+        } catch (error) {
+            console.error('Erreur lors de la génération des suggestions:', error);
+            setSuggestedElements([]);
+        }
+    };
+
     const createNewChatSession = async () => {
+        const sessionId = generateUniqueId();
         const newSession: ChatSession = {
-            id: Date.now().toString(),
+            id: sessionId,
             title: 'Nouvelle conversation',
-            messages: [
-                {
-                    id: '0',
-                    text: 'Bonjour! Je suis votre assistant. Comment puis-je vous aider aujourd\'hui?',
-                    isUser: false,
-                    timestamp: new Date(),
-                },
-            ],
+            messages: [{
+                id: generateUniqueId(),
+                text: 'Bonjour! Je suis votre assistant. Comment puis-je vous aider aujourd\'hui?',
+                isUser: false,
+                timestamp: new Date(),
+            }],
             contextElementIds: contextElements.map(el => el.id),
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -539,103 +419,85 @@ const ChatBox: React.FC<ChatBoxProps> = ({
 
         const updatedHistory = [...chatHistory, newSession];
         setChatHistory(updatedHistory);
-        saveChatHistory(updatedHistory);
+        await saveChatHistory(updatedHistory);
 
         setMessages(newSession.messages);
-        setCurrentChatSession(newSession.id);
+        setCurrentChatSession(sessionId);
+        setActiveModal('none');
 
-        return newSession.id;
+        return sessionId;
     };
 
-    // Save the current chat session
     const saveCurrentSession = async () => {
-        if (!currentChatSession) return;
+        if (!currentChatSession || messages.length === 0) return;
 
         const updatedHistory = [...chatHistory];
         const sessionIndex = updatedHistory.findIndex(s => s.id === currentChatSession);
+        const title = messages.find(m => m.isUser)?.text.substring(0, 50) || 'Nouvelle conversation';
+
+        const sessionData = {
+            id: currentChatSession,
+            title,
+            messages,
+            contextElementIds: contextElements.map(el => el.id),
+            createdAt: sessionIndex !== -1 ? updatedHistory[sessionIndex].createdAt : new Date(),
+            updatedAt: new Date(),
+        };
 
         if (sessionIndex !== -1) {
-            updatedHistory[sessionIndex] = {
-                ...updatedHistory[sessionIndex],
-                messages,
-                contextElementIds: contextElements.map(el => el.id),
-                updatedAt: new Date(),
-                title: messages.find(m => m.isUser)?.text.substring(0, 30) || 'Nouvelle conversation',
-            };
+            updatedHistory[sessionIndex] = sessionData;
         } else {
-            updatedHistory.push({
-                id: currentChatSession,
-                title: messages.find(m => m.isUser)?.text.substring(0, 30) || 'Nouvelle conversation',
-                messages,
-                contextElementIds: contextElements.map(el => el.id),
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            });
+            updatedHistory.push(sessionData);
         }
 
         setChatHistory(updatedHistory);
-        saveChatHistory(updatedHistory);
+        await saveChatHistory(updatedHistory);
     };
 
-    // Prepare context information for the AI using real data
     const prepareContextInfo = () => {
         return contextElements.map((element) => {
             const data = element.data;
 
             switch (element.type) {
                 case 'program':
-                    return `
-Programme: ${data?.title || 'Non disponible'}
+                    return `Programme: ${data?.title || 'Non disponible'}
 Description: ${data?.description || 'Non disponible'}
 Nombre de cours: ${data?.course_count || data?.course_learningpath?.length || 'Non disponible'}
 ${data?.concours_learningpaths?.concour?.name ? `Concours: ${data.concours_learningpaths.concour.name}` : ''}
-${data?.concours_learningpaths?.concour?.school?.name ? `École: ${data.concours_learningpaths.concour.school.name}` : ''}
-`;
+${data?.concours_learningpaths?.concour?.school?.name ? `École: ${data.concours_learningpaths.concour.school.name}` : ''}`;
 
                 case 'course':
-                    return `
-Cours: ${data?.name || 'Non disponible'}
+                    return `Cours: ${data?.name || 'Non disponible'}
 ${data?.category?.name ? `Catégorie: ${data.category.name}` : ''}
 ${data?.description ? `Description: ${data.description}` : ''}
 ${data?.goals ? `Objectifs: ${Array.isArray(data.goals) ? data.goals.join(', ') : data.goals}` : ''}
-Nombre de leçons: ${data?.courses_content?.length || 'Non disponible'}
-`;
+Nombre de leçons: ${data?.courses_content?.length || 'Non disponible'}`;
 
                 case 'lesson':
-                    return `
-Leçon: ${data?.name || 'Non disponible'}
+                    return `Leçon: ${data?.name || 'Non disponible'}
 Ordre: ${data?.order !== undefined ? data.order + 1 : 'Non disponible'}
-Cours parent: ${data?.courses?.name || 'Non disponible'}
-`;
+Cours parent: ${data?.courses?.name || 'Non disponible'}`;
 
                 case 'exercise':
-                    return `
-Exercice: ${data?.title || 'Non disponible'}
+                    return `Exercice: ${data?.title || 'Non disponible'}
 ${data?.description ? `Description: ${data.description}` : ''}
-${data?.course?.name ? `Cours: ${data.course.name}` : ''}
-`;
+${data?.course?.name ? `Cours: ${data.course.name}` : ''}`;
 
                 case 'quiz':
-                    return `
-Quiz: ${data?.name || 'Non disponible'}
+                    return `Quiz: ${data?.name || 'Non disponible'}
 ${data?.description ? `Description: ${data.description}` : ''}
 Nombre de questions: ${data?.quiz_questions?.length || 'Non disponible'}
-Catégorie: ${data?.category?.name || 'Non disponible'}
-`;
+Catégorie: ${data?.category?.name || 'Non disponible'}`;
 
                 case 'archive':
-                    return `
-Archive: ${data?.name || 'Non disponible'}
+                    return `Archive: ${data?.name || 'Non disponible'}
 ${data?.session ? `Session: ${data.session}` : ''}
-Type de fichier: ${data?.file_type || 'Non disponible'}
-`;
+Type de fichier: ${data?.file_type || 'Non disponible'}`;
 
                 case 'video':
-                    return `
-Vidéo: ${data?.title || 'Non disponible'}
+                    return `Vidéo: ${data?.title || 'Non disponible'}
 ${data?.description ? `Description: ${data.description}` : ''}
-Durée: ${data?.duration ? `${Math.floor(data.duration / 60)} minutes` : 'Non disponible'}
-`;
+Durée: ${data?.duration ? `${Math.floor(data.duration / 60)} minutes` : 'Non disponible'}`;
 
                 default:
                     return `${element.title}\nAucune donnée supplémentaire disponible.`;
@@ -643,15 +505,13 @@ Durée: ${data?.duration ? `${Math.floor(data.duration / 60)} minutes` : 'Non di
         }).join('\n\n');
     };
 
-    // Send message to Gemini AI
     const handleSend = async () => {
-        if (inputText.trim() === '') return;
+        if (inputText.trim() === '' || isLoading) return;
 
         trigger(HapticType.LIGHT);
 
-        // Create and add user message
         const userMessage: Message = {
-            id: Date.now().toString(),
+            id: generateUniqueId(),
             text: inputText.trim(),
             isUser: true,
             timestamp: new Date(),
@@ -663,23 +523,16 @@ Durée: ${data?.duration ? `${Math.floor(data.duration / 60)} minutes` : 'Non di
         setIsLoading(true);
 
         try {
-            // Create session if needed
             if (!currentChatSession) {
-                const newSessionId = await createNewChatSession();
-                setCurrentChatSession(newSessionId);
+                await createNewChatSession();
             }
 
-            // Prepare context information using actual data
             const contextInfo = prepareContextInfo();
-
-            // Format conversation history
             const conversationHistory = messages
                 .map(msg => `${msg.isUser ? 'Étudiant' : 'Assistant'}: ${msg.text}`)
                 .join('\n\n');
 
-            // Send message to Gemini with detailed context
-            const prompt = `
-Tu es un assistant pédagogique spécialisé pour aider les étudiants dans leur préparation aux concours. Tu dois proposer une aide adaptée et efficace selon le contexte.
+            const prompt = `Tu es un assistant pédagogique spécialisé pour aider les étudiants dans leur préparation aux concours. Tu dois proposer une aide adaptée et efficace selon le contexte.
 
 ${contextInfo ? `CONTEXTE DÉTAILLÉ:\n${contextInfo}\n\n` : ''}
 
@@ -697,13 +550,12 @@ Directives:
 6. Structure tes réponses avec du Markdown pour améliorer la lisibilité (titres, listes, mise en évidence)
 7. Utilise des exemples concrets pour illustrer tes explications
 
-L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur le contexte fourni sans être trop verbeux.
-`;
+L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur le contexte fourni sans être trop verbeux.`;
+
             const response = await run(prompt);
 
-            // Create and add AI response
             const aiMessage: Message = {
-                id: (Date.now() + 1).toString(),
+                id: generateUniqueId(),
                 text: response,
                 isUser: false,
                 timestamp: new Date(),
@@ -711,15 +563,13 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
 
             const finalMessages = [...updatedMessages, aiMessage];
             setMessages(finalMessages);
-
-            // Save the updated session
             await saveCurrentSession();
-        } catch (error) {
-            console.error('Error getting response from Gemini:', error);
 
-            // Add error message
+        } catch (error) {
+            console.error('Erreur lors de l\'envoi:', error);
+
             const errorMessage: Message = {
-                id: (Date.now() + 1).toString(),
+                id: generateUniqueId(),
                 text: "Désolé, je n'ai pas pu traiter votre demande. Veuillez réessayer plus tard.",
                 isUser: false,
                 timestamp: new Date(),
@@ -731,123 +581,85 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
         }
     };
 
-    // Add context element
     const addContextElement = (element: ContextElement) => {
         if (!contextElements.some(e => e.id === element.id)) {
             const updatedElements = [...contextElements, element];
             setContextElements(updatedElements);
 
-            // Show feedback to the user
             const systemMessage: Message = {
-                id: Date.now().toString(),
+                id: generateUniqueId(),
                 text: `J'ai ajouté "${element.title}" au contexte de notre conversation.`,
                 isUser: false,
                 timestamp: new Date(),
             };
 
-            setMessages([...messages, systemMessage]);
-
-            // If we have a current session, update it
-            if (currentChatSession) {
-                const updatedHistory = [...chatHistory];
-                const sessionIndex = updatedHistory.findIndex(s => s.id === currentChatSession);
-
-                if (sessionIndex !== -1) {
-                    updatedHistory[sessionIndex] = {
-                        ...updatedHistory[sessionIndex],
-                        contextElementIds: updatedElements.map(el => el.id),
-                        updatedAt: new Date(),
-                    };
-
-                    setChatHistory(updatedHistory);
-                    saveChatHistory(updatedHistory);
-                }
-            }
+            setMessages(prev => [...prev, systemMessage]);
+            saveCurrentSession();
         }
     };
 
-    // Remove context element
     const removeContextElement = (elementId: string) => {
         const updatedElements = contextElements.filter(e => e.id !== elementId);
         setContextElements(updatedElements);
-
-        // If we have a current session, update it
-        if (currentChatSession) {
-            const updatedHistory = [...chatHistory];
-            const sessionIndex = updatedHistory.findIndex(s => s.id === currentChatSession);
-
-            if (sessionIndex !== -1) {
-                updatedHistory[sessionIndex] = {
-                    ...updatedHistory[sessionIndex],
-                    contextElementIds: updatedElements.map(el => el.id),
-                    updatedAt: new Date(),
-                };
-
-                setChatHistory(updatedHistory);
-                saveChatHistory(updatedHistory);
-            }
-        }
+        saveCurrentSession();
     };
 
-    // Toggle context drawer
-    const toggleContextDrawer = () => {
-        setShowContextDrawer(!showContextDrawer);
-        Animated.timing(contextDrawerAnimation, {
-            toValue: showContextDrawer ? 0 : 1,
-            duration: 300,
-            useNativeDriver: true,
-        }).start();
+    const handleCloseModal = () => {
+        setActiveModal('none');
+        onClose();
     };
 
-    // Auto scroll to bottom when new messages arrive
-    useEffect(() => {
-        if (scrollViewRef.current) {
-            setTimeout(() => {
-                scrollViewRef.current?.scrollToEnd({ animated: true });
-            }, 100);
-        }
-    }, [messages]);
-
-    // Render a message bubble - MISE À JOUR POUR MARKDOWN
-    const renderMessageBubble = (message: Message) => {
-        return (
-            <View
-                key={message.id}
-                style={[
-                    styles.messageBubble,
-                    message.isUser
-                        ? styles.userBubble
-                        : [styles.aiBubble, isDark && styles.aiBubbleDark],
-                ]}
-            >
-                {message.isUser ? (
-                    // Message de l'utilisateur - Text normal
-                    <Text
-                        style={[
-                            styles.messageText,
-                            styles.userText
-                        ]}
-                    >
-                        {message.text}
-                    </Text>
-                ) : (
-                    // Message de l'assistant - Markdown
-                    <Markdown
-                        /* @ts-ignore */
-                        style={markdownStyles}
-                    >
-                        {message.text}
-                    </Markdown>
-                )}
-            </View>
-        );
+    const handleHistoryItemPress = (session: ChatSession) => {
+        trigger(HapticType.LIGHT);
+        loadChatSession(session.id);
+        setActiveModal('none');
     };
 
-    // Render a chat history item
-    const renderChatHistoryItem = (item: ChatSession) => {
-        const lastMessage = item.messages[item.messages.length - 1];
+    // Renderers
+    const renderMessageBubble = ({ item: message }: { item: Message }) => (
+        <View
+            style={[
+                styles.messageBubble,
+                message.isUser
+                    ? styles.userBubble
+                    : [styles.aiBubble, isDark && styles.aiBubbleDark],
+            ]}
+        >
+            {message.isUser ? (
+                <Text style={[styles.messageText, styles.userText]}>
+                    {message.text}
+                </Text>
+            ) : (
+                <Markdown style={markdownStyles}>
+                    {message.text}
+                </Markdown>
+            )}
+        </View>
+    );
+
+    const renderSuggestedElement = ({ item: element }: { item: ContextElement }) => (
+        <TouchableOpacity
+            style={[styles.suggestedElement, isDark && styles.suggestedElementDark]}
+            onPress={() => {
+                trigger(HapticType.LIGHT);
+                addContextElement(element);
+            }}
+        >
+            <MaterialCommunityIcons
+                name={getIconForType(element.type)}
+                size={16}
+                color={isDark ? '#FFFFFF' : '#111827'}
+            />
+            <Text style={[styles.suggestedElementText, isDark && styles.suggestedElementTextDark]}>
+                Ajouter {element.title}
+            </Text>
+        </TouchableOpacity>
+    );
+
+    const renderHistoryItem = ({ item: session }: { item: ChatSession }) => {
+        const lastMessage = session.messages[session.messages.length - 1];
         const preview = lastMessage?.text.substring(0, 30) + (lastMessage?.text.length > 30 ? '...' : '');
-        const isSelected = currentChatSession === item.id;
+        const isSelected = currentChatSession === session.id;
 
         return (
             <TouchableOpacity
@@ -856,11 +668,7 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                     isDark && styles.historyItemDark,
                     isSelected && styles.historyItemSelected,
                 ]}
-                onPress={() => {
-                    trigger(HapticType.LIGHT);
-                    loadChatSession(item.id);
-                    setShowChatHistory(false);
-                }}
+                onPress={() => handleHistoryItemPress(session)}
             >
                 <MaterialCommunityIcons
                     name="chat-outline"
@@ -868,57 +676,95 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                     color={isSelected ? theme.color.primary[500] : (isDark ? '#9CA3AF' : '#6B7280')}
                 />
                 <View style={styles.historyItemContent}>
-                    <ThemedText style={styles.historyItemTitle}>
-                        {item.title || 'Conversation'}
-                    </ThemedText>
-                    <ThemedText style={styles.historyItemPreview}>
+                    <Text style={[styles.historyItemTitle, isDark && styles.historyItemTitleDark]}>
+                        {session.title || 'Conversation'}
+                    </Text>
+                    <Text style={[styles.historyItemPreview, isDark && styles.historyItemPreviewDark]}>
                         {preview || 'Aucun message'}
-                    </ThemedText>
+                    </Text>
                 </View>
-                <ThemedText style={styles.historyItemDate}>
-                    {new Date(item.updatedAt).toLocaleDateString()}
-                </ThemedText>
+                <Text style={[styles.historyItemDate, isDark && styles.historyItemDateDark]}>
+                    {new Date(session.updatedAt).toLocaleDateString()}
+                </Text>
             </TouchableOpacity>
         );
     };
+
+    const renderContextElement = ({ item: element }: { item: ContextElement }) => (
+        <View style={[styles.contextElement, isDark && styles.contextElementDark]}>
+            <MaterialCommunityIcons
+                name={getIconForType(element.type)}
+                size={20}
+                color={isDark ? '#FFFFFF' : '#111827'}
+                style={styles.contextElementIcon}
+            />
+            <View style={styles.contextElementContent}>
+                <Text style={[styles.contextElementTitle, isDark && styles.contextElementTitleDark]}>
+                    {element.title}
+                </Text>
+                <Text style={[styles.contextElementType, isDark && styles.contextElementTypeDark]}>
+                    {element.type.charAt(0).toUpperCase() + element.type.slice(1)}
+                </Text>
+            </View>
+            <Pressable
+                style={styles.removeContextElement}
+                onPress={() => {
+                    trigger(HapticType.LIGHT);
+                    removeContextElement(element.id);
+                }}
+            >
+                <MaterialCommunityIcons
+                    name="close"
+                    size={20}
+                    color={isDark ? '#9CA3AF' : '#6B7280'}
+                />
+            </Pressable>
+        </View>
+    );
+
+    const getIconForType = (type: string) => {
+        switch (type) {
+            case 'program': return 'book-open-variant';
+            case 'course': return 'book-open-page-variant';
+            case 'lesson': return 'file-document-outline';
+            case 'exercise': return 'pencil-outline';
+            case 'quiz': return 'help-circle-outline';
+            case 'video': return 'play-circle-outline';
+            default: return 'file-outline';
+        }
+    };
+
+    if (!visible) return null;
 
     return (
         <Modal
             visible={visible}
             animationType="slide"
             transparent={false}
-            onRequestClose={onClose}
-            style={{
-                flex : 1,
-            }}
+            onRequestClose={handleCloseModal}
+            presentationStyle="fullScreen"
         >
             <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
                 {/* Header */}
                 <View style={[styles.header, isDark && styles.headerDark]}>
-                    <View style={styles.headerLeft}>
-                        <Pressable
-                            style={styles.closeButton}
-                            onPress={() => {
-                                trigger(HapticType.LIGHT);
-                                onClose();
-                            }}
-                        >
-                            <MaterialCommunityIcons
-                                name="arrow-left"
-                                size={24}
-                                color={isDark ? '#FFFFFF' : '#111827'}
-                            />
-                        </Pressable>
-                    </View>
-                    <ThemedText style={styles.headerTitle}>
+                    <Pressable style={styles.headerButton} onPress={handleCloseModal}>
+                        <MaterialCommunityIcons
+                            name="arrow-left"
+                            size={24}
+                            color={isDark ? '#FFFFFF' : '#111827'}
+                        />
+                    </Pressable>
+
+                    <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>
                         Assistant IA
-                    </ThemedText>
-                    <View style={styles.headerRight}>
+                    </Text>
+
+                    <View style={styles.headerActions}>
                         <Pressable
                             style={styles.headerButton}
                             onPress={() => {
                                 trigger(HapticType.LIGHT);
-                                setShowChatHistory(true);
+                                setActiveModal('history');
                             }}
                         >
                             <MaterialCommunityIcons
@@ -927,9 +773,13 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                                 color={isDark ? '#FFFFFF' : '#111827'}
                             />
                         </Pressable>
+
                         <Pressable
                             style={styles.headerButton}
-                            onPress={toggleContextDrawer}
+                            onPress={() => {
+                                trigger(HapticType.LIGHT);
+                                setActiveModal('context');
+                            }}
                         >
                             <MaterialCommunityIcons
                                 name="information-outline"
@@ -947,75 +797,48 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                     </View>
                 </View>
 
-                {/* Suggested Context Elements */}
+                {/* Suggested Elements */}
                 {suggestedElements.length > 0 && (
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={[styles.suggestedElementsContainer, isDark && styles.suggestedElementsContainerDark, {flexGrow : 0}]}
-                        contentContainerStyle={styles.suggestedElementsContent}
-                    >
-                        {suggestedElements.map((element) => (
-                            <TouchableOpacity
-                                key={element.id}
-                                style={[
-                                    styles.suggestedElement,
-                                    isDark && styles.suggestedElementDark,
-                                ]}
-                                onPress={() => {
-                                    trigger(HapticType.LIGHT);
-                                    addContextElement(element);
-                                }}
-                            >
-                                <MaterialCommunityIcons
-                                    name={
-                                        element.type === 'program' ? 'book-open-variant' :
-                                            element.type === 'course' ? 'book-open-page-variant' :
-                                                element.type === 'lesson' ? 'file-document-outline' :
-                                                    element.type === 'exercise' ? 'pencil-outline' :
-                                                        element.type === 'quiz' ? 'help-circle-outline' :
-                                                            element.type === 'video' ? 'play-circle-outline' :
-                                                                'file-outline'
-                                    }
-                                    size={16}
-                                    color={isDark ? '#FFFFFF' : '#111827'}
-                                />
-                                <ThemedText style={styles.suggestedElementText}>
-                                    Ajouter {element.title}
-                                </ThemedText>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                    <View style={[styles.suggestedContainer, isDark && styles.suggestedContainerDark]}>
+                        <FlatList
+                            data={suggestedElements}
+                            renderItem={renderSuggestedElement}
+                            keyExtractor={(item) => `suggested_${item.id}`}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.suggestedContent}
+                        />
+                    </View>
                 )}
 
-                {/* KeyboardAvoidingView added here to wrap the chat and input areas */}
+                {/* Main Chat Area */}
                 <KeyboardAvoidingView
-                    // behavior={Platform.OS === "ios" ? "padding" : "height"}
-                    style={{ flex: 1 }}
-                    keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+                    style={styles.chatArea}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    keyboardVerticalOffset={0}
                 >
-                    {/* ZONE DES MESSAGES - AVEC FIX POUR L'ESPACE VIDE */}
-                    <View style={styles.chatContainer}>
-                        <ScrollView
-                            ref={scrollViewRef}
-                            style={styles.messagesContainer}
-                            contentContainerStyle={styles.messagesContent}
-                            alwaysBounceVertical={false}
-                            showsVerticalScrollIndicator={false}
-                        >
-                            {messages.map(renderMessageBubble)}
-                            {isLoading && (
+                    {/* Messages */}
+                    <FlatList
+                        ref={scrollViewRef}
+                        data={messages}
+                        renderItem={renderMessageBubble}
+                        keyExtractor={(item) => `message_${item.id}`}
+                        style={styles.messagesList}
+                        contentContainerStyle={styles.messagesContent}
+                        showsVerticalScrollIndicator={false}
+                        ListFooterComponent={
+                            isLoading ? (
                                 <View style={[styles.loadingContainer, isDark && styles.loadingContainerDark]}>
                                     <ActivityIndicator size="small" color={theme.color.primary[500]} />
                                     <Text style={[styles.loadingText, isDark && styles.loadingTextDark]}>
                                         En train de répondre...
                                     </Text>
                                 </View>
-                            )}
-                        </ScrollView>
-                    </View>
+                            ) : null
+                        }
+                    />
 
-                    {/* Input area */}
+                    {/* Input Area */}
                     <View style={[styles.inputContainer, isDark && styles.inputContainerDark]}>
                         <TextInput
                             style={[styles.input, isDark && styles.inputDark]}
@@ -1045,22 +868,22 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                     </View>
                 </KeyboardAvoidingView>
 
-                {/* Chat History Modal */}
+                {/* History Modal */}
                 <Modal
-                    visible={showChatHistory}
+                    visible={activeModal === 'history'}
                     transparent={true}
                     animationType="fade"
-                    onRequestClose={() => setShowChatHistory(false)}
+                    onRequestClose={() => setActiveModal('none')}
                 >
                     <View style={styles.modalOverlay}>
-                        <View style={[styles.historyModal, isDark && styles.historyModalDark]}>
-                            <View style={styles.historyModalHeader}>
-                                <ThemedText style={styles.historyModalTitle}>
+                        <View style={[styles.modalContent, isDark && styles.modalContentDark]}>
+                            <View style={styles.modalHeader}>
+                                <Text style={[styles.modalTitle, isDark && styles.modalTitleDark]}>
                                     Historique des conversations
-                                </ThemedText>
+                                </Text>
                                 <Pressable
                                     style={styles.closeButton}
-                                    onPress={() => setShowChatHistory(false)}
+                                    onPress={() => setActiveModal('none')}
                                 >
                                     <MaterialCommunityIcons
                                         name="close"
@@ -1069,39 +892,33 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                                     />
                                 </Pressable>
                             </View>
+
                             <TouchableOpacity
                                 style={[styles.newChatButton, isDark && styles.newChatButtonDark]}
                                 onPress={() => {
                                     trigger(HapticType.LIGHT);
                                     createNewChatSession();
-                                    setShowChatHistory(false);
                                 }}
                             >
-                                <MaterialCommunityIcons
-                                    name="plus"
-                                    size={20}
-                                    color="#FFFFFF"
-                                />
-                                <Text style={styles.newChatButtonText}>
-                                    Nouvelle conversation
-                                </Text>
+                                <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
+                                <Text style={styles.newChatButtonText}>Nouvelle conversation</Text>
                             </TouchableOpacity>
+
                             <FlatList
                                 data={[...chatHistory].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())}
-                                renderItem={({ item }) => renderChatHistoryItem(item)}
-                                keyExtractor={(item) => item.id}
-                                style={styles.historyList}
-                                contentContainerStyle={styles.historyListContent}
+                                renderItem={renderHistoryItem}
+                                keyExtractor={(item) => `history_${item.id}`}
+                                style={styles.modalList}
                                 ListEmptyComponent={
-                                    <View style={styles.emptyHistory}>
+                                    <View style={styles.emptyState}>
                                         <MaterialCommunityIcons
                                             name="chat-remove-outline"
                                             size={48}
                                             color={isDark ? '#4B5563' : '#9CA3AF'}
                                         />
-                                        <ThemedText style={styles.emptyHistoryText}>
+                                        <Text style={[styles.emptyStateText, isDark && styles.emptyStateTextDark]}>
                                             Aucune conversation
-                                        </ThemedText>
+                                        </Text>
                                     </View>
                                 }
                             />
@@ -1109,103 +926,59 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                     </View>
                 </Modal>
 
-                {/* Context Elements Drawer */}
-                <Animated.View
-                    style={[
-                        styles.contextDrawer,
-                        isDark && styles.contextDrawerDark,
-                        {
-                            transform: [
-                                {
-                                    translateX: contextDrawerAnimation.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [300, 0],
-                                    }),
-                                },
-                            ],
-                        },
-                    ]}
+                {/* Context Modal */}
+                <Modal
+                    visible={activeModal === 'context'}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setActiveModal('none')}
                 >
-                    <View style={styles.contextDrawerHeader}>
-                        <ThemedText style={styles.contextDrawerTitle}>
-                            Éléments de contexte
-                        </ThemedText>
-                        <Pressable
-                            style={styles.closeButton}
-                            onPress={toggleContextDrawer}
-                        >
-                            <MaterialCommunityIcons
-                                name="close"
-                                size={24}
-                                color={isDark ? '#FFFFFF' : '#111827'}
-                            />
-                        </Pressable>
-                    </View>
-                    <FlatList
-                        data={contextElements}
-                        renderItem={({ item }) => (
-                            <View style={[styles.contextElement, isDark && styles.contextElementDark]}>
-                                <MaterialCommunityIcons
-                                    name={
-                                        item.type === 'program' ? 'book-open-variant' :
-                                            item.type === 'course' ? 'book-open-page-variant' :
-                                                item.type === 'lesson' ? 'file-document-outline' :
-                                                    item.type === 'exercise' ? 'pencil-outline' :
-                                                        item.type === 'quiz' ? 'help-circle-outline' :
-                                                            item.type === 'video' ? 'play-circle-outline' :
-                                                                'file-outline'
-                                    }
-                                    size={20}
-                                    color={isDark ? '#FFFFFF' : '#111827'}
-                                    style={styles.contextElementIcon}
-                                />
-                                <View style={styles.contextElementContent}>
-                                    <ThemedText style={styles.contextElementTitle}>
-                                        {item.title}
-                                    </ThemedText>
-                                    <ThemedText style={styles.contextElementType}>
-                                        {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-                                    </ThemedText>
-                                </View>
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, isDark && styles.modalContentDark]}>
+                            <View style={styles.modalHeader}>
+                                <Text style={[styles.modalTitle, isDark && styles.modalTitleDark]}>
+                                    Éléments de contexte
+                                </Text>
                                 <Pressable
-                                    style={styles.removeContextElement}
-                                    onPress={() => {
-                                        trigger(HapticType.LIGHT);
-                                        removeContextElement(item.id);
-                                    }}
+                                    style={styles.closeButton}
+                                    onPress={() => setActiveModal('none')}
                                 >
                                     <MaterialCommunityIcons
                                         name="close"
-                                        size={20}
-                                        color={isDark ? '#9CA3AF' : '#6B7280'}
+                                        size={24}
+                                        color={isDark ? '#FFFFFF' : '#111827'}
                                     />
                                 </Pressable>
                             </View>
-                        )}
-                        keyExtractor={(item) => item.id}
-                        ListEmptyComponent={
-                            <View style={styles.emptyContext}>
-                                <MaterialCommunityIcons
-                                    name="information-outline"
-                                    size={48}
-                                    color={isDark ? '#4B5563' : '#9CA3AF'}
-                                />
-                                <ThemedText style={styles.emptyContextText}>
-                                    Aucun élément de contexte
-                                </ThemedText>
-                                <ThemedText style={styles.emptyContextSubtext}>
-                                    Ajoutez des éléments de contexte pour améliorer les réponses de l'assistant.
-                                </ThemedText>
-                            </View>
-                        }
-                    />
-                </Animated.View>
+
+                            <FlatList
+                                data={contextElements}
+                                renderItem={renderContextElement}
+                                keyExtractor={(item) => `context_${item.id}`}
+                                style={styles.modalList}
+                                ListEmptyComponent={
+                                    <View style={styles.emptyState}>
+                                        <MaterialCommunityIcons
+                                            name="information-outline"
+                                            size={48}
+                                            color={isDark ? '#4B5563' : '#9CA3AF'}
+                                        />
+                                        <Text style={[styles.emptyStateText, isDark && styles.emptyStateTextDark]}>
+                                            Aucun élément de contexte
+                                        </Text>
+                                        <Text style={[styles.emptyStateSubtext, isDark && styles.emptyStateSubtextDark]}>
+                                            Ajoutez des éléments de contexte pour améliorer les réponses de l'assistant.
+                                        </Text>
+                                    </View>
+                                }
+                            />
+                        </View>
+                    </View>
+                </Modal>
             </SafeAreaView>
         </Modal>
     );
 };
-
-const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
     container: {
@@ -1229,27 +1002,22 @@ const styles = StyleSheet.create({
         backgroundColor: '#1F2937',
         borderBottomColor: '#374151',
     },
-    headerLeft: {
-        width: 40,
-    },
-    closeButton: {
+    headerButton: {
         padding: 4,
+        position: 'relative',
     },
     headerTitle: {
         fontFamily: theme.typography.fontFamily,
         fontSize: 18,
         fontWeight: 'bold',
+        color: '#111827',
     },
-    headerRight: {
+    headerTitleDark: {
+        color: '#FFFFFF',
+    },
+    headerActions: {
         flexDirection: 'row',
-        alignItems: 'center',
-        width: 80,
-        justifyContent: 'flex-end',
-    },
-    headerButton: {
-        padding: 4,
-        marginLeft: 16,
-        position: 'relative',
+        gap: 16,
     },
     contextBadge: {
         position: 'absolute',
@@ -1267,19 +1035,18 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: 'bold',
     },
-    suggestedElementsContainer: {
+    suggestedContainer: {
         backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
         borderBottomColor: '#E5E7EB',
+        paddingVertical: 12,
     },
-    suggestedElementsContainerDark: {
+    suggestedContainerDark: {
         backgroundColor: '#1F2937',
         borderBottomColor: '#374151',
     },
-    suggestedElementsContent: {
+    suggestedContent: {
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        flexDirection: 'row',
         gap: 8,
     },
     suggestedElement: {
@@ -1297,26 +1064,26 @@ const styles = StyleSheet.create({
     suggestedElementText: {
         fontFamily: theme.typography.fontFamily,
         fontSize: 14,
+        color: '#111827',
     },
-    // Nouvelle structure pour le conteneur des messages
-    chatContainer: {
+    suggestedElementTextDark: {
+        color: '#FFFFFF',
+    },
+    chatArea: {
         flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
     },
-    messagesContainer: {
+    messagesList: {
         flex: 1,
     },
     messagesContent: {
         paddingHorizontal: 16,
         paddingVertical: 16,
-        flexGrow: 0, // Cette ligne est cruciale pour empêcher l'étirement
     },
     messageBubble: {
         marginBottom: 12,
         padding: 12,
         borderRadius: 16,
-        maxWidth: '85%', // Légèrement plus large pour accommoder le contenu markdown
+        maxWidth: '85%',
     },
     userBubble: {
         alignSelf: 'flex-end',
@@ -1337,12 +1104,6 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     userText: {
-        color: '#FFFFFF',
-    },
-    aiText: {
-        color: '#111827',
-    },
-    aiTextDark: {
         color: '#FFFFFF',
     },
     loadingContainer: {
@@ -1369,12 +1130,13 @@ const styles = StyleSheet.create({
     },
     inputContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         paddingHorizontal: 16,
         paddingVertical: 12,
         backgroundColor: '#FFFFFF',
         borderTopWidth: 1,
         borderTopColor: '#E5E7EB',
+        gap: 8,
     },
     inputContainerDark: {
         backgroundColor: '#1F2937',
@@ -1383,7 +1145,7 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         backgroundColor: '#F3F4F6',
-        borderRadius: theme.border.radius.small,
+        borderRadius: 20,
         paddingHorizontal: 16,
         paddingVertical: 10,
         fontFamily: theme.typography.fontFamily,
@@ -1396,13 +1158,12 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     sendButton: {
-        width: 50,
-        height: 50,
-        borderRadius: theme.border.radius.small,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: theme.color.primary[500],
         justifyContent: 'center',
         alignItems: 'center',
-        marginLeft: 8,
     },
     sendButtonDisabled: {
         backgroundColor: '#E5E7EB',
@@ -1413,26 +1174,33 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    historyModal: {
+    modalContent: {
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
-        width: width * 0.9,
-        maxHeight: '80%',
+        width: screenWidth * 0.9,
+        maxHeight: screenHeight * 0.8,
         padding: 16,
     },
-    historyModalDark: {
+    modalContentDark: {
         backgroundColor: '#1F2937',
     },
-    historyModalHeader: {
+    modalHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 16,
     },
-    historyModalTitle: {
+    modalTitle: {
         fontFamily: theme.typography.fontFamily,
         fontSize: 18,
         fontWeight: 'bold',
+        color: '#111827',
+    },
+    modalTitleDark: {
+        color: '#FFFFFF',
+    },
+    closeButton: {
+        padding: 4,
     },
     newChatButton: {
         flexDirection: 'row',
@@ -1453,11 +1221,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
-    historyList: {
-        maxHeight: '70%',
-    },
-    historyListContent: {
-        gap: 8,
+    modalList: {
+        maxHeight: screenHeight * 0.6,
     },
     historyItem: {
         flexDirection: 'row',
@@ -1465,6 +1230,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#F3F4F6',
         padding: 12,
         borderRadius: 8,
+        marginBottom: 8,
         gap: 12,
     },
     historyItemDark: {
@@ -1481,64 +1247,26 @@ const styles = StyleSheet.create({
         fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         fontWeight: '600',
+        color: '#111827',
+    },
+    historyItemTitleDark: {
+        color: '#FFFFFF',
     },
     historyItemPreview: {
         fontFamily: theme.typography.fontFamily,
         fontSize: 12,
         color: '#6B7280',
     },
+    historyItemPreviewDark: {
+        color: '#9CA3AF',
+    },
     historyItemDate: {
         fontFamily: theme.typography.fontFamily,
         fontSize: 12,
         color: '#6B7280',
     },
-    emptyHistory: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-    },
-    emptyHistoryText: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 16,
-        color: '#6B7280',
-        marginTop: 12,
-    },
-    contextDrawer: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        width: 300,
-        backgroundColor: '#FFFFFF',
-        borderLeftWidth: 1,
-        borderLeftColor: '#E5E7EB',
-        padding: 16,
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: -2, height: 0 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-            },
-            android: {
-                elevation: 5,
-            },
-        }),
-    },
-    contextDrawerDark: {
-        backgroundColor: '#1F2937',
-        borderLeftColor: '#374151',
-    },
-    contextDrawerHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    contextDrawerTitle: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 18,
-        fontWeight: 'bold',
+    historyItemDateDark: {
+        color: '#9CA3AF',
     },
     contextElement: {
         flexDirection: 'row',
@@ -1561,32 +1289,46 @@ const styles = StyleSheet.create({
         fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         fontWeight: '600',
+        color: '#111827',
+    },
+    contextElementTitleDark: {
+        color: '#FFFFFF',
     },
     contextElementType: {
         fontFamily: theme.typography.fontFamily,
         fontSize: 12,
         color: '#6B7280',
     },
+    contextElementTypeDark: {
+        color: '#9CA3AF',
+    },
     removeContextElement: {
         padding: 4,
     },
-    emptyContext: {
+    emptyState: {
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 24,
+        paddingVertical: 40,
     },
-    emptyContextText: {
+    emptyStateText: {
         fontFamily: theme.typography.fontFamily,
         fontSize: 16,
         color: '#6B7280',
         marginTop: 12,
     },
-    emptyContextSubtext: {
+    emptyStateTextDark: {
+        color: '#9CA3AF',
+    },
+    emptyStateSubtext: {
         fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         color: '#9CA3AF',
         marginTop: 8,
         textAlign: 'center',
+        paddingHorizontal: 24,
+    },
+    emptyStateSubtextDark: {
+        color: '#6B7280',
     },
 });
 

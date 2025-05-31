@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,11 +16,13 @@ import { ThemedText } from '@/components/ThemedText';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { theme } from '@/constants/theme';
 import useSWR from 'swr';
+import { useAuth } from '@/contexts/auth';
 import { supabase } from '@/lib/supabase';
 import CourseCard from '@/components/shared/learn/CourseCard';
 import CategoryFilter from '@/components/shared/learn/CategoryFilter';
 import {CourseGridByCategory} from "@/components/shared/learn/CourseGrid";
 import CourseList from "@/components/CourseList";
+import {useUser} from "@/contexts/useUserInfo";
 // import CourseGridByCategory from '@/components/shared/learn/CourseGrid';
 
 // TypeScript interfaces
@@ -75,11 +77,15 @@ const CourseScreen: React.FC<null> = () => {
   const isDark = colorScheme === 'dark';
   const { pdId} = useLocalSearchParams();
   const { trigger } = useHaptics();
+  const { user } = useAuth();
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const { isLearningPathEnrolled } = useUser();
+const isEnrolled = isLearningPathEnrolled(pdId);
+
 
   // Fetch program data
   const { data: program, isLoading: isLoadingProgram } = useSWR<Program>(
@@ -321,9 +327,15 @@ const CourseScreen: React.FC<null> = () => {
                 pdId={String(pdId)}
                 selectedCategory={selectedCategory}
                 onCoursePress={handleCoursePress}
+                isEnrolled={isEnrolled}
             />
         ) : (
-            <CourseList pdId={String(pdId)} courses={filteredCourses()} onCoursePress={handleCoursePress}  />
+            <CourseList 
+                pdId={String(pdId)} 
+                courses={filteredCourses()} 
+                onCoursePress={handleCoursePress}
+                isEnrolled={isEnrolled}
+            />
         )}
       </SafeAreaView>
   );

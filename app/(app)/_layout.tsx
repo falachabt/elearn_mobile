@@ -27,6 +27,8 @@ export default function AppLayout() {
     const {trigger} = useHaptics();
     const [needsRedirect, setNeedsRedirect] = useState(false);
 
+
+
     // Check redirect conditions once and store result, don't re-evaluate on every render
     useEffect(() => {
         if (!session) {

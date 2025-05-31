@@ -26,6 +26,7 @@ import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import PreloadWebView from "@/components/shared/learn/WebViewCourrseSection";
 import {programProgressKeys} from "@/constants/swr-path";
 import {theme} from "@/constants/theme";
+import {useUser} from "@/contexts/useUserInfo";
 
 interface Course extends Courses {
     courses_content: CoursesContent[];
@@ -42,6 +43,10 @@ const SectionDetail = () => {
     const [showSectionList, setShowSectionList] = useState(false);
     const webViewRef = useRef(null);
     const {user} = useAuth();
+
+    // Check if user is enrolled in this program
+    const { isLearningPathEnrolled } = useUser();
+    const isEnrolled = isLearningPathEnrolled(pdId);
 
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
@@ -149,9 +154,27 @@ const SectionDetail = () => {
             ? sections[currentIndex + 1]
             : null;
 
+    // Check if current section is locked (beyond first 2 for non-enrolled users)
+    const isCurrentSectionLocked = !isEnrolled && currentIndex >= 1;
+
+    // Check if next section is locked
+    const isNextSectionLocked = !isEnrolled && nextSection &&
+        (sections?.findIndex((section) => section.id === nextSection.id) ?? -1) >= 1;
+
+    // Handle purchase flow
+    const handlePurchaseFlow = () => {
+        trigger(HapticType.SELECTION);
+        router.push({
+            pathname : `/(app)/(catalogue)/shop`,
+            params : {
+                selectedProgramId : pdId,
+            }
+        });
+    };
+
     // Preload next section data directly into SWR cache
     useEffect(() => {
-        if (nextSection && nextSection.id) {
+        if (nextSection && nextSection.id && !isNextSectionLocked) {
             // Prefetch next section data and store it in SWR cache
             const fetchAndCacheNextSection = async () => {
                 try {
@@ -173,9 +196,15 @@ const SectionDetail = () => {
 
             fetchAndCacheNextSection();
         }
-    }, [nextSection]);
+    }, [nextSection, isNextSectionLocked]);
 
     function handleNext() {
+        // Check if next section is locked
+        if (isNextSectionLocked) {
+            handlePurchaseFlow();
+            return;
+        }
+
         // Skip the scrolledToEnd check for web platform
         const shouldCheckScroll = Platform.OS !== 'web';
 
@@ -210,6 +239,16 @@ const SectionDetail = () => {
             playCorrect();
             trigger(HapticType.LIGHT);
             router.push(`/(app)/learn/${pdId}/courses/${courseId}`);
+        }
+    }
+
+    function handlePrevious() {
+        if (previousSection) {
+            playNextLesson();
+            trigger(HapticType.LIGHT);
+            router.push(
+                `/(app)/learn/${pdId}/courses/${courseId}/lessons/${previousSection.id}`
+            );
         }
     }
 
@@ -362,6 +401,40 @@ const SectionDetail = () => {
         </View>
     );
 
+    // Locked Content Component
+    const LockedContent = () => (
+        <View style={[styles.lockedContainer, isDark && styles.lockedContainerDark]}>
+            <MaterialCommunityIcons
+                name="lock"
+                size={64}
+                color={isDark ? "#6EE7B7" : "#65B741"}
+            />
+            <ThemedText style={[styles.lockedTitle, isDark && styles.lockedTitleDark]}>
+                Contenu verrouillé
+            </ThemedText>
+            <ThemedText style={[styles.lockedDescription, isDark && styles.lockedDescriptionDark]}>
+                Cette leçon fait partie du contenu premium. Inscrivez-vous au programme pour accéder à toutes les leçons, quiz et exercices.
+            </ThemedText>
+            <Pressable
+                style={[styles.purchaseButton, isDark && styles.purchaseButtonDark]}
+                onPress={handlePurchaseFlow}
+            >
+                <MaterialCommunityIcons name="cart" size={20} color="#FFFFFF" />
+                <ThemedText style={styles.purchaseButtonText}>
+                    S'inscrire au programme
+                </ThemedText>
+            </Pressable>
+            <Pressable
+                style={[styles.backToCourseButton, isDark && styles.backToCourseButtonDark]}
+                onPress={() => router.push(`/(app)/learn/${pdId}/courses/${courseId}`)}
+            >
+                <ThemedText style={[styles.backToCourseButtonText, isDark && styles.backToCourseButtonTextDark]}>
+                    Retour au cours
+                </ThemedText>
+            </Pressable>
+        </View>
+    );
+
     // Add message listener for web platform
     useEffect(() => {
         if (Platform.OS === 'web') {
@@ -385,7 +458,8 @@ const SectionDetail = () => {
         }
     }, [isListening]);
 
-    if (categoryLoading || courseLoading) {
+    // Loading state check
+    if (typeof isEnrolled === 'undefined' || categoryLoading || courseLoading) {
         return <LoadingIndicator />;
     }
 
@@ -416,100 +490,120 @@ const SectionDetail = () => {
                     />
                 </Pressable>
                 <View style={styles.headerContent}>
-                    <ThemedText
-                        style={[styles.courseTitle, isDark && styles.courseTitleDark]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {category?.name}
-                    </ThemedText>
+                    <View style={styles.headerTitleRow}>
+                        <ThemedText
+                            style={[styles.courseTitle, isDark && styles.courseTitleDark]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                        >
+                            {category?.name}
+                        </ThemedText>
+                        {/* Enrollment badge */}
+                        <View style={[
+                            styles.enrollmentBadge,
+                            isEnrolled ? styles.enrolledBadge : styles.previewBadge
+                        ]}>
+                            <MaterialCommunityIcons
+                                name={isEnrolled ? "check-circle" : "eye-outline"}
+                                size={14}
+                                color={isEnrolled ? "#10B981" : "#F59E0B"}
+                            />
+                            <ThemedText style={[
+                                styles.enrollmentBadgeText,
+                                isEnrolled ? styles.enrolledBadgeText : styles.previewBadgeText
+                            ]}>
+                                {isEnrolled ? "Inscrit" : "Aperçu"}
+                            </ThemedText>
+                        </View>
+                    </View>
                     <ThemedText
                         style={[styles.courseInfo, isDark && styles.courseInfoDark]}
                     >
                         {course?.name && course.name.length > 15
                             ? `${course.name.substring(0, 15)}...`
                             : course?.name}{" "}
-                        • cat • {sections?.length} sections
+                        • Section {currentIndex + 1}/{sections?.length}
                     </ThemedText>
                 </View>
             </View>
 
-            {/* Conditional rendering for web and mobile platforms */}
-            {!isWebViewLoaded && <LoadingIndicator />}
-
-            {Platform.OS === 'web' ? (
-                <View style={styles.webViewContainer}>
-                    <iframe
-                        src={`https://elearn.ezadrive.com/fr/webview/courseContent/${sectionId}${isDark ? '?theme=dark' : '?theme=light'}&device=web`}
-                        style={{
-                            width: Dimensions.get("window").width >= 640 ? '100%' : '117%',
-                            left: Dimensions.get("window").width  >= 640 ? 0 : "-8%",
-                            position: Dimensions.get("window").width  >= 640 ? 'relative' : 'absolute',
-                            height: '100%',
-                            border: 'none',
-                            backgroundColor: isDark ? "#111827" : '#FFFFFF',
-                        }}
-                        onLoad={() => {
-                            setIsWebViewLoaded(true);
-                            setLoadingProgress(1);
-                        }}
-                    />
-                </View>
+            {/* Content Area */}
+            {isCurrentSectionLocked ? (
+                <LockedContent />
             ) : (
-                <WebView
-                    ref={webViewRef}
-                    source={{
-                        uri: `https://elearn.ezadrive.com/fr/webview/courseContent/${sectionId}?theme=${
-                            isDark ? "dark" : "light"
-                        }`,
-                        headers: {
-                            Authorization: `Bearer ${session?.access_token}`,
-                            "color-scheme": isDark ? "dark" : "light",
-                        },
-                    }}
-                    style={[
-                        styles.webView,
-                        isDark && styles.webViewDark,
-                        !isWebViewLoaded && styles.hiddenWebView
-                    ]}
-                    originWhitelist={["*"]}
-                    javaScriptEnabled={true}
-                    domStorageEnabled={true}
-                    cacheEnabled={true}
-                    cacheMode="LOAD_CACHE_ELSE_NETWORK"
-                    onShouldStartLoadWithRequest={() => true}
-                    startInLoadingState={true}
-                    onLoadProgress={({ nativeEvent }) => {
-                        setLoadingProgress(nativeEvent.progress);
-                    }}
-                    onLoadEnd={() => {
-                        setIsWebViewLoaded(true);
-                    }}
-                    renderLoading={() => <View />} // Empty view since we handle loading UI ourselves
-                    injectedJavaScript={darkModeScript}
-                    onMessage={(event) => {
-                        const data = JSON.parse(event.nativeEvent.data);
-                        if (data.type === "contentLoaded") {
-                            setIsListening(true);
-                        }
-                        if (isListening && data.type === "scrolledToEnd") {
-                            setScrolledToEnd(true);
-                        }
-                    }}
-                />
+                <>
+                    {/* Conditional rendering for web and mobile platforms */}
+                    {!isWebViewLoaded && <LoadingIndicator />}
+
+                    {Platform.OS === 'web' ? (
+                        <View style={styles.webViewContainer}>
+                            <iframe
+                                src={`https://elearn.ezadrive.com/fr/webview/courseContent/${sectionId}${isDark ? '?theme=dark' : '?theme=light'}&device=web`}
+                                style={{
+                                    width: Dimensions.get("window").width >= 640 ? '100%' : '117%',
+                                    left: Dimensions.get("window").width  >= 640 ? 0 : "-8%",
+                                    position: Dimensions.get("window").width  >= 640 ? 'relative' : 'absolute',
+                                    height: '100%',
+                                    border: 'none',
+                                    backgroundColor: isDark ? "#111827" : '#FFFFFF',
+                                }}
+                                onLoad={() => {
+                                    setIsWebViewLoaded(true);
+                                    setLoadingProgress(1);
+                                }}
+                            />
+                        </View>
+                    ) : (
+                        <WebView
+                            ref={webViewRef}
+                            source={{
+                                uri: `https://elearn.ezadrive.com/fr/webview/courseContent/${sectionId}?theme=${
+                                    isDark ? "dark" : "light"
+                                }`,
+                                headers: {
+                                    Authorization: `Bearer ${session?.access_token}`,
+                                    "color-scheme": isDark ? "dark" : "light",
+                                },
+                            }}
+                            style={[
+                                styles.webView,
+                                isDark && styles.webViewDark,
+                                !isWebViewLoaded && styles.hiddenWebView
+                            ]}
+                            originWhitelist={["*"]}
+                            javaScriptEnabled={true}
+                            domStorageEnabled={true}
+                            cacheEnabled={true}
+                            cacheMode="LOAD_CACHE_ELSE_NETWORK"
+                            onShouldStartLoadWithRequest={() => true}
+                            startInLoadingState={true}
+                            onLoadProgress={({ nativeEvent }) => {
+                                setLoadingProgress(nativeEvent.progress);
+                            }}
+                            onLoadEnd={() => {
+                                setIsWebViewLoaded(true);
+                            }}
+                            renderLoading={() => <View />} // Empty view since we handle loading UI ourselves
+                            injectedJavaScript={darkModeScript}
+                            onMessage={(event) => {
+                                const data = JSON.parse(event.nativeEvent.data);
+                                if (data.type === "contentLoaded") {
+                                    setIsListening(true);
+                                }
+                                if (isListening && data.type === "scrolledToEnd") {
+                                    setScrolledToEnd(true);
+                                }
+                            }}
+                        />
+                    )}
+                </>
             )}
 
             <View style={[styles.navigationContainer, isDark && styles.navigationContainerDark]}>
                 {previousSection && (
                     <Pressable
                         style={[styles.navigationButton, isDark && styles.navigationButtonDark]}
-                        onPress={() => {
-                            playNextLesson();
-                            trigger(HapticType.LIGHT);
-                            router.push(
-                                `/(app)/learn/${pdId}/courses/${courseId}/lessons/${previousSection.id}`
-                            );
-                        }}
+                        onPress={handlePrevious}
                     >
                         <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
                     </Pressable>
@@ -532,19 +626,24 @@ const SectionDetail = () => {
                     style={[
                         styles.navigationButton,
                         isDark && styles.navigationButtonDark,
-                        (!scrolledToEnd && progress?.progress !== 1 && Platform.OS !== 'web') && styles.disabledButton,
-                        (!scrolledToEnd && progress?.progress !== 1 && Platform.OS !== 'web' && isDark) && styles.disabledButtonDark,
+                        (!scrolledToEnd && progress?.progress !== 1 && Platform.OS !== 'web' && !isCurrentSectionLocked) && styles.disabledButton,
+                        (!scrolledToEnd && progress?.progress !== 1 && Platform.OS !== 'web' && !isCurrentSectionLocked && isDark) && styles.disabledButtonDark,
+                        isNextSectionLocked && styles.lockedNextButton,
+                        isNextSectionLocked && isDark && styles.lockedNextButtonDark,
                     ]}
                     onPress={() => handleNext()}
-                    disabled={!scrolledToEnd && progress?.progress !== 1 && Platform.OS !== 'web'}
+                    disabled={!scrolledToEnd && progress?.progress !== 1 && Platform.OS !== 'web' && !isCurrentSectionLocked && !isNextSectionLocked}
                 >
-                    <MaterialCommunityIcons name={nextSection ? "arrow-right" : "check"} size={24} color="#FFFFFF" />
+                    <MaterialCommunityIcons
+                        name={isNextSectionLocked ? "lock" : (nextSection ? "arrow-right" : "check")}
+                        size={24}
+                        color="#FFFFFF"
+                    />
                 </Pressable>
-
             </View>
 
-            {/* Preload next section - only on mobile */}
-            {Platform.OS !== 'web' && nextSection && (
+            {/* Preload next section - only on mobile and if not locked */}
+            {Platform.OS !== 'web' && nextSection && !isNextSectionLocked && (
                 <PreloadWebView
                     uri={`https://elearn.ezadrive.com/webview/courseContent/${nextSection.id}?theme=${isDark ? "dark" : "light"}`}
                     accessToken={session?.access_token}
@@ -586,6 +685,7 @@ const SectionDetail = () => {
                                     (sp) => sp.sectionid == item.id
                                 );
                                 const isCompleted = sectionProgress?.progress === 1;
+                                const isSectionLocked = !isEnrolled && index >= 1;
 
                                 return (
                                     <TouchableOpacity
@@ -596,43 +696,67 @@ const SectionDetail = () => {
                                             isCurrentSection && isDark && styles.sectionItemActiveDark,
                                             isCompleted && styles.sectionItemCompleted,
                                             isCompleted && isDark && styles.sectionItemCompletedDark,
+                                            isSectionLocked && styles.sectionItemLocked,
+                                            isSectionLocked && isDark && styles.sectionItemLockedDark,
                                         ]}
                                         onPress={() => {
+                                            if (isSectionLocked) {
+                                                handlePurchaseFlow();
+                                                return;
+                                            }
                                             trigger(HapticType.LIGHT);
                                             setShowSectionList(false);
                                             router.push(
                                                 `/(app)/learn/${pdId}/courses/${courseId}/lessons/${item.id}`
                                             );
                                         }}
+                                        disabled={isSectionLocked}
                                     >
                                         <View style={[
                                             styles.sectionNumber,
                                             isDark && styles.sectionNumberDark,
                                             isCurrentSection && styles.sectionNumberActive,
                                             isCompleted && styles.sectionNumberCompleted,
+                                            isSectionLocked && styles.sectionNumberLocked,
                                         ]}>
-                                            <Text style={[
-                                                styles.sectionNumberText,
-                                                (isCurrentSection || isCompleted) && styles.sectionNumberTextActive,
-                                            ]}>
-                                                {index + 1}
-                                            </Text>
+                                            {isSectionLocked ? (
+                                                <MaterialCommunityIcons
+                                                    name="lock"
+                                                    size={12}
+                                                    color="#F59E0B"
+                                                />
+                                            ) : (
+                                                <Text style={[
+                                                    styles.sectionNumberText,
+                                                    (isCurrentSection || isCompleted) && styles.sectionNumberTextActive,
+                                                ]}>
+                                                    {index + 1}
+                                                </Text>
+                                            )}
                                         </View>
                                         <ThemedText style={[
                                             styles.sectionName,
                                             isDark && styles.sectionNameDark,
                                             isCurrentSection && styles.sectionNameActive,
                                             isCurrentSection && isDark && styles.sectionNameActiveDark,
+                                            isSectionLocked && styles.sectionNameLocked,
+                                            isSectionLocked && isDark && styles.sectionNameLockedDark,
                                         ]}>
                                             {item.name}
                                         </ThemedText>
-                                        {isCompleted && (
+                                        {isCompleted && !isSectionLocked ? (
                                             <MaterialCommunityIcons
                                                 name="check-circle"
                                                 size={20}
                                                 color={isDark ? "#10B981" : "#059669"}
                                             />
-                                        )}
+                                        ) : isSectionLocked ? (
+                                            <MaterialCommunityIcons
+                                                name="lock"
+                                                size={16}
+                                                color="#F59E0B"
+                                            />
+                                        ) : null}
                                     </TouchableOpacity>
                                 );
                             }}
@@ -649,6 +773,158 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#F9FAFB",
         marginBottom: 60,
+    },
+    containerDark: {
+        backgroundColor: "#111827",
+    },
+    header: {
+        backgroundColor: "#FFFFFF",
+        padding: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        borderBottomWidth: 1,
+        borderBottomColor: "#E5E7EB",
+    },
+    headerDark: {
+        backgroundColor: "#1F2937",
+        borderBottomColor: "#374151",
+    },
+    backButton: {
+        marginRight: 12,
+    },
+    headerContent: {
+        flex: 1,
+    },
+    headerTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+    },
+    courseTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 19,
+        fontWeight: "700",
+        color: "#111827",
+        flex: 1,
+        marginRight: 8,
+    },
+    courseTitleDark: {
+        color: "#FFFFFF",
+    },
+    courseInfo: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        color: "#6B7280",
+    },
+    courseInfoDark: {
+        color: "#9CA3AF",
+    },
+    enrollmentBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    enrolledBadge: {
+        backgroundColor: '#DCFCE7',
+    },
+    enrolledBadgeText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#10B981',
+        marginLeft: 4,
+    },
+    previewBadge: {
+        backgroundColor: '#FEF3C7',
+    },
+    previewBadgeText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#F59E0B',
+        marginLeft: 4,
+    },
+    enrollmentBadgeText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        fontWeight: '600',
+        marginLeft: 4,
+    },
+    // Locked Content Styles
+    lockedContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 32,
+        backgroundColor: '#F9FAFB',
+    },
+    lockedContainerDark: {
+        backgroundColor: '#111827',
+    },
+    lockedTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#111827',
+        marginTop: 16,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    lockedTitleDark: {
+        color: '#FFFFFF',
+    },
+    lockedDescription: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        color: '#6B7280',
+        textAlign: 'center',
+        marginBottom: 32,
+        lineHeight: 24,
+        maxWidth: '80%',
+    },
+    lockedDescriptionDark: {
+        color: '#9CA3AF',
+    },
+    purchaseButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#10B981',
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 8,
+        marginBottom: 16,
+    },
+    purchaseButtonDark: {
+        backgroundColor: '#059669',
+    },
+    purchaseButtonText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FFFFFF',
+        marginLeft: 8,
+    },
+    backToCourseButton: {
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+    },
+    backToCourseButtonDark: {
+        borderColor: '#4B5563',
+    },
+    backToCourseButtonText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    backToCourseButtonTextDark: {
+        color: '#9CA3AF',
     },
     progressIndicator: {
         backgroundColor: "#F3F4F6",
@@ -743,6 +1019,14 @@ const styles = StyleSheet.create({
     sectionItemCompletedDark: {
         backgroundColor: '#064E3B',
     },
+    sectionItemLocked: {
+        backgroundColor: '#FEF3C7',
+        opacity: 0.7,
+    },
+    sectionItemLockedDark: {
+        backgroundColor: '#78350F',
+        opacity: 0.8,
+    },
     sectionNumber: {
         width: 24,
         height: 24,
@@ -757,6 +1041,9 @@ const styles = StyleSheet.create({
     },
     sectionNumberCompleted: {
         backgroundColor: '#10B981',
+    },
+    sectionNumberLocked: {
+        backgroundColor: '#FEF3C7',
     },
     sectionNumberDark: {
         backgroundColor: '#4B5563',
@@ -787,8 +1074,13 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: '600',
     },
-    containerDark: {
-        backgroundColor: "#111827",
+    sectionNameLocked: {
+        color: '#92400E',
+        fontStyle: 'italic',
+    },
+    sectionNameLockedDark: {
+        color: '#F59E0B',
+        fontStyle: 'italic',
     },
     loadingContainer: {
         position: 'absolute',
@@ -839,42 +1131,6 @@ const styles = StyleSheet.create({
         color: "#EF4444",
         textAlign: "center",
     },
-    header: {
-        backgroundColor: "#FFFFFF",
-        padding: 16,
-        flexDirection: "row",
-        alignItems: "center",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E5E7EB",
-    },
-    headerDark: {
-        backgroundColor: "#1F2937",
-        borderBottomColor: "#374151",
-    },
-    backButton: {
-        marginRight: 12,
-    },
-    headerContent: {
-        flex: 1,
-    },
-    courseTitle: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 19,
-        fontWeight: "700",
-        color: "#111827",
-        marginBottom: 4,
-    },
-    courseTitleDark: {
-        color: "#FFFFFF",
-    },
-    courseInfo: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 14,
-        color: "#6B7280",
-    },
-    courseInfoDark: {
-        color: "#9CA3AF",
-    },
     webViewContainer: {
         flex: 1,
         backgroundColor: "#FFFFFF",
@@ -919,6 +1175,12 @@ const styles = StyleSheet.create({
     },
     disabledButtonDark: {
         backgroundColor: "#4B5563",
+    },
+    lockedNextButton: {
+        backgroundColor: "#F59E0B",
+    },
+    lockedNextButtonDark: {
+        backgroundColor: "#D97706",
     },
     navigationButtonText: {
         color: "#FFFFFF",

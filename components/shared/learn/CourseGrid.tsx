@@ -49,6 +49,7 @@ interface CourseGridByCategoryProps {
     pdId: string;
     selectedCategory: string;
     onCoursePress?: (courseItem: CourseItem) => void;
+    isEnrolled?: boolean;
 }
 
 /**
@@ -60,6 +61,7 @@ export const CourseGridByCategory: React.FC<CourseGridByCategoryProps> = ({
                                                                               pdId,
                                                                               selectedCategory,
                                                                               onCoursePress,
+                                                                              isEnrolled = false,
                                                                           }) => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
@@ -156,6 +158,7 @@ export const CourseGridByCategory: React.FC<CourseGridByCategoryProps> = ({
                             courseItem={courseItem}
                             pdId={pdId}
                             index={index + 1}
+                            isEnrolled={isEnrolled}
                             onPress={() => handleCoursePress(courseItem)}
                         />
                     ))}

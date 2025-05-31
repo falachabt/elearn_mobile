@@ -15,6 +15,7 @@ import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useSound } from "@/hooks/useSound";
+import { useUser } from "@/contexts/useUserInfo";
 import useSWR from "swr";
 import WebView from "react-native-webview"; // Ensure this is imported for mobile
 
@@ -25,6 +26,10 @@ const ExercisePage = () => {
     const isDark = scheme === "dark";
     const { trigger } = useHaptics();
     const { playNextLesson, playCorrect } = useSound();
+    const { isLearningPathEnrolled } = useUser();
+
+    // Check if user is enrolled in this program
+    const isEnrolled = isLearningPathEnrolled(pdId);
 
     const [isCorrection, setIsCorrection] = useState(false);
     const [correctionLoading, setCorrectionLoading] = useState(true);
@@ -252,14 +257,14 @@ const ExercisePage = () => {
                 if (container) {
                     container.classList.add('dark');
                     container.setAttribute('data-color-scheme', 'dark');
-                    
+
                     // Add custom CSS variables for dark mode
                     document.documentElement.style.setProperty('--bn-colors-editor-text', '#FFFFFF');
                     document.documentElement.style.setProperty('--bn-colors-editor-background', '#0F172A');
                     document.documentElement.style.setProperty('--bn-colors-menu-text', '#F3F4F6');
                     document.documentElement.style.setProperty('--bn-colors-menu-background', '#0F172A');
                     document.documentElement.style.setProperty('--bn-colors-editor-border', '#374151');
-                    
+
                     // Inject dark mode style
                     const darkModeStyle = document.createElement('style');
                     darkModeStyle.textContent = \`
@@ -287,14 +292,14 @@ const ExercisePage = () => {
                 }
             }
         }
-        
+
         // Apply dark mode on load
         if (document.readyState === 'complete') {
             applyDarkMode();
         } else {
             window.addEventListener('load', applyDarkMode);
         }
-        
+
         // Set up observer to apply dark mode on DOM changes
         const observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
@@ -303,7 +308,7 @@ const ExercisePage = () => {
                 }
             }
         });
-        
+
         // Start observing once DOM is ready
         if (document.readyState !== 'loading') {
             observer.observe(document.body, {
@@ -534,7 +539,8 @@ const ExercisePage = () => {
             )}
 
             <View style={styles.bottomButtonsContainer}>
-                {previousExerciseId && (
+                {/* Only show navigation buttons if user is enrolled */}
+                {isEnrolled && previousExerciseId && (
                     <TouchableOpacity
                         style={[styles.nextButton, { marginRight: 8 }]}
                         onPress={handlePreviousExercise}
@@ -547,6 +553,7 @@ const ExercisePage = () => {
                     style={[
                         styles.correctionButton,
                         !exercise.correction && styles.disabledButton,
+                        !isEnrolled && { flex: 1 }, // Take full width if not enrolled
                     ]}
                     onPress={toggleCorrection}
                     disabled={!exercise.correction || (correctionLoading && contentLoading)}
@@ -556,12 +563,22 @@ const ExercisePage = () => {
                     </Text>
                 </TouchableOpacity>
 
-                {nextExerciseId && (
+                {isEnrolled && nextExerciseId && (
                     <TouchableOpacity
                         style={styles.nextButton}
                         onPress={handleNextExercise}
                     >
                         <MaterialCommunityIcons name="arrow-right" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                )}
+
+                {/* Show purchase button if not enrolled */}
+                {!isEnrolled && (
+                    <TouchableOpacity
+                        style={[styles.nextButton, { backgroundColor: '#F59E0B' }]}
+                        onPress={() => router.push({ pathname :  `/(app)/(catalogue)/shop`, params : { selectedProgramId: pdId } })}
+                    >
+                        <MaterialCommunityIcons name="cart" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
                 )}
             </View>

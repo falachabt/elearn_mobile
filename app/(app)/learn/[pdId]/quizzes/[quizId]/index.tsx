@@ -23,6 +23,7 @@ import { CoursesCategories, Quiz, Tags } from "@/types/type";
 import { useAuth } from "@/contexts/auth";
 import QuizAttemptsList from "@/components/shared/learn/quiz/QuizAttempList";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
+import { useUser } from "@/contexts/useUserInfo";
 
 // Define interfaces for the data
 interface QuizCourse {
@@ -293,6 +294,32 @@ const ErrorState: React.FC<{ onRetry: () => void; isDark: boolean }> = ({ onRetr
     </View>
 );
 
+// Locked Content Component
+const LockedContent: React.FC<{ isDark: boolean; onPurchase: () => void }> = ({ isDark, onPurchase }) => (
+    <View style={[styles.centerContainer, isDark && styles.containerDark]}>
+        <MaterialCommunityIcons
+            name="lock"
+            size={64}
+            color={isDark ? "#6EE7B7" : "#65B741"}
+        />
+        <ThemedText style={styles.lockedTitle}>
+            Contenu verrouillé
+        </ThemedText>
+        <ThemedText style={styles.lockedDescription}>
+            Ce quiz fait partie du contenu premium. Inscrivez-vous au programme pour accéder à tous les quiz et exercices.
+        </ThemedText>
+        <Pressable
+            style={[styles.purchaseButton, isDark && styles.purchaseButtonDark]}
+            onPress={onPurchase}
+        >
+            <MaterialCommunityIcons name="cart" size={20} color="#FFFFFF" />
+            <ThemedText style={styles.purchaseButtonText}>
+                S'inscrire au programme
+            </ThemedText>
+        </Pressable>
+    </View>
+);
+
 // Main Quiz Detail Component
 const QuizDetail: React.FC = () => {
     const router = useRouter();
@@ -304,6 +331,29 @@ const QuizDetail: React.FC = () => {
     const [showAllPrereqs, setShowAllPrereqs] = useState(false);
     const { user } = useAuth();
     const { trigger } = useHaptics();
+    const { isLearningPathEnrolled } = useUser();
+
+    // Check if user is enrolled in this program
+    const isEnrolled = isLearningPathEnrolled(pdId);
+
+    // Set preview mode based on enrollment status
+    const [isPreviewMode, setIsPreviewMode] = useState<boolean>(!isEnrolled);
+
+    // Update preview mode when enrollment status changes
+    useEffect(() => {
+        setIsPreviewMode(!isEnrolled);
+    }, [isEnrolled]);
+
+    // Handle purchase flow
+    const handlePurchaseFlow = () => {
+        trigger(HapticType.SELECTION);
+        router.push({
+            pathname : `/(app)/(catalogue)/shop`,
+            params : {
+                selectedProgramId : pdId,
+            }
+        });
+    };
 
     // Animation refs
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -364,6 +414,42 @@ const QuizDetail: React.FC = () => {
     const createQuizAttempt = async (): Promise<void> => {
         try {
             trigger(HapticType.SELECTION);
+
+            // If user is not enrolled, check if they've already made an attempt
+            if (!isEnrolled) {
+                // Check if this is one of the first two quizzes
+                const { data: courseQuizzes } = await supabase
+                    .from("quiz_courses")
+                    .select("quiz(id)")
+                    .eq("courseId", courseId)
+                    .order("created_at", { ascending: true })
+                    .limit(2);
+
+                const firstTwoQuizIds = courseQuizzes?.map(q => q.quiz?.id) || [];
+                const isPreviewQuiz = firstTwoQuizIds.includes(quizId);
+
+                if (!isPreviewQuiz) {
+                    // Not one of the first two quizzes, redirect to purchase flow
+                    handlePurchaseFlow();
+                    return;
+                }
+
+                // Check if user has already made an attempt on this quiz
+                const { data: existingAttempts, error: attemptsError } = await supabase
+                    .from("quiz_attempts")
+                    .select("id")
+                    .eq("quiz_id", quizId)
+                    .eq("user_id", user?.id);
+
+                if (attemptsError) throw attemptsError;
+
+                if (existingAttempts && existingAttempts.length > 0) {
+                    // User has already made an attempt, redirect to purchase flow
+                    alert("En mode aperçu, vous ne pouvez faire qu'une seule tentative par quiz. Inscrivez-vous pour accéder à toutes les fonctionnalités.");
+                    handlePurchaseFlow();
+                    return;
+                }
+            }
 
             const { data: attempt, error } = await supabase
                 .from("quiz_attempts")
@@ -461,6 +547,13 @@ const QuizDetail: React.FC = () => {
     // Handle navigation to a prerequisite course
     const handlePrereqPress = (courseId: number): void => {
         trigger(HapticType.SELECTION);
+
+        // If user is not enrolled, redirect to purchase flow instead
+        if (!isEnrolled) {
+            handlePurchaseFlow();
+            return;
+        }
+
         router.push(`/(app)/learn/${pdId}/courses/${courseId}`);
     };
 
@@ -500,6 +593,16 @@ const QuizDetail: React.FC = () => {
         refreshQuiz();
     };
 
+    // Optional: Add a loading state while checking enrollment
+    if (typeof isEnrolled === 'undefined') {
+        return (
+            <View style={[styles.centerContainer, isDark && styles.containerDark]}>
+                <ActivityIndicator size="large" color={isDark ? "#6EE7B7" : "#65B741"} />
+                <ThemedText style={styles.loadingText}>Vérification de l'inscription...</ThemedText>
+            </View>
+        );
+    }
+
     // Loading state
     if (quizLoading) {
         return <QuizDetailSkeleton isDark={isDark} />;
@@ -509,6 +612,9 @@ const QuizDetail: React.FC = () => {
     if (quizError || !quiz) {
         return <ErrorState onRetry={handleRetry} isDark={isDark} />;
     }
+
+    // For non-enrolled users, we'll show a preview of the quiz details
+    // but prevent them from starting the quiz in the footer
 
     // Get quiz description or default text
     const description = quiz?.description || "Aucune description disponible pour ce quiz.";
@@ -537,9 +643,29 @@ const QuizDetail: React.FC = () => {
                     />
                 </Pressable>
 
-                <ThemedText style={styles.headerTitle} numberOfLines={1}>
-                    {quiz?.name}
-                </ThemedText>
+                <View style={styles.headerTitleContainer}>
+                    <ThemedText style={styles.headerTitle} numberOfLines={1}>
+                        {quiz?.name}
+                    </ThemedText>
+
+                    {/* Enrollment badge */}
+                    <View style={[
+                        styles.enrollmentBadge,
+                        isEnrolled ? styles.enrolledBadge : styles.previewBadge
+                    ]}>
+                        <MaterialCommunityIcons
+                            name={isEnrolled ? "check-circle" : "eye-outline"}
+                            size={14}
+                            color={isEnrolled ? "#10B981" : "#F59E0B"}
+                        />
+                        <ThemedText style={[
+                            styles.enrollmentBadgeText,
+                            isEnrolled ? styles.enrolledBadgeText : styles.previewBadgeText
+                        ]}>
+                            {isEnrolled ? "Inscrit" : "Aperçu"}
+                        </ThemedText>
+                    </View>
+                </View>
 
                 <Pressable
                     onPress={triggerQuizPin}
@@ -649,7 +775,7 @@ const QuizDetail: React.FC = () => {
                                 prereq={prereq}
                                 isDark={isDark}
                                 index={index}
-                                onPress={handlePrereqPress}
+                                onPress={isEnrolled ? handlePrereqPress  : (courseId) => {}}
                             />
                         ))}
 
@@ -725,7 +851,7 @@ const QuizDetail: React.FC = () => {
                         <ThemedText style={styles.sectionTitle}>Mes essais</ThemedText>
                     </View>
                     <QuizAttemptsList
-                        quizId={String(quizId)}
+                        quizId={ isEnrolled ? String(quizId) : ""}
                         isDark={isDark}
                         onAttemptPress={(a) => {
                             trigger(HapticType.SELECTION);
@@ -735,20 +861,35 @@ const QuizDetail: React.FC = () => {
                 </View>
             </Animated.ScrollView>
 
-            {/* Footer with Start Button */}
+            {/* Footer with Start Button or Purchase Button */}
             <View style={[styles.footer, isDark && styles.footerDark]}>
-                <Pressable
-                    style={styles.startButton}
-                    onPress={createQuizAttempt}
-                    android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
-                >
-                    <MaterialCommunityIcons
-                        name="play-circle"
-                        size={24}
-                        color="#FFFFFF"
-                    />
-                    <ThemedText style={styles.startButtonText}>Commencer le quiz</ThemedText>
-                </Pressable>
+                {isEnrolled ? (
+                    <Pressable
+                        style={styles.startButton}
+                        onPress={createQuizAttempt}
+                        android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+                    >
+                        <MaterialCommunityIcons
+                            name="play-circle"
+                            size={24}
+                            color="#FFFFFF"
+                        />
+                        <ThemedText style={styles.startButtonText}>Commencer le quiz</ThemedText>
+                    </Pressable>
+                ) : (
+                    <Pressable
+                        style={[styles.purchaseButton, isDark && styles.purchaseButtonDark]}
+                        onPress={handlePurchaseFlow}
+                        android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+                    >
+                        <MaterialCommunityIcons
+                            name="cart"
+                            size={24}
+                            color="#FFFFFF"
+                        />
+                        <ThemedText style={styles.startButtonText}>S'inscrire au programme</ThemedText>
+                    </Pressable>
+                )}
             </View>
         </View>
     );
@@ -780,13 +921,44 @@ const styles = StyleSheet.create({
         backgroundColor: "#1F2937",
         borderBottomColor: "#374151",
     },
-    headerTitle: {
+    headerTitleContainer: {
         flex: 1,
-        fontFamily : theme.typography.fontFamily,
-fontSize: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginHorizontal: 16,
+    },
+    headerTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
         fontWeight: "600",
         textAlign: "center",
-        marginHorizontal: 16,
+        marginRight: 8,
+    },
+    enrollmentBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    enrolledBadge: {
+        backgroundColor: '#DCFCE7',
+    },
+    previewBadge: {
+        backgroundColor: '#FEF3C7',
+    },
+    enrollmentBadgeText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        fontWeight: '600',
+        marginLeft: 4,
+    },
+    enrolledBadgeText: {
+        color: '#10B981',
+    },
+    previewBadgeText: {
+        color: '#F59E0B',
     },
     backButton: {
         padding: 8,
@@ -994,8 +1166,26 @@ fontSize: 14,
     },
     startButtonText: {
         color: "#FFFFFF",
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: "600",
+    },
+    purchaseButton: {
+        backgroundColor: "#F59E0B",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+        borderRadius: 12,
+        gap: 8,
+    },
+    purchaseButtonDark: {
+        backgroundColor: "#D97706",
+    },
+    purchaseButtonText: {
+        color: "#FFFFFF",
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
         fontWeight: "600",
     },
     centerContainer: {
@@ -1017,6 +1207,30 @@ fontSize: 18,
         marginBottom: 24,
         textAlign: "center",
         maxWidth: width * 0.8,
+    },
+    lockedTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#111827',
+        marginTop: 16,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    lockedDescription: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        color: '#6B7280',
+        textAlign: 'center',
+        marginBottom: 32,
+        lineHeight: 24,
+        maxWidth: '80%',
+    },
+    loadingText: {
+        marginTop: 16,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        color: "#6B7280",
     },
     retryButton: {
         flexDirection: 'row',

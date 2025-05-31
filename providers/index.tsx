@@ -53,7 +53,11 @@ function asyncStorageProvider() {
         initPromise = (async () => {
             try {
                 const keys = await AsyncStorage.getAllKeys();
-                const swrKeys = keys.filter(key => key.startsWith(SWR_CACHE_PREFIX));
+
+                // Get only last 50 keys to prevent storage limit issues
+                const swrKeys = keys
+                    .filter(key => key.startsWith(SWR_CACHE_PREFIX))
+                    .slice(-50);
 
                 if (swrKeys.length > 0) {
                     const items = await AsyncStorage.multiGet(swrKeys);
@@ -68,6 +72,15 @@ function asyncStorageProvider() {
                             }
                         }
                     });
+
+                    // Clean up old keys
+                    const keysToRemove = keys
+                        .filter(key => key.startsWith(SWR_CACHE_PREFIX))
+                        .slice(0, -50);
+
+                    if (keysToRemove.length > 0) {
+                        await AsyncStorage.multiRemove(keysToRemove);
+                    }
                 }
                 initialized = true;
             } catch (error) {
@@ -80,7 +93,7 @@ function asyncStorageProvider() {
         return initPromise;
     };
 
-    // Initialize the cache immediately
+    // Initialize the cache immediately 
     initCache();
 
     // Return a Cache interface compatible with SWR
@@ -122,7 +135,6 @@ function asyncStorageProvider() {
         }
     };
 }
-
 export function Provider({children}: { children: React.ReactNode }) {
     const router = useRouter();
     const {quizId, attempId} = useLocalSearchParams();

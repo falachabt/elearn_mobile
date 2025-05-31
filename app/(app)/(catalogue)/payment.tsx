@@ -9,6 +9,7 @@ import LottieView from 'lottie-react-native';
 import { useAuth } from '@/contexts/auth';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import PaymentGuideModal, {usePaymentGuide} from "@/components/shared/PaymentGuideModal";
 
 type ProcessingState = 'idle' | 'processing' | 'waiting' | 'fallback' | 'browser_redirect';
 type PromoCodeStatus = 'idle' | 'verifying' | 'valid' | 'invalid';
@@ -69,6 +70,7 @@ export default function PaymentScreen() {
   const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
   const [browserRedirected, setBrowserRedirected] = useState(false);
   const [isStatusCheckActive, setIsStatusCheckActive] = useState(false);
+  const [ showPaymentGuide, setShowPaymentGuide ] = useState(true);
 
   // Déterminer si le mode prix fixe est activé (l'utilisateur a déjà un achat)
   const FIXED_PRICE_MODE = (user?.user_program_enrollments?.length || 0) > 0 || false;
@@ -618,6 +620,7 @@ export default function PaymentScreen() {
 
   const renderPaymentForm = () => (
       <ScrollView style={[styles.container, isDark && styles.containerDark]}>
+        <PaymentGuideModal visible={showPaymentGuide} onClose={() => { setShowPaymentGuide(false); }} />
         <View style={[styles.section, isDark && styles.sectionDark]}>
           <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
             Paiement

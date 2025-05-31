@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import useSWR from 'swr';
 import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
-import {FileViewer as FileViewerNative } from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
+import {FileViewer as FileViewerNative } from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
 
 // Define TypeScript interfaces for our data
 interface ArchiveData {
@@ -25,6 +25,7 @@ interface CorrectionData {
   file_url: string;
   archive_id: string;
 }
+
 
 interface CompletionData {
   id: string;
