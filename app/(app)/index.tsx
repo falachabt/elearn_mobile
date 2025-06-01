@@ -1,70 +1,101 @@
-import React, {useEffect} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, useColorScheme} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, useColorScheme, ActivityIndicator} from 'react-native';
 import TopBar from '@/components/TopBar';
 import {theme} from '@/constants/theme';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {Link, useRouter} from 'expo-router';
 import {useAuth} from '@/contexts/auth';
-import {useUser} from '@/contexts/useUserInfo';
+import {useUser} from '@/contexts/useUserInfo'; // Assuming this provides streaks
 import LearningPaths from '@/components/shared/LearningPaths';
 import NoProgram from "@/components/shared/catalogue/NoProgramCard";
-import {useNotification} from "@/contexts/NotificationContext";
-import {checkAndUpdateNotifications} from "@/utils/notification-utils";
+import {checkAndUpdateNotifications} from "@/utils/notification-utils"; // Original
 import CustomizableGoals from "@/components/CustimizableHomeScreenGoals";
-import GeminiChatbot from "@/components/shared/GeminiChatBot";
-import JustificationGenerator from "@/components/GQ";
 import Head from "expo-router/head";
+
+// Imports for Weekly Recap
+import { useWeeklyRecap, WeeklyRecapData } from '@/hooks/useWeeklyRecap'; // Adjust path if needed
+import WeeklyRecapModal from '@/components/shared/WeeklyRecapModal';   // Adjust path if needed
+import { checkAndTriggerWeeklyRecap } from '@/utils/notification-utils'; // Adjust path if needed
 
 const {width} = Dimensions.get('window');
 const HORIZONTAL_PADDING = 16;
-const CARD_MARGIN = 12;
-const PATH_CARD_WIDTH = width * 0.6;
+const CARD_MARGIN = 12; // Not used in this file, but present in original
+const PATH_CARD_WIDTH = width * 0.6; // Not used in this file, but present in original
 
-export default function Index() {
-    const {user} = useAuth();
-    const {toDayXp, toDayExo, toDayTime, userPrograms, lastCourse} = useUser();
+export default function IndexScreen() {
+    const {user: authUser} = useAuth(); // authUser from useAuth for ID
+    const {user, toDayXp, toDayExo, toDayTime, userPrograms, lastCourse, isLoading: userLoading} = useUser(); // Full user object from useUser
     const colorScheme = useColorScheme();
     const router = useRouter();
     const isDarkMode = colorScheme === 'dark';
-    const streaks = 0;
-    const xp = 0;
+
+    // Weekly Recap State & Hooks
+    const {
+        recapData,
+        isRecapAvailable,
+        isLoading: recapLoading,
+        markRecapAsSeen,
+        refetch: refetchRecap
+    } = useWeeklyRecap();
+
+    const [showRecapModal, setShowRecapModal] = useState(false);
 
     useEffect(() => {
+        // Original notification check
         checkAndUpdateNotifications();
-    }, []);
 
+        // Check and trigger weekly recap logic
+        if (authUser?.id) { // Ensure we have a user to avoid unnecessary calls
+            checkAndTriggerWeeklyRecap().then(() => {
+                // After checking, refetch recap data. This is important if recap_available was just set to true.
+                // We only refetch if recap wasn't already available and data is null to avoid loop.
+                if (!isRecapAvailable && !recapData) {
+                    // If recapData has periodStart and periodEnd, use them, otherwise let hook fetch default
+                    const periodStart = recapData?.periodStart;
+                    const periodEnd = recapData?.periodEnd;
+                    // @ts-ignore
+                    refetchRecap(periodStart, periodEnd);
+                }
+            });
+        }
+    }, [authUser?.id, isRecapAvailable, refetchRecap, recapData]); // Added dependencies
+
+    useEffect(() => {
+        // Show the modal if recap is available and data is loaded
+        if (isRecapAvailable && recapData && !recapLoading) {
+            setShowRecapModal(true);
+        } else {
+            setShowRecapModal(false);
+        }
+    }, [isRecapAvailable, recapData, recapLoading]);
+
+    const handleCloseRecapModal = () => {
+        markRecapAsSeen();
+        setShowRecapModal(false);
+    };
+
+    if (userLoading) { // Show loading indicator if user data is still loading
+        return (
+            <View style={[styles.container, isDarkMode && styles.containerDark, styles.centeredContent]}>
+                <ActivityIndicator size="large" color={theme.color.primary[500]} />
+            </View>
+        );
+    }
 
     return (
         <View style={isDarkMode ? styles.containerDark : styles.container}>
+            <Head>
+                <title>Elearn Prepa | Accueil</title>
+                <meta name="description" content="PrÃ©parez vos concours avec Elearn Prepa." />
+            </Head>
 
             <TopBar
                 userName={`${user?.firstname ?? ''} ${user?.lastname ?? ''}`.trim()}
-                streaks={streaks}
-                xp={xp}
+                streaks={user?.user_streaks?.current_streak || 0}
+                xp={user?.user_xp?.total_xp || 0}
                 onChangeProgram={() => {
                 }}
             />
-
-            {/*<GeminiChatbot*/}
-            {/*    apiKey="AIzaSyCQv5mGd4Kr6Csa_GPRt4DCbAWjB6oYiYs"*/}
-            {/*    position="bottom-right"*/}
-            {/*    theme={{*/}
-            {/*        primary: '#10B981',    // Green*/}
-            {/*        secondary: '#6EE7B7',*/}
-            {/*        background: '#FFFFFF',*/}
-            {/*        text: '#1F2937',*/}
-            {/*        userBubble: '#10B981',*/}
-            {/*        botBubble: '#ECFDF5',*/}
-            {/*    }}*/}
-            {/*    botName="EcoAssistant"*/}
-            {/*    welcomeMessage="Hello! I'm your eco-friendly assistant. How can I help you today?"*/}
-            {/*    persistChat={true}*/}
-            {/*    onSendMessage={(message) => {*/}
-            {/*        console.log('User sent:', message);*/}
-            {/*        // You can add analytics or other processing here*/}
-            {/*    }}*/}
-            {/*/>*/}
-
 
             <ScrollView
                 style={styles.content}
@@ -73,14 +104,12 @@ export default function Index() {
             >
                 <View style={styles.header}>
                     <Text numberOfLines={1} style={isDarkMode ? styles.welcomeTitleDark : styles.welcomeTitle}>
-                        {new Date().getHours() < 12 ? 'Bonjour' : 'Bonsoir'} {user?.firstname} 👋
-
+                        {new Date().getHours() < 12 ? 'Bonjour' : 'Bonsoir'} {user?.firstname} ðŸ‘‹
                     </Text>
                     <Text numberOfLines={1} style={isDarkMode ? styles.welcomeSubtitleDark : styles.welcomeSubtitle}>
-                        Prêt à continuer votre apprentissage ?
+                        PrÃªt Ã  continuer votre apprentissage ?
                     </Text>
                 </View>
-                {/*<JustificationGenerator />*/}
 
                 {/* Current Course */}
                 <View style={styles.section}>
@@ -88,11 +117,9 @@ export default function Index() {
                         <Text numberOfLines={1} style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}>En
                             cours</Text>
                         <TouchableOpacity style={styles.seeAllButton}>
-                            <Text style={styles.seeAllText}>
-                                <Link href={"/(app)/learn"}>
-                                    Tout voir
-                                </Link>
-                            </Text>
+                            <Link href={"/(app)/learn"}>
+                                <Text style={styles.seeAllText}>Tout voir</Text>
+                            </Link>
                         </TouchableOpacity>
                     </View>
 
@@ -112,7 +139,7 @@ export default function Index() {
                                 </Text>
                                 <Text numberOfLines={1}
                                       style={isDarkMode ? styles.lessonProgressDark : styles.lessonProgress}>
-                                    Leçon {JSON.stringify(lastCourse?.courses_content?.order)} • {lastCourse?.course_progress_summary?.[0]?.progress_percentage ?? 0} complété
+                                    LeÃ§on {lastCourse?.courses_content?.order ?? 0} â€¢ {lastCourse?.course_progress_summary?.[0]?.progress_percentage ?? 0}% complÃ©tÃ©
                                 </Text>
                             </View>
                             <TouchableOpacity style={[styles.continueButton, (!lastCourse?.id) && { backgroundColor: "gray" }]} disabled={!lastCourse?.id} onPress={() => {
@@ -127,30 +154,38 @@ export default function Index() {
                 {/* Daily Goals - Replaced with CustomizableGoals component */}
                 <CustomizableGoals
                     isDarkMode={isDarkMode}
-                    toDayXp={toDayXp}
-                    toDayExo={toDayExo}
-                    toDayTime={toDayTime}
+                    toDayXp={toDayXp || 0}
+                    toDayExo={toDayExo || 0}
+                    toDayTime={toDayTime || 0}
                 />
 
                 {/* Learning Paths */}
                 <View style={[styles.section, styles.lastSection]}>
                     <View style={styles.sectionHeader}>
                         <Text numberOfLines={1} style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}>
-                            Parcours recommandés
+                            Parcours recommandÃ©s
                         </Text>
                         <TouchableOpacity style={styles.seeAllButton}>
-                            <Text style={styles.seeAllText}> <Link href={"/(app)/learn"}>
-                                Tout voir
-                            </Link></Text>
+                            <Link href={"/(app)/learn"}>
+                                <Text style={styles.seeAllText}>Tout voir</Text>
+                            </Link>
                         </TouchableOpacity>
                     </View>
                     {
                         !userPrograms?.length && <NoProgram/>
                     }
-                    <LearningPaths programs={[...userPrograms]} isDarkMode={isDarkMode}/>
-
+                    <LearningPaths programs={[...userPrograms || []]} isDarkMode={isDarkMode}/>
                 </View>
             </ScrollView>
+
+            {/* Weekly Recap Modal */}
+            {showRecapModal && recapData && (
+                <WeeklyRecapModal
+                    visible={showRecapModal}
+                    onClose={handleCloseRecapModal}
+                    data={recapData}
+                />
+            )}
         </View>
     );
 }
@@ -160,33 +195,13 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#FFFFFF',
     },
-    notificationContainer: {
-        padding: 16,
-        borderRadius: theme.border.radius.small,
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 3,
-        marginBottom: 16,
-    },
-    notificationText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
-        marginBottom: 8,
-    },
-    errorText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 14,
-        color: theme.color.error,
-        marginBottom: 8,
-    },
-    notificationDetails: {
-        marginTop: 8,
-    },
     containerDark: {
         flex: 1,
         backgroundColor: theme.color.dark.background.primary,
+    },
+    centeredContent: { // Style for loading indicator centering
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     content: {
         flex: 1,
@@ -270,9 +285,9 @@ fontSize: 14,
     currentCourseCardDark: {
         backgroundColor: theme.color.dark.background.secondary,
         borderRadius: theme.border.radius.small,
-        shadowColor: '#000',
+        shadowColor: '#000', // Shadow might not be very visible in dark mode
         shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.08,
+        shadowOpacity: 0.1,
         shadowRadius: 12,
         elevation: 3,
         overflow: 'hidden',
@@ -338,5 +353,31 @@ fontSize: 14,
         fontWeight: '600',
         fontFamily : theme.typography.fontFamily,
 fontSize: 14,
+    },
+    // Styles for notification related elements - if needed in this file
+    notificationContainer: {
+        padding: 16,
+        borderRadius: theme.border.radius.small,
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+        marginBottom: 16,
+    },
+    notificationText: {
+        fontFamily : theme.typography.fontFamily,
+fontSize: 16,
+        marginBottom: 8,
+    },
+    errorText: { // If you need to display errors, e.g., from recap fetching
+        fontFamily : theme.typography.fontFamily,
+fontSize: 14,
+        color: theme.color.error,
+        marginBottom: 8,
+        textAlign: 'center'
+    },
+    notificationDetails: {
+        marginTop: 8,
     },
 });

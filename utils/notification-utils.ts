@@ -7,6 +7,7 @@ import reminderMessages from '@/constants/reminderMessages';
 // Storage keys
 const STORAGE_KEY_SETTINGS = '@app_settings';
 const STORAGE_KEY_LAST_UPDATE = '@last_notification_update';
+const RECAP_STORAGE_KEY = '@app_recap_status';
 const UPDATE_INTERVAL_DAYS = 6; // Update messages if it's been 6+ days
 
 /**
@@ -196,5 +197,41 @@ export const forceUpdateNotifications = async () => {
     } catch (error) {
         console.error('Error forcing notification update:', error);
         return false;
+    }
+};
+
+
+export const checkAndTriggerWeeklyRecap = async () => {
+    try {
+        const today = new Date();
+        const isMonday = today.getDay() === 1; // 0 = Sunday, 1 = Monday
+
+        const lastRecapStatusStr = await AsyncStorage.getItem(RECAP_STORAGE_KEY);
+        let lastRecapStatus = lastRecapStatusStr ? JSON.parse(lastRecapStatusStr) : { lastGenerated: null };
+
+        const startOfThisWeek = new Date(today);
+        startOfThisWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Set to Monday
+        startOfThisWeek.setHours(0, 0, 0, 0);
+
+        if (isMonday && (!lastRecapStatus.lastGenerated || new Date(lastRecapStatus.lastGenerated) < startOfThisWeek)) {
+            const endOfLastWeek = new Date(startOfThisWeek);
+            endOfLastWeek.setDate(startOfThisWeek.getDate() - 1);
+            endOfLastWeek.setHours(23, 59, 59, 999);
+
+            const startOfLastWeek = new Date(endOfLastWeek);
+            startOfLastWeek.setDate(endOfLastWeek.getDate() - 6);
+            startOfLastWeek.setHours(0, 0, 0, 0);
+
+            const newRecapStatus = {
+                available: true,
+                periodStart: startOfLastWeek.toISOString(),
+                periodEnd: endOfLastWeek.toISOString(),
+                lastGenerated: today.toISOString(),
+            };
+            await AsyncStorage.setItem(RECAP_STORAGE_KEY, JSON.stringify(newRecapStatus));
+            console.log('Weekly recap triggered for period:', startOfLastWeek, 'to', endOfLastWeek);
+        }
+    } catch (error) {
+        console.error('Error triggering weekly recap:', error);
     }
 };
