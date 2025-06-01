@@ -36,6 +36,7 @@ interface CourseItem {
     id?: number;
     lpId?: string;
     course: Course;
+    order_index?: number;
 }
 
 interface CategoryGroup {
@@ -88,6 +89,21 @@ export const CourseGridByCategory: React.FC<CourseGridByCategoryProps> = ({
                 categoryMap.get(categoryName)?.courses.push(courseItem);
             });
 
+            // Sort courses within each category by order_index if available
+            categoryMap.forEach((category) => {
+                category.courses.sort((a, b) => {
+                    // If both courses have order_index, sort by order_index
+                    if (a.order_index !== undefined && b.order_index !== undefined) {
+                        return a.order_index - b.order_index;
+                    }
+                    // If only one course has order_index, prioritize it
+                    if (a.order_index !== undefined) return -1;
+                    if (b.order_index !== undefined) return 1;
+                    // If neither has order_index, maintain original order
+                    return 0;
+                });
+            });
+
             // Convert map to array and sort alphabetically
             return Array.from(categoryMap.values())
                 .sort((a, b) => a.name.localeCompare(b.name));
@@ -102,11 +118,24 @@ export const CourseGridByCategory: React.FC<CourseGridByCategoryProps> = ({
             return [];
         }
 
+        // Sort filtered courses by order_index if available
+        const sortedCourses = [...filteredCourses].sort((a, b) => {
+            // If both courses have order_index, sort by order_index
+            if (a.order_index !== undefined && b.order_index !== undefined) {
+                return a.order_index - b.order_index;
+            }
+            // If only one course has order_index, prioritize it
+            if (a.order_index !== undefined) return -1;
+            if (b.order_index !== undefined) return 1;
+            // If neither has order_index, maintain original order
+            return 0;
+        });
+
         // Return as a single category group
         return [{
             name: selectedCategory,
             icon: filteredCourses[0].course?.category?.icon,
-            courses: filteredCourses
+            courses: sortedCourses
         }];
     }, [courses, selectedCategory]);
 
