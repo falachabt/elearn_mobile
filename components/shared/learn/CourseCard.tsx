@@ -305,17 +305,19 @@ const CourseCard: React.FC<CourseCardProps> = ({
                     )}
                 </View>
 
-                {/* Progress Bar */}
-                <View style={styles.progressBarContainer}>
-                    <View style={styles.progressBar}>
-                        <View
-                            style={[
-                                styles.progressFill,
-                                { width: progress?.progress_percentage !== undefined ? `${progress.progress_percentage}%` : '0%' }
-                            ]}
-                        />
+                {/* Progress Bar - Only show for enrolled users */}
+                {isEnrolled && (
+                    <View style={styles.progressBarContainer}>
+                        <View style={styles.progressBar}>
+                            <View
+                                style={[
+                                    styles.progressFill,
+                                    { width: progress?.progress_percentage !== undefined ? `${progress.progress_percentage}%` : '0%' }
+                                ]}
+                            />
+                        </View>
                     </View>
-                </View>
+                )}
             </View>
         </Pressable>
     );

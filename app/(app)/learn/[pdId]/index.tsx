@@ -296,20 +296,6 @@ const ProgramDetails = () => {
                         </View>
                     ) : undefined,
                 },
-                {
-                    id: "path",
-                    title: "Parcours Recommandé",
-                    subtitle: isEnrolled ? "Suivez le parcours recommandé" : "Accédez au parcours personnalisé",
-                    icon: (
-                        <MaterialCommunityIcons
-                            name="map-marker-path"
-                            size={24}
-                            color={isDark ? "#6EE7B7" : "#4CAF50"}
-                        />
-                    ),
-                    route: `/(app)/learn/${id}/path`,
-                    color: isDark ? "#6EE7B7" : "#4CAF50",
-                }
             );
 
             setActionCards(cards);

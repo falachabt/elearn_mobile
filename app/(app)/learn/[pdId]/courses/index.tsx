@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
   Pressable,
-  ScrollView,
   ActivityIndicator,
   SafeAreaView
 } from 'react-native';
@@ -16,9 +15,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { theme } from '@/constants/theme';
 import useSWR from 'swr';
-import { useAuth } from '@/contexts/auth';
 import { supabase } from '@/lib/supabase';
-import CourseCard from '@/components/shared/learn/CourseCard';
 import CategoryFilter from '@/components/shared/learn/CategoryFilter';
 import {CourseGridByCategory} from "@/components/shared/learn/CourseGrid";
 import CourseList from "@/components/CourseList";
@@ -55,6 +52,7 @@ interface CourseItem {
   id?: number;
   lpId?: string;
   course: Course;
+  order_index?: number;
 }
 
 interface Program {
@@ -77,15 +75,13 @@ const CourseScreen: React.FC<null> = () => {
   const isDark = colorScheme === 'dark';
   const { pdId} = useLocalSearchParams();
   const { trigger } = useHaptics();
-  const { user } = useAuth();
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { isLearningPathEnrolled } = useUser();
-const isEnrolled = isLearningPathEnrolled(pdId);
-
+  const isEnrolled = isLearningPathEnrolled(String(pdId));
 
   // Fetch program data
   const { data: program, isLoading: isLoadingProgram } = useSWR<Program>(
@@ -114,24 +110,46 @@ const isEnrolled = isLearningPathEnrolled(pdId);
   const { data: courses, isLoading: isLoadingCourses } = useSWR<CourseItem[]>(
       pdId ? `program-courses-${pdId}` : null,
       async () => {
-        const { data } = await supabase
+        // First try to get courses with their order from learning_path_course_order
+        const { data: orderedCourses } = await supabase
+            .from('learning_path_course_order')
+            .select(`
+              id,
+              learning_path_id,
+              course_id,
+              order_index
+            `)
+            .eq('learning_path_id', pdId);
+
+        // Then get all courses from course_learningpath (this ensures we get all courses even if they don't have an order)
+        const { data: allCourses } = await supabase
             .from('course_learningpath')
             .select(`
-          id,
-          lpId,
-          course:courses(
-            id,
-            name,
-            goals,
-            category:courses_categories(id, name, icon),
-            courses_content(id, name, "order"),
-            course_videos(id)
-          )
-        `)
-            .eq('lpId', pdId)
-            // .eq("courses.status", true)
+              id,
+              lpId,
+              course:courses(
+                id,
+                name,
+                goals,
+                category:courses_categories(id, name, icon),
+                courses_content(id, name, "order"),
+                course_videos(id)
+              )
+            `)
+            .eq('lpId', pdId);
+
+        // Combine the data - add order_index to each course if available
+        const coursesWithOrder = allCourses?.map(courseItem => {
+          // @ts-ignore
+          const orderInfo = orderedCourses?.find(oc => oc.course_id === courseItem.course.id);
+          return {
+            ...courseItem,
+            order_index: orderInfo?.order_index
+          };
+        });
+
         // @ts-ignore
-        return data as CourseItem[];
+        return coursesWithOrder as CourseItem[];
       }
   );
 
@@ -184,8 +202,8 @@ const isEnrolled = isLearningPathEnrolled(pdId);
   };
 
   // Handle course press
-  const handleCoursePress = (courseItem: CourseItem) => {
-    trigger(HapticType.LIGHT);
+  const handleCoursePress = async (courseItem: CourseItem) => {
+    await trigger(HapticType.LIGHT);
     router.push(`/learn/${pdId}/course/${courseItem.course.id}`);
   };
 
@@ -216,7 +234,7 @@ const isEnrolled = isLearningPathEnrolled(pdId);
     return { title, school, concoursName };
   };
 
-  const { title, school, concoursName } = getProgramInfo();
+  const {  school, concoursName } = getProgramInfo();
 
   // Render loading state
   if (isLoading) {

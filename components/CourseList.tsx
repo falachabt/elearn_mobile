@@ -35,6 +35,7 @@ interface CourseItem {
     id?: number;
     lpId?: string;
     course: Course;
+    order_index?: number;
 }
 
 interface CourseListProps {
@@ -69,13 +70,26 @@ const CourseList: React.FC<CourseListProps> = ({
         );
     }
 
+    // Sort courses by order_index if available
+    const sortedCourses = [...courses].sort((a, b) => {
+        // If both courses have order_index, sort by order_index
+        if (a.order_index !== undefined && b.order_index !== undefined) {
+            return a.order_index - b.order_index;
+        }
+        // If only one course has order_index, prioritize it
+        if (a.order_index !== undefined) return -1;
+        if (b.order_index !== undefined) return 1;
+        // If neither has order_index, maintain original order
+        return 0;
+    });
+
     return (
         <ScrollView
             style={styles.courseList}
             contentContainerStyle={styles.courseListContent}
             showsVerticalScrollIndicator={false}
         >
-            {courses.map((courseItem, index) => (
+            {sortedCourses.map((courseItem, index) => (
                 <CourseRowItem
                     key={`course-${courseItem.course.id}-${index}`}
                     courseItem={courseItem}
