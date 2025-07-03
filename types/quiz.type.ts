@@ -21,6 +21,7 @@ export interface QuizQuestion {
   }
   
   export interface QuizOption {
+      isCorrect: any;
     id: string;
     value: string;
   }

@@ -73,6 +73,8 @@ export interface Accounts {
   /** the active billing the user is pai for */
   active_trx: string | null;
   role_id: string | null;
+  /** Additional metadata for the user in JSON format */
+  metadata: Json | null;
 }
 export interface AccountsInput {
   created_at?: Date;
@@ -127,6 +129,8 @@ export interface AccountsInput {
   invitedfriends?: string[] | null;
   remindertime?: Date | null;
   onboarding_done?: boolean | null;
+  /** Additional metadata for the user in JSON format */
+  metadata?: Json | null;
   /** the active billing the user is pai for */
   active_trx?: string | null;
   role_id?: string | null;

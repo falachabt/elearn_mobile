@@ -620,7 +620,7 @@ export default function PaymentScreen() {
 
   const renderPaymentForm = () => (
       <ScrollView style={[styles.container, isDark && styles.containerDark]}>
-        <PaymentGuideModal visible={showPaymentGuide} onClose={() => { setShowPaymentGuide(false); }} />
+        {/*<PaymentGuideModal visible={showPaymentGuide} onClose={() => { setShowPaymentGuide(false); }} />*/}
         <View style={[styles.section, isDark && styles.sectionDark]}>
           <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
             Paiement

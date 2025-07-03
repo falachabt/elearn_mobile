@@ -154,7 +154,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     // User streak check function
     const checkStreak = async () => {
         try {
-            if (!user?.id || streakCheckedRef.current) return;
+            // Make sure user and user.id are defined before proceeding
+            if (!user || !user.id || streakCheckedRef.current) return;
 
             streakCheckedRef.current = true;
 
@@ -171,6 +172,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             return data;
         } catch (error) {
             console.error('Error checking streak:', error);
+            // Reset streak checked flag on error so it can be tried again
+            streakCheckedRef.current = false;
         }
     };
 
@@ -243,10 +246,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
     // Check streak when user data becomes available - but only once
     useEffect(() => {
-        if (session && user?.id && !streakCheckedRef.current) {
+        // Make sure session, user, and user.id are all defined before checking streak
+        if (session && user && user.id && !streakCheckedRef.current) {
             checkStreak();
         }
-    }, [user?.id]);
+    }, [session, user]);
 
     // Setup real-time database subscriptions - with stable dependencies
     useEffect(() => {
@@ -416,6 +420,10 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
             try {
                 setIsAccountCreating(true);
+
+                // Simulate slow connection
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
                 const {data, error} = await supabase.auth.signUp({
                     phone: "+237" + phone.toString(),
                     password
@@ -427,6 +435,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     console.log("Sign up successful, session:", data.session);
                     try {
                         console.log("Creating account...");
+
+
                         // Account creation API call
                         await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
                             // await axios.post('http://192.168.1.168:3000/api/mobile/auth/createAccount',
@@ -436,7 +446,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                                     'Content-Type': 'application/json',
                                     'Authorization': `Bearer ${data.session.access_token}`
                                 },
-                                timeout: 1500,
+                                timeout: 3000,
                             }
                         );
 
@@ -445,10 +455,13 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         // Wait for the account data to be available in the database
 
                         try {
-                        await waitForAccountData(phone);
+                            // Simulate slow connection
+                            await new Promise(resolve => setTimeout(resolve, 2000));
 
-                        }catch (error) {
-                           console.log("Error waiting for account data", error);
+                            await waitForAccountData(phone);
+
+                        } catch (error) {
+                            console.log("Error waiting for account data", error);
                         }
 
                         // Force revalidation of user data
@@ -483,7 +496,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             throw error;
         }
     };
-
     const signOut = async () => {
         try {
             setIsLoading(true);

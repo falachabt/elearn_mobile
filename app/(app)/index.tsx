@@ -21,13 +21,25 @@ const CARD_MARGIN = 12;
 const PATH_CARD_WIDTH = width * 0.6;
 
 export default function Index() {
-    const {user} = useAuth();
-    const {toDayXp, toDayExo, toDayTime, userPrograms, lastCourse} = useUser();
+    const {user: authUser} = useAuth();
+    const {user, toDayXp, toDayExo, toDayTime, userPrograms, lastCourse} = useUser();
     const colorScheme = useColorScheme();
     const router = useRouter();
     const isDarkMode = colorScheme === 'dark';
     const streaks = 0;
     const xp = 0;
+
+    // Check if user has configured generous week
+    const hasGenerousWeekConfig = user?.metadata &&
+        typeof user.metadata === 'object' &&
+        'generousWeek' in user.metadata;
+
+    // Redirect to generous week page if not configured
+    useEffect(() => {
+        if (user && !hasGenerousWeekConfig) {
+            // router.replace("/(app)/generous-week");
+        }
+    }, [user, hasGenerousWeekConfig, router]);
 
     useEffect(() => {
         checkAndUpdateNotifications();

@@ -180,6 +180,7 @@ export class NotchPayService {
   }
 
   private handleError(error: any): never {
+    console.log("error", error.message);
     if (axios.isAxiosError(error)) {
       console.error(error, error.message);
       throw new Error(error.response?.data?.message || 'NotchPay API error');
