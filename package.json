@@ -49,6 +49,7 @@
     "expo-notifications": "~0.29.12",
     "expo-random": "^14.0.1",
     "expo-router": "~4.0.16",
+    "expo-screen-capture": "~7.0.1",
     "expo-sharing": "^13.0.1",
     "expo-splash-screen": "~0.29.20",
     "expo-status-bar": "~2.0.1",
@@ -78,7 +79,8 @@
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
     "react-pdf": "^9.2.1",
-    "swr": "^2.3.0"
+    "swr": "^2.3.0",
+    "expo-image": "~2.0.7"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

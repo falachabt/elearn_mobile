@@ -135,9 +135,11 @@ function asyncStorageProvider() {
         }
     };
 }
-export function Provider({children}: { children: React.ReactNode }) {
+// Separate BackHandler logic into its own component for better separation of concerns
+import React from 'react';
+
+const BackHandlerManager = React.memo(({ children }: { children: React.ReactNode }) => {
     const router = useRouter();
-    const {quizId, attempId} = useLocalSearchParams();
     const {trigger} = useHaptics();
     const [exitAppCount, setExitAppCount] = useState(0);
     const exitTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -228,6 +230,12 @@ export function Provider({children}: { children: React.ReactNode }) {
         };
     }, [router, exitAppCount, trigger]);
 
+    return <>{children}</>;
+});
+
+export function Provider({children}: { children: React.ReactNode }) {
+    const {quizId, attempId} = useLocalSearchParams();
+
     return (
         <SWRConfig
             value={{
@@ -282,7 +290,9 @@ export function Provider({children}: { children: React.ReactNode }) {
 
                                 <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
                                     <UserActivityTracker/>
-                                    {children}
+                                    <BackHandlerManager>
+                                        {children}
+                                    </BackHandlerManager>
                                 </QuizProvider>
                             </ChatProvider>
                         </GestureHandlerRootView>

@@ -46,7 +46,7 @@ const TopBar: React.FC<TopBarProps> = ({userName, streaks, xp, onChangeProgram})
 
                     <View style={styles.statItem}>
                         <FontAwesome5 name="fire" size={20} color="#FF4500"/>
-                        <Text style={styles.statValue}>{user?.user_streaks?.current_streak}</Text>
+                        <Text style={styles.statValue}>{user?.user_streaks?.current_streak || 0}</Text>
                     </View>
 
                     <TouchableOpacity style={styles.programButton} onPress={() => router.push('/(app)/learn')}>

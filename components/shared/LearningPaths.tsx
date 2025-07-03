@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import React, { useEffect, useCallback, memo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, FlatList } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme } from '@/constants/theme';
@@ -20,7 +20,7 @@ const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.75;
 const HORIZONTAL_PADDING = 16;
 
-const LearningPathCard = ({
+const LearningPathCard = memo(({
                             path,
                             isDarkMode,
                             isFirst,
@@ -94,27 +94,27 @@ const LearningPathCard = ({
     }, delay);
   }, [displayProgress]);
 
-  // Handle interactions
-  const handlePressIn = () => {
+  // Handle interactions - memoized with useCallback
+  const handlePressIn = useCallback(() => {
     pressed.value = withTiming(1, { duration: 100 });
-  };
+  }, [pressed]);
 
-  const handlePressOut = () => {
+  const handlePressOut = useCallback(() => {
     pressed.value = withTiming(0, { duration: 200 });
-  };
+  }, [pressed]);
 
-  const handlePress = () => {
+  const navigateToPath = useCallback(() => {
+    router.push(`/(app)/learn/${path.id}`);
+  }, [router, path.id]);
+
+  const handlePress = useCallback(() => {
     trigger(HapticType.LIGHT);
     pressed.value = withTiming(1, { duration: 100 }, () => {
       pressed.value = withTiming(0, { duration: 150 }, () => {
         runOnJS(navigateToPath)();
       });
     });
-  };
-
-  const navigateToPath = () => {
-    router.push(`/(app)/learn/${path.id}`);
-  };
+  }, [trigger, pressed, navigateToPath]);
 
   return (
       <Animated.View
@@ -295,25 +295,38 @@ const LearningPathCard = ({
         </TouchableOpacity>
       </Animated.View>
   );
-};
+});
 
-const LearningPaths = ({ programs, isDarkMode } : { programs : LearningPath[], isDarkMode : boolean }) => (
-    <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.container}
-    >
-      {programs?.map((path, index) => (
-          <LearningPathCard
-              key={path.id+index}
-              path={path}
-              isDarkMode={isDarkMode}
-              isFirst={index === 0}
-              index={index}
-          />
-      ))}
-    </ScrollView>
-);
+const LearningPaths = ({ programs, isDarkMode } : { programs : LearningPath[], isDarkMode : boolean }) => {
+    // Memoized renderItem function for FlatList
+    const renderItem = useCallback(({ item, index }: { item: LearningPath, index: number }) => (
+        <LearningPathCard
+            key={item.id+index}
+            path={item}
+            isDarkMode={isDarkMode}
+            isFirst={index === 0}
+            index={index}
+        />
+    ), [isDarkMode]);
+
+    // Memoized key extractor
+    const keyExtractor = useCallback((item: LearningPath, index: number) => `${item.id}-${index}`, []);
+
+    return (
+        <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.container}
+            data={programs}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            removeClippedSubviews={true}
+            initialNumToRender={3}
+            maxToRenderPerBatch={3}
+            windowSize={5}
+        />
+    );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -497,4 +510,4 @@ fontSize: 13,
   },
 });
 
-export default LearningPaths;
+export default memo(LearningPaths);

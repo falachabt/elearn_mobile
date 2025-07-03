@@ -654,6 +654,10 @@ Description: ${data?.description || 'Non disponible'}
 Nombre de cours: ${data?.course_count || data?.course_learningpath?.length || 'Non disponible'}
 ${data?.concours_learningpaths?.concour?.name ? `Concours: ${data.concours_learningpaths.concour.name}` : ''}
 ${data?.concours_learningpaths?.concour?.school?.name ? `École: ${data.concours_learningpaths.concour.school.name}` : ''}
+${data?.course_learningpath && data.course_learningpath.length > 0 ? 
+  `Liste des cours: ${data.course_learningpath.map(course => course.name || course.title).join(', ')}` : ''}
+${data?.level ? `Niveau: ${data.level}` : ''}
+${data?.duration ? `Durée estimée: ${data.duration}` : ''}
 `;
 
                 case 'course':
@@ -663,6 +667,13 @@ ${data?.category?.name ? `Catégorie: ${data.category.name}` : ''}
 ${data?.description ? `Description: ${data.description}` : ''}
 ${data?.goals ? `Objectifs: ${Array.isArray(data.goals) ? data.goals.join(', ') : data.goals}` : ''}
 Nombre de leçons: ${data?.courses_content?.length || 'Non disponible'}
+${data?.courses_content && data.courses_content.length > 0 ? 
+  `Liste des leçons: ${data.courses_content.map((lesson, index) => `${index + 1}. ${lesson.name}`).join('\n')}` : ''}
+${data?.level ? `Niveau: ${data.level}` : ''}
+${data?.duration ? `Durée estimée: ${data.duration}` : ''}
+${data?.prerequisites ? `Prérequis: ${data.prerequisites}` : ''}
+${data?.quiz_count ? `Nombre de quiz: ${data.quiz_count}` : ''}
+${data?.exercise_count ? `Nombre d'exercices: ${data.exercise_count}` : ''}
 `;
 
                 case 'lesson':
@@ -670,6 +681,14 @@ Nombre de leçons: ${data?.courses_content?.length || 'Non disponible'}
 Leçon: ${data?.name || 'Non disponible'}
 Ordre: ${data?.order !== undefined ? data.order + 1 : 'Non disponible'}
 Cours parent: ${data?.courses?.name || 'Non disponible'}
+${data?.description ? `Description: ${data.description}` : ''}
+${data?.content ? `Contenu: ${data.content.replace(/<[^>]*>/g, '')}` : ''}
+${data?.duration ? `Durée estimée: ${data.duration}` : ''}
+${data?.has_quiz ? `Contient des quiz: Oui` : ''}
+${data?.has_exercises ? `Contient des exercices: Oui` : ''}
+${data?.keywords && data.keywords.length > 0 ? `Mots-clés: ${data.keywords.join(', ')}` : ''}
+${data?.resources && data.resources.length > 0 ? 
+  `Ressources supplémentaires: ${data.resources.map(resource => resource.title || resource.name).join(', ')}` : ''}
 `;
 
                 case 'exercise':
@@ -677,6 +696,15 @@ Cours parent: ${data?.courses?.name || 'Non disponible'}
 Exercice: ${data?.title || 'Non disponible'}
 ${data?.description ? `Description: ${data.description}` : ''}
 ${data?.course?.name ? `Cours: ${data.course.name}` : ''}
+${data?.lesson?.name ? `Leçon: ${data.lesson.name}` : ''}
+${data?.instructions ? `Instructions: ${data.instructions.replace(/<[^>]*>/g, '')}` : ''}
+${data?.difficulty ? `Difficulté: ${data.difficulty}` : ''}
+${data?.duration ? `Durée estimée: ${data.duration}` : ''}
+${data?.points ? `Points: ${data.points}` : ''}
+${data?.tags && data.tags.length > 0 ? `Tags: ${data.tags.join(', ')}` : ''}
+${data?.hints && data.hints.length > 0 ? 
+  `Indices disponibles: ${data.hints.map((hint, index) => `${index + 1}. ${hint.text || hint}`).join('\n')}` : ''}
+${data?.solution ? `Solution disponible: Oui` : ''}
 `;
 
                 case 'quiz':
@@ -685,6 +713,18 @@ Quiz: ${data?.name || 'Non disponible'}
 ${data?.description ? `Description: ${data.description}` : ''}
 Nombre de questions: ${data?.quiz_questions?.length || 'Non disponible'}
 Catégorie: ${data?.category?.name || 'Non disponible'}
+${data?.course?.name ? `Cours: ${data.course.name}` : ''}
+${data?.lesson?.name ? `Leçon: ${data.lesson.name}` : ''}
+${data?.difficulty ? `Difficulté: ${data.difficulty}` : ''}
+${data?.duration ? `Durée estimée: ${data.duration} minutes` : ''}
+${data?.passing_score ? `Score de réussite: ${data.passing_score}%` : ''}
+${data?.time_limit ? `Temps limite: ${data.time_limit} minutes` : ''}
+${data?.quiz_questions && data.quiz_questions.length > 0 ? 
+  `Questions: ${data.quiz_questions.map((q, index) => 
+    `${index + 1}. ${q.question_text?.replace(/<[^>]*>/g, '')} ${
+      q.question_type ? `(Type: ${q.question_type})` : ''
+    }`
+  ).join('\n')}` : ''}
 `;
 
                 case 'archive':
@@ -692,13 +732,36 @@ Catégorie: ${data?.category?.name || 'Non disponible'}
 Archive: ${data?.name || 'Non disponible'}
 ${data?.session ? `Session: ${data.session}` : ''}
 Type de fichier: ${data?.file_type || 'Non disponible'}
+${data?.description ? `Description: ${data.description}` : ''}
+${data?.year ? `Année: ${data.year}` : ''}
+${data?.subject ? `Matière: ${data.subject}` : ''}
+${data?.school ? `École: ${data.school}` : ''}
+${data?.concours ? `Concours: ${data.concours}` : ''}
+${data?.author ? `Auteur: ${data.author}` : ''}
+${data?.tags && data.tags.length > 0 ? `Tags: ${data.tags.join(', ')}` : ''}
+${data?.size ? `Taille du fichier: ${Math.round(data.size / 1024)} KB` : ''}
+${data?.download_count ? `Nombre de téléchargements: ${data.download_count}` : ''}
 `;
 
                 case 'video':
                     return `
 Vidéo: ${data?.title || 'Non disponible'}
 ${data?.description ? `Description: ${data.description}` : ''}
-Durée: ${data?.duration ? `${Math.floor(data.duration / 60)} minutes` : 'Non disponible'}
+Durée: ${data?.duration ? `${Math.floor(data.duration / 60)} minutes ${data.duration % 60} secondes` : 'Non disponible'}
+${data?.course?.name ? `Cours: ${data.course.name}` : ''}
+${data?.lesson?.name ? `Leçon: ${data.lesson.name}` : ''}
+${data?.author ? `Auteur/Présentateur: ${data.author}` : ''}
+${data?.transcript ? `Transcription disponible: Oui` : ''}
+${data?.transcript ? `Transcription: ${data.transcript.replace(/<[^>]*>/g, '')}` : ''}
+${data?.tags && data.tags.length > 0 ? `Tags: ${data.tags.join(', ')}` : ''}
+${data?.view_count ? `Nombre de vues: ${data.view_count}` : ''}
+${data?.quality ? `Qualité: ${data.quality}` : ''}
+${data?.chapters && data.chapters.length > 0 ? 
+  `Chapitres: ${data.chapters.map((chapter, index) => 
+    `${index + 1}. ${chapter.title} (${Math.floor(chapter.start_time / 60)}:${String(chapter.start_time % 60).padStart(2, '0')})`
+  ).join('\n')}` : ''}
+${data?.related_resources && data.related_resources.length > 0 ? 
+  `Ressources liées: ${data.related_resources.map(resource => resource.title || resource.name).join(', ')}` : ''}
 `;
 
                 default:

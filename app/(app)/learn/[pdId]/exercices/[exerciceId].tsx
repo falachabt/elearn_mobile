@@ -29,8 +29,7 @@ const ExercisePage = () => {
     const { isLearningPathEnrolled } = useUser();
 
     // Check if user is enrolled in this program
-    const isEnrolled = isLearningPathEnrolled(pdId);
-
+    const isEnrolled = isLearningPathEnrolled(String(pdId));
     const [isCorrection, setIsCorrection] = useState(false);
     const [correctionLoading, setCorrectionLoading] = useState(true);
     const [contentLoading, setContentLoading] = useState(true);

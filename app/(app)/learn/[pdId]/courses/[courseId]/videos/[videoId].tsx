@@ -76,7 +76,7 @@ const VideoPlayerScreen = () => {
     const { isLearningPathEnrolled } = useUser();
 
     // Check if user is enrolled in this program
-    const isEnrolled = isLearningPathEnrolled(pdId);
+    const isEnrolled = isLearningPathEnrolled(String(pdId));
 
     // Handle purchase flow
     const handlePurchaseFlow = () => {

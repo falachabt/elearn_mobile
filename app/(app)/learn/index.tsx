@@ -221,6 +221,16 @@ const MyLearningPaths = () => {
                             tintColor={theme.color.primary[500]}
                         />
                     }
+                    removeClippedSubviews={true}
+                    maxToRenderPerBatch={8}
+                    windowSize={10}
+                    initialNumToRender={5}
+                    updateCellsBatchingPeriod={30}
+                    getItemLayout={(data, index) => ({
+                        length: 170, // Hauteur approximative de chaque carte
+                        offset: 170 * index,
+                        index,
+                    })}
                 />
             ) : (
                 <NoProgram/>

@@ -21,10 +21,15 @@ const JustificationGenerator = () => {
     });
 
     // Add a log entry with timestamp
-    const addLog = useCallback((message, type = 'info') => {
+    const addLog = useCallback((message: any, type = 'info') => {
         const timestamp = new Date().toLocaleTimeString();
         setLogs(prevLogs => [
-            { id: Date.now(), message, timestamp, type },
+            {id: Date.now(), message, timestamp, type} as {
+                id: number;
+                message: any;
+                timestamp: string;
+                type: string;
+            },
             ...prevLogs
         ]);
     }, []);
@@ -46,7 +51,7 @@ const JustificationGenerator = () => {
     }, [addLog]);
 
     // Save progress to AsyncStorage
-    const saveProgress = useCallback(async (processed, batch, currentStats) => {
+    const saveProgress = useCallback(async (processed: any, batch: any, currentStats: any) => {
         try {
             await AsyncStorage.setItem(ASYNC_STORAGE_KEY, JSON.stringify({
                 processedQuestions: processed,
@@ -54,6 +59,7 @@ const JustificationGenerator = () => {
                 stats: currentStats
             }));
         } catch (error) {
+            // @ts-ignore
             addLog(`Error saving progress: ${error.message}`, 'error');
         }
     }, [addLog]);

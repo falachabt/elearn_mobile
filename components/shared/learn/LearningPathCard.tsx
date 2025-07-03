@@ -537,4 +537,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ModernLearningPathCard;
+export default React.memo(ModernLearningPathCard);

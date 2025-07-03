@@ -113,15 +113,17 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, isDark, 
                     />
                 </View>
 
-                <View style={[styles.progressBar, isDark && styles.progressBarDark]}>
-                    <View
-                        style={[
-                            styles.progressFill,
-                            isDark && styles.progressFillDark,
-                            {width: progress?.progress_percentage !== undefined ? `${progress.progress_percentage}%` : 0}
-                        ]}
-                    />
-                </View>
+                {isEnrolled && (
+                    <View style={[styles.progressBar, isDark && styles.progressBarDark]}>
+                        <View
+                            style={[
+                                styles.progressFill,
+                                isDark && styles.progressFillDark,
+                                {width: progress?.progress_percentage !== undefined ? `${progress.progress_percentage}%` : 0}
+                            ]}
+                        />
+                    </View>
+                )}
             </View>
         </Pressable>
     );

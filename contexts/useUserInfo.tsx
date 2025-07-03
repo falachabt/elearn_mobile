@@ -223,8 +223,51 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     () => fetchUserPrograms(authUser!.id)
   );
 
+  // Cache for generous week program learning path ID
+  const [generousWeekLearningPathId, setGenerousWeekLearningPathId] = useState<string | null>(null);
+
+  // Fetch the learning path ID for the generous week program
+  useEffect(() => {
+    const fetchGenerousWeekLearningPath = async () => {
+      // Make sure user is defined before accessing its properties
+      if (!user) return;
+
+      if (user.metadata && typeof user.metadata === 'object' && 'generousWeek' in user.metadata) {
+        const generousWeek = user.metadata.generousWeek as { programId: number, selectedAt: string };
+
+        if (generousWeek.programId) {
+          try {
+            const { data, error } = await supabase
+              .from("concours_learningpaths")
+              .select("learningPathId")
+              .eq("id", generousWeek.programId)
+              .single();
+
+            if (!error && data) {
+              setGenerousWeekLearningPathId(data.learningPathId);
+            }
+          } catch (error) {
+            console.error("Error fetching generous week learning path:", error);
+          }
+        }
+      }
+    };
+
+    fetchGenerousWeekLearningPath();
+  }, [user?.metadata]);
+
   const isLearningPathEnrolled = (learningPathId: string) => {
-    return userPrograms?.some(program => program.id === learningPathId);
+    // Check if user is enrolled in the program
+    const isEnrolled = userPrograms?.some(program => program.id === learningPathId);
+
+    if (isEnrolled) return true;
+
+    // Check if this is the generous week program
+    if (generousWeekLearningPathId === learningPathId) {
+      return true;
+    }
+
+    return false;
   }
 
   useEffect(() => {
