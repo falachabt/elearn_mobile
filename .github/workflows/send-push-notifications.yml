@@ -2,8 +2,8 @@ name: Send Push Notifications
 
 on:
   # Run on a schedule (every day at 12:00 UTC)
-  schedule:
-    - cron: '0 12 * * *'
+  #schedule:
+  # - cron: '0 12 * * *'
   
   # Allow manual triggering
   workflow_dispatch:
