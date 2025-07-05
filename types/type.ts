@@ -79,7 +79,8 @@ export interface Accounts {
       duration: number;
        selectedAt: Date;
        programId: number;
-    }
+    },
+    expoPushToken?: string
   } | null;
 }
 export interface AccountsInput {

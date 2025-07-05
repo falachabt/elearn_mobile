@@ -83,13 +83,6 @@ const ExpiredAppScreen = ({isDarkMode}: { isDarkMode: boolean }) => {
     );
 };
 
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-    }),
-});
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
