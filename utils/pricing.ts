@@ -4,23 +4,23 @@
  */
 
 // Price for generous week or special promotions
-export const GENEROUS_WEEK_PRICE = 7920;
+export const GENEROUS_WEEK_PRICE = 7900;
 
 // Regular price for the first course
-export const REGULAR_FIRST_COURSE_PRICE = 14900;
+export const REGULAR_FIRST_COURSE_PRICE = 9000;
 
 // Price for additional courses in the Essential formula
-export const ADDITIONAL_COURSE_PRICE = 7900;
+export const ADDITIONAL_COURSE_PRICE = 5000;
 
 // Fixed price for all formations when user already has enrollments
-export const FIXED_PRICE = 7900;
+export const FIXED_PRICE = 5000;
 
 // Pricing plans definitions
 export const PRICING_PLANS = [
   {
     id: 'essential',
     name: 'Formule Essentielle',
-    description: 'Première formation: 14 900 FCFA + 7900 FCFA pour toutes nouvelles souscriptions à une formation.',
+    description: 'Première formation: 9 000 FCFA + 7900 FCFA pour toutes nouvelles souscriptions à une formation.',
     basePrice: REGULAR_FIRST_COURSE_PRICE,
     additionalPrice: ADDITIONAL_COURSE_PRICE,
     threshold: 1,
