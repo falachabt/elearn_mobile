@@ -2,7 +2,7 @@
   "expo": {
     "name": "Elearn Prepa",
     "slug": "elearn_mobile",
-    "version": "1.0.3",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -14,7 +14,6 @@
       "bundleIdentifier": "com.ezadrive.elearn",
       "infoPlist": {
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
         ]
       }
@@ -27,9 +26,9 @@
         "backgroundColor": "#4CAF50"
       },
       "permissions": [
-        "NOTIFICATIONS",
         "NOTIFICATIONS"
-      ]
+      ],
+      "targetSdkVersion": 35
     },
     "web": {
       "bundler": "metro",

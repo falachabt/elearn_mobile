@@ -5,6 +5,7 @@ import axios from 'axios'
 import {Accounts, tables, UserXp} from '@/types/type'
 import useSWR from 'swr'
 import { trackEvent, Events, setUserId } from '@/utils/analytics'
+import { registerForPushNotificationsAsync, setupNotifications } from '@/utils/pushNotifications'
 
 interface UserStreak {
     id: string
@@ -180,31 +181,34 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
     // Initialize auth (only once)
     useEffect(() => {
-        const initializeAuth = async () => {
-            try {
-                setIsLoading(true);
-                const {data: {session}} = await supabase.auth.getSession();
-                setSession(session);
+      const initializeAuth = async () => {
+        try {
+          setIsLoading(true);
+          const {data: {session}} = await supabase.auth.getSession();
+          setSession(session);
 
-                // Set user ID for analytics if available
-                if (session?.user?.id) {
-                    setUserId(session.user.id);
-                }
+          // Set up notifications
+          setupNotifications();
 
-                // If no session, we're done loading
-                if (!session) {
-                    setIsLoading(false);
-                }
+          // Set user ID for analytics if available
+          if (session?.user?.id) {
+            setUserId(session.user.id);
+          }
 
-                initialLoadRef.current = true;
-            } catch (error) {
-                console.error("Error initializing auth:", error);
-                setIsLoading(false);
-                initialLoadRef.current = true;
-            }
-        };
+          // If no session, we're done loading
+          if (!session) {
+            setIsLoading(false);
+          }
 
-        initializeAuth();
+          initialLoadRef.current = true;
+        } catch (error) {
+          console.error("Error initializing auth:", error);
+          setIsLoading(false);
+          initialLoadRef.current = true;
+        }
+      };
+
+      initializeAuth();
 
         // Listen for auth changes
         const {data: {subscription}} = supabase.auth.onAuthStateChange((_event, session) => {
@@ -257,10 +261,26 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
     // Check streak when user data becomes available - but only once
     useEffect(() => {
-        // Make sure session, user, and user.id are all defined before checking streak
-        if (session && user && user.id && !streakCheckedRef.current) {
-            checkStreak();
+      // Make sure session, user, and user.id are all defined before checking streak
+      if (session && user && user.id && !streakCheckedRef.current) {
+        checkStreak();
+      }
+    }, [session, user]);
+
+    // Register for push notifications when user data becomes available
+    useEffect(() => {
+      const registerPushNotifications = async () => {
+        // Make sure user is defined before registering
+        if (session && user && user.id) {
+          try {
+            await registerForPushNotificationsAsync(user.id);
+          } catch (error) {
+            console.error("Error registering for push notifications:", error);
+          }
         }
+      };
+
+      registerPushNotifications();
     }, [session, user]);
 
     // Setup real-time database subscriptions - with stable dependencies
