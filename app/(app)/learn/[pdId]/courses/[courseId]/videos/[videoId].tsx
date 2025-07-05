@@ -11,6 +11,7 @@ import { theme } from '@/constants/theme';
 import { useSound } from '@/hooks/useSound';
 import { useUser } from '@/contexts/useUserInfo';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
+import { trackEvent, Events } from '@/utils/analytics';
 
 // Locked Content Component
 const LockedContent = ({ 
@@ -76,7 +77,7 @@ const VideoPlayerScreen = () => {
     const { isLearningPathEnrolled } = useUser();
 
     // Check if user is enrolled in this program
-    const isEnrolled = isLearningPathEnrolled(pdId);
+    const isEnrolled = isLearningPathEnrolled(String(pdId));
 
     // Handle purchase flow
     const handlePurchaseFlow = () => {
@@ -90,22 +91,74 @@ const VideoPlayerScreen = () => {
         player.loop = false; // Changed from true to false to enable playlist behavior
         player.play();
 
+        // Track video start event
+        if (currentVideo) {
+            trackEvent(Events.START_VIDEO, {
+                video_id: currentVideo.id,
+                video_title: currentVideo.title,
+                course_id: courseId,
+                learning_path_id: pdId
+            });
+        }
+
+        // Handle video progress tracking
+        let lastProgressTracked = 0;
+        const progressInterval = setInterval(() => {
+            if (player && player.positionMillis && player.durationMillis) {
+                const progressPercent = Math.floor((player.positionMillis / player.durationMillis) * 100);
+
+                // Track progress at 25%, 50%, and 75%
+                if (progressPercent >= 25 && lastProgressTracked < 25) {
+                    lastProgressTracked = 25;
+                    trackVideoProgress(25);
+                } else if (progressPercent >= 50 && lastProgressTracked < 50) {
+                    lastProgressTracked = 50;
+                    trackVideoProgress(50);
+                } else if (progressPercent >= 75 && lastProgressTracked < 75) {
+                    lastProgressTracked = 75;
+                    trackVideoProgress(75);
+                }
+            }
+        }, 1000);
 
         // Handle video ended event to play next video
         const endedListener = () => {
             setIsVideoDone(true);
+
+            // Track video completion event
+            if (currentVideo) {
+                trackEvent(Events.COMPLETE_VIDEO, {
+                    video_id: currentVideo.id,
+                    video_title: currentVideo.title,
+                    course_id: courseId,
+                    learning_path_id: pdId
+                });
+            }
         };
 
         player.addListener('playToEnd', endedListener);
-
 
         return () => {
             if (pathname === `/(app)/learn/${pdId}/courses/${courseId}/videos/${videoId}`) {
                 player.pause();
             }
             player.removeListener('playToEnd', endedListener);
+            clearInterval(progressInterval);
         };
     });
+
+    // Helper function to track video progress
+    const trackVideoProgress = (progressPercent) => {
+        if (currentVideo) {
+            trackEvent(Events.VIDEO_PROGRESS, {
+                video_id: currentVideo.id,
+                video_title: currentVideo.title,
+                course_id: courseId,
+                learning_path_id: pdId,
+                progress_percent: progressPercent
+            });
+        }
+    };
 
     useEffect(() => {
         // Auto-play next video when current one finishes

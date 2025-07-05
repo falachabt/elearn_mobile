@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import {View, useColorScheme, StyleSheet, Dimensions} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {View, useColorScheme, StyleSheet, Dimensions, Platform} from 'react-native';
 import Pdf from 'react-native-pdf';
 import {Archive} from "@/app/(app)/learn/[pdId]/anales";
 import {theme} from "@/constants/theme";
+import * as ScreenCapture from 'expo-screen-capture';
 export interface FileViewerProps {
     file: Archive;
     style?: object;
@@ -41,6 +42,33 @@ export const FileViewer: React.FC<FileViewerProps> = ({ file }) => {
 
     const th = useColorScheme();
     const isDark = th === 'dark';
+
+    // Prevent screenshots
+    useEffect(() => {
+        const preventScreenshots = async () => {
+            try {
+                // Prevent screenshots
+                await ScreenCapture.preventScreenCaptureAsync();
+            } catch (error) {
+                console.error('Error preventing screen capture:', error);
+            }
+        };
+
+        preventScreenshots();
+
+        // Re-enable screenshots when component unmounts
+        return () => {
+            const allowScreenshots = async () => {
+                try {
+                    await ScreenCapture.allowScreenCaptureAsync();
+                } catch (error) {
+                    console.error('Error allowing screen capture:', error);
+                }
+            };
+
+            allowScreenshots();
+        };
+    }, []);
 
     return (
         <View style={[styles.container, isDark && styles.pdfDark]}>

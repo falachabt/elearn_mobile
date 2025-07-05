@@ -10,7 +10,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import useSWR from 'swr';
 import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
-import {FileViewer as FileViewerNative } from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
+import {FileViewer as FileViewerNative } from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+import * as ScreenCapture from 'expo-screen-capture';
 
 // Define TypeScript interfaces for our data
 interface ArchiveData {
@@ -133,6 +134,33 @@ export const FileViewerScreen = () => {
 
     checkIfCorrection();
   }, [fileId]);
+
+  // Prevent screenshots
+  useEffect(() => {
+    const preventScreenshots = async () => {
+      try {
+        // Prevent screenshots
+        await ScreenCapture.preventScreenCaptureAsync();
+      } catch (error) {
+        console.error('Error preventing screen capture:', error);
+      }
+    };
+
+    preventScreenshots();
+
+    // Re-enable screenshots when component unmounts
+    return () => {
+      const allowScreenshots = async () => {
+        try {
+          await ScreenCapture.allowScreenCaptureAsync();
+        } catch (error) {
+          console.error('Error allowing screen capture:', error);
+        }
+      };
+
+      allowScreenshots();
+    };
+  }, []);
 
   // Fetch archive data
   const { data: archiveData, error: archiveError, isLoading: archiveLoading } = useSWR<ArchiveData>(

@@ -27,6 +27,8 @@ import PreloadWebView from "@/components/shared/learn/WebViewCourrseSection";
 import {programProgressKeys} from "@/constants/swr-path";
 import {theme} from "@/constants/theme";
 import {useUser} from "@/contexts/useUserInfo";
+import * as ScreenCapture from 'expo-screen-capture';
+import { trackEvent, Events } from '@/utils/analytics';
 
 interface Course extends Courses {
     courses_content: CoursesContent[];
@@ -46,7 +48,7 @@ const SectionDetail = () => {
 
     // Check if user is enrolled in this program
     const { isLearningPathEnrolled } = useUser();
-    const isEnrolled = isLearningPathEnrolled(pdId);
+    const isEnrolled = isLearningPathEnrolled(String(pdId));
 
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
@@ -58,8 +60,46 @@ const SectionDetail = () => {
     );
 
     useEffect(() => {
-        updateLastAccessed(Number(sectionId))
-    }, [sectionId]);
+        updateLastAccessed(Number(sectionId));
+
+        // Track lesson start event
+        if (category) {
+            trackEvent(Events.START_LESSON, {
+                lesson_id: sectionId,
+                lesson_name: category.name,
+                course_id: courseId,
+                course_name: category.courses?.name,
+                learning_path_id: pdId
+            });
+        }
+    }, [sectionId, category]);
+
+    // Prevent screenshots
+    useEffect(() => {
+        const preventScreenshots = async () => {
+            try {
+                // Prevent screenshots
+                await ScreenCapture.preventScreenCaptureAsync();
+            } catch (error) {
+                console.error('Error preventing screen capture:', error);
+            }
+        };
+
+        preventScreenshots();
+
+        // Re-enable screenshots when component unmounts
+        return () => {
+            const allowScreenshots = async () => {
+                try {
+                    await ScreenCapture.allowScreenCaptureAsync();
+                } catch (error) {
+                    console.error('Error allowing screen capture:', error);
+                }
+            };
+
+            allowScreenshots();
+        };
+    }, []);
 
     const progress = sectionsProgress?.find(
         (section) => section.sectionid == Number(sectionId)
@@ -213,6 +253,17 @@ const SectionDetail = () => {
             return;
         }
 
+        // Track lesson completion
+        if ((progress?.progress !== 1 || progress === undefined) && category) {
+            trackEvent(Events.COMPLETE_LESSON, {
+                lesson_id: sectionId,
+                lesson_name: category.name,
+                course_id: courseId,
+                course_name: category.courses?.name,
+                learning_path_id: pdId
+            });
+        }
+
         if (progress?.progress !== 1) {
             markSectionComplete(Number(sectionId));
         } else if (progress === undefined) {
@@ -260,7 +311,7 @@ const SectionDetail = () => {
                 if (container) {
                     container.classList.add('dark');
                     container.setAttribute('data-color-scheme', 'dark');
-                    
+
                     // Add custom CSS variables for dark mode colors
                     document.documentElement.style.setProperty('--bn-colors-editor-text', '#FFFFFF');
                     document.documentElement.style.setProperty('--bn-colors-editor-background', '#111827');
@@ -300,7 +351,7 @@ const SectionDetail = () => {
             if (document.readyState === 'complete') {
                 document.body.style.userSelect = 'none';
                 applyDarkMode();
-                
+
                 // Send a message immediately to tell React Native the content is loaded
                 if (window.ReactNativeWebView) {
                     window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -318,7 +369,7 @@ const SectionDetail = () => {
                         documentBodyOffsetHeight: document.body.offsetHeight
                     }), '*');
                 }
-                
+
                 // Setup scroll event handling
                 window.onscroll = function() {
                     if ((window.innerHeight + window.scrollY + 120) >= document.body.offsetHeight) {
@@ -328,7 +379,7 @@ const SectionDetail = () => {
                             windowScrollY: window.scrollY,
                             documentBodyOffsetHeight: document.body.offsetHeight
                         });
-                        
+
                         if (window.ReactNativeWebView) {
                             window.ReactNativeWebView.postMessage(message);
                         } else {

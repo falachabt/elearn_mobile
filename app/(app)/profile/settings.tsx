@@ -1,15 +1,14 @@
-import React, {useState, useEffect, ComponentProps} from 'react';
+import React, {useState, useEffect, useMemo, useCallback} from 'react';
 import {
     View,
     Text,
     StyleSheet,
-    Switch,
     ScrollView,
     Pressable,
     TextInput,
     Alert,
-    Modal,
-    Platform
+    Platform,
+    Modal
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
@@ -22,44 +21,20 @@ import {registerForPushNotificationsAsync} from "@/components/TestNotifications"
 import {useColorScheme} from '@/hooks/useColorScheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SchedulableTriggerInputTypes} from 'expo-notifications';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import reminderMessages from "@/constants/reminderMessages";
-
-
+import * as Device from 'expo-device';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { IconNames } from '@/constants/iconNames';
+import { ReminderDays, AppSettings } from '@/types/settings.type';
+import SettingsItem from '@/components/settings/SettingsItem';
+import ReminderModal from '@/components/settings/ReminderModal';
+import { useRouter } from 'expo-router';
 
 // TODO: check the notification udpates and the last update
-
 
 // Storage keys
 const STORAGE_KEY_SETTINGS = '@app_settings';
 const STORAGE_KEY_LAST_UPDATE = '@last_notification_update';
-
-// Type qui extrait le type exact accepté par la propriété 'name' de MaterialCommunityIcons
-export type MaterialIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-// Objets constants avec les noms d'icônes typés
-export const IconNames: Record<string, MaterialIconName> = {
-    BELL_OUTLINE: 'bell-outline',
-    CALENDAR_CLOCK: 'calendar-clock',
-    CLOCK_TIME_FOUR_OUTLINE: 'clock-time-four-outline',
-    TEST_TUBE: 'test-tube',
-    EMAIL_OUTLINE: 'email-outline',
-    VOLUME_HIGH: 'volume-high',
-    VIBRATE: 'vibrate',
-    THEME_LIGHT_DARK: 'theme-light-dark',
-    DATA_MATRIX: 'data-matrix',
-    WIFI: 'wifi',
-    TRASH_CAN_OUTLINE: 'trash-can-outline',
-    ACCOUNT_OUTLINE: 'account-outline',
-    LOGOUT: 'logout',
-    INFORMATION_OUTLINE: 'information-outline',
-    SHIELD_CHECK_OUTLINE: 'shield-check-outline',
-    CONTENT_SAVE_OUTLINE: 'content-save-outline',
-    CLOSE: 'close',
-    CLOCK_OUTLINE: 'clock-outline',
-    VIEW_GRID: 'view-grid',
-    CHEVRON_RIGHT: 'chevron-right'
-} as const;
 
 
 const SettingsScreen = () => {
@@ -67,6 +42,66 @@ const SettingsScreen = () => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const {trigger, loadHapticSettings} = useHaptics();
+    const router = useRouter();
+
+    // Render a setting item with a toggle switch
+    const renderSettingItem = (iconName: string, title: string, subtitle: string, value: boolean, onToggle: () => void) => {
+        return (
+            <SettingsItem
+                icon={iconName as any}
+                title={title}
+                subtitle={subtitle}
+                value={value}
+                onToggle={onToggle}
+                isDark={isDark}
+            />
+        );
+    };
+
+    // Render a setting item with a press action
+    const renderPressableSettingItem = (iconName: string, title: string, subtitle: string, onPress: () => void, rightContent: React.ReactNode = null) => {
+        return (
+            <SettingsItem
+                icon={iconName as any}
+                title={title}
+                subtitle={subtitle}
+                onPress={onPress}
+                rightComponent={rightContent as any}
+                isDark={isDark}
+            />
+        );
+    };
+
+    // Get device information
+    const deviceInfo = useMemo(() => {
+        const deviceName = Device.deviceName || 'Unknown Device';
+        const deviceType = Device.deviceType;
+        const deviceTypeText = 
+            deviceType === Device.DeviceType.PHONE ? 'Smartphone' :
+            deviceType === Device.DeviceType.TABLET ? 'Tablet' :
+            deviceType === Device.DeviceType.DESKTOP ? 'Desktop' :
+            deviceType === Device.DeviceType.TV ? 'TV' : 'Unknown';
+
+        const isAppleDevice = Platform.OS === 'ios' || Platform.OS === 'macos';
+        const isMac = isAppleDevice && Device.deviceType === Device.DeviceType.DESKTOP;
+
+        const modelName = Device.modelName || '';
+        const osName = Platform.OS === 'ios' ? 'iOS' : 
+                      Platform.OS === 'android' ? 'Android' : 
+                      Platform.OS === 'macos' ? 'macOS' : 
+                      Platform.OS === 'windows' ? 'Windows' : 
+                      Platform.OS;
+        const osVersion = Platform.Version?.toString();
+
+        return {
+            name: deviceName,
+            type: deviceTypeText,
+            model: modelName,
+            os: osName,
+            osVersion: osVersion,
+            isMac: isMac
+        };
+    }, []);
 
     // States for settings
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -137,7 +172,7 @@ const SettingsScreen = () => {
     };
 
     // Save settings to AsyncStorage
-    const saveSettings = async () => {
+    const saveSettings = async (showAlert = true) => {
         try {
             const settings = {
                 notificationsEnabled,
@@ -155,12 +190,8 @@ const SettingsScreen = () => {
 
             await AsyncStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
 
-            // udpate the hooks
-            setTimeout(loadHapticSettings, 1000)
-            setTimeout(loadHapticSettings, 1000)
-           // await  loadHapticSettings();
-
-
+            // Update the hooks
+            setTimeout(loadHapticSettings, 1000);
 
             // Schedule or cancel notifications based on settings
             if (notificationsEnabled && dailyRemindersEnabled) {
@@ -169,10 +200,14 @@ const SettingsScreen = () => {
                 await Notifications.cancelAllScheduledNotificationsAsync();
             }
 
-            Alert.alert('Succès', 'Vos préférences ont été enregistrées');
+            if (showAlert) {
+                Alert.alert('Succès', 'Vos préférences ont été enregistrées');
+            }
         } catch (error) {
             console.error('Error saving settings:', error);
-            Alert.alert('Erreur', 'Une erreur est survenue lors de l\'enregistrement de vos préférences');
+            if (showAlert) {
+                Alert.alert('Erreur', 'Une erreur est survenue lors de l\'enregistrement de vos préférences');
+            }
         }
     };
 
@@ -259,6 +294,8 @@ const SettingsScreen = () => {
             const token = await registerForPushNotificationsAsync();
             if (token) {
                 setNotificationsEnabled(true);
+                // Save settings after state update
+                setTimeout(() => saveSettings(false), 0);
             }
         } else {
             // Ideally, we can't programmatically disable notifications,
@@ -266,6 +303,8 @@ const SettingsScreen = () => {
             setNotificationsEnabled(false);
             setDailyRemindersEnabled(false);
             await Notifications.cancelAllScheduledNotificationsAsync();
+            // Save settings after state update
+            setTimeout(() => saveSettings(false), 0);
         }
     };
 
@@ -273,12 +312,16 @@ const SettingsScreen = () => {
     const handleToggleDailyReminders = () => {
         trigger(HapticType.LIGHT);
         setDailyRemindersEnabled(!dailyRemindersEnabled);
+        // Save settings after state update
+        setTimeout(() => saveSettings(false), 0);
     };
 
     // Handle toggle email reminders
     const handleToggleEmailReminders = () => {
         trigger(HapticType.LIGHT);
         setEmailRemindersEnabled(!emailRemindersEnabled);
+        // Save settings after state update
+        setTimeout(() => saveSettings(false), 0);
     };
 
     // Handle time change in time picker
@@ -286,6 +329,8 @@ const SettingsScreen = () => {
         setShowTimePicker(false);
         if (selectedDate) {
             setReminderTime(selectedDate);
+            // Save settings after state update
+            setTimeout(() => saveSettings(false), 0);
         }
     };
 
@@ -297,88 +342,50 @@ const SettingsScreen = () => {
     // Toggle a specific day in reminder days
     const toggleReminderDay = (day: keyof typeof reminderDays) => {
         trigger(HapticType.LIGHT);
-        setReminderDays(prev => ({
-            ...prev,
-            [day]: !prev[day]
-        }));
+        setReminderDays(prev => {
+            const newDays = {
+                ...prev,
+                [day]: !prev[day]
+            };
+            // Save settings after state update
+            setTimeout(() => saveSettings(false), 0);
+            return newDays;
+        });
     };
 
     // Handle other toggle functions
     const handleToggleSounds = () => {
         trigger(HapticType.LIGHT);
         setSoundsEnabled(!soundsEnabled);
+        // Save settings after state update
+        setTimeout(() => saveSettings(false), 0);
     };
 
     const handleToggleHaptic = () => {
         trigger(HapticType.LIGHT);
         setHapticEnabled(!hapticEnabled);
+        // Save settings after state update
+        setTimeout(() => saveSettings(false), 0);
     };
 
     const handleToggleDataOptimization = () => {
         trigger(HapticType.LIGHT);
         setDataUsageOptimized(!dataUsageOptimized);
+        // Save settings after state update
+        setTimeout(() => saveSettings(false), 0);
     };
 
     const handleToggleWifiOnly = () => {
         trigger(HapticType.LIGHT);
         setDownloadOverWifiOnly(!downloadOverWifiOnly);
+        // Save settings after state update
+        setTimeout(() => saveSettings(false), 0);
     };
 
     const handleSignOut = () => {
         trigger(HapticType.MEDIUM);
         signOut();
     };
-
-    // Render a setting item with switch
-    const renderSettingItem = (icon: MaterialIconName, title: string, subtitle: string, value: boolean, onToggle: () => void) => (
-        <View style={[styles.settingItem, isDark && styles.settingItemDark]}>
-            <View style={styles.settingItemLeft}>
-                <View style={[styles.iconContainer, isDark && styles.iconContainerDark]}>
-
-                    <MaterialCommunityIcons name={icon} size={24} color={theme.color.primary[500]}/>
-                </View>
-                <View style={styles.settingTexts}>
-                    <Text style={[styles.settingTitle, isDark && styles.settingTitleDark]}>{title}</Text>
-                    <Text style={[styles.settingSubtitle, isDark && styles.settingSubtitleDark]}>{subtitle}</Text>
-                </View>
-            </View>
-            <Switch
-                value={value}
-
-                onValueChange={onToggle}
-                trackColor={{false: '#E5E7EB', true: theme.color.primary[500]}}
-                thumbColor={Platform.OS === 'android' ? '#FFFFFF' : ''}
-            />
-        </View>
-    );
-
-    // Render a setting item that's a button/pressable
-    const renderPressableSettingItem = (icon: MaterialIconName, title: string, subtitle: string, onPress: () => void, rightComponent?: React.ReactNode) => (
-        <Pressable
-            style={[styles.settingItem, isDark && styles.settingItemDark]}
-            onPress={() => {
-                trigger(HapticType.LIGHT);
-                onPress();
-            }}
-        >
-            <View style={styles.settingItemLeft}>
-                <View style={[styles.iconContainer, isDark && styles.iconContainerDark]}>
-                    <MaterialCommunityIcons name={icon} size={24} color={theme.color.primary[500]}/>
-                </View>
-                <View style={styles.settingTexts}>
-                    <Text style={[styles.settingTitle, isDark && styles.settingTitleDark]}>{title}</Text>
-                    <Text style={[styles.settingSubtitle, isDark && styles.settingSubtitleDark]}>{subtitle}</Text>
-                </View>
-            </View>
-            {rightComponent || (
-                <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={24}
-                    color={isDark ? '#CCCCCC' : '#6B7280'}
-                />
-            )}
-        </Pressable>
-    );
 
     return (
         <ThemedView style={styles.container}>
@@ -393,43 +400,54 @@ const SettingsScreen = () => {
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>Notifications</Text>
 
-                    {renderSettingItem(
-                        'bell-outline',
-                        'Notifications',
-                        'Recevez des alertes importantes',
-                        notificationsEnabled,
-                        handleToggleNotifications
+                    <SettingsItem
+                        icon={IconNames.BELL_OUTLINE}
+                        title="Notifications"
+                        subtitle="Recevez des alertes importantes"
+                        value={notificationsEnabled}
+                        onToggle={handleToggleNotifications}
+                        isDark={isDark}
+                    />
+
+                    {notificationsEnabled && (
+                        <SettingsItem
+                            icon={IconNames.CALENDAR_CLOCK}
+                            title="Rappels quotidiens"
+                            subtitle="Soyez rappelé de votre objectif d'apprentissage"
+                            value={dailyRemindersEnabled}
+                            onToggle={handleToggleDailyReminders}
+                            isDark={isDark}
+                        />
                     )}
 
-                    {notificationsEnabled && renderSettingItem(
-                        'calendar-clock',
-                        'Rappels quotidiens',
-                        'Soyez rappelé de votre objectif d\'apprentissage',
-                        dailyRemindersEnabled,
-                        handleToggleDailyReminders
+                    {notificationsEnabled && dailyRemindersEnabled && (
+                        <SettingsItem
+                            icon={IconNames.CLOCK_TIME_FOUR_OUTLINE}
+                            title="Horaire des rappels"
+                            subtitle={`${formatTime(reminderTime)}`}
+                            onPress={() => setShowReminderModal(true)}
+                            isDark={isDark}
+                        />
                     )}
 
-                    {notificationsEnabled && dailyRemindersEnabled && renderPressableSettingItem(
-                        'clock-time-four-outline',
-                        'Horaire des rappels',
-                        `${formatTime(reminderTime)}`,
-                        () => setShowReminderModal(true)
+                    {notificationsEnabled && (
+                        <SettingsItem
+                            icon={IconNames.TEST_TUBE}
+                            title="Tester les notifications"
+                            subtitle="Envoyez une notification de test"
+                            onPress={sendTestNotification}
+                            isDark={isDark}
+                        />
                     )}
 
-                    {notificationsEnabled && renderPressableSettingItem(
-                        'test-tube',
-                        'Tester les notifications',
-                        'Envoyez une notification de test',
-                        sendTestNotification
-                    )}
-
-                    {renderSettingItem(
-                        'email-outline',
-                        'Rappels par email',
-                        'Recevez des rappels par email',
-                        emailRemindersEnabled,
-                        handleToggleEmailReminders
-                    )}
+                    <SettingsItem
+                        icon={IconNames.EMAIL_OUTLINE}
+                        title="Rappels par email"
+                        subtitle="Recevez des rappels par email"
+                        value={emailRemindersEnabled}
+                        onToggle={handleToggleEmailReminders}
+                        isDark={isDark}
+                    />
 
                     {emailRemindersEnabled && (
                         <View
@@ -439,7 +457,11 @@ const SettingsScreen = () => {
                                 placeholder="Adresse email"
                                 placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
                                 value={emailAddress}
-                                onChangeText={setEmailAddress}
+                                onChangeText={(text) => {
+                                    setEmailAddress(text);
+                                    // Save settings after state update
+                                    setTimeout(() => saveSettings(false), 0);
+                                }}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                             />
@@ -450,30 +472,31 @@ const SettingsScreen = () => {
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>Préférences</Text>
 
-                    {renderSettingItem(
-                        'volume-high',
-                        'Sons',
-                        'Activer les effets sonores dans l\'application',
-                        soundsEnabled,
-                        handleToggleSounds
-                    )}
+                    <SettingsItem
+                        icon={IconNames.VOLUME_HIGH}
+                        title="Sons"
+                        subtitle="Activer les effets sonores dans l'application"
+                        value={soundsEnabled}
+                        onToggle={handleToggleSounds}
+                        isDark={isDark}
+                    />
 
-                    {renderSettingItem(
-                        'vibrate',
-                        'Retour haptique',
-                        'Vibrations tactiles lors des interactions',
-                        hapticEnabled,
-                        handleToggleHaptic
-                    )}
+                    <SettingsItem
+                        icon={IconNames.VIBRATE}
+                        title="Retour haptique"
+                        subtitle="Vibrations tactiles lors des interactions"
+                        value={hapticEnabled}
+                        onToggle={handleToggleHaptic}
+                        isDark={isDark}
+                    />
 
-                   {renderPressableSettingItem(
-                        'theme-light-dark',
-                        'Mode sombre',
-                        'Le mode sombre s\'adapte automatiquement au thème de votre appareil',
-                        () => {
-                            trigger(HapticType.LIGHT);
-                        },
-                    )}
+                    <SettingsItem
+                        icon={IconNames.THEME_LIGHT_DARK}
+                        title="Mode sombre"
+                        subtitle="Le mode sombre s'adapte automatiquement au thème de votre appareil"
+                        onPress={() => trigger(HapticType.LIGHT)}
+                        isDark={isDark}
+                    />
                 </View>
 
                 <View style={styles.section}>
@@ -539,6 +562,20 @@ const SettingsScreen = () => {
                     )}
                 </View>
 
+                {/*<View style={styles.section}>*/}
+                {/*    <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>Performances</Text>*/}
+
+                {/*    {renderPressableSettingItem(*/}
+                {/*        'chart-line',*/}
+                {/*        'Performances Hebdomadamires',*/}
+                {/*        'Consultez vos statistiques d\'apprentissage',*/}
+                {/*        () => {*/}
+                {/*            trigger(HapticType.LIGHT);*/}
+                {/*            router.push('/profile/weekly-performance');*/}
+                {/*        }*/}
+                {/*    )}*/}
+                {/*</View>*/}
+
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>À propos</Text>
 
@@ -551,6 +588,21 @@ const SettingsScreen = () => {
                     )}
 
                     {renderPressableSettingItem(
+                        'devices',
+                        'Appareil',
+                        deviceInfo.isMac 
+                            ? `Mac (${deviceInfo.name})` 
+                            : `${deviceInfo.type} - ${deviceInfo.os} ${deviceInfo.osVersion}`,
+                        () => {
+                            Alert.alert(
+                                'Informations sur l\'appareil',
+                                `Nom: ${deviceInfo.name}\nType: ${deviceInfo.type}\nModèle: ${deviceInfo.model}\nSystème: ${deviceInfo.os} ${deviceInfo.osVersion}`,
+                                [{ text: 'OK' }]
+                            );
+                        }
+                    )}
+
+                    {renderPressableSettingItem(
                         'shield-check-outline',
                         'Politique de confidentialité',
                         'Consultez notre politique de confidentialité',
@@ -559,19 +611,6 @@ const SettingsScreen = () => {
                     )}
                 </View>
 
-                {/* Save Button */}
-                <Pressable
-                    style={[styles.saveButton, isDark && styles.saveButtonDark]}
-                    onPress={saveSettings}
-                >
-                    <MaterialCommunityIcons
-                        name="content-save-outline"
-                        size={20}
-                        color="#FFFFFF"
-                        style={styles.saveButtonIcon}
-                    />
-                    <Text style={styles.saveButtonText}>Enregistrer les modifications</Text>
-                </Pressable>
             </ScrollView>
 
             {/* Reminder Settings Modal */}
@@ -757,7 +796,11 @@ const SettingsScreen = () => {
 
                         <Pressable
                             style={[styles.modalButton, isDark && styles.modalButtonDark]}
-                            onPress={() => setShowReminderModal(false)}
+                            onPress={() => {
+                                setShowReminderModal(false);
+                                // Save settings after closing modal
+                                saveSettings(false);
+                            }}
                         >
                             <Text style={styles.modalButtonText}>Confirmer</Text>
                         </Pressable>

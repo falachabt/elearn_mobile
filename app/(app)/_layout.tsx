@@ -17,6 +17,7 @@ import {useSWRConfig} from "swr";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useColorScheme} from '@/hooks/useColorScheme';
 import {LoadingAnimation} from "@/components/shared/LoadingAnimation1";
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 export default function AppLayout() {
     const {session, isLoading, user} = useAuth();
@@ -121,11 +122,26 @@ export default function AppLayout() {
                     }}
                 />
 
+                {/* Manuel tab */}
+                <Tabs.Screen
+                    name="manuel"
+                    options={{
+                        title: "Manuel",
+                        tabBarIcon: ({color}) => (
+                            <MaterialCommunityIcons
+                                name="book"
+                                color={color}
+                                size={26}
+                            />
+                        ),
+                    }}
+                />
+
                 {/* Other tab screens... */}
                 <Tabs.Screen
                     name="learn"
                     options={{
-                        title: "Apprendre",
+                        title: "Programmes",
                         tabBarIcon: ({color}) => (
                             <MaterialCommunityIcons
                                 name="book-open-variant"

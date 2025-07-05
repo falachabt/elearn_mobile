@@ -1,116 +1,14 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import React, { useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { theme } from '@/constants/theme';
 import { useCourseProgress } from '@/hooks/useCourseProgress';
-
-// TypeScript interfaces
-interface Category {
-    id?: number;
-    name: string;
-    icon?: string;
-}
-
-interface CourseContent {
-    id: number;
-    name: string;
-    order: number;
-}
-
-interface CourseVideo {
-    id: number;
-}
-
-interface Course {
-    id: number;
-    name: string;
-    category?: Category;
-    courses_content?: CourseContent[];
-    course_videos?: CourseVideo[];
-    goals?: string[];
-}
-
-interface CourseItem {
-    id?: number;
-    lpId?: string;
-    course: Course;
-}
-
-interface CourseCardProps {
-    courseItem: CourseItem;
-    pdId: string;
-    index?: number;
-    onPress?: () => void;
-    isEnrolled?: boolean;
-}
-
-// Categories color themes
-const CATEGORY_THEMES: Record<string, {
-    primary: string;
-    secondary: string;
-    cardBg: string;
-    icon: string;
-}> = {
-    'Anglais': {
-        primary: '#1E3A8A',
-        secondary: '#3B82F6',
-        cardBg: '#1D4ED8',
-        icon: 'book-alphabet'
-    },
-    'Mathématiques': {
-        primary: '#3B82F6',
-        secondary: '#93C5FD',
-        cardBg: '#1E40AF',
-        icon: 'function'
-    },
-    'Biologie': {
-        primary: '#10B981',
-        secondary: '#6EE7B7',
-        cardBg: '#059669',
-        icon: 'dna'
-    },
-    'Chimie': {
-        primary: '#8B5CF6',
-        secondary: '#C4B5FD',
-        cardBg: '#5B21B6',
-        icon: 'flask'
-    },
-    'Physique': {
-        primary: '#EC4899',
-        secondary: '#F9A8D4',
-        cardBg: '#BE185D',
-        icon: 'atom'
-    },
-    'Informatique': {
-        primary: '#6366F1',
-        secondary: '#A5B4FC',
-        cardBg: '#4338CA',
-        icon: 'code-tags'
-    },
-    'Histoire': {
-        primary: '#F59E0B',
-        secondary: '#FCD34D',
-        cardBg: '#D97706',
-        icon: 'book-open-page-variant'
-    },
-    'Géographie': {
-        primary: '#14B8A6',
-        secondary: '#5EEAD4',
-        cardBg: '#0F766E',
-        icon: 'earth'
-    }
-};
-
-// Default theme for categories not in the list
-const DEFAULT_THEME = {
-    primary: '#6B7280',
-    secondary: '#E5E7EB',
-    cardBg: '#4B5563',
-    icon: 'book-education'
-};
+import { Image as CachedImage } from 'expo-image';
+import { CourseItem, CourseCardProps } from '@/types/course.type';
+import { CATEGORY_THEMES, DEFAULT_THEME } from '@/constants/categoryThemes';
 
 const CourseCard: React.FC<CourseCardProps> = ({
                                                    courseItem,
@@ -137,21 +35,17 @@ const CourseCard: React.FC<CourseCardProps> = ({
     // Get theme based on category
     const theme = CATEGORY_THEMES[categoryName] || DEFAULT_THEME;
 
-    // Extract unit/course number and clean title
-    const extractCourseInfo = (title: string): {
-        unitNumber: string | null;
-        courseNumber: string | null;
-        cleanTitle: string;
-    } => {
+    // Extract unit/course number and clean title - memoized to avoid recalculation
+    const { unitNumber, courseNumber, cleanTitle } = useMemo(() => {
         // Try to extract "Unit X" pattern
         const unitRegex = /\b(unit|unité)\s+(\d+)\b/i;
-        const unitMatch = title.match(unitRegex);
+        const unitMatch = courseName.match(unitRegex);
 
         // Try to extract "COURS X" pattern
         const courseRegex = /\b(cours)\s+(\d+)\b/i;
-        const courseMatch = title.match(courseRegex);
+        const courseMatch = courseName.match(courseRegex);
 
-        let cleanTitle = title;
+        let cleanTitle = courseName;
 
         if (unitMatch) {
             cleanTitle = cleanTitle.replace(unitRegex, '').trim();
@@ -171,21 +65,19 @@ const CourseCard: React.FC<CourseCardProps> = ({
             courseNumber: courseMatch ? courseMatch[2] : null,
             cleanTitle
         };
-    };
+    }, [courseName]);
 
-    const { unitNumber, courseNumber, cleanTitle } = extractCourseInfo(courseName);
-
-    const handlePress = () => {
+    const handlePress = useCallback(() => {
         trigger(HapticType.LIGHT);
-            router.push(`/(app)/learn/${pdId}/courses/${courseId}`);
+        router.push(`/(app)/learn/${pdId}/courses/${courseId}`);
         // if (onPress) {
         //     onPress();
         // } else {
         // }
-    };
+    }, [trigger, router, pdId, courseId]);
 
     // Format course identifier (either unit or chapter number)
-    const getCourseIdentifier = () => {
+    const getCourseIdentifier = useCallback(() => {
         if (unitNumber) {
             return `Unit ${unitNumber}`;
         } else if (courseNumber) {
@@ -193,16 +85,17 @@ const CourseCard: React.FC<CourseCardProps> = ({
         } else {
             return `#${index}`;
         }
-    };
+    }, [unitNumber, courseNumber, index]);
 
     // Get category icon
-    const getCategoryIcon = () => {
+    const getCategoryIcon = useCallback(() => {
         if (course?.category?.icon) {
             return (
-                <Image
+                <CachedImage
                     source={{ uri: course.category.icon }}
                     style={styles.categoryIconImage}
-                    resizeMode="contain"
+                    contentFit="contain"
+                    cachePolicy="memory-disk"
                 />
             );
         }
@@ -215,9 +108,9 @@ const CourseCard: React.FC<CourseCardProps> = ({
                 color="#FFFFFF"
             />
         );
-    };
+    }, [course?.category?.icon, theme.icon]);
 
-    const getStatusIcon = () => {
+    const getStatusIcon = useCallback(() => {
         if (progress?.is_completed) {
             return (
                 <View style={styles.completedBadge}>
@@ -230,7 +123,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
             );
         }
         return null;
-    };
+    }, [progress?.is_completed]);
 
     return (
         <Pressable
@@ -453,4 +346,4 @@ fontSize: 12,
     },
 });
 
-export default CourseCard;
+export default React.memo(CourseCard);

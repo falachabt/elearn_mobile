@@ -10,42 +10,20 @@ import { useAuth } from '@/contexts/auth';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import PaymentGuideModal, {usePaymentGuide} from "@/components/shared/PaymentGuideModal";
+import { useAppConfig } from '@/contexts/useAppConfig';
+import { 
+  FIXED_PRICE, 
+  GENEROUS_WEEK_PRICE,
+  PRICING_PLANS, 
+  PricingPlan, 
+  getApplicableFormula, 
+  isFixedPriceModeActive, 
+  calculateDiscountedTotal, 
+  getDisplayPrice 
+} from '@/utils/pricing';
 
 type ProcessingState = 'idle' | 'processing' | 'waiting' | 'fallback' | 'browser_redirect';
 type PromoCodeStatus = 'idle' | 'verifying' | 'valid' | 'invalid';
-
-// Prix en mode prix unique
-const FIXED_PRICE = 7900; // Prix de toutes les formations en mode prix fixe
-
-// Définition des formules de prix
-const PRICING_PLANS = [
-  {
-    id: 'essential',
-    name: 'Formule Essentielle',
-    description: 'Première formation: 14 900 FCFA + 7900 FCFA pour toutes nouvelles souscriptions à une formation.',
-    basePrice: 14900,
-    additionalPrice: 7900,
-    threshold: 1,
-    color: 'green'
-  },
-  {
-    id: 'advantage',
-    name: 'Formule Avantage',
-    description: 'Pack complet de trois formations',
-    price: 24900,
-    threshold: 3,
-    color: 'orange',
-    recommended: true
-  },
-  {
-    id: 'excellence',
-    name: 'Formule Excellence',
-    description: 'Formations illimitées pendant 12 mois',
-    price: 39500,
-    threshold: 5,
-    color: '#4F46E5'
-  }
-];
 
 export default function PaymentScreen() {
   const router = useRouter();
@@ -65,6 +43,7 @@ export default function PaymentScreen() {
     verifyPaymentStatus
   } = usePayment();
   const { user } = useAuth();
+  const { isGenerousWeekActive } = useAppConfig();
   const [showExtendedMessage, setShowExtendedMessage] = useState(false);
   const [currentTrxReference, setCurrentTrxReference] = useState<string | null>(null);
   const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
@@ -73,7 +52,8 @@ export default function PaymentScreen() {
   const [ showPaymentGuide, setShowPaymentGuide ] = useState(true);
 
   // Déterminer si le mode prix fixe est activé (l'utilisateur a déjà un achat)
-  const FIXED_PRICE_MODE = (user?.user_program_enrollments?.length || 0) > 0 || false;
+  const FIXED_PRICE_MODE = isFixedPriceModeActive(user?.user_program_enrollments?.length || 0);
+  const isGenerous = isGenerousWeekActive();
 
   // Promo code related states
   const [promoCode, setPromoCode] = useState('');
@@ -86,68 +66,19 @@ export default function PaymentScreen() {
   } | null>(null);
 
   // Déterminer quelle formule est applicable selon le nombre d'items
-  const applicableFormula = useMemo(() => {
-    // En mode prix fixe, pas de formule applicable
-    if (FIXED_PRICE_MODE) return null;
-
-    const itemCount = cartItems.length;
-
-    if (itemCount >= 5) {
-      // Formule Excellence: uniquement à partir de 5 formations
-      return PRICING_PLANS.find(plan => plan.id === 'excellence') || null;
-    } else if (itemCount === 3) {
-      // Formule Avantage: uniquement pour exactement 3 formations
-      return PRICING_PLANS.find(plan => plan.id === 'advantage') || null;
-    } else if (itemCount > 0) {
-      // Formule Essentielle: pour 1, 2 ou 4 formations
-      return PRICING_PLANS.find(plan => plan.id === 'essential') || null;
-    }
-
-    return null;
-  }, [cartItems, FIXED_PRICE_MODE]);
+  const applicableFormula = useMemo<PricingPlan | null>(() => {
+    return getApplicableFormula(cartItems.length, FIXED_PRICE_MODE);
+  }, [cartItems.length, FIXED_PRICE_MODE]);
 
   // Calculate regular total (without any formula discount)
   const regularTotal = useMemo(() =>
           cartItems.reduce((sum, item) => sum + item.price, 0) || 0,
       [cartItems]);
 
-  // Calculate discounted total with the applicable formula or fixed price
+  // Calculate discounted total with the applicable formula, fixed price or generous week price
   const discountedTotal = useMemo(() => {
-    if (!cartItems.length) return 0;
-
-    // Si mode prix fixe, multiplier le nombre d'items par le prix fixe
-    if (FIXED_PRICE_MODE) {
-      return cartItems.length * FIXED_PRICE;
-    }
-
-    if (!applicableFormula) return regularTotal;
-
-    switch (applicableFormula.id) {
-      case 'excellence':
-        // Prix fixe pour 5 formations ou plus
-        return applicableFormula.price || 0;
-      case 'advantage':
-        // Prix fixe uniquement pour exactement 3 formations
-        if (cartItems.length === 3) {
-          return applicableFormula.price || 0;
-        } else {
-          // Sinon on applique la formule essentielle
-          const essentialFormula = PRICING_PLANS.find(plan => plan.id === 'essential');
-          if (!essentialFormula) return regularTotal;
-
-          const firstCoursePrice = essentialFormula.basePrice || 0;
-          const additionalCoursesPrice = (cartItems.length - 1) * (essentialFormula.additionalPrice || 0);
-          return firstCoursePrice + additionalCoursesPrice;
-        }
-      case 'essential':
-        // Première formation à prix normal + formations additionnelles à prix réduit
-        const firstCoursePrice = applicableFormula.basePrice || 0;
-        const additionalCoursesPrice = (cartItems.length - 1) * (applicableFormula.additionalPrice || 0);
-        return firstCoursePrice + additionalCoursesPrice;
-      default:
-        return regularTotal;
-    }
-  }, [cartItems, regularTotal, applicableFormula, FIXED_PRICE_MODE]);
+    return calculateDiscountedTotal(cartItems.length, regularTotal, FIXED_PRICE_MODE, isGenerous);
+  }, [cartItems.length, regularTotal, FIXED_PRICE_MODE, isGenerous]);
 
   // Calculate promo code discount if applicable
   const promoDiscount = useMemo(() => {
@@ -620,7 +551,7 @@ export default function PaymentScreen() {
 
   const renderPaymentForm = () => (
       <ScrollView style={[styles.container, isDark && styles.containerDark]}>
-        <PaymentGuideModal visible={showPaymentGuide} onClose={() => { setShowPaymentGuide(false); }} />
+        {/*<PaymentGuideModal visible={showPaymentGuide} onClose={() => { setShowPaymentGuide(false); }} />*/}
         <View style={[styles.section, isDark && styles.sectionDark]}>
           <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
             Paiement
