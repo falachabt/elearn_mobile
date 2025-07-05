@@ -334,7 +334,7 @@ const QuizDetail: React.FC = () => {
     const { isLearningPathEnrolled } = useUser();
 
     // Check if user is enrolled in this program
-    const isEnrolled = isLearningPathEnrolled(pdId);
+    const isEnrolled = isLearningPathEnrolled(String(pdId));
 
     // Set preview mode based on enrollment status
     const [isPreviewMode, setIsPreviewMode] = useState<boolean>(!isEnrolled);
@@ -417,16 +417,8 @@ const QuizDetail: React.FC = () => {
 
             // If user is not enrolled, check if they've already made an attempt
             if (!isEnrolled) {
-                // Check if this is one of the first two quizzes
-                const { data: courseQuizzes } = await supabase
-                    .from("quiz_courses")
-                    .select("quiz(id)")
-                    .eq("courseId", courseId)
-                    .order("created_at", { ascending: true })
-                    .limit(2);
 
-                const firstTwoQuizIds = courseQuizzes?.map(q => q.quiz?.id) || [];
-                const isPreviewQuiz = firstTwoQuizIds.includes(quizId);
+                const isPreviewQuiz = false;
 
                 if (!isPreviewQuiz) {
                     // Not one of the first two quizzes, redirect to purchase flow

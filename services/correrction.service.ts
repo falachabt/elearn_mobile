@@ -56,10 +56,10 @@ Ta réponse doit être pédagogique et permettre à l'apprenant de comprendre le
             cleanedResponse = cleanedResponse.replace(/^(\$).*?:/i, '$$').trim();
 
             return cleanedResponse;
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Erreur dans CorrectionService.generateAnswer :', error);
             // Renvoie un message d'erreur plus informatif
-            throw new Error(`Impossible de générer une explication pour la question ID ${question.id}: ${error.message}`);
+            throw new Error(`Impossible de générer une explication pour la question ID ${question.id}: ${(error as Error).message}`);
         }
     }
 }

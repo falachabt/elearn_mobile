@@ -68,7 +68,8 @@ export default function AuthLayout() {
                 contentStyle: {
                     backgroundColor: isDarkMode
                         ? theme.color.dark.background.primary
-                        : theme.color.light.background.primary
+                        : theme.color.light.background.primary,
+                    paddingVertical : 20
                 }
             }}
         >

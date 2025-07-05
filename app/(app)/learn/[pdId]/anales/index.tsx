@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect, useCallback, memo, useMemo} from "react";
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   useColorScheme,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { ScrollView } from "react-native-gesture-handler";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { theme } from "@/constants/theme";
@@ -134,16 +133,16 @@ export const ArchivesList = () => {
   const scheme = useColorScheme();
   const isDark = scheme === "dark";
   const { user } = useAuth();
-  const { isLearningPathEnrolled } = useUser();
+  const { isLearningPathEnrolled, generousWeekLearningPathId } = useUser();
 
   // Check if user is enrolled in this program
   const isEnrolled = isLearningPathEnrolled(pdId);
 
   // Set preview mode based on enrollment status
-  const [isPreviewMode] = useState<boolean>(!isEnrolled);
+  const [isPreviewMode] = useState<boolean>(!isEnrolled || (generousWeekLearningPathId === pdId));
 
-  // Handle purchase flow
-  const handlePurchaseFlow = () => {
+  // Handle purchase flow - memoized with useCallback
+  const handlePurchaseFlow = useCallback(() => {
     trigger(HapticType.SELECTION);
     router.push({
       pathname : `/(app)/(catalogue)/shop`,
@@ -151,7 +150,7 @@ export const ArchivesList = () => {
         selectedProgramId : pdId,
       }
     });
-  };
+  }, [trigger, router, pdId]);
 
   // Use SWR to fetch path data with dedicated fetcher
   const { data: pathData, error: pathError } = useSWR<PathData>(
@@ -184,7 +183,7 @@ export const ArchivesList = () => {
     });
   }, [archives, checkIfFileExists]);
 
-  const fetchPinnedAndCompletedStatus = async () => {
+  const fetchPinnedAndCompletedStatus = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -253,9 +252,9 @@ export const ArchivesList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [archivesData, user?.id, supabase, setArchives, setCategories, setLoading]);
 
-  const handlePin = async (archiveId: string) => {
+  const handlePin = useCallback(async (archiveId: string) => {
     try {
       trigger(HapticType.LIGHT);
 
@@ -300,9 +299,9 @@ export const ArchivesList = () => {
     } catch (error) {
       console.error("Error updating pin status:", error);
     }
-  };
+  }, [trigger, archives, user?.id, supabase, setArchives]);
 
-  const handleToggleComplete = async (archiveId: string) => {
+  const handleToggleComplete = useCallback(async (archiveId: string) => {
     try {
       trigger(HapticType.SUCCESS);
 
@@ -360,17 +359,17 @@ export const ArchivesList = () => {
     } catch (error) {
       console.error("Error updating completion status:", error);
     }
-  };
+  }, [trigger, archives, user?.id, supabase, setArchives]);
 
-  const handleDownload = async (file: Archive) => {
+  const handleDownload = useCallback(async (file: Archive) => {
     trigger(HapticType.MEDIUM);
     const success = await downloadFile(file);
     if (success) {
       // Update UI or show success message
     }
-  };
+  }, [trigger, downloadFile]);
 
-  const handleView = (file: Archive) => {
+  const handleView = useCallback((file: Archive) => {
     trigger(HapticType.SELECTION);
     router.push({
       pathname: "/learn/[pdId]/anales/[filePath]/[fileId]",
@@ -380,9 +379,9 @@ export const ArchivesList = () => {
         filePath: downloadState[file.id]?.localPath || file.file_url || "",
       },
     });
-  };
+  }, [trigger, router, pdId, downloadState]);
 
-  const getFilteredArchives = () => {
+  const getFilteredArchives = useCallback(() => {
     // First filter archives based on search, category, and filter type
     let filteredArchives = archives.filter((archive) => {
       const matchesSearch = archive.name
@@ -416,11 +415,36 @@ export const ArchivesList = () => {
 
     // If in preview mode, only show the first 2 archives
     if (isPreviewMode) {
+      // Check if user is in generous week
+      const isGenerousWeek = user?.metadata?.generousWeek && 
+                            typeof user.metadata.generousWeek === 'object' &&
+                            user.metadata.generousWeek !== null;
+
+      // During generous week or regular preview mode, don't show any archives
+      // Old subjects remain exclusive to premium subscribers
       filteredArchives = filteredArchives.slice(0, 0);
     }
 
     return filteredArchives;
-  };
+  }, [archives, searchQuery, selectedCategory, filterType, isPreviewMode, user?.metadata?.generousWeek]);
+
+
+  // function to render item in FlatList
+    const renderItem = useCallback(({ item } : { item : any}) => (
+        <ArchiveCard
+        item={item}
+        isDark={isDark}
+        onPin={handlePin}
+        onDownload={handleDownload}
+        onView={handleView}
+        onToggleComplete={handleToggleComplete}
+        downloadState={downloadState[item.id] || {}}
+        />
+    ), [isDark, handlePin, handleDownload, handleView, handleToggleComplete, downloadState]);
+
+    // Memoized key extractor for FlatList
+    const keyExtractor = useCallback((item : any) => item.id, []);
+
 
   return (
       <View style={[styles.container, isDark && styles.containerDark]}>
@@ -446,154 +470,119 @@ export const ArchivesList = () => {
 
         {/* Filters */}
         <View style={styles.filtersContainer}>
-          <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterButtonsContainer}
-          >
-            <TouchableOpacity
+          {/* Filter buttons data */}
+          {useMemo(() => {
+            const filterButtons = [
+              {
+                id: 'all',
+                icon: 'format-list-bulleted',
+                label: 'Tout'
+              },
+              {
+                id: 'pinned',
+                icon: 'pin',
+                label: 'Épinglés'
+              },
+              {
+                id: 'completed',
+                icon: 'check-circle',
+                label: 'Terminés'
+              },
+              {
+                id: 'incomplete',
+                icon: 'circle-outline',
+                label: 'À faire'
+              }
+            ];
+
+            // Memoized renderItem function for filter buttons
+            const renderFilterButton = ({ item } : { item : any}) => (
+              <TouchableOpacity
                 style={[
                   styles.filterButton,
                   isDark && styles.filterButtonDark,
-                  filterType === 'all' && styles.filterButtonActive,
+                  filterType === item.id && styles.filterButtonActive,
                 ]}
                 onPress={() => {
                   trigger(HapticType.LIGHT);
-                  setFilterType('all');
+                  setFilterType(item.id as FilterType);
                 }}
-            >
-              <MaterialCommunityIcons
-                  name="format-list-bulleted"
+              >
+                <MaterialCommunityIcons
+                  name={item.icon}
                   size={20}
-                  color={filterType === 'all' ? '#FFFFFF' : (isDark ? theme.color.gray[400] : theme.color.gray[600])}
-              />
-              <Text
+                  color={filterType === item.id ? '#FFFFFF' : (isDark ? theme.color.gray[400] : theme.color.gray[600])}
+                />
+                <Text
                   style={[
                     styles.filterButtonText,
                     isDark && styles.filterButtonTextDark,
-                    filterType === 'all' && styles.filterButtonTextActive,
+                    filterType === item.id && styles.filterButtonTextActive,
                   ]}
-              >
-                Tout
-              </Text>
-            </TouchableOpacity>
+                >
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
 
-
-
-            <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  isDark && styles.filterButtonDark,
-                  filterType === 'pinned' && styles.filterButtonActive,
-                ]}
-                onPress={() => {
-                  trigger(HapticType.LIGHT);
-                  setFilterType('pinned');
-                }}
-            >
-              <MaterialCommunityIcons
-                  name="pin"
-                  size={20}
-                  color={filterType === 'pinned' ? '#FFFFFF' : (isDark ? theme.color.gray[400] : theme.color.gray[600])}
+            return (
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterButtonsContainer}
+                data={filterButtons}
+                renderItem={renderFilterButton}
+                keyExtractor={item => item.id}
+                removeClippedSubviews={true}
+                initialNumToRender={4}
+                maxToRenderPerBatch={4}
               />
-              <Text
-                  style={[
-                    styles.filterButtonText,
-                    isDark && styles.filterButtonTextDark,
-                    filterType === 'pinned' && styles.filterButtonTextActive,
-                  ]}
-              >
-                Épinglés
-              </Text>
-            </TouchableOpacity>
+            );
 
-            <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  isDark && styles.filterButtonDark,
-                  filterType === 'completed' && styles.filterButtonActive,
-                ]}
-                onPress={() => {
-                  trigger(HapticType.LIGHT);
-                  setFilterType('completed');
-                }}
-            >
-              <MaterialCommunityIcons
-                  name="check-circle"
-                  size={20}
-                  color={filterType === 'completed' ? '#FFFFFF' : (isDark ? theme.color.gray[400] : theme.color.gray[600])}
-              />
-              <Text
-                  style={[
-                    styles.filterButtonText,
-                    isDark && styles.filterButtonTextDark,
-                    filterType === 'completed' && styles.filterButtonTextActive,
-                  ]}
-              >
-                Terminés
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  isDark && styles.filterButtonDark,
-                  filterType === 'incomplete' && styles.filterButtonActive,
-                ]}
-                onPress={() => {
-                  trigger(HapticType.LIGHT);
-                  setFilterType('incomplete');
-                }}
-            >
-              <MaterialCommunityIcons
-                  name="circle-outline"
-                  size={20}
-                  color={filterType === 'incomplete' ? '#FFFFFF' : (isDark ? theme.color.gray[400] : theme.color.gray[600])}
-              />
-              <Text
-                  style={[
-                    styles.filterButtonText,
-                    isDark && styles.filterButtonTextDark,
-                    filterType === 'incomplete' && styles.filterButtonTextActive,
-                  ]}
-              >
-                À faire
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
+          }, [filterType, isDark, trigger])}
 
           {/* Categories */}
-          <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoriesContainer}
-              style={styles.categoriesScroll}
-          >
-            {categories.map((category) => (
-                <TouchableOpacity
-                    key={category}
-                    style={[
-                      styles.categoryChip,
-                      isDark && styles.categoryChipDark,
-                      selectedCategory === category && styles.selectedCategoryChip,
-                    ]}
-                    onPress={() => {
-                      trigger(HapticType.LIGHT);
-                      setSelectedCategory(category);
-                    }}
+          {useMemo(() => {
+            // Memoized renderItem function for categories
+            const renderCategoryItem = ({ item } : { item : any}) => (
+              <TouchableOpacity
+                style={[
+                  styles.categoryChip,
+                  isDark && styles.categoryChipDark,
+                  selectedCategory === item && styles.selectedCategoryChip,
+                ]}
+                onPress={() => {
+                  trigger(HapticType.LIGHT);
+                  setSelectedCategory(item);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.categoryText,
+                    selectedCategory === item && styles.selectedCategoryText,
+                    isDark && styles.textDark,
+                  ]}
                 >
-                  <Text
-                      style={[
-                        styles.categoryText,
-                        selectedCategory === category && styles.selectedCategoryText,
-                        isDark && styles.textDark,
-                      ]}
-                  >
-                    {category}
-                  </Text>
-                </TouchableOpacity>
-            ))}
-          </ScrollView>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            );
+
+            return (
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesContainer}
+                style={styles.categoriesScroll}
+                data={categories}
+                renderItem={renderCategoryItem}
+                keyExtractor={item => item}
+                removeClippedSubviews={true}
+                initialNumToRender={5}
+                maxToRenderPerBatch={5}
+              />
+            );
+          }, [categories, selectedCategory, isDark, trigger])}
         </View>
 
         {/* Search */}
@@ -626,20 +615,15 @@ export const ArchivesList = () => {
         ) : (
             <FlatList
                 data={getFilteredArchives()}
-                renderItem={({ item }) => (
-                    <ArchiveCard
-                        item={item}
-                        isDark={isDark}
-                        onPin={handlePin}
-                        onDownload={handleDownload}
-                        onView={handleView}
-                        onToggleComplete={handleToggleComplete}
-                        downloadState={downloadState[item.id] || {}}
-                    />
-                )}
-                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                keyExtractor={keyExtractor}
                 contentContainerStyle={styles.listContainer}
                 showsVerticalScrollIndicator={false}
+                // Performance optimizations
+                removeClippedSubviews={true}
+                initialNumToRender={10}
+                maxToRenderPerBatch={5}
+                windowSize={10}
                 ListFooterComponent={
                     isPreviewMode && archives.length > 2 ? (
                         <View style={[styles.previewBanner, isDark && styles.previewBannerDark]}>
@@ -847,4 +831,4 @@ fontSize: 14,
   },
 });
 
-export default ArchivesList;
+export default memo(ArchivesList);

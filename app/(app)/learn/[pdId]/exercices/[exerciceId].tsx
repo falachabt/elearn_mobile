@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useSound } from "@/hooks/useSound";
 import { useUser } from "@/contexts/useUserInfo";
+import { trackEvent, Events } from '@/utils/analytics';
 import useSWR from "swr";
 import WebView from "react-native-webview"; // Ensure this is imported for mobile
 
@@ -29,8 +30,7 @@ const ExercisePage = () => {
     const { isLearningPathEnrolled } = useUser();
 
     // Check if user is enrolled in this program
-    const isEnrolled = isLearningPathEnrolled(pdId);
-
+    const isEnrolled = isLearningPathEnrolled(String(pdId));
     const [isCorrection, setIsCorrection] = useState(false);
     const [correctionLoading, setCorrectionLoading] = useState(true);
     const [contentLoading, setContentLoading] = useState(true);
@@ -160,6 +160,19 @@ const ExercisePage = () => {
     const isPinned = pinData?.is_pinned || false;
     const isCompleted = completeData?.is_completed || false;
 
+    // Track exercise start when component mounts
+    useEffect(() => {
+        if (exercise) {
+            trackEvent(Events.START_EXERCISE, {
+                exercise_id: exerciceId,
+                exercise_name: exercise.name,
+                course_id: exercise.course_id,
+                course_name: exercise.course?.name,
+                learning_path_id: pdId
+            });
+        }
+    }, [exercise, exerciceId, pdId]);
+
     const handleToggleComplete = async () => {
         const newCompletionState = !isCompleted;
         mutateCompleteData({ is_completed: newCompletionState }, false);
@@ -167,6 +180,17 @@ const ExercisePage = () => {
 
         if (newCompletionState) {
             playCorrect();
+
+            // Track exercise completion event
+            if (exercise) {
+                trackEvent(Events.COMPLETE_EXERCISE, {
+                    exercise_id: exerciceId,
+                    exercise_name: exercise.name,
+                    course_id: exercise.course_id,
+                    course_name: exercise.course?.name,
+                    learning_path_id: pdId
+                });
+            }
         }
 
         try {

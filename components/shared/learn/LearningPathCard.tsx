@@ -31,6 +31,7 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
     const isEnrolled = path.enrollmentId || false
+    const isGenerousWeek = path.isGenerousWeek || false;
     const {user} = useAuth();
     const {totalProgress} = isEnrolled ? useProgramProgress(path.id, user?.id || "") : {totalProgress: 0};
     const {trigger} = useHaptics();
@@ -119,13 +120,16 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
         <Animated.View style={[
             styles.cardContainer,
             animatedCardStyle,
-            !isEnrolled && !previewMode && styles.notEnrolledCard
+            !isEnrolled && !previewMode && !isGenerousWeek && styles.notEnrolledCard,
+            isGenerousWeek && styles.generousWeekCard
         ]}>
             <Pressable
                 style={[
                     styles.card,
                     isDarkMode && styles.cardDark,
-                    !isEnrolled && !previewMode && styles.notEnrolledCardInner
+                    !isEnrolled && !previewMode && !isGenerousWeek && styles.notEnrolledCardInner,
+                    isGenerousWeek && !isDarkMode && styles.generousWeekCardInner,
+                    isGenerousWeek && isDarkMode && styles.generousWeekCardInnerDark
                 ]}
                 onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
@@ -134,16 +138,24 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
                 android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}
             >
                 {/* Not enrolled badge */}
-                {!isEnrolled && !previewMode && (
+                {!isEnrolled && !previewMode && !isGenerousWeek && (
                     <View style={styles.notEnrolledBadge}>
                         <Text style={styles.notEnrolledText}>Accès limité</Text>
+                    </View>
+                )}
+
+                {/* Generous week badge */}
+                {isGenerousWeek && (
+                    <View style={styles.generousWeekBadge}>
+                        <Text style={styles.generousWeekText}>Semaine Généreuse</Text>
                     </View>
                 )}
 
                 {/* Left color accent */}
                 <View style={[
                     styles.accent,
-                    !isEnrolled && !previewMode && styles.notEnrolledAccent
+                    !isEnrolled && !previewMode && !isGenerousWeek && styles.notEnrolledAccent,
+                    isGenerousWeek && styles.generousWeekAccent
                 ]}/>
 
                 {/* Card content */}
@@ -322,8 +334,21 @@ const styles = StyleSheet.create({
         elevation: 1,
         shadowOpacity: 0.08,
     },
+    generousWeekCard: {
+        borderWidth: 1,
+        borderColor: '#10B981', // Green border for generous week
+        elevation: 3,
+        shadowOpacity: 0.15,
+        shadowColor: '#10B981',
+    },
     notEnrolledCardInner: {
         opacity: 0.92,
+    },
+    generousWeekCardInner: {
+        backgroundColor: '#F0FDF4', // Light green background for generous week
+    },
+    generousWeekCardInnerDark: {
+        backgroundColor: theme.color.dark.background.primary, // Dark green background for generous week in dark mode
     },
     notEnrolledAccent: {
         backgroundColor: '#D1D5DB',
@@ -343,6 +368,25 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '600',
         fontFamily: theme.typography.fontFamily,
+    },
+    generousWeekBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: '#10B981', // Green color for generous week
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        zIndex: 1,
+    },
+    generousWeekText: {
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: '600',
+        fontFamily: theme.typography.fontFamily,
+    },
+    generousWeekAccent: {
+        backgroundColor: '#10B981', // Green color for generous week
     },
     notEnrolledTitle: {
         color: '#4B5563',
@@ -537,4 +581,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ModernLearningPathCard;
+export default React.memo(ModernLearningPathCard);

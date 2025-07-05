@@ -4,6 +4,7 @@ import {supabase} from '@/lib/supabase'
 import axios from 'axios'
 import {Accounts, tables, UserXp} from '@/types/type'
 import useSWR from 'swr'
+import { trackEvent, Events, setUserId } from '@/utils/analytics'
 
 interface UserStreak {
     id: string
@@ -154,7 +155,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     // User streak check function
     const checkStreak = async () => {
         try {
-            if (!user?.id || streakCheckedRef.current) return;
+            // Make sure user and user.id are defined before proceeding
+            if (!user || !user.id || streakCheckedRef.current) return;
 
             streakCheckedRef.current = true;
 
@@ -171,6 +173,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             return data;
         } catch (error) {
             console.error('Error checking streak:', error);
+            // Reset streak checked flag on error so it can be tried again
+            streakCheckedRef.current = false;
         }
     };
 
@@ -181,6 +185,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 setIsLoading(true);
                 const {data: {session}} = await supabase.auth.getSession();
                 setSession(session);
+
+                // Set user ID for analytics if available
+                if (session?.user?.id) {
+                    setUserId(session.user.id);
+                }
 
                 // If no session, we're done loading
                 if (!session) {
@@ -201,6 +210,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         const {data: {subscription}} = supabase.auth.onAuthStateChange((_event, session) => {
             console.log("Auth state changed:", _event);
             setSession(session);
+
+            // Update user ID for analytics
+            if (session?.user?.id) {
+                setUserId(session.user.id);
+            }
 
             // If signing out, ensure loading is false and reset refs
             if (!session) {
@@ -243,10 +257,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
     // Check streak when user data becomes available - but only once
     useEffect(() => {
-        if (session && user?.id && !streakCheckedRef.current) {
+        // Make sure session, user, and user.id are all defined before checking streak
+        if (session && user && user.id && !streakCheckedRef.current) {
             checkStreak();
         }
-    }, [user?.id]);
+    }, [session, user]);
 
     // Setup real-time database subscriptions - with stable dependencies
     useEffect(() => {
@@ -327,6 +342,9 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             }
 
             console.log("Sign in successful, session:", data.session ? "exists" : "null");
+
+            // Track login event
+            trackEvent(Events.LOGIN, { method: 'phone' });
 
             // We don't set isLoading=false here because the useEffect
             // for session/user will handle that after user data loads
@@ -416,6 +434,10 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
             try {
                 setIsAccountCreating(true);
+
+                // Simulate slow connection
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
                 const {data, error} = await supabase.auth.signUp({
                     phone: "+237" + phone.toString(),
                     password
@@ -427,6 +449,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     console.log("Sign up successful, session:", data.session);
                     try {
                         console.log("Creating account...");
+
+
                         // Account creation API call
                         await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
                             // await axios.post('http://192.168.1.168:3000/api/mobile/auth/createAccount',
@@ -436,7 +460,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                                     'Content-Type': 'application/json',
                                     'Authorization': `Bearer ${data.session.access_token}`
                                 },
-                                timeout: 1500,
+                                timeout: 3000,
                             }
                         );
 
@@ -445,16 +469,22 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         // Wait for the account data to be available in the database
 
                         try {
-                        await waitForAccountData(phone);
+                            // Simulate slow connection
+                            await new Promise(resolve => setTimeout(resolve, 2000));
 
-                        }catch (error) {
-                           console.log("Error waiting for account data", error);
+                            await waitForAccountData(phone);
+
+                        } catch (error) {
+                            console.log("Error waiting for account data", error);
                         }
 
                         // Force revalidation of user data
                         await mutateUser();
 
                         console.log("Account created and data loaded successfully");
+
+                        // Track sign up event
+                        trackEvent(Events.SIGN_UP, { method: 'phone' });
                     } catch (apiError) {
                         console.error('Error in account creation process:', apiError);
                         throw apiError;
@@ -483,11 +513,16 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             throw error;
         }
     };
-
     const signOut = async () => {
         try {
             setIsLoading(true);
             streakCheckedRef.current = false;
+
+            // Track logout event before signing out
+            trackEvent(Events.LOGOUT);
+
+
+
             const {error} = await supabase.auth.signOut();
             if (error) throw error;
             // Session will be updated by the onAuthStateChange listener

@@ -6,12 +6,14 @@ import {useEffect, useRef, useState} from "react";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import {QuizProvider} from "@/contexts/quizContext";
 import {UserProvider} from "@/contexts/useUserInfo";
+import {AppConfigProvider} from "@/contexts/useAppConfig";
 import UserActivityTracker from "@/components/shared/UserActivity";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import AuthDeepLinkHandler from "@/components/shared/DeepLinkHandler";
 import {NotificationProvider} from "@/contexts/NotificationContext";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {ChatProvider} from "@/contexts/chatBotContext";
+import * as amplitude from '@amplitude/analytics-react-native';
 
 // Array of motivational messages to show when user tries to exit
 const MOTIVATIONAL_MESSAGES = [
@@ -135,9 +137,11 @@ function asyncStorageProvider() {
         }
     };
 }
-export function Provider({children}: { children: React.ReactNode }) {
+// Separate BackHandler logic into its own component for better separation of concerns
+import React from 'react';
+
+const BackHandlerManager = React.memo(({ children }: { children: React.ReactNode }) => {
     const router = useRouter();
-    const {quizId, attempId} = useLocalSearchParams();
     const {trigger} = useHaptics();
     const [exitAppCount, setExitAppCount] = useState(0);
     const exitTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -228,6 +232,21 @@ export function Provider({children}: { children: React.ReactNode }) {
         };
     }, [router, exitAppCount, trigger]);
 
+    return <>{children}</>;
+});
+
+export function Provider({children}: { children: React.ReactNode }) {
+    const {quizId, attempId} = useLocalSearchParams();
+
+    // Initialize Amplitude
+    useEffect(() => {
+        // Initialize Amplitude with the API key
+        amplitude.init('7487f52aac24f10f8ffd12ff25f4f48a', undefined, {
+            serverZone: 'EU'  // ← OBLIGATOIRE
+        });
+        console.log('Amplitude initialized');
+    }, []);
+
     return (
         <SWRConfig
             value={{
@@ -276,17 +295,21 @@ export function Provider({children}: { children: React.ReactNode }) {
             <NotificationProvider>
                 <AuthDeepLinkHandler/>
                 <AuthProvider>
-                    <UserProvider>
-                        <GestureHandlerRootView style={{flex: 1}}>
-                            <ChatProvider>
+                    <AppConfigProvider>
+                        <UserProvider>
+                            <GestureHandlerRootView style={{flex: 1}}>
+                                <ChatProvider>
 
-                                <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
-                                    <UserActivityTracker/>
-                                    {children}
-                                </QuizProvider>
-                            </ChatProvider>
-                        </GestureHandlerRootView>
-                    </UserProvider>
+                                    <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
+                                        <UserActivityTracker/>
+                                        <BackHandlerManager>
+                                            {children}
+                                        </BackHandlerManager>
+                                    </QuizProvider>
+                                </ChatProvider>
+                            </GestureHandlerRootView>
+                        </UserProvider>
+                    </AppConfigProvider>
                 </AuthProvider>
             </NotificationProvider>
         </SWRConfig>

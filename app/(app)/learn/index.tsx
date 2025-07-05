@@ -6,10 +6,11 @@ import {
     RefreshControl,
     StyleSheet,
     Text,
+    TextInput,
     useColorScheme,
     View
 } from 'react-native'
-import React from 'react'
+import React, { useState } from 'react'
 import {useAuth} from '@/contexts/auth'
 import useSWR from 'swr'
 import {supabase} from '@/lib/supabase'
@@ -20,6 +21,7 @@ import {useProgramProgress} from "@/hooks/useProgramProgress";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import NoProgram from "@/components/shared/catalogue/NoProgramCard";
 import ModernLearningPathCard from "@/components/shared/learn/LearningPathCard";
+import {useUser} from '@/contexts/useUserInfo';
 
 interface School {
     id: string
@@ -70,16 +72,22 @@ export interface LearningPath {
     progress?: number
     isEnrolled: boolean // New property to indicate enrollment status
     enrollmentId?: number // ID of enrollment if user is enrolled
+    isGenerousWeek?: boolean // Property to indicate if this is the generous week program
 }
 
 const MyLearningPaths = () => {
-    const {session, user} = useAuth()
+    const {session, user: authUser} = useAuth()
+    const {user} = useUser() // Get user data including metadata
     const router = useRouter()
     const colorScheme = useColorScheme()
     const isDarkMode = colorScheme === 'dark'
+    const [searchQuery, setSearchQuery] = useState('')
+
+    // Get generous week program ID from user metadata
+    const generousWeekProgramId = user?.metadata?.generousWeek?.programId
 
     const {data, error, isLoading, mutate} = useSWR(
-        user ? 'all-learning-paths-with-enrollment' : null,
+        authUser ? 'all-learning-paths-with-enrollment' : null,
         async () => {
             // Single optimized query using LEFT JOIN to get all learning paths with enrollment status
             const {data: learningPathsData, error: lpError} = await supabase
@@ -134,10 +142,10 @@ const MyLearningPaths = () => {
             learningPathsData?.forEach((item: any) => {
                 const learningPathId = item.learning_path.id
                 const isUserEnrolled = item.user_program_enrollments?.some(
-                    (enrollment: any) => enrollment.user_id === user?.id
+                    (enrollment: any) => enrollment.user_id === authUser?.id
                 )
                 const userEnrollment = item.user_program_enrollments?.find(
-                    (enrollment: any) => enrollment.user_id === user?.id
+                    (enrollment: any) => enrollment.user_id === authUser?.id
                 )
 
                 if (!learningPathMap.has(learningPathId)) {
@@ -171,11 +179,41 @@ const MyLearningPaths = () => {
 
             const allPaths = Array.from(learningPathMap.values()) as LearningPath[]
 
-            // Trier pour mettre les programmes enrollés en premier
+            // Mark the generous week program
+            if (generousWeekProgramId) {
+                allPaths.forEach(path => {
+                    // Check if any of the concours_learningpaths matches the generous week program ID
+                    const isGenerousWeek = path.concours_learningpaths?.some(
+                        clp => clp.id === generousWeekProgramId
+                    );
+
+                    if (isGenerousWeek) {
+                        // Check if the generous week period is still active
+                        if (user?.metadata?.generousWeek) {
+                            const generousWeek = user.metadata.generousWeek
+                            const selectedAt = new Date(generousWeek.selectedAt);
+                            const durationInMs = generousWeek.duration * 24 * 60 * 60 * 1000;
+
+                            // Only mark as generous week if the period hasn't expired
+                            if (Date.now() < selectedAt.getTime() + durationInMs) {
+                                path.isGenerousWeek = true;
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Trier pour mettre les programmes de la semaine généreuse et enrollés en premier
             return allPaths.sort((a, b) => {
-                if (a.isEnrolled && !b.isEnrolled) return -1
-                if (!a.isEnrolled && b.isEnrolled) return 1
-                return 0
+                // Generous week program comes first
+                if (a.isGenerousWeek && !b.isGenerousWeek) return -1;
+                if (!a.isGenerousWeek && b.isGenerousWeek) return 1;
+
+                // Then enrolled programs
+                if (a.isEnrolled && !b.isEnrolled) return -1;
+                if (!a.isEnrolled && b.isEnrolled) return 1;
+
+                return 0;
             })
         }
     )
@@ -203,25 +241,91 @@ const MyLearningPaths = () => {
                 </Text>
             </View>
 
-            {data && data.length > 0 ? (
-                <FlatList
-                    data={data}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({item}) => (
-                        <ModernLearningPathCard
-                            path={item}
-                        />
+            <View style={[styles.searchContainer, isDarkMode && styles.searchContainerDark]}>
+                <View style={[styles.searchInputWrapper, isDarkMode && styles.searchInputWrapperDark]}>
+                    <MaterialCommunityIcons 
+                        name="magnify" 
+                        size={20} 
+                        color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
+                    />
+                    <TextInput
+                        style={[styles.searchInput, isDarkMode && styles.searchInputDark]}
+                        placeholder="Rechercher un parcours..."
+                        placeholderTextColor={isDarkMode ? '#CCCCCC' : '#6B7280'}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <Pressable onPress={() => setSearchQuery('')}>
+                            <MaterialCommunityIcons 
+                                name="close-circle" 
+                                size={20} 
+                                color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
+                            />
+                        </Pressable>
                     )}
-                    contentContainerStyle={styles.listContainer}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={isLoading}
-                            onRefresh={() => mutate()}
-                            colors={[theme.color.primary[500]]}
-                            tintColor={theme.color.primary[500]}
-                        />
+                </View>
+            </View>
+
+            {data && data.length > 0 ? (
+                (() => {
+                    const filteredData = data.filter(item => 
+                        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                    );
+
+                    if (filteredData.length === 0 && searchQuery.length > 0) {
+                        return (
+                            <View style={styles.centerContainer}>
+                                <MaterialCommunityIcons 
+                                    name="magnify" 
+                                    size={48} 
+                                    color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
+                                />
+                                <Text style={[styles.loadingText, {textAlign: 'center', marginTop: 16}]}>
+                                    Aucun parcours trouvé pour "{searchQuery}"
+                                </Text>
+                                <Pressable 
+                                    style={[styles.retryButton, {marginTop: 16}]} 
+                                    onPress={() => setSearchQuery('')}
+                                >
+                                    <Text style={styles.retryText}>Effacer la recherche</Text>
+                                </Pressable>
+                            </View>
+                        );
                     }
-                />
+
+                    return (
+                        <FlatList
+                            data={filteredData}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({item}) => (
+                                <ModernLearningPathCard
+                                    path={item}
+                                />
+                            )}
+                            contentContainerStyle={styles.listContainer}
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={isLoading}
+                                    onRefresh={() => mutate()}
+                                    colors={[theme.color.primary[500]]}
+                                    tintColor={theme.color.primary[500]}
+                                />
+                            }
+                            removeClippedSubviews={true}
+                            maxToRenderPerBatch={8}
+                            windowSize={10}
+                            initialNumToRender={5}
+                            updateCellsBatchingPeriod={30}
+                            getItemLayout={(data, index) => ({
+                                length: 170, // Hauteur approximative de chaque carte
+                                offset: 170 * index,
+                                index,
+                            })}
+                        />
+                    );
+                })()
             ) : (
                 <NoProgram/>
             )}
@@ -237,6 +341,39 @@ const styles = StyleSheet.create({
     },
     containerDark: {
         backgroundColor: theme.color.dark.background.primary,
+    },
+    searchContainer: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    searchContainerDark: {
+        backgroundColor: theme.color.dark.background.secondary,
+        borderBottomColor: theme.color.dark.border,
+    },
+    searchInputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F3F4F6',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    searchInputWrapperDark: {
+        backgroundColor: theme.color.dark.background.primary,
+    },
+    searchInput: {
+        flex: 1,
+        marginLeft: 8,
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        color: '#111827',
+        paddingVertical: 4,
+    },
+    searchInputDark: {
+        color: '#FFFFFF',
     },
     header: {
         padding: 20,

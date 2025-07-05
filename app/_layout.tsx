@@ -18,6 +18,7 @@ import {Provider} from "@/providers";
 import {theme} from "@/constants/theme";
 import * as Notifications from "expo-notifications";
 import Head from "expo-router/head";
+import ScreenTracker from "@/components/shared/ScreenTracker";
 
 // Define app expiration date - March 16, 2025 (one week after March 9, 2025)
 const EXPIRATION_DATE = new Date('2025-04-10T00:00:00Z');
@@ -125,6 +126,7 @@ export default function RootLayout() {
     return (
         <Provider>
             <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+                <ScreenTracker />
                 <Stack initialRouteName={"(auth)"} screenOptions={{animation: "slide_from_left", headerShown: false}}>
                     <Stack.Screen name="(auth)"/>
                     <Stack.Screen name="(app)"/>

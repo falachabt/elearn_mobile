@@ -8,39 +8,18 @@ import { supabase } from '@/lib/supabase';
 import { Concours, ConcoursLearningpaths, LearningPaths } from '@/types/type';
 import useSWR from "swr";
 import { useAuth } from '@/contexts/auth';
-
-// Prix en mode prix unique
-const FIXED_PRICE = 7900; // Prix de toutes les formations en mode prix fixe
-
-// Définition des formules de prix avec types TypeScript
-const PRICING_PLANS = [
-  {
-    id: 'essential',
-    name: 'Formule Essentielle',
-    description: 'Première formation: 14 900 FCFA + 7900 FCFA pour toutes nouvelles souscriptions à une formation.',
-    basePrice: 14900,
-    additionalPrice: 7900,
-    threshold: 1,
-    color: 'green'
-  },
-  {
-    id: 'advantage',
-    name: 'Formule Avantage',
-    description: 'Pack complet de trois formations',
-    price: 24900,
-    threshold: 3,
-    color: 'orange',
-    recommended: true
-  },
-  {
-    id: 'excellence',
-    name: 'Formule Excellence',
-    description: 'Formations illimitées pendant 12 mois',
-    price: 39500,
-    threshold: 5,
-    color: '#4F46E5'
-  }
-] as const;
+import { useAppConfig } from '@/contexts/useAppConfig';
+import {
+  FIXED_PRICE,
+  GENEROUS_WEEK_PRICE,
+  PRICING_PLANS,
+  PricingPlan,
+  NextFormula,
+  getApplicableFormula,
+  getNextPossibleFormula,
+  calculateDiscountedTotal,
+  getDisplayPrice, isFixedPriceModeActive
+} from '@/utils/pricing';
 
 interface CartItem {
   id: number;
@@ -49,23 +28,7 @@ interface CartItem {
   concour?: Concours;
 }
 
-// Définir un type pour les formules de prix
-type PricingPlan = {
-  id: 'essential' | 'advantage' | 'excellence';
-  name: string;
-  description: string;
-  color: string;
-  threshold: number;
-  price?: number;
-  basePrice?: number;
-  additionalPrice?: number;
-  recommended?: boolean;
-}
-
-type NextFormula = {
-  formula: PricingPlan;
-  itemsNeeded: number;
-}
+// Using PricingPlan and NextFormula types from the pricing utility
 
 // Composant bouton pulsant
 const PulsingButton: React.FC<{
@@ -126,9 +89,11 @@ export default function CartScreen() {
   const router = useRouter();
   const scrollY = useRef(new Animated.Value(0)).current;
   const { user } = useAuth();
+  const { isGenerousWeekActive } = useAppConfig();
 
   // Déterminer si le mode prix fixe est activé (l'utilisateur a déjà un achat)
-  const FIXED_PRICE_MODE = (user?.user_program_enrollments?.length || 0)  > 0 || false;
+  const FIXED_PRICE_MODE = isFixedPriceModeActive(user?.user_program_enrollments?.length || 0);
+  const isGenerous = isGenerousWeekActive();
 
   // fetch promgram using swr instead
   const { data: programs, mutate } = useSWR<CartItem[]>(`cart_items/${currentCart?.id}`, async () => {
@@ -151,15 +116,15 @@ export default function CartScreen() {
   useEffect(() => {
     mutate();
 
-    // En mode prix fixe, pas besoin de suggérer de formule
-    if (!FIXED_PRICE_MODE) {
+    // En mode prix fixe ou semaine généreuse, pas besoin de suggérer de formule
+    if (!FIXED_PRICE_MODE && !isGenerous) {
       // Vérifier si l'utilisateur est proche d'une formule avantageuse
-      const nextFormula = getNextPossibleFormula();
+      const nextFormula = getNextPossibleFormulaLocal();
       setNextFormulaInfo(nextFormula);
     } else {
       setNextFormulaInfo(null);
     }
-  }, [cartItems, currentCart?.id, programs, FIXED_PRICE_MODE]);
+  }, [cartItems, currentCart?.id, programs, FIXED_PRICE_MODE, isGenerous]);
 
   // Calcul du prix régulier (sans remise)
   const regularTotal = useMemo(() =>
@@ -169,87 +134,18 @@ export default function CartScreen() {
 
   // Déterminer quelle formule est applicable selon le nombre d'items
   const applicableFormula = useMemo<PricingPlan | null>(() => {
-    // En mode prix fixe, pas de formule applicable
-    if (FIXED_PRICE_MODE) return null;
-
-    const itemCount = cartItems.length;
-
-    if (itemCount >= 5) {
-      // Formule Excellence: uniquement à partir de 5 formations
-      return PRICING_PLANS.find(plan => plan.id === 'excellence') || null;
-    } else if (itemCount === 3) {
-      // Formule Avantage: uniquement pour exactement 3 formations
-      return PRICING_PLANS.find(plan => plan.id === 'advantage') || null;
-    } else if (itemCount > 0) {
-      // Formule Essentielle: pour 1, 2 ou 4 formations
-      return PRICING_PLANS.find(plan => plan.id === 'essential') || null;
-    }
-
-    return null;
-  }, [cartItems, FIXED_PRICE_MODE]);
+    return getApplicableFormula(cartItems.length, FIXED_PRICE_MODE);
+  }, [cartItems.length, FIXED_PRICE_MODE]);
 
   // Calculer la prochaine formule possible (seulement en mode normal)
-  const getNextPossibleFormula = useCallback((): NextFormula | null => {
-    if (FIXED_PRICE_MODE) return null;
+  const getNextPossibleFormulaLocal = useCallback((): NextFormula | null => {
+    return getNextPossibleFormula(cartItems.length, FIXED_PRICE_MODE);
+  }, [cartItems.length, FIXED_PRICE_MODE]);
 
-    const itemCount = cartItems.length;
-
-    if (itemCount === 0) return null;
-
-    if (itemCount === 2) {
-      // À un item de la formule Avantage
-      const advantageFormula = PRICING_PLANS.find(plan => plan.id === 'advantage');
-      if (advantageFormula) {
-        return { formula: advantageFormula, itemsNeeded: 1 };
-      }
-    } else if (itemCount === 4) {
-      // À un item de la formule Excellence
-      const excellenceFormula = PRICING_PLANS.find(plan => plan.id === 'excellence');
-      if (excellenceFormula) {
-        return { formula: excellenceFormula, itemsNeeded: 1 };
-      }
-    }
-
-    return null;
-  }, [cartItems, FIXED_PRICE_MODE]);
-
-  // Calcul du prix avec l'offre applicable ou mode prix fixe
+  // Calcul du prix avec l'offre applicable, mode prix fixe ou semaine généreuse
   const discountedTotal = useMemo((): number | undefined => {
-    if (!cartItems.length) return 0;
-
-    // Si mode prix fixe, multiplier le nombre d'items par le prix fixe
-    if (FIXED_PRICE_MODE) {
-      return cartItems.length * FIXED_PRICE;
-    }
-
-    if (!applicableFormula) return regularTotal;
-
-    switch (applicableFormula.id) {
-      case 'excellence':
-        // Prix fixe pour 5 formations ou plus
-        return applicableFormula.price || 0;
-      case 'advantage':
-        // Prix fixe uniquement pour exactement 3 formations
-        if (cartItems.length === 3) {
-          return applicableFormula.price || 0;
-        } else {
-          // Sinon on applique la formule essentielle
-          const essentialFormula = PRICING_PLANS.find(plan => plan.id === 'essential');
-          if (!essentialFormula) return regularTotal;
-
-          const firstCoursePrice = essentialFormula.basePrice || 0;
-          const additionalCoursesPrice = (cartItems.length - 1) * (essentialFormula.additionalPrice || 0);
-          return firstCoursePrice + additionalCoursesPrice;
-        }
-      case 'essential':
-        // Première formation à prix normal + formations additionnelles à prix réduit
-        const firstCoursePrice = applicableFormula.basePrice || 0;
-        const additionalCoursesPrice = (cartItems.length - 1) * (applicableFormula.additionalPrice || 0);
-        return firstCoursePrice + additionalCoursesPrice;
-      default:
-        return regularTotal;
-    }
-  }, [cartItems, regularTotal, applicableFormula, FIXED_PRICE_MODE]);
+    return calculateDiscountedTotal(cartItems.length, regularTotal || 0, FIXED_PRICE_MODE, isGenerous);
+  }, [cartItems.length, regularTotal, FIXED_PRICE_MODE, isGenerous]);
 
   // Calcul des économies
   const savings = (regularTotal || 0) - (discountedTotal || 0);
@@ -261,8 +157,8 @@ export default function CartScreen() {
 
   const renderItem = ({ item }: ListRenderItemInfo<unknown>) => {
     // Déterminer le prix à afficher
-    const displayPrice = FIXED_PRICE_MODE ? FIXED_PRICE : (item as CartItem).price;
-    const isDiscounted = FIXED_PRICE_MODE && displayPrice !== (item as CartItem).price;
+    const displayPrice = getDisplayPrice((item as CartItem).price, FIXED_PRICE_MODE, isGenerous);
+    const isDiscounted = (FIXED_PRICE_MODE || isGenerous) && displayPrice !== (item as CartItem).price;
 
     return (
         <View style={[styles.cartItem, isDark && styles.cartItemDark]}>
@@ -438,6 +334,47 @@ export default function CartScreen() {
     );
   };
 
+  // Bannière pour semaine généreuse
+  const renderGenerousWeekBanner = () => {
+    if (!isGenerous || !cartItems.length) return null;
+
+    return (
+        <View style={[styles.offerCard, { borderColor: '#9333EA', backgroundColor: '#FAF5FF' }]}>
+          <View style={styles.offerHeader}>
+            <MaterialCommunityIcons
+                name="gift"
+                size={20}
+                color="#9333EA"
+            />
+            <Text style={[styles.offerTitle, { color: '#9333EA' }]}>
+              Semaine Généreuse
+            </Text>
+          </View>
+
+          <View style={styles.offerDetails}>
+            <Text style={[styles.offerDescription, isDark && styles.offerDescriptionDark]}>
+              Profitez de notre offre spéciale Semaine Généreuse ! Toutes les formations à {GENEROUS_WEEK_PRICE.toLocaleString('fr-FR')} FCFA.
+            </Text>
+
+            <View style={styles.priceComparison}>
+              <Text style={[styles.regularPrice, isDark && styles.regularPriceDark]}>
+                Prix standard: {regularTotal?.toLocaleString('fr-FR')} FCFA
+              </Text>
+
+              <View style={styles.discountRow}>
+                <Text style={[styles.discountLabel, isDark && styles.discountLabelDark]}>
+                  Économie:
+                </Text>
+                <Text style={[styles.discountAmount, { color: '#9333EA' }]}>
+                  -{savings.toLocaleString('fr-FR')} FCFA
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+    );
+  };
+
   if (cartItems.length === 0) {
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
@@ -507,8 +444,8 @@ export default function CartScreen() {
             scrollEventThrottle={16}
         />
 
-        {/* Bouton pulsant pour proposition de formule (uniquement en mode normal) */}
-        {nextFormulaInfo && !FIXED_PRICE_MODE && (
+        {/* Bouton pulsant pour proposition de formule (uniquement en mode normal et hors semaine généreuse) */}
+        {nextFormulaInfo && !FIXED_PRICE_MODE && !isGenerous && (
             <View style={styles.pulseButtonWrapper}>
               <PulsingButton
                   onPress={handlePulseButtonPress}
@@ -520,11 +457,12 @@ export default function CartScreen() {
 
         <View style={[styles.footer, isDark && styles.footerDark]}>
           <View style={styles.footerContent}>
-            {/* Bannière mode prix fixe (uniquement en mode prix fixe) */}
+            {/* Bannière mode prix fixe (uniquement en mode prix fixe) ou semaine généreuse */}
             {FIXED_PRICE_MODE && renderFixedPriceBanner()}
+            {isGenerous && renderGenerousWeekBanner()}
 
-            {/* Affichage de l'offre groupe quand applicable (uniquement en mode normal) */}
-            {!FIXED_PRICE_MODE && applicableFormula && savings > 0 && (
+            {/* Affichage de l'offre groupe quand applicable (uniquement en mode normal et hors semaine généreuse) */}
+            {!FIXED_PRICE_MODE && !isGenerous && applicableFormula && savings > 0 && (
                 <View style={[styles.offerCard, { borderColor: applicableFormula.color, backgroundColor: `${applicableFormula.color}15` }]}>
                   <View style={styles.offerHeader}>
                     <MaterialCommunityIcons

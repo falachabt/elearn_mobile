@@ -29,6 +29,10 @@ export default function ProgramLayout() {
                     name="index"
                 />
                 <Stack.Screen
+                    name="generous-week"
+                />
+
+                <Stack.Screen
                     name="[pdId]"
                 />
             </Stack>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, {useState, useRef, useEffect, useCallback, RefObject} from 'react';
 import {
     View,
     Text,
@@ -71,7 +71,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                                          }) => {
     const isDark = useColorScheme() === 'dark';
     const { trigger } = useHaptics();
-    const scrollViewRef = useRef<ScrollView>(null);
+    const scrollViewRef = useRef<FlatList<Message>>(null);
     const pathname = usePathname();
     const { cache } = useSWRConfig();
 
@@ -212,7 +212,10 @@ const ChatBox: React.FC<ChatBoxProps> = ({
     useEffect(() => {
         if (scrollViewRef.current && messages.length > 0) {
             const timer = setTimeout(() => {
-                scrollViewRef.current?.scrollToEnd({ animated: true });
+                scrollViewRef.current?.scrollToOffset({
+                    offset: Number.MAX_SAFE_INTEGER,
+                    animated: true
+                });
             }, 100);
             return () => clearTimeout(timer);
         }
@@ -630,6 +633,7 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                     {message.text}
                 </Text>
             ) : (
+                // @ts-ignore
                 <Markdown style={markdownStyles}>
                     {message.text}
                 </Markdown>
@@ -818,7 +822,7 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                     keyboardVerticalOffset={0}
                 >
                     {/* Messages */}
-                    <FlatList
+                    <FlatList<Message>
                         ref={scrollViewRef}
                         data={messages}
                         renderItem={renderMessageBubble}

@@ -22,7 +22,14 @@ import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import Head from "expo-router/head";
 
 // Component for iOS
-const IOSStartPage = ({ dimensions, isDark, fadeAnim, slideUpAnim, scaleAnim, trigger }) => {
+const IOSStartPage = ({ dimensions, isDark, fadeAnim, slideUpAnim, scaleAnim, trigger } : {
+    dimensions: { width: number; height: number; },
+    isDark: boolean,
+    fadeAnim: Animated.Value,
+    slideUpAnim: Animated.Value,
+    scaleAnim: Animated.Value,
+    trigger: (type: HapticType) => void
+}) => {
     const handleButtonPress = async () => {
         trigger(HapticType.LIGHT);
     };
@@ -119,7 +126,14 @@ const IOSStartPage = ({ dimensions, isDark, fadeAnim, slideUpAnim, scaleAnim, tr
 };
 
 // Component for other platforms
-const DefaultStartPage = ({ dimensions, isDark, fadeAnim, slideUpAnim, scaleAnim, trigger }) => {
+const DefaultStartPage = ({ dimensions, isDark, fadeAnim, slideUpAnim, scaleAnim, trigger }  : {
+    dimensions: { width: number; height: number; },
+    isDark: boolean,
+    fadeAnim: Animated.Value,
+    slideUpAnim: Animated.Value,
+    scaleAnim: Animated.Value,
+    trigger: (type: HapticType) => void
+}) => {
     const handleButtonPress = async () => {
         trigger(HapticType.LIGHT);
     };
