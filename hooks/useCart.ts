@@ -4,6 +4,7 @@ import { CartService } from '@/services/cart.service';
 import { CartItems, Carts } from '@/types/type';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
+import { trackEvent, Events } from '@/utils/analytics';
 
 interface Cart extends Carts {
   items: CartItems[];
@@ -84,6 +85,14 @@ export const useCart = () => {
       // Update the local cache immediately (optimistic update)
       mutate(CART_KEY, optimisticData, false);
 
+      // Track add to cart event
+      trackEvent(Events.ADD_TO_CART, {
+        program_id: programId,
+        price: price,
+        currency: 'XAF',
+        user_id: user?.id
+      });
+
       // Make the API call
       const { data, error } = await CartService.addItem(programId, price, currentCart?.id);
 
@@ -112,6 +121,15 @@ export const useCart = () => {
 
       // Update the local cache immediately (optimistic update)
       mutate(CART_KEY, optimisticData, false);
+
+      // Track remove from cart event
+      const removedItem = currentCart.items.find(item => item.program_id === programId);
+      trackEvent(Events.REMOVE_FROM_CART, {
+        program_id: programId,
+        price: removedItem?.price,
+        currency: 'XAF',
+        user_id: user?.id
+      });
 
       // Make the API call
       await CartService.removeItem(programId, currentCart?.id);

@@ -74,7 +74,13 @@ export interface Accounts {
   active_trx: string | null;
   role_id: string | null;
   /** Additional metadata for the user in JSON format */
-  metadata: Json | null;
+  metadata: {
+    generousWeek?: {
+      duration: number;
+       selectedAt: Date;
+       programId: number;
+    }
+  } | null;
 }
 export interface AccountsInput {
   created_at?: Date;

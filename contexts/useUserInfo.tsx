@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { Accounts, Courses, LearningPaths, CourseProgressSummary, tables, UserXp } from '@/types/type';
 import useSWR from 'swr';
 import { useAuth } from '@/contexts/auth';
+import { useAppConfig } from '@/contexts/useAppConfig';
 
 interface UserStreak {
   id: string;
@@ -33,6 +34,7 @@ type UserContextType = {
   toDayXp: number;
   toDayExo: number;
   toDayTime: number;
+    generousWeekLearningPathId: string | null;
   userPrograms: LearningPaths[];
   isLoading: boolean;
   mutateUser: () => Promise<Account | null | undefined>;
@@ -187,6 +189,7 @@ const fetchUserPrograms = async (userId: string) => {
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const { user: authUser } = useAuth();
+  const { isGenerousWeekActive } = useAppConfig();
   const [isLoading, setIsLoading] = useState(true);
 
   const { data: user, mutate: mutateUser } = useSWR<Account | null>(
@@ -233,7 +236,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (!user) return;
 
       if (user.metadata && typeof user.metadata === 'object' && 'generousWeek' in user.metadata) {
-        const generousWeek = user.metadata.generousWeek as { programId: number, selectedAt: string };
+        const generousWeek = user.metadata.generousWeek as { programId: number, selectedAt: string, duration: number };
 
         if (generousWeek.programId) {
           try {
@@ -256,15 +259,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     fetchGenerousWeekLearningPath();
   }, [user?.metadata]);
 
+
+
   const isLearningPathEnrolled = (learningPathId: string) => {
     // Check if user is enrolled in the program
     const isEnrolled = userPrograms?.some(program => program.id === learningPathId);
 
     if (isEnrolled) return true;
 
-    // Check if this is the generous week program
-    if (generousWeekLearningPathId === learningPathId) {
-      return true;
+    // Check if the generous week feature is currently active based on app_config
+    if (!isGenerousWeekActive()) return false;
+
+    // Check if this is the generous week program and user's 7-day period is still active
+    if (generousWeekLearningPathId === learningPathId && user?.metadata?.generousWeek) {
+      const generousWeek = user.metadata.generousWeek as { programId: number, selectedAt: string, duration: number };
+      const selectedAt = new Date(generousWeek.selectedAt);
+      const durationInMs = generousWeek.duration * 24 * 60 * 60 * 1000;
+      if (Date.now() < selectedAt.getTime() + durationInMs) {
+        return true;
+      }
     }
 
     return false;
@@ -407,6 +420,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     toDayExo: toDayExo ?? 0,
     toDayTime: toDayTime ?? 0,
     userPrograms: userPrograms ?? [],
+    generousWeekLearningPathId: generousWeekLearningPathId,
     isLoading,
     mutateUser,
     mutateLastCourse,

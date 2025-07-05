@@ -4,6 +4,7 @@ import {supabase} from '@/lib/supabase'
 import axios from 'axios'
 import {Accounts, tables, UserXp} from '@/types/type'
 import useSWR from 'swr'
+import { trackEvent, Events, setUserId } from '@/utils/analytics'
 
 interface UserStreak {
     id: string
@@ -185,6 +186,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 const {data: {session}} = await supabase.auth.getSession();
                 setSession(session);
 
+                // Set user ID for analytics if available
+                if (session?.user?.id) {
+                    setUserId(session.user.id);
+                }
+
                 // If no session, we're done loading
                 if (!session) {
                     setIsLoading(false);
@@ -204,6 +210,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         const {data: {subscription}} = supabase.auth.onAuthStateChange((_event, session) => {
             console.log("Auth state changed:", _event);
             setSession(session);
+
+            // Update user ID for analytics
+            if (session?.user?.id) {
+                setUserId(session.user.id);
+            }
 
             // If signing out, ensure loading is false and reset refs
             if (!session) {
@@ -331,6 +342,9 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             }
 
             console.log("Sign in successful, session:", data.session ? "exists" : "null");
+
+            // Track login event
+            trackEvent(Events.LOGIN, { method: 'phone' });
 
             // We don't set isLoading=false here because the useEffect
             // for session/user will handle that after user data loads
@@ -468,6 +482,9 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         await mutateUser();
 
                         console.log("Account created and data loaded successfully");
+
+                        // Track sign up event
+                        trackEvent(Events.SIGN_UP, { method: 'phone' });
                     } catch (apiError) {
                         console.error('Error in account creation process:', apiError);
                         throw apiError;
@@ -500,6 +517,12 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         try {
             setIsLoading(true);
             streakCheckedRef.current = false;
+
+            // Track logout event before signing out
+            trackEvent(Events.LOGOUT);
+
+
+
             const {error} = await supabase.auth.signOut();
             if (error) throw error;
             // Session will be updated by the onAuthStateChange listener
