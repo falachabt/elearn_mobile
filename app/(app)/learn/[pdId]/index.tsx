@@ -461,23 +461,19 @@ const ProgramDetails = () => {
                     <ThemedText
                         style={[styles.programTitle, isDark && styles.programTitleDark]}
                     >
-                        {"Programme - "} 
-                        {program?.concours_learningpaths && program.concours_learningpaths.length > 0 && 
-                         program.concours_learningpaths[0]?.concour?.school?.sigle ? 
-                         program.concours_learningpaths[0].concour.school.sigle : ''} 
-                        {program?.concours_learningpaths && program.concours_learningpaths.length > 0 && 
-                         program.concours_learningpaths[0]?.concour?.study_cycles?.level !== undefined ? 
-                         'L' + program.concours_learningpaths[0].concour.study_cycles.level : ''}
+
+
+                        {program?.concours_learningpaths &&
+                         program.concours_learningpaths?.concour?.school?.name ?
+                         program.concours_learningpaths.concour.school.name : ''}
                     </ThemedText>
                     <ThemedText
                         numberOfLines={1}
                         style={[styles.concoursName, isDark && styles.concoursNameDark]}
                     >
-                        {program?.concours_learningpaths && program.concours_learningpaths.length > 0 && 
-                         program.concours_learningpaths[0]?.concour?.name || ''} 
-                        {program?.concours_learningpaths && program.concours_learningpaths.length > 0 && 
-                         program.concours_learningpaths[0]?.concour?.school?.name ? 
-                         '- ' + program.concours_learningpaths[0].concour.school.name : ''}
+                        {program?.concours_learningpaths  &&
+                         program.concours_learningpaths?.concour?.name || ''}
+
                     </ThemedText>
                     {!isEnrolled && (
                         <View style={styles.enrollmentStatus}>

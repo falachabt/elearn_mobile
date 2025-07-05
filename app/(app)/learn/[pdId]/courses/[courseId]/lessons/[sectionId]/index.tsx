@@ -28,6 +28,7 @@ import {programProgressKeys} from "@/constants/swr-path";
 import {theme} from "@/constants/theme";
 import {useUser} from "@/contexts/useUserInfo";
 import * as ScreenCapture from 'expo-screen-capture';
+import { trackEvent, Events } from '@/utils/analytics';
 
 interface Course extends Courses {
     courses_content: CoursesContent[];
@@ -59,8 +60,19 @@ const SectionDetail = () => {
     );
 
     useEffect(() => {
-        updateLastAccessed(Number(sectionId))
-    }, [sectionId]);
+        updateLastAccessed(Number(sectionId));
+
+        // Track lesson start event
+        if (category) {
+            trackEvent(Events.START_LESSON, {
+                lesson_id: sectionId,
+                lesson_name: category.name,
+                course_id: courseId,
+                course_name: category.courses?.name,
+                learning_path_id: pdId
+            });
+        }
+    }, [sectionId, category]);
 
     // Prevent screenshots
     useEffect(() => {
@@ -239,6 +251,17 @@ const SectionDetail = () => {
         if (shouldCheckScroll && !scrolledToEnd && progress?.progress !== 1) {
             // Optionally, show a message to the user indicating they need to scroll to the end
             return;
+        }
+
+        // Track lesson completion
+        if ((progress?.progress !== 1 || progress === undefined) && category) {
+            trackEvent(Events.COMPLETE_LESSON, {
+                lesson_id: sectionId,
+                lesson_name: category.name,
+                course_id: courseId,
+                course_name: category.courses?.name,
+                learning_path_id: pdId
+            });
         }
 
         if (progress?.progress !== 1) {

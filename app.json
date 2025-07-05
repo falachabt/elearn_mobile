@@ -14,6 +14,7 @@
       "bundleIdentifier": "com.ezadrive.elearn",
       "infoPlist": {
         "UIBackgroundModes": [
+          "remote-notification",
           "remote-notification"
         ]
       }
@@ -26,6 +27,7 @@
         "backgroundColor": "#4CAF50"
       },
       "permissions": [
+        "NOTIFICATIONS",
         "NOTIFICATIONS"
       ]
     },
@@ -76,6 +78,12 @@
         "projectId": "7d5dd0db-20aa-4d48-8efe-e66031ebf960"
       }
     },
-    "owner": "ezardive"
+    "owner": "ezardive",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7d5dd0db-20aa-4d48-8efe-e66031ebf960"
+    }
   }
 }

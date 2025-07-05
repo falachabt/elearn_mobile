@@ -29,7 +29,19 @@ import {
 import {supabase} from "@/lib/supabase";
 import {ProgramCard} from "@/components/shared/ProgramCard";
 import {useAuth} from "@/contexts/auth";
+import {useAppConfig} from "@/contexts/useAppConfig";
 import useSWR from 'swr';
+import { 
+  FIXED_PRICE, 
+  GENEROUS_WEEK_PRICE,
+  PRICING_PLANS, 
+  PricingPlan, 
+  getApplicableFormula, 
+  isFixedPriceModeActive, 
+  calculateDiscountedTotal, 
+  getDisplayPrice,
+  getNextPossibleFormula
+} from '@/utils/pricing';
 
 // Types et interfaces (inchangés)
 export interface CourseItem {
@@ -120,42 +132,10 @@ export interface FilterOptionProps {
 }
 
 // PARAMÈTRE DE MODE PRIX UNIQUE - Modifiez cette valeur pour activer/désactiver
-// true = toutes les formations directement à 7900 FCFA (l'utilisateur a déjà fait son premier achat)
+// true = toutes les formations directement au prix fixe (l'utilisateur a déjà fait son premier achat)
 // false = système de formules normal
 
-
-// Prix en mode prix unique
-const FIXED_PRICE = 7900; // Prix de toutes les formations en mode prix fixe
-
-// Définition des formules de prix (uniquement pour le mode formules)
-const PRICING_PLANS = [
-    {
-        id: 'essential',
-        name: 'Formule Essentielle',
-        description: 'Première formation: 14 900 FCFA + 7900 FCFA pour toutes nouvelles souscriptions à une formation.',
-        basePrice: 14900,
-        additionalPrice: 7900,
-        threshold: 1,
-        color: 'green'
-    },
-    {
-        id: 'advantage',
-        name: 'Formule Avantage',
-        description: 'Pack complet de trois formations',
-        price: 24900,
-        threshold: 3,
-        color: 'orange',
-        recommended: true
-    },
-    {
-        id: 'excellence',
-        name: 'Formule Excellence',
-        description: 'Formations illimitées pendant 12 mois',
-        price: 39500,
-        threshold: 5,
-        color: '#4F46E5'
-    }
-];
+// Utilisation des constantes et formules de prix depuis utils/pricing.ts
 
 // Fonctions fetcher (inchangées)
 const optimizedProgramsFetcher = async (userId: string): Promise<Course[]> => {
@@ -463,8 +443,10 @@ export default function ShopPage(): JSX.Element {
     const isDark = useColorScheme() === "dark";
     const router = useRouter();
     const {user} = useAuth();
-    const FIXED_PRICE_MODE = (user?.user_program_enrollments?.length || 0) > 0 || false;
-    
+    const {isGenerousWeekActive} = useAppConfig();
+    const FIXED_PRICE_MODE = isFixedPriceModeActive(user?.user_program_enrollments?.length || 0);
+    const isGenerous = isGenerousWeekActive();
+
     // The user was redirected to this page with a specific program ID
     const { selectedProgramId } = useLocalSearchParams();
 
@@ -570,58 +552,27 @@ export default function ShopPage(): JSX.Element {
         }
     );
 
-    // Fonctions de calcul des prix (adaptées pour le mode prix fixe)
+    // Fonctions de calcul des prix (utilisant la fonction centralisée)
     const calculateTotalPrice = useCallback(() => {
         if (!cartItems.length) return 0;
 
-        if (FIXED_PRICE_MODE) {
-            // Mode prix fixe: toutes les formations directement au tarif réduit
-            return cartItems.length * FIXED_PRICE;
-        } else {
-            // Mode formules
-            const cartTotalBeforeFormula = cartItems.reduce((sum, item) => sum + item.price, 0);
+        // Calculer le prix total régulier (sans remise)
+        const regularTotal = cartItems.reduce((sum, item) => sum + item.price, 0);
 
-            // Appliquer les formules selon le nombre d'items
-            if (cartItems.length >= 5) {
-                // Formule Excellence: prix fixe pour nombre illimité
-                return PRICING_PLANS.find(plan => plan.id === 'excellence')?.price || 0;
-            }
-            else if (cartItems.length === 3) { // Exactement 3 pour Avantage
-                // Formule Avantage: seulement pour exactement 3 formations
-                return PRICING_PLANS.find(plan => plan.id === 'advantage')?.price || 0;
-            }
-            else if (cartItems.length > 0) {
-                // Formule Essentielle: première formation + prix réduit pour les suivantes
-                const essentialPlan = PRICING_PLANS.find(plan => plan.id === 'essential');
-                const firstCoursePrice = essentialPlan?.basePrice || 0;
-                const additionalCoursePrice = essentialPlan?.additionalPrice || 0;
-                const additionalCourses = cartItems.length - 1;
-                return firstCoursePrice + (additionalCourses * additionalCoursePrice);
-            }
+        // Utiliser la fonction centralisée pour calculer le prix avec remise
+        return calculateDiscountedTotal(cartItems.length, regularTotal, FIXED_PRICE_MODE, isGenerous);
+    }, [cartItems, FIXED_PRICE_MODE, isGenerous]);
 
-            return 0;
-        }
-    }, [cartItems]);
+    // Détermine quelle formule est applicable (utilisant la fonction centralisée)
+    const getApplicableFormulaLocal = useCallback(() => {
+        return getApplicableFormula(cartItems.length, FIXED_PRICE_MODE);
+    }, [cartItems.length, FIXED_PRICE_MODE]);
 
-    // Détermine quelle formule est applicable (uniquement en mode formules)
-    const getApplicableFormula = useCallback(() => {
-        if (FIXED_PRICE_MODE) return null;
-
-        if (cartItems.length >= 5) {
-            return PRICING_PLANS.find(plan => plan.id === 'excellence');
-        } else if (cartItems.length === 3) {
-            return PRICING_PLANS.find(plan => plan.id === 'advantage');
-        } else if (cartItems.length > 0) {
-            return PRICING_PLANS.find(plan => plan.id === 'essential');
-        }
-        return null;
-    }, [cartItems]);
-
-    // Mise à jour des suggestions de formules (uniquement en mode formules)
+    // Mise à jour des suggestions de formules (uniquement en mode formules et hors semaine généreuse)
     useEffect(() => {
-        if (!FIXED_PRICE_MODE && cartItems.length > 0) {
+        if (!FIXED_PRICE_MODE && !isGenerous && cartItems.length > 0) {
             // Déterminer la meilleure formule
-            const bestPlan = getApplicableFormula();
+            const bestPlan = getApplicableFormulaLocal();
 
             if (bestPlan) {
                 setSuggestedPlan(bestPlan);
@@ -631,7 +582,7 @@ export default function ShopPage(): JSX.Element {
         } else {
             setSuggestedPlan(null);
         }
-    }, [cartItems, getApplicableFormula]);
+    }, [cartItems, getApplicableFormulaLocal, isGenerous]);
 
     // 3. Mémoriser les courses filtrées pour éviter de recalculer
     const applyFiltersCallback = useCallback((coursesToFilter: Course[]): Course[] => {
@@ -701,16 +652,16 @@ export default function ShopPage(): JSX.Element {
 
     // Gestionnaires pour les bottom sheets (utilisé uniquement en mode formules)
     const handleFormulaDetailsClick = useCallback(() => {
-        if (!FIXED_PRICE_MODE) {
+        if (!FIXED_PRICE_MODE && !isGenerous) {
             formulaDetailsRef.current?.present();
         }
-    }, []);
+    }, [isGenerous]);
 
     const handleFormulaProgressClick = useCallback(() => {
-        if (!FIXED_PRICE_MODE) {
+        if (!FIXED_PRICE_MODE && !isGenerous) {
             formulaProgressRef.current?.present();
         }
-    }, []);
+    }, [isGenerous]);
 
     // Gestion du clic sur "Continuer vers le paiement"
     const handleContinueToPayment = useCallback(() => {
@@ -854,8 +805,8 @@ export default function ShopPage(): JSX.Element {
 
         return (
             <View style={styles.headerRightContainer}>
-                {/* Bouton pour afficher les formules */}
-                {cartItems.length > 0 && (
+                {/* Bouton pour afficher les formules (uniquement hors semaine généreuse) */}
+                {cartItems.length > 0 && !isGenerous && (
                     <TouchableOpacity
                         style={styles.packageButton}
                         onPress={handleFormulaProgressClick}
@@ -1209,9 +1160,9 @@ export default function ShopPage(): JSX.Element {
         );
     }, [filterOptions, showFilters, isDark, selectedCycle, selectedCity, selectedSchool, sortBy, renderFilterOption, resetFilters]);
 
-    // Bottom sheet de détails des formules (uniquement si mode formules)
+    // Bottom sheet de détails des formules (uniquement si mode formules et hors semaine généreuse)
     const renderFormulaDetailsSheet = useCallback(() => {
-        if (FIXED_PRICE_MODE) return null;
+        if (FIXED_PRICE_MODE || isGenerous) return null;
 
         return (
             <BottomSheetModal
@@ -1450,12 +1401,13 @@ export default function ShopPage(): JSX.Element {
         snapPoints,
         renderBackdrop,
         cartItems.length,
-        handleContinueToPayment
+        handleContinueToPayment,
+        isGenerous
     ]);
 
-    // Bottom sheet de progression vers les formules (uniquement si mode formules)
+    // Bottom sheet de progression vers les formules (uniquement si mode formules et hors semaine généreuse)
     const renderFormulaProgressSheet = useCallback(() => {
-        if (FIXED_PRICE_MODE) return null;
+        if (FIXED_PRICE_MODE || isGenerous) return null;
 
         // Calcul du prix total actuel et avec les formules
         const currentTotal = cartItems.reduce((sum, item) => sum + item.price, 0) || 0;
@@ -1724,7 +1676,8 @@ export default function ShopPage(): JSX.Element {
         getApplicableFormula,
         handleContinueToPayment,
         handleFormulaDetailsClick,
-        router
+        router,
+        isGenerous
     ]);
 
     // Bannière pour le mode prix unique (montré seulement avec ce mode)
@@ -1845,8 +1798,8 @@ export default function ShopPage(): JSX.Element {
                 {/* Bannière pour le mode prix unique */}
                 {renderFixedPriceBanner()}
 
-                {/* Bannières pour les formules (uniquement en mode formules) */}
-                {!FIXED_PRICE_MODE && cartItems.length === 2 && (
+                {/* Bannières pour les formules (uniquement en mode formules et hors semaine généreuse) */}
+                {!FIXED_PRICE_MODE && !isGenerous && cartItems.length === 2 && (
                     <Animatable.View
                         animation="fadeIn"
                         style={[styles.dealBanner, { backgroundColor: PRICING_PLANS[1].color + '20', borderColor: PRICING_PLANS[1].color }]}
@@ -1863,7 +1816,7 @@ export default function ShopPage(): JSX.Element {
                     </Animatable.View>
                 )}
 
-                {!FIXED_PRICE_MODE && cartItems.length === 4 && (
+                {!FIXED_PRICE_MODE && !isGenerous && cartItems.length === 4 && (
                     <Animatable.View
                         animation="fadeIn"
                         style={[styles.dealBanner, { backgroundColor: PRICING_PLANS[2].color + '20', borderColor: PRICING_PLANS[2].color }]}
@@ -1915,9 +1868,9 @@ export default function ShopPage(): JSX.Element {
                                 programDetails={programDetailsMap[item.id]}
                                 onExpand={() => handleProgramExpand(item.id)}
                                 features={[]} // Array vide pour la prop requise
-                                // Si mode prix fixe activé, afficher directement le prix réduit pour toutes les formations
+                                // Si mode prix fixe activé ou semaine généreuse, afficher directement le prix réduit pour toutes les formations
                                 directDiscountPrice={
-                                    FIXED_PRICE_MODE ? FIXED_PRICE : undefined
+                                    isGenerous ? GENEROUS_WEEK_PRICE : (FIXED_PRICE_MODE ? FIXED_PRICE : undefined)
                                 }
                             />
                         )}

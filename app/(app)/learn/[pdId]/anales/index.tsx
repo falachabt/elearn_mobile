@@ -133,13 +133,13 @@ export const ArchivesList = () => {
   const scheme = useColorScheme();
   const isDark = scheme === "dark";
   const { user } = useAuth();
-  const { isLearningPathEnrolled } = useUser();
+  const { isLearningPathEnrolled, generousWeekLearningPathId } = useUser();
 
   // Check if user is enrolled in this program
   const isEnrolled = isLearningPathEnrolled(pdId);
 
   // Set preview mode based on enrollment status
-  const [isPreviewMode] = useState<boolean>(!isEnrolled);
+  const [isPreviewMode] = useState<boolean>(!isEnrolled || (generousWeekLearningPathId === pdId));
 
   // Handle purchase flow - memoized with useCallback
   const handlePurchaseFlow = useCallback(() => {
@@ -415,11 +415,18 @@ export const ArchivesList = () => {
 
     // If in preview mode, only show the first 2 archives
     if (isPreviewMode) {
+      // Check if user is in generous week
+      const isGenerousWeek = user?.metadata?.generousWeek && 
+                            typeof user.metadata.generousWeek === 'object' &&
+                            user.metadata.generousWeek !== null;
+
+      // During generous week or regular preview mode, don't show any archives
+      // Old subjects remain exclusive to premium subscribers
       filteredArchives = filteredArchives.slice(0, 0);
     }
 
     return filteredArchives;
-  }, [archives, searchQuery, selectedCategory, filterType, isPreviewMode]);
+  }, [archives, searchQuery, selectedCategory, filterType, isPreviewMode, user?.metadata?.generousWeek]);
 
 
   // function to render item in FlatList
@@ -531,6 +538,7 @@ export const ArchivesList = () => {
                 maxToRenderPerBatch={4}
               />
             );
+
           }, [filterType, isDark, trigger])}
 
           {/* Categories */}

@@ -1,4 +1,4 @@
-"use dom"
+"use client"
 import React, {useEffect, memo, useMemo} from 'react';
 import {useColorScheme} from "@/hooks/useColorScheme.web";
 
