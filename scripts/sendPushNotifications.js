@@ -57,12 +57,13 @@ async function sendPushNotifications() {
       
       // Create a message
       return {
-        to: token,
-        sound: 'default',
-        title: 'Hello from Elearn Prepa!',
-        body: 'Happy to have you in notifications test',
-        data: { userId: user.id },
-      };
+  to: token,
+  sound: 'default',
+  title: '💪 Petite dose de motivation !',
+  body: 'Un petit effort aujourd’hui = un grand pas vers ton objectif. Tu peux le faire 🇨🇲',
+  data: { type: 'motivation' },
+};
+
     }).filter(Boolean); // Remove null entries
     
     console.log(`Sending notifications to ${messages.length} users`);
