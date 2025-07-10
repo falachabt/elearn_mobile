@@ -57,12 +57,17 @@ async function sendPushNotifications() {
       
       // Create a message
       return {
-  to: token,
-  sound: 'default',
-  title: '💪 Petite dose de motivation !',
-  body: 'Un petit effort aujourd’hui = un grand pas vers ton objectif. Tu peux le faire 🇨🇲',
-  data: { type: 'motivation' },
-};
+  "to": "token",
+  "notification": {
+    "sound": "default",
+    "title": "🔥 Garde le cap !",
+    "body": "Chaque petit pas compte. Continue comme ça, tu es sur la bonne voie 💯",
+  },
+  "data": {
+    "type": "motivation"
+  }
+}
+;
 
     }).filter(Boolean); // Remove null entries
     
