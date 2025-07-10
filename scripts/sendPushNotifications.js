@@ -57,7 +57,7 @@ async function sendPushNotifications() {
       
       // Create a message
       return {
-  "to": "token",
+  "to": token,
   "notification": {
     "sound": "default",
     "title": "🔥 Garde le cap !",
