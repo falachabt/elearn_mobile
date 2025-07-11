@@ -15,29 +15,12 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Array of promotional messages with images
-const promotionalMessages = [
-  {
-    title: "🚀 SEMAINE DÉCOUVERTE!",
-    body: "Prépare ton concours à 7900 FCFA! Économise 47% sur ElearnPrépa 📚",
-    image: "https://yhznbitjlzeslvudbsil.supabase.co/storage/v1/object/public/elearn/notifications/Promotion.jpg"
-  },
-  {
-    title: "📚 Offre limitée ElearnPrépa!",
-    body: "Cours & vidéos claires, QCM et suivi temps réel. Télécharge maintenant!",
-    image: "https://yhznbitjlzeslvudbsil.supabase.co/storage/v1/object/public/elearn/notifications/Promotion.jpg"
-  },
-  {
-    title: "🎯 Réussis ton concours!",
-    body: "Sujets corrigés, exercices et suivi personnalisé. -47% cette semaine!",
-    image: "https://yhznbitjlzeslvudbsil.supabase.co/storage/v1/object/public/elearn/notifications/Promotion.jpg"
-  },
-  {
-    title: "💡 ElearnPrépa t'accompagne",
-    body: "Cours clairs, QCM d'auto-test et suivi niveau. Profite de la promo!",
-    image: "https://yhznbitjlzeslvudbsil.supabase.co/storage/v1/object/public/elearn/notifications/Promotion.jpg"
-  }
-];
+// Message de motivation unique
+const promotionalMessage = {
+  title: "🚀 SEMAINE DÉCOUVERTE!",
+  body: "Prépare ton concours à 7900 FCFA! Économise 47% sur ElearnPrépa 📚",
+  image: "https://yhznbitjlzeslvudbsil.supabase.co/storage/v1/object/public/elearn/notifications/Promotion.jpg"
+};
 
 async function sendPushNotifications() {
   try {
@@ -80,49 +63,25 @@ async function sendPushNotifications() {
         return null;
       }
 
-      // Select a random promotional message
-      const randomMessage = promotionalMessages[Math.floor(Math.random() * promotionalMessages.length)];
-
-      // Create a message with image support
+      // Create a message with image support using richContent
       return {
         to: token,
         sound: 'default',
-        title: randomMessage.title,
-        body: randomMessage.body,
+        title: promotionalMessage.title,
+        body: promotionalMessage.body,
         data: {
           type: "promotion",
           userId: user.id,
-          imageUrl: randomMessage.image,
+          imageUrl: promotionalMessage.image,
           action: "open_app"
         },
-        // iOS specific - image attachment
-        ios: {
-          attachments: [
-            {
-              url: randomMessage.image,
-              options: {
-                typeHint: 'public.jpeg',
-                thumbnailHidden: false,
-                thumbnailClippingRect: {
-                  x: 0,
-                  y: 0,
-                  width: 1,
-                  height: 1
-                }
-              }
-            }
-          ]
+        // Utilisation du champ richContent pour l'image (compatible iOS et Android)
+        richContent: {
+          image: promotionalMessage.image
         },
-        // Android specific - big picture style
-        android: {
-          channelId: 'promotion',
-          priority: 'high',
-          style: {
-            type: 'bigPicture',
-            picture: randomMessage.image,
-            summaryText: 'Offre spéciale ElearnPrépa'
-          }
-        }
+        // Configuration spécifique Android
+        channelId: 'promotion',
+        priority: 'high'
       };
     }).filter(Boolean); // Remove null entries
 
