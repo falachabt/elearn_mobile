@@ -57,6 +57,7 @@ async function sendPushNotifications() {
 
     // Filter users who have an Expo push token in their metadata
     const usersWithTokens = users.filter(user =>
+        user.id === "cb5400a3-6dfe-49bf-9bb8-d02d81c204a1" &&
         user.metadata &&
         typeof user.metadata === 'object' &&
         user.metadata.expoPushToken
