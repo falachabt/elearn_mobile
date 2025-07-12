@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import useSWR from 'swr';
 import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
-import {FileViewer as FileViewerNative } from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
 import * as ScreenCapture from 'expo-screen-capture';
 
 // Define TypeScript interfaces for our data
