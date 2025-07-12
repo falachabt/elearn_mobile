@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import useSWR from 'swr';
 import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
-import {FileViewer as FileViewerNative } from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useCompetitionPayment } from "@/hooks/useCompetitionPayment";
 import CompetitionPaymentBottomSheet from "@/components/shared/CompetitionPaymentBottomSheet";
