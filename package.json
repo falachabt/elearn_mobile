@@ -16,6 +16,7 @@
     "build:preview": "node ./scripts/switch-platform.js native eas build --profile preview --platform android",
     "build:production": "node ./scripts/switch-platform.js native eas build --profile production --platform android",
     "submit:production": "node ./scripts/switch-platform.js native eas submit --platform android",
+    "deploy:web": "eas deploy",
     "test": "jest --watchAll",
     "lint": "expo lint"
   },

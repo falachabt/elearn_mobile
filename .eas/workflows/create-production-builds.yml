@@ -10,13 +10,7 @@ jobs:
         run: node ./scripts/switch-platform.js web
       - name: 🏗 Build for web
         run: npm run build:web
+      - name: Deploy to web server
+        run: npm run deploy:web
 
-  build_mobile:
-    type: generic
-    steps:
-      - name: 🏗 Setup build environment
-        uses: actions/checkout@v3
-      - name: 🔄 Switch to native platform
-        run: node ./scripts/switch-platform.js native
-      - name: 🏗 Build for native
-        run: npm run build:native
+
