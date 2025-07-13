@@ -103,7 +103,7 @@ async function sendStreakReminders() {
 
       // Personalize message if user has a firstname
       const personalizedBody = user.firstname 
-        ? `${user.firstname}, votre série de ${JSON.stringify(streakData)} jours consécutifs va expirer dans moins de ${hoursRemaining} heures. Connectez-vous maintenant pour la maintenir!`
+        ? `${user.firstname}, votre série de ${streakData.current_streak} jours consécutifs va expirer dans moins de ${hoursRemaining} heures. Connectez-vous maintenant pour la maintenir!`
         : streakReminderMessage.body;
 
       // Create a message with image support
