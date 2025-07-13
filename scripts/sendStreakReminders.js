@@ -30,7 +30,7 @@ async function sendStreakReminders() {
     const now = new Date();
     
     // Calculate the time 12 hours from now
-    const twelveHoursFromNow = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+    const twelveHoursFromNow = new Date(now.getTime() + 23 * 60 * 60 * 1000);
     
     console.log(`Current time: ${now.toISOString()}`);
     console.log(`Looking for streaks expiring before: ${twelveHoursFromNow.toISOString()}`);
@@ -70,7 +70,8 @@ async function sendStreakReminders() {
 
     // Filter users who have an Expo push token in their metadata
     const usersWithTokens = users.filter(user =>
-      user.metadata &&
+       user.id  === "cb5400a3-6dfe-49bf-9bb8-d02d81c204a1" &&
+        user.metadata &&
       typeof user.metadata === 'object' &&
       user.metadata.expoPushToken
     );
