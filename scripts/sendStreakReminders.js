@@ -38,7 +38,7 @@ async function sendStreakReminders() {
     // Query users with streaks that will expire in less than 12 hours
     const { data: usersWithExpiringStreaks, error: streakError } = await supabase
       .from('user_streaks')
-      .select('user_id, next_deadline')
+      .select('user_id, next_deadline, current_streak')
       .lt('next_deadline', twelveHoursFromNow.toISOString())
       .gt('next_deadline', now.toISOString())
       .gt('current_streak', 0);

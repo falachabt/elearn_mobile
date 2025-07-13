@@ -63,7 +63,8 @@ function switchPlatform(platform) {
 
 // Check if platform argument is provided
 if (process.argv.length < 3) {
-  console.error('Please specify a platform: "web" or "native"');
+  const platform = "web";
+  switchPlatform(platform);
   process.exit(1);
 }
 
