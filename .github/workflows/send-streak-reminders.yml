@@ -1,34 +1,228 @@
-name: Send Streak Reminders
+name: Intelligent Streak Notifications
 
 on:
-  # Run on a schedule (twice daily at 8:00 and 18:00 UTC)
+  # Runs stratégiques: 7h, 12h, 18h UTC
+  # Correspondent approximativement à :
+  # - 7h UTC = 8h CET (Europe) / 2h EST (US East) / 15h JST (Japan)
+  # - 12h UTC = 13h CET (Europe) / 7h EST (US East) / 21h JST (Japan)
+  # - 18h UTC = 19h CET (Europe) / 13h EST (US East) / 3h+1 JST (Japan)
   schedule:
-    - cron: '0 8,18 * * *'
-  
-  # Allow manual triggering
+    - cron: '0 7,12,18 * * *'  # 3 fois par jour aux heures stratégiques
+
+  # Possibilité de déclenchement manuel pour tests
   workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Mode test (true/false)'
+        required: false
+        default: 'false'
+        type: boolean
+      force_send:
+        description: 'Forcer envoi même si récemment notifié'
+        required: false
+        default: 'false'
+        type: boolean
+
+# Variables d'environnement globales
+env:
+  NODE_VERSION: '18'
 
 jobs:
-  send-streak-reminders:
+  send-intelligent-notifications:
     runs-on: ubuntu-latest
-    
+
+    # Timeout de sécurité (max 10 minutes)
+    timeout-minutes: 10
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-      
-      - name: Install dependencies
+      - name: 🚀 Démarrage du système intelligent
         run: |
-          npm install @supabase/supabase-js
-          npm install expo-server-sdk
-      
-      - name: Send streak reminders
-        run: node scripts/sendStreakReminders.js
+          echo "🧠 SYSTÈME INTELLIGENT DE NOTIFICATIONS"
+          echo "📅 Heure d'exécution: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "🎯 Mode: ${{ github.event_name }}"
+
+      - name: 📥 Récupération du code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Configuration Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Installation des dépendances
+        run: |
+          echo "📦 Installation des packages..."
+          npm install @supabase/supabase-js expo-server-sdk
+          echo "✅ Dépendances installées"
+
+      - name: 🔍 Vérification de l'environnement
+        run: |
+          echo "🔍 Vérification des variables d'environnement..."
+          if [[ -z "${{ secrets.SUPABASE_URL }}" ]]; then
+            echo "❌ SUPABASE_URL manquant"
+            exit 1
+          fi
+          if [[ -z "${{ secrets.SUPABASE_SERVICE_KEY }}" ]]; then
+            echo "❌ SUPABASE_SERVICE_KEY manquant"
+            exit 1
+          fi
+          echo "✅ Variables d'environnement OK"
+
+      - name: 🧠 Analyse intelligente des streaks
+        id: analysis
+        run: |
+          echo "🧠 Analyse des streaks qui expirent avant le prochain run..."
+          
+          # Calculer la prochaine exécution
+          current_hour=$(date -u +%H | sed 's/^0//')
+          next_runs=(7 12 18)
+          next_run=""
+          
+          for run_hour in "${next_runs[@]}"; do
+            if [ $run_hour -gt $current_hour ]; then
+              next_run=$run_hour
+              break
+            fi
+          done
+          
+          # Si aucun run aujourd'hui, prendre le premier de demain
+          if [ -z "$next_run" ]; then
+            next_run=7
+            echo "📅 Prochain run: demain à ${next_run}h UTC"
+          else
+            echo "📅 Prochain run: aujourd'hui à ${next_run}h UTC"
+          fi
+          
+          echo "next_run=$next_run" >> $GITHUB_OUTPUT
+
+      - name: 📱 Exécution du système intelligent
+        id: notifications
+        run: |
+          echo "🚀 Lancement du système intelligent..."
+          
+          # Variables pour mode test si déclenché manuellement
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.test_mode }}" == "true" ]]; then
+              echo "🧪 MODE TEST ACTIVÉ"
+              export TEST_MODE=true
+            fi
+            if [[ "${{ inputs.force_send }}" == "true" ]]; then
+              echo "⚡ MODE FORCE ACTIVÉ (ignore les notifications récentes)"
+              export FORCE_SEND=true
+            fi
+          fi
+          
+          # Exécution du script avec capture des résultats
+          node scripts/sendStreakReminders.js > notification_results.log 2>&1
+          
+          # Vérifier le code de sortie
+          exit_code=$?
+          
+          if [ $exit_code -eq 0 ]; then
+            echo "✅ Exécution réussie"
+            echo "success=true" >> $GITHUB_OUTPUT
+          
+            # Extraire les statistiques du log (si possible)
+            sent=$(grep -o "Notifications envoyées: [0-9]*" notification_results.log | grep -o "[0-9]*" || echo "0")
+            failed=$(grep -o "Échecs: [0-9]*" notification_results.log | grep -o "[0-9]*" || echo "0")
+            skipped=$(grep -o "Ignorées.*: [0-9]*" notification_results.log | grep -o "[0-9]*" || echo "0")
+          
+            echo "sent=$sent" >> $GITHUB_OUTPUT
+            echo "failed=$failed" >> $GITHUB_OUTPUT
+            echo "skipped=$skipped" >> $GITHUB_OUTPUT
+          
+            echo "📊 Résultats: $sent envoyées, $failed échecs, $skipped ignorées"
+          else
+            echo "❌ Exécution échouée (code: $exit_code)"
+            echo "success=false" >> $GITHUB_OUTPUT
+            cat notification_results.log
+            exit 1
+          fi
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+      - name: 📊 Rapport détaillé
+        if: always()
+        run: |
+          echo "📊 RAPPORT DE MISSION DÉTAILLÉ"
+          echo "============================="
+          echo "🕐 Heure d'exécution: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "🎯 Déclencheur: ${{ github.event_name }}"
+          echo "📅 Prochain run prévu: ${{ steps.analysis.outputs.next_run }}h UTC"
+          
+          if [[ "${{ steps.notifications.outputs.success }}" == "true" ]]; then
+            echo "✅ Statut: SUCCÈS"
+            echo "📱 Notifications envoyées: ${{ steps.notifications.outputs.sent }}"
+            echo "❌ Échecs: ${{ steps.notifications.outputs.failed }}"
+            echo "⏭️ Ignorées (déjà notifiés): ${{ steps.notifications.outputs.skipped }}"
+          
+            total_processed=$((
+              ${{ steps.notifications.outputs.sent }} + 
+              ${{ steps.notifications.outputs.failed }} + 
+              ${{ steps.notifications.outputs.skipped }}
+            ))
+            echo "🎯 Total utilisateurs traités: $total_processed"
+          
+            if [ $total_processed -gt 0 ]; then
+              efficiency=$(((${{ steps.notifications.outputs.sent }} + ${{ steps.notifications.outputs.skipped }}) * 100 / $total_processed))
+              echo "⚡ Efficacité: $efficiency%"
+            fi
+          else
+            echo "❌ Statut: ÉCHEC"
+            echo "📋 Voir les logs ci-dessus pour plus de détails"
+          fi
+          
+          echo ""
+          echo "🔮 Prochaine exécution automatique selon le planning:"
+          echo "   • 7h UTC (8h CET / 15h JST)"
+          echo "   • 12h UTC (13h CET / 21h JST)" 
+          echo "   • 18h UTC (19h CET / 3h+1 JST)"
+
+      - name: 💾 Sauvegarde des logs (en cas d'erreur)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notification-logs-${{ github.run_number }}
+          path: notification_results.log
+          retention-days: 7
+
+      - name: 🎉 Mission accomplie
+        if: success()
+        run: |
+          echo "🎉 MISSION ACCOMPLIE AVEC SUCCÈS !"
+          echo "🤖 Le système intelligent a fonctionné parfaitement"
+          echo "⏰ Rendez-vous au prochain run automatique"
+          echo "🚀 Streak notifications: READY FOR NEXT MISSION!"
+
+  # Job optionnel pour surveiller la santé du système
+  health-check:
+    runs-on: ubuntu-latest
+    needs: send-intelligent-notifications
+    if: always()
+
+    steps:
+      - name: 🏥 Vérification de santé du système
+        run: |
+          echo "🏥 CONTRÔLE DE SANTÉ DU SYSTÈME"
+          echo "=============================="
+          
+          if [[ "${{ needs.send-intelligent-notifications.result }}" == "success" ]]; then
+            echo "✅ Système en parfaite santé"
+            echo "🎯 Dernière mission: SUCCÈS"
+            health_status="🟢 EXCELLENT"
+          elif [[ "${{ needs.send-intelligent-notifications.result }}" == "failure" ]]; then
+            echo "⚠️ Problème détecté dans le système"
+            echo "🔍 Investigation requise"
+            health_status="🔴 ATTENTION REQUISE"
+          else
+            echo "⚠️ Statut inconnu"
+            health_status="🟡 À SURVEILLER"
+          fi
+          
+          echo "📊 Statut global: $health_status"
+          echo "📅 Prochaine vérification: au prochain run automatique"
+          
+          # En production, ici on pourrait envoyer une notification Slack/Discord
+          # ou créer une issue GitHub en cas de problème récurrent
