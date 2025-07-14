@@ -31,10 +31,10 @@ async function sendInactivityReminders() {
 
     // Get current time
     const now = new Date();
-    
+
     // Calculate the date 2 days ago
     const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-    
+
     console.log(`Current time: ${now.toISOString()}`);
     console.log(`Looking for users inactive since: ${twoDaysAgo.toISOString()}`);
 
@@ -42,7 +42,7 @@ async function sendInactivityReminders() {
     const { data: inactiveUsers, error: inactivityError } = await supabase
       .from('user_streaks')
       .select('user_id, last_updated')
-      .lt('last_updated', twoDaysAgo.toISOString());
+      // .lt('last_updated', twoDaysAgo.toISOString());
 
     if (inactivityError) {
       throw inactivityError;
@@ -59,19 +59,34 @@ async function sendInactivityReminders() {
     const userIds = inactiveUsers.map(user => user.user_id);
 
     // Query the accounts table to get users with Expo push tokens
-    const { data: users, error: userError } = await supabase
-      .from('accounts')
-      .select('id, email, firstname, lastname, metadata')
-      .in('id', userIds)
-      .not('metadata', 'is', {});
+    // Process users in batches to avoid URL length limitations
+    const BATCH_SIZE = 100; // Adjust this number based on your needs
+    let allUsers = [];
 
-    if (userError) {
-      throw userError;
+    // Process users in batches
+    for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
+      const batchUserIds = userIds.slice(i, i + BATCH_SIZE);
+      console.log(`Processing batch ${Math.floor(i/BATCH_SIZE) + 1} of ${Math.ceil(userIds.length/BATCH_SIZE)} (${batchUserIds.length} users)`);
+
+      const { data: batchUsers, error: userError } = await supabase
+        .from('accounts')
+        .select('id, email, firstname, lastname, metadata')
+        .in('id', batchUserIds)
+        .not('metadata', 'is', null);
+
+      if (userError) {
+        throw userError;
+      }
+
+      allUsers = allUsers.concat(batchUsers);
     }
+
+    const users = allUsers;
 
     // Filter users who have an Expo push token in their metadata
     const usersWithTokens = users.filter(user =>
-      user.metadata &&
+      // user.id  === "cb5400a3-6dfe-49bf-9bb8-d02d81c204a1" &&
+        user.metadata &&
       typeof user.metadata === 'object' &&
       user.metadata.expoPushToken
     );
@@ -104,7 +119,7 @@ async function sendInactivityReminders() {
       // Select a random message from the array
       const randomIndex = Math.floor(Math.random() * inactivityMessages.length);
       let messageTemplate = inactivityMessages[randomIndex];
-      
+
       // Replace {days} placeholder with actual days of inactivity
       const personalizedMessage = messageTemplate.replace('{days}', daysInactive);
 
