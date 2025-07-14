@@ -15,7 +15,9 @@ jobs:
         with:
           node-version: '16'
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install @supabase/supabase-js
+          npm install expo-server-sdk
       - name: Send inactivity reminders
         run: node scripts/sendInactivityReminders.js
         env:
