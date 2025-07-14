@@ -63,7 +63,7 @@ async function sendInactivityReminders() {
       .from('accounts')
       .select('id, email, firstname, lastname, metadata')
       .in('id', userIds)
-      .not('metadata', 'is', null);
+      .not('metadata', 'is', {});
 
     if (userError) {
       throw userError;
