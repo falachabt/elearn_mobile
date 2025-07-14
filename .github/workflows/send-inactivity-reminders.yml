@@ -1,0 +1,23 @@
+name: Send Inactivity Reminders
+
+on:
+  schedule:
+    # Run at 19:00 Cameroon time (18:00 UTC) every day
+    - cron: '0 18 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - name: Install dependencies
+        run: npm install
+      - name: Send inactivity reminders
+        run: node scripts/sendInactivityReminders.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
