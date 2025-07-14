@@ -31,10 +31,10 @@ async function sendInactivityReminders() {
 
     // Get current time
     const now = new Date();
-    
+
     // Calculate the date 2 days ago
     const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-    
+
     console.log(`Current time: ${now.toISOString()}`);
     console.log(`Looking for users inactive since: ${twoDaysAgo.toISOString()}`);
 
@@ -63,7 +63,7 @@ async function sendInactivityReminders() {
       .from('accounts')
       .select('id, email, firstname, lastname, metadata')
       .in('id', userIds)
-      .not('metadata', 'is', {});
+      .not('metadata', 'is', null);
 
     if (userError) {
       throw userError;
@@ -104,7 +104,7 @@ async function sendInactivityReminders() {
       // Select a random message from the array
       const randomIndex = Math.floor(Math.random() * inactivityMessages.length);
       let messageTemplate = inactivityMessages[randomIndex];
-      
+
       // Replace {days} placeholder with actual days of inactivity
       const personalizedMessage = messageTemplate.replace('{days}', daysInactive);
 
