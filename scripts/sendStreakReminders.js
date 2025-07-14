@@ -292,8 +292,12 @@ async function sendIntelligentStreakReminders() {
     console.log('🧠 SYSTÈME INTELLIGENT DE NOTIFICATIONS ACTIVÉ');
 
     const now = new Date();
+
+
+
     const nextRun = getNextRunTime();
     const hoursUntilNextRun = (nextRun.getTime() - now.getTime()) / (1000 * 60 * 60);
+
 
     console.log(`⏰ Prochain run: ${nextRun.toISOString()}`);
     console.log(`📊 Recherche des streaks expirant dans les ${Math.round(hoursUntilNextRun)}h prochaines...`);
@@ -307,6 +311,7 @@ async function sendIntelligentStreakReminders() {
         .gt('current_streak', 0);
 
     if (streakError) throw streakError;
+
 
     console.log(`🎯 Trouvé ${expiringStreaks.length} streaks qui expirent avant le prochain run`);
 
@@ -326,6 +331,7 @@ async function sendIntelligentStreakReminders() {
     if (userError) throw userError;
 
     // Filtrer les utilisateurs avec tokens valides
+
     const usersWithTokens = users.filter(user =>
         user.metadata?.expoPushToken &&
         Expo.isExpoPushToken(user.metadata.expoPushToken)
@@ -441,6 +447,7 @@ async function cleanupHistory() {
     console.error('Erreur nettoyage:', error);
   }
 }
+
 
 // POINT D'ENTRÉE PRINCIPAL
 async function main() {
