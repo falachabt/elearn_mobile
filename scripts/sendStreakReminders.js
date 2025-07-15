@@ -86,7 +86,7 @@ const MEGA_MESSAGE_POOL = [
   { title: "🎵 Note finale !", body: "{hours}h pour jouer la dernière note de vos {streak} jours !", tone: "urgent" },
 
   // Messages critiques (30 messages)
-  { title: "🚨 ALERTE MAXIMALE !", body: "CRITIQUE ! {hours}h pour sauver {streak} jours d'excellence !", tone: "critical" },
+  { title: "🚨 ALERTE IMALE !", body: "CRITIQUE ! {hours}h pour sauver {streak} jours d'excellence !", tone: "critical" },
   { title: "⚡ CODE ROUGE !", body: "{hours}h CHRONO ! Votre série de {streak} jours est en DANGER !", tone: "critical" },
   { title: "🔥 URGENCE ABSOLUE !", body: "FLAMME S'ÉTEINT ! {hours}h pour vos {streak} jours !", tone: "critical" },
   { title: "💥 DÉFCON 1 !", body: "{hours}h avant l'explosion de vos {streak} jours !", tone: "critical" },
@@ -390,7 +390,7 @@ async function sendIntelligentStreakReminders() {
             image: CONTEXT_IMAGES[uniqueMessage.tone]
           },
           channelId: 'streak_reminders',
-          priority: uniqueMessage.tone === 'critical' ? 'max' :
+          priority: uniqueMessage.tone === 'critical' ? 'high' :
               uniqueMessage.tone === 'urgent' ? 'high' : 'default',
           vibrationPattern: uniqueMessage.tone === 'critical' ? [0, 300, 200, 300, 200, 300] :
               uniqueMessage.tone === 'urgent' ? [0, 250, 150, 250] : [0, 200, 100, 200]
