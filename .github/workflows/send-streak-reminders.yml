@@ -114,7 +114,7 @@ jobs:
           fi
           
           # Exécution du script avec capture des résultats
-          node scripts/sendStreakReminders.js > notification_results.log 2>&1
+          node scripts/sendStreakReminders.js 
           
           # Vérifier le code de sortie
           exit_code=$?
