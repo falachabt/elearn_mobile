@@ -17,9 +17,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Message de motivation unique
 const promotionalMessage = {
-  title: "⏰ DERNIÈRES 48H !",
-  body: "Il reste -48h pour profiter de l'offre : prépare ton concours à 7900 FCFA et économise 47% sur ElearnPrépa 📚",
-  image: "https://yhznbitjlzeslvudbsil.supabase.co/storage/v1/object/public/elearn/notifications/Promotion.jpg"
+  title: "🚀 Pas de place pour la flemme",
+  body: "Ouvre l’app et avance vers tes objectifs — les autres bossent déjà 💪"
 };
 
 async function sendPushNotifications() {
