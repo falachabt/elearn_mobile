@@ -18,6 +18,7 @@ import Head from "expo-router/head";
 import NewsSection from '@/components/shared/news/NewsSection';
 import newsCard, { NewsCardProps } from '@/components/shared/news/NewsCard';
 import GenerousWeekCard from '@/components/shared/news/GenerousWeekCard';
+import NewsCardConcoursBlanc1 from '@/components/shared/news/NewsCardConcoursBlanc1';
 
 const {width} = Dimensions.get('window');
 const HORIZONTAL_PADDING = 16;
@@ -39,6 +40,16 @@ export default function Index() {
 
     // Sample news items for the news section
     const newsItems: NewsCardProps[] = [
+        // Concours Blanc 1 registration card - always visible
+        {
+            id: '1',
+            type: 'custom',
+            title: 'Concours Blanc 1',
+            description: "Inscris-toi maintenant pour participer au Concours Blanc 1 !",
+            customComponent: <NewsCardConcoursBlanc1 />,
+            actionLabel: 'S\'inscrire maintenant',
+            onPress: () => router.push('/concours-blanc-register'),
+        },
         {
             id: '2',
             type: 'custom',
