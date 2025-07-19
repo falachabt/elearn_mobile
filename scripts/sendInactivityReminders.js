@@ -17,13 +17,31 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Array of varied inactivity reminder messages
 const inactivityMessages = [
-  "Humm, ce n'est pas comme ça qu'on prépare son concours, les autres se connectent tous les jours, ça fait {days} jours que nous ne vous avons pas vu.",
-  "Attention! Votre préparation est en danger. Ça fait {days} jours sans activité. Revenez vite!",
-  "Vos concurrents progressent pendant que vous êtes absent. {days} jours sans étudier, c'est trop!",
-  "Vous manquez à ElearnPrepa! Ça fait {days} jours que vous n'êtes pas revenu. Continuez votre préparation!",
-  "Un champion ne s'arrête jamais! Reprenez votre préparation après {days} jours d'absence.",
-  "Votre réussite dépend de votre constance. Revenez après {days} jours d'absence!"
-];
+  "Hey champion ! 🎓 Ça fait {days} jours qu'on ne t'a pas vu. Tes cours t'attendent !",
+
+  "Salut futur étudiant ! 📚 {days} jours sans réviser ? Allez, on reprend ensemble !",
+
+  "Coucou ! 👋 Tu nous manques depuis {days} jours. Viens continuer ta préparation !",
+
+  "Hello mon reuf ! 💪 {days} jours d'absence, c'est trop. Tes concours t'attendent !",
+
+  "Salut l'as ! ⭐ Ça fait {days} jours sans nouvelles. Reprends tes révisions maintenant !",
+
+  "Hey toi ! 🔥 {days} jours loin d'ElearnPrepa. Ton succès commence aujourd'hui !",
+
+  "Coucou champion ! 🚀 {days} jours sans étudier ? Allez, on rattrape le temps perdu !",
+
+  "Salut boss ! 💯 Tes {days} jours d'absence sont finis. Viens briller avec nous !",
+
+  "Hello futur brillant ! ✨ {days} jours sans révisions. Tes rêves t'attendent !",
+
+  "Hey mon pote ! 📖 {days} jours d'absence, mais il n'est jamais trop tard pour réussir !",
+
+  "Salut crack ! 💪 {days} jours sans nous voir. Viens préparer ton avenir !",
+
+  "Coucou superstar ! 🌟 Après {days} jours, il est temps de revenir étudier !",
+
+]
 
 async function sendInactivityReminders() {
   try {
