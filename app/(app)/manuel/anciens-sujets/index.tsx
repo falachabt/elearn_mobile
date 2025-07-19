@@ -126,7 +126,7 @@ const AnciensujetsScreen = () => {
       </View>
       <View style={styles.competitionContent}>
         <Text style={[styles.competitionTitle, isDarkMode && styles.textDark]} numberOfLines={2}>
-          {item.school.sigle}  - {item.city}
+          {item.school.sigle}
         </Text>
         {item.description ? (
           <Text style={[styles.competitionDescription, isDarkMode && styles.textLightDark]} numberOfLines={2}>

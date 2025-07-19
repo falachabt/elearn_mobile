@@ -318,7 +318,7 @@ const ProgramDetails = () => {
                                program.concours_learningpaths[0].concour.concours_archives.length : 0,
                         percentage: archiveProgress?.percentage || 0,
                     } : undefined,
-                    route: `/(app)/learn/${id}/anales`,
+                    route: `/(app)/manuel/anciens-sujets/${program.concours_learningpaths?.concour?.id}`,
                     color: isDark ? "#FBBF24" : "#FF9800",
                     rightContent: isEnrolled ? (
                         <View style={styles.progressIndicator}>

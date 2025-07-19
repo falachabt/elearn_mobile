@@ -299,6 +299,8 @@ async function sendIntelligentStreakReminders() {
     const hoursUntilNextRun = (nextRun.getTime() - now.getTime()) / (1000 * 60 * 60);
 
 
+
+
     console.log(`⏰ Prochain run: ${nextRun.toISOString()}`);
     console.log(`📊 Recherche des streaks expirant dans les ${Math.round(hoursUntilNextRun)}h prochaines...`);
 

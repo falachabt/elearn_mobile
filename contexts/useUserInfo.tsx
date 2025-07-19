@@ -262,6 +262,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 
   const isLearningPathEnrolled = (learningPathId: string) => {
+    return true
+
     // Check if user is enrolled in the program
     const isEnrolled = userPrograms?.some(program => program.id === learningPathId);
 

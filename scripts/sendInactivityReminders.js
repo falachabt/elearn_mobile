@@ -60,7 +60,7 @@ async function sendInactivityReminders() {
     const { data: inactiveUsers, error: inactivityError } = await supabase
       .from('user_streaks')
       .select('user_id, last_updated')
-      // .lt('last_updated', twoDaysAgo.toISOString());
+      .lt('last_updated', twoDaysAgo.toISOString());
 
     if (inactivityError) {
       throw inactivityError;
