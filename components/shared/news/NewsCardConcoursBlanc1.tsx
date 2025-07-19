@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -20,6 +20,37 @@ const NewsCardConcoursBlanc1: React.FC<NewsCardConcoursBlanc1Props> = ({ onPress
     const isDarkMode = colorScheme === 'dark';
     const router = useRouter();
 
+    // Set the target date to Sunday, July 27th
+    const targetDate = new Date(2025, 6, 27); // Month is 0-indexed, so 6 is July
+
+    const [timeLeft, setTimeLeft] = useState({
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0
+    });
+
+    useEffect(() => {
+        const calculateTimeLeft = () => {
+            const difference = targetDate.getTime() - new Date().getTime();
+
+            if (difference > 0) {
+                setTimeLeft({
+                    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                    hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                    minutes: Math.floor((difference / 1000 / 60) % 60),
+                    seconds: Math.floor((difference / 1000) % 60)
+                });
+            } else {
+                setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+            }
+        };
+
+        calculateTimeLeft();
+        const timer = setInterval(calculateTimeLeft, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
     const handlePress = () => {
         if (onPress) {
             onPress();
@@ -39,45 +70,52 @@ const NewsCardConcoursBlanc1: React.FC<NewsCardConcoursBlanc1Props> = ({ onPress
             activeOpacity={0.9}
         >
             <LinearGradient
-                colors={['#2563EB', '#1D4ED8']} // Blue gradient for academic feel
+                colors={['#4CAF50', '#2E7D32', '#1B5E20']} // Beautiful green gradient
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.gradientContainer}
             >
-                {/* Header with icon */}
+                {/* Header Section */}
                 <View style={styles.headerSection}>
-                    <View style={styles.iconContainer}>
-                        <MaterialCommunityIcons 
-                            name="school" 
-                            size={28} 
-                            color="#FFFFFF" 
-                        />
-                    </View>
-                    <View style={styles.headerText}>
-                        <Text style={styles.title}>Concours Blanc 1</Text>
-                        <Text style={styles.subtitle}>🎯 Préparez-vous maintenant</Text>
+                    <View style={styles.leftHeader}>
+
+                        <View style={styles.headerTextContainer}>
+                            <Text style={styles.title}>Concours Blanc 1</Text>
+                            <Text style={styles.date}>📅 27 Juillet 2025</Text>
+                        </View>
                     </View>
                 </View>
 
-                {/* Main message */}
-                <View style={styles.messageSection}>
-                    <Text style={styles.mainMessage}>
-                        Inscris-toi maintenant pour participer au Concours Blanc 1 !
-                    </Text>
-                    <Text style={styles.description}>
-                        Testez vos connaissances et identifiez vos points d'amélioration avant l'examen officiel.
-                    </Text>
-                </View>
+                {/* Countdown Section */}
+                <View style={styles.countdownSection}>
+                    <View style={styles.timerContainer}>
+                        <View style={styles.timerItem}>
+                            <View style={styles.timerBox}>
+                                <Text style={styles.timerValue}>{timeLeft.days.toString().padStart(2, '0')}</Text>
+                            </View>
+                            <Text style={styles.timerLabel}>jours</Text>
+                        </View>
 
-                {/* Call-to-action button */}
-                <View style={styles.ctaSection}>
-                    <View style={styles.ctaButton}>
-                        <Text style={styles.ctaText}>S'inscrire maintenant</Text>
-                        <MaterialCommunityIcons 
-                            name="arrow-right" 
-                            size={16} 
-                            color="#2563EB" 
-                        />
+                        <View style={styles.timerItem}>
+                            <View style={styles.timerBox}>
+                                <Text style={styles.timerValue}>{timeLeft.hours.toString().padStart(2, '0')}</Text>
+                            </View>
+                            <Text style={styles.timerLabel}>heures</Text>
+                        </View>
+
+                        <View style={styles.timerItem}>
+                            <View style={styles.timerBox}>
+                                <Text style={styles.timerValue}>{timeLeft.minutes.toString().padStart(2, '0')}</Text>
+                            </View>
+                            <Text style={styles.timerLabel}>min</Text>
+                        </View>
+
+                        <View style={styles.timerItem}>
+                            <View style={styles.timerBox}>
+                                <Text style={styles.timerValue}>{timeLeft.seconds.toString().padStart(2, '0')}</Text>
+                            </View>
+                            <Text style={styles.timerLabel}>sec</Text>
+                        </View>
                     </View>
                 </View>
             </LinearGradient>
@@ -89,37 +127,50 @@ const styles = StyleSheet.create({
     container: {
         width: '100%',
         height: 160,
-        borderRadius: theme.border.radius.small,
+        borderRadius: 0,
         overflow: 'hidden',
-        elevation: 3,
-        shadowColor: '#2563EB',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
+        elevation: 4,
+        shadowColor: '#4CAF50',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        marginVertical: 8,
     },
     containerDark: {
-        shadowColor: '#1E3A8A',
+        shadowColor: '#2E7D32',
     },
     gradientContainer: {
         flex: 1,
-        padding: 16,
         justifyContent: 'space-between',
     },
+
+    // Header Section
     headerSection: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: 'rgba(255, 255, 255, 0.09)',
+        marginBottom: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+    },
+    leftHeader: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 8,
+        flex: 1,
     },
     iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
     },
-    headerText: {
+    headerTextContainer: {
         flex: 1,
     },
     title: {
@@ -129,48 +180,74 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         marginBottom: 2,
     },
-    subtitle: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 14,
-        color: '#FFFFFF',
-        opacity: 0.9,
-    },
-    messageSection: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    mainMessage: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#FFFFFF',
-        marginBottom: 6,
-        lineHeight: 22,
-    },
-    description: {
+    date: {
         fontFamily: theme.typography.fontFamily,
         fontSize: 13,
         color: '#FFFFFF',
-        opacity: 0.85,
-        lineHeight: 18,
+        opacity: 0.9,
     },
-    ctaSection: {
-        alignItems: 'flex-start',
+    statusBadge: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
     },
-    ctaButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: theme.border.radius.small,
-    },
-    ctaText: {
+    statusText: {
         fontFamily: theme.typography.fontFamily,
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
-        color: '#2563EB',
-        marginRight: 8,
+        color: '#FFFFFF',
+    },
+
+    // Countdown Section
+    countdownSection: {
+        alignItems: 'center',
+        flex: 1,
+        justifyContent: 'center',
+    },
+    countdownLabel: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        color: '#FFFFFF',
+        opacity: 0.9,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    timerContainer: {
+        flexDirection: 'row',
+        gap : 0,
+        width: '90%',
+        paddingHorizontal: 8,
+    },
+    timerItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    timerBox: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        minWidth: 45,
+        height: 45,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    timerValue: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+    },
+    timerLabel: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 10,
+        color: '#FFFFFF',
+        opacity: 0.8,
+        textAlign: 'center',
     },
 });
 

@@ -161,7 +161,7 @@ const MyLearningPaths = () => {
                         total_duration: item.learning_path.total_duration,
                         concours_learningpaths: [],
                         isEnrolled: isUserEnrolled,
-                        enrollmentId: userEnrollment?.id || null,
+                        enrollmentId: userEnrollment?.id || (Math.floor(Math.random() * 100) + Math.floor(Math.random() * 100)), // Use enrollment ID if exists, else random for demo
                         progress: isUserEnrolled ? Math.floor(Math.random() * 100) : 0 // Only show progress if enrolled
                     })
                 }

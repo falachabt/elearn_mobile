@@ -19,6 +19,8 @@ import NewsSection from '@/components/shared/news/NewsSection';
 import newsCard, { NewsCardProps } from '@/components/shared/news/NewsCard';
 import GenerousWeekCard from '@/components/shared/news/GenerousWeekCard';
 import NewsCardConcoursBlanc1 from '@/components/shared/news/NewsCardConcoursBlanc1';
+import NewsCardExam from '@/components/shared/news/NewsCardExam';
+import WhatsAppContact from "@/components/WhatsappSupport";
 
 const {width} = Dimensions.get('window');
 const HORIZONTAL_PADDING = 16;
@@ -28,14 +30,13 @@ const PATH_CARD_WIDTH = width * 0.6;
 export default function Index() {
     const {user: authUser} = useAuth();
     const {user, toDayXp, toDayExo, toDayTime, userPrograms, lastCourse} = useUser();
-    const {isGenerousWeekActive, appConfig} = useAppConfig();
+    const { appConfig} = useAppConfig();
     const colorScheme = useColorScheme();
     const router = useRouter();
     const isDarkMode = colorScheme === 'dark';
     const streaks = 0;
     const xp = 0;
 
-    const generousWeekEndDate = new Date(appConfig?.data.generous_week?.end_at as string);
 
 
     // Sample news items for the news section
@@ -47,40 +48,24 @@ export default function Index() {
             title: 'Concours Blanc 1',
             description: "Inscris-toi maintenant pour participer au Concours Blanc 1 !",
             customComponent: <NewsCardConcoursBlanc1 />,
+            endDate: new Date('2025-07-27T00:00:00Z'), // Set the end date for the card
             actionLabel: 'S\'inscrire maintenant',
             onPress: () => router.push('/concours-blanc-register'),
         },
+        // Exam card - countdown to the official exam
         {
-            id: '2',
+            id: '3',
             type: 'custom',
-            title: '🎯 Dernière Chance !!!',
-            description: "Des centaines d'étudiants ont déjà profité de cette offre de préparation. Et vous, qu'attendez-vous ?",
-            customComponent: <GenerousWeekCard endDate={generousWeekEndDate} />,
-            actionLabel: 'Je ne veux pas rater ça',
-            onPress: () => router.push('/(app)/(catalogue)/shop'),
-            // This item will be displayed until the generousWeekEndDate
-            startDate : new Date(appConfig?.data.generous_week?.start_at as string),
-            endDate: generousWeekEndDate
+            title: 'Examen Concours Blanc 1',
+            description: "Le concours Blanc 1 est ouvert, Donnez le meilleur de vous-même pour réussir !",
+            customComponent: <NewsCardExam />,
+            startDate: new Date('2025-07-27T00:00:00Z'), // Set the start date for the card
+            endDate: new Date('2025-07-27T23:59:59Z'), // Set the end date for the card
+            actionLabel: 'Participer à l\'examen',
+            onPress: () => router.push('/concours-blanc-register'),
         },
-
     ];
 
-    // Check if user has configured generous week
-    const hasGenerousWeekConfig = user?.metadata &&
-        typeof user.metadata === 'object' &&
-        'generousWeek' in user.metadata;
-
-    // Check if the generous week feature is currently active
-    const isGenerousWeekPeriodActive = isGenerousWeekActive();
-
-    // Redirect to generous week page if not configured and the feature is active
-    useEffect(() => {
-        if (user && !hasGenerousWeekConfig && isGenerousWeekPeriodActive) {
-            setTimeout(() => {
-                router.replace("/(app)/learn/generous-week");
-            }, 500);
-        }
-    }, [user, hasGenerousWeekConfig, isGenerousWeekPeriodActive, router]);
 
     useEffect(() => {
         checkAndUpdateNotifications();
@@ -129,9 +114,11 @@ export default function Index() {
                         {new Date().getHours() < 12 ? 'Bonjour' : 'Bonsoir'} {user?.firstname} 👋
 
                     </Text>
-                    <Text numberOfLines={1} style={isDarkMode ? styles.welcomeSubtitleDark : styles.welcomeSubtitle}>
-                        Prêt à continuer votre apprentissage ?
-                    </Text>
+                        <WhatsAppContact
+                            phoneNumber="+237 6 51 05 56 63"
+                            message="Bonjour, j'ai besoin d'aide"
+                        />
+
                 </View>
                 {/*<JustificationGenerator />*/}
 
@@ -196,24 +183,24 @@ export default function Index() {
                     <NewsSection newsItems={newsItems} isDarkMode={isDarkMode} />
                 </View>
 
-                {/* Learning Paths */}
-                <View style={[styles.section, styles.lastSection]}>
-                    <View style={styles.sectionHeader}>
-                        <Text numberOfLines={1} style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}>
-                            Parcours recommandés
-                        </Text>
-                        <TouchableOpacity style={styles.seeAllButton}>
-                            <Text style={styles.seeAllText}> <Link href={"/(app)/learn"}>
-                                Tout voir
-                            </Link></Text>
-                        </TouchableOpacity>
-                    </View>
-                    {
-                        !userPrograms?.length && <NoProgram/>
-                    }
-                    <LearningPaths programs={[...userPrograms]} isDarkMode={isDarkMode}/>
+                {/*/!* Learning Paths *!/*/}
+                {/*<View style={[styles.section, styles.lastSection]}>*/}
+                {/*    <View style={styles.sectionHeader}>*/}
+                {/*        <Text numberOfLines={1} style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}>*/}
+                {/*            Parcours recommandés*/}
+                {/*        </Text>*/}
+                {/*        <TouchableOpacity style={styles.seeAllButton}>*/}
+                {/*            <Text style={styles.seeAllText}> <Link href={"/(app)/learn"}>*/}
+                {/*                Tout voir*/}
+                {/*            </Link></Text>*/}
+                {/*        </TouchableOpacity>*/}
+                {/*    </View>*/}
+                {/*    {*/}
+                {/*        !userPrograms?.length && <NoProgram/>*/}
+                {/*    }*/}
+                {/*    <LearningPaths programs={[...userPrograms]} isDarkMode={isDarkMode}/>*/}
 
-                </View>
+                {/*</View>*/}
             </ScrollView>
         </View>
     );

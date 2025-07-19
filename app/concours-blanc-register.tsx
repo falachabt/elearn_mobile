@@ -24,8 +24,9 @@ const ConcoursBlancRegisterScreen = () => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [webViewKey, setWebViewKey] = useState(1); // Key for re-rendering WebView on retry
     const webViewRef = useRef<WebView>(null);
+    const [firstload, setFirstLoad] = useState(false);
 
-    const WEBVIEW_URL = 'https://bacblanc-xvis-gu05wg753-falachabts-projects.vercel.app/';
+    const WEBVIEW_URL = 'https://elearnbac.ezadrive.com/';
 
     // Handle WebView loading error
     const handleError = (event: any) => {
@@ -77,7 +78,10 @@ const ConcoursBlancRegisterScreen = () => {
 
     // Handle WebView load end
     const handleLoadEnd = () => {
-        console.log('WebView load end');
+        if(!firstload) {
+            setWebViewKey(prev => prev + 1);
+            setFirstLoad(true);
+        }
         setIsLoading(false);
     };
 
@@ -117,7 +121,7 @@ const ConcoursBlancRegisterScreen = () => {
                 
                 <View style={styles.headerTitleContainer}>
                     <Text style={[styles.headerTitle, isDarkMode && styles.headerTitleDark]}>
-                        Inscription Concours Blanc 1
+                        Concours Blanc 1
                     </Text>
                 </View>
 
@@ -165,6 +169,13 @@ const ConcoursBlancRegisterScreen = () => {
                     allowsInlineMediaPlayback={true}
                     mediaPlaybackRequiresUserAction={false}
                     mixedContentMode="compatibility"
+                    injectedJavaScript={
+                        `(function() {
+                        sessionStorage.setItem('authToken', '${session?.access_token}');
+                        localStorage.setItem('authToken', '${session?.access_token}');
+                        document.cookie = "authToken=${session?.access_token}; path=/; secure; SameSite=Strict";                       
+                        })();`
+                    }
                     allowsFullscreenVideo={true}
                     onLoadStart={handleLoadStart}
                     onLoadEnd={handleLoadEnd}
