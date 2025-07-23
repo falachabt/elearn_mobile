@@ -74,7 +74,9 @@ const ProgramDetails = () => {
     const {  isLearningPathEnrolled } = useUser();
     const isEnrolled = isLearningPathEnrolled(id);
 
-
+    // LOG: Au début du composant pour voir les informations initiales
+    console.log(`[ProgramDetails] Rendu du composant pour l'id: ${id}.`);
+    console.log(`[ProgramDetails] Statut d'inscription (isEnrolled): ${isEnrolled}.`);
 
     const router = useRouter();
     const colorScheme = useColorScheme();
@@ -121,7 +123,10 @@ const ProgramDetails = () => {
             .single();
 
 
-        if (error) throw error;
+        if (error) {
+            console.error("[ProgramDetails] Erreur dans fetchProgramData:", error);
+            throw error;
+        }
         // @ts-ignore
         return data;
     };
@@ -133,6 +138,8 @@ const ProgramDetails = () => {
     );
 
     // Only fetch progress data if enrolled
+    // LOG: On vérifie les paramètres passés au hook de progression.
+    console.log(`[ProgramDetails] Appel de useProgramProgress avec id: "${isEnrolled ? id : ""}" et userId: "${isEnrolled ? (user?.id || "") : ""}"`);
     const {
         courseProgress,
         quizProgress,
@@ -142,6 +149,17 @@ const ProgramDetails = () => {
         isLoading: progressLoading,
         error: progressError
     } = useProgramProgress(isEnrolled ? id : "", isEnrolled ? (user?.id || "") : "");
+    
+    // LOG: Suivi des états d'erreur
+    useEffect(() => {
+        if (programError) {
+            console.error("[ProgramDetails] Erreur détectée lors du chargement du PROGRAMME:", programError);
+        }
+        if (progressError) {
+            // C'est le log qui nous intéresse le plus pour notre problème !
+            console.error("[ProgramDetails] Erreur détectée lors du chargement de la PROGRESSION:", progressError);
+        }
+    }, [programError, progressError]);
 
     // Combine loading and error states
     const hasError = programError || (isEnrolled && progressError);
@@ -318,7 +336,7 @@ const ProgramDetails = () => {
                                program.concours_learningpaths[0].concour.concours_archives.length : 0,
                         percentage: archiveProgress?.percentage || 0,
                     } : undefined,
-                    route: `/(app)/manuel/anciens-sujets/${program.concours_learningpaths?.concour?.id}`,
+                    route: `/(app)/manuel/anciens-sujets/${program.concours_learningpaths?.[0]?.concour?.id}`,
                     color: isDark ? "#FBBF24" : "#FF9800",
                     rightContent: isEnrolled ? (
                         <View style={styles.progressIndicator}>
@@ -326,11 +344,9 @@ const ProgramDetails = () => {
                                 style={[styles.progressText, isDark && styles.progressTextDark]}
                             >
                                 {archiveProgress?.completed}/
-                                {program?.concours_learningpaths  &&
-                                 //    @ts-ignore
-                                 program.concours_learningpaths?.concour?.concours_archives ?
-                                 //    @ts-ignore
-                                 program.concours_learningpaths.concour.concours_archives.length : 0}
+                                {program?.concours_learningpaths  && program.concours_learningpaths.length > 0 &&
+                                 program.concours_learningpaths[0]?.concour?.concours_archives ?
+                                 program.concours_learningpaths[0].concour.concours_archives.length : 0}
                             </ThemedText>
                             <ThemedText
                                 style={[
@@ -427,8 +443,10 @@ const ProgramDetails = () => {
         </Pressable>
     );
 
-    // Render main component
+    // --- Logique de rendu ---
     if (isLoading) {
+        // LOG: Confirme que l'on affiche l'écran de chargement
+        console.log(`[ProgramDetails] Rendu du bloc de chargement. (programLoading: ${programLoading}, progressLoading: ${progressLoading})`);
         return (
             <View style={[styles.container, isDark && styles.containerDark, styles.loadingContainer]}>
                 <ThemedText style={[styles.loadingText, isDark && styles.loadingTextDark]}>
@@ -439,6 +457,8 @@ const ProgramDetails = () => {
     }
 
     if (hasError || !program) {
+        // LOG: Confirme que l'on affiche l'écran d'erreur
+        console.error(`[ProgramDetails] Rendu du bloc d'erreur. (hasError: ${!!hasError}, !program: ${!program}, progressError: ${!!progressError})`);
         return (
             <View style={[styles.container, isDark && styles.containerDark, styles.loadingContainer]}>
                 <ThemedText style={[styles.errorText, isDark && styles.errorTextDark]}>
@@ -447,6 +467,9 @@ const ProgramDetails = () => {
             </View>
         );
     }
+    
+    // LOG: Confirme que le rendu principal s'effectue
+    console.log("[ProgramDetails] Rendu du contenu principal du programme.");
 
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
@@ -461,18 +484,16 @@ const ProgramDetails = () => {
                     <ThemedText
                         style={[styles.programTitle, isDark && styles.programTitleDark]}
                     >
-
-
                         {program?.concours_learningpaths &&
-                         program.concours_learningpaths?.concour?.school?.name ?
-                         program.concours_learningpaths.concour.school.name : ''}
+                         program.concours_learningpaths[0]?.concour?.school?.name ?
+                         program.concours_learningpaths[0].concour.school.name : ''}
                     </ThemedText>
                     <ThemedText
                         numberOfLines={1}
                         style={[styles.concoursName, isDark && styles.concoursNameDark]}
                     >
                         {program?.concours_learningpaths  &&
-                         program.concours_learningpaths?.concour?.name || ''}
+                         program.concours_learningpaths[0]?.concour?.name || ''}
 
                     </ThemedText>
                     {!isEnrolled && (
@@ -490,7 +511,6 @@ const ProgramDetails = () => {
                 </View>
             </View>
 
-            {/* Overall progress indicator - Only show if enrolled */}
             {isEnrolled && (
                 <View style={[styles.overallProgressContainer, isDark && styles.overallProgressContainerDark]}>
                     <ThemedText style={[styles.overallProgressLabel, isDark && styles.overallProgressLabelDark]}>
@@ -737,6 +757,7 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
     loadingContainer: {
+        flex: 1,
         justifyContent: "center",
         alignItems: "center",
     },
