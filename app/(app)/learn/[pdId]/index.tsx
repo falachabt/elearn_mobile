@@ -344,8 +344,10 @@ const ProgramDetails = () => {
                                 style={[styles.progressText, isDark && styles.progressTextDark]}
                             >
                                 {archiveProgress?.completed}/
-                                {program?.concours_learningpaths  && program.concours_learningpaths.length > 0 &&
-                                 program.concours_learningpaths[0]?.concour?.concours_archives ?
+                                {program?.concours_learningpaths  &&
+                                 //    @ts-ignore
+                                 program.concours_learningpaths?.[0]?.concour?.concours_archives ?
+                                 //    @ts-ignore
                                  program.concours_learningpaths[0].concour.concours_archives.length : 0}
                             </ThemedText>
                             <ThemedText
