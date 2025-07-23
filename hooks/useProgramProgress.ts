@@ -306,7 +306,8 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                         .in("archive_id", relevantArchivesIds.length ? relevantArchivesIds : ['none']) // Ajout d'une condition pour ne pas faire une requête IN vide
                         .then(({data, error}) => {
                             if (error) {
-                                console.log("Erreur silencieuse (non bloquante) lors de la récupération des archives complétées:", error);
+                                // Non-blocking error: logging for debugging purposes only
+                                console.error("Erreur silencieuse (non bloquante) lors de la récupération des archives complétées:", error);
                                 return [];
                             }
                             return data as ArchiveComplete[] || [];
