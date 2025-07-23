@@ -406,6 +406,7 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
     }, [programData]);
 
     // Calculate total progress with weighted components and capped at 100%
+    //  --- BLOC DE CALCUL RESTAURÉ ---
     const totalProgress = (() => {
         const totalCourses = programData?.program?.course_learningpath?.length || 0;
         const totalQuizzes = programData?.program?.quiz_learningpath?.length || 0;
@@ -449,7 +450,7 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
         quizProgress,
         exercisesProgress,
         archiveProgress,
-        totalProgress,
+        totalProgress, // --- totalProgress EST BIEN DE RETOUR DANS L'OBJET RETOURNÉ ---
         program: programData?.program,
         isLoading,
         error: error as Error | null,
