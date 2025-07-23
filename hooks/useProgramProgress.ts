@@ -26,8 +26,6 @@ interface ArchiveComplete {
 
 interface ConcoursLearningPath {
     concour?: Concours;
-
-
 }
 
 interface Exercise {
@@ -126,6 +124,9 @@ const capPercentage = (value: number): number => {
 };
 
 export const useProgramProgress = (lpId: string, userId: string): ProgramProgress => {
+    // LOG: Au début du hook pour voir avec quels paramètres il est appelé.
+    console.log(`[useProgramProgress] Hook initialisé. lpId: "${lpId}", userId: "${userId}"`);
+
     const [courseProgress, setCourseProgress] = useState<{
         completed: number;
         percentage: number;
@@ -164,7 +165,11 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
     const {data: programData, error, isLoading} = useSWR<ProgressData>(
         lpId && userId ? programProgressKeys.detail(lpId, userId) : null, // Use specific key
         async () => {
-            // Step 1: First fetch the program data to extract relevant IDs
+            // LOG: Début de la fonction de fetch SWR. Si ce log n'apparaît pas, c'est que lpId ou userId est manquant.
+            console.log(`[useProgramProgress] Début du fetcher SWR pour lpId: ${lpId}`);
+
+            // --- ÉTAPE 1: Récupération des données du programme ---
+            console.log("[useProgramProgress] Étape 1: Tentative de récupération des données du programme...");
             const {data: rawProgramData, error: programError} = await supabase
                 .from("learning_paths")
                 .select(
@@ -205,23 +210,32 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                 .eq("id", lpId)
                 .single();
 
-            if (programError) throw programError;
+            // LOG: Vérification de l'erreur de la première requête. C'est un point de défaillance majeur.
+            if (programError) {
+                console.error("[useProgramProgress] ERREUR CRITIQUE à l'étape 1: Échec de la récupération du programme.", programError);
+                throw programError; // Lance l'erreur pour que SWR la capture
+            }
+             if (!rawProgramData) {
+                const noDataError = new Error("Aucune donnée de programme trouvée pour cet ID. .single() a probablement échoué car 0 ligne retournée.");
+                console.error("[useProgramProgress] ERREUR CRITIQUE à l'étape 1:", noDataError.message);
+                throw noDataError;
+            }
+            console.log("[useProgramProgress] Étape 1: Données du programme récupérées avec succès.");
 
             const program = rawProgramData as unknown as LearningPath;
 
-            // Extract IDs for filtered queries
-            const relevantCourseIds = program.course_learningpath
-                .map(c => c.courseId)
-                .filter(Boolean);
+            // LOG: Vérification de la structure des données reçues avant de tenter de les utiliser.
+            if (!program.course_learningpath || !program.quiz_learningpath) {
+                const structureError = new Error("La structure des données du programme est incorrecte. `course_learningpath` ou `quiz_learningpath` est manquant.");
+                console.error("[useProgramProgress] ERREUR CRITIQUE DE STRUCTURE:", structureError, "Données reçues:", program);
+                throw structureError;
+            }
 
-            const relevantQuizIds = program.quiz_learningpath
-                .map(q => q.quizId)
-                .filter(Boolean);
-
+            // --- Extraction des IDs ---
+            console.log("[useProgramProgress] Extraction des IDs pour les requêtes de progression...");
+            const relevantCourseIds = program.course_learningpath.map(c => c.courseId).filter(Boolean);
+            const relevantQuizIds = program.quiz_learningpath.map(q => q.quizId).filter(Boolean);
             const relevantArchivesIds = program.concours_learningpaths?.concour?.concours_archives?.map(a => a.id).filter(Boolean) || [];
-
-
-            // Extract all exercise IDs
             const allExerciseIds: string[] = [];
             program.course_learningpath.forEach(courseLP => {
                 if (courseLP.courses?.exercices) {
@@ -232,137 +246,141 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                     });
                 }
             });
+            console.log(`[useProgramProgress] IDs extraits: ${relevantCourseIds.length} cours, ${relevantQuizIds.length} quiz, ${allExerciseIds.length} exercices, ${relevantArchivesIds.length} archives.`);
 
-            // Step 2: Fetch only the necessary progress data in parallel
-            const [courseProgressData, quizData, exerciseData, archiveProgressData] = await Promise.all([
-                // Fetch only relevant course progress
-                supabase
-                    .from("course_progress_summary")
-                    .select("course_id, progress_percentage")
-                    .eq("user_id", userId)
-                    .in("course_id", relevantCourseIds.length ? relevantCourseIds : ['none'])
-                    .then(({data, error}) => {
-                        if (error) throw error;
-                        return data as CourseProgress[] || [];
-                    }),
+            // --- ÉTAPE 2: Récupération des données de progression en parallèle ---
+            console.log("[useProgramProgress] Étape 2: Lancement des requêtes de progression en parallèle...");
+            try {
+                const [courseProgressData, quizData, exerciseData, archiveProgressData] = await Promise.all([
+                    // Fetch only relevant course progress
+                    supabase
+                        .from("course_progress_summary")
+                        .select("course_id, progress_percentage")
+                        .eq("user_id", userId)
+                        .in("course_id", relevantCourseIds.length ? relevantCourseIds : ['none'])
+                        .then(({data, error}) => {
+                            if (error) {
+                                console.error("[useProgramProgress] Erreur dans la requête de progression des cours:", error);
+                                throw error;
+                            }
+                            return data as CourseProgress[] || [];
+                        }),
 
-                // Fetch only relevant quiz attempts
-                supabase
-                    .from("quiz_attempts")
-                    .select("quiz_id")
-                    .eq("user_id", userId)
-                    .eq("status", "completed")
-                    .gte("score", 70)
-                    .in("quiz_id", relevantQuizIds.length ? relevantQuizIds : ['none'])
-                    .then(({data, error}) => {
-                        if (error) throw error;
-                        return data as QuizAttempt[] || [];
-                    }),
+                    // Fetch only relevant quiz attempts
+                    supabase
+                        .from("quiz_attempts")
+                        .select("quiz_id")
+                        .eq("user_id", userId)
+                        .eq("status", "completed")
+                        .gte("score", 70)
+                        .in("quiz_id", relevantQuizIds.length ? relevantQuizIds : ['none'])
+                        .then(({data, error}) => {
+                            if (error) {
+                                console.error("[useProgramProgress] Erreur dans la requête des tentatives de quiz:", error);
+                                throw error;
+                            }
+                            return data as QuizAttempt[] || [];
+                        }),
 
-                // Fetch only relevant completed exercises
-                supabase
-                    .from("exercices_complete")
-                    .select("exercice_id")
-                    .eq("user_id", userId)
-                    .eq("is_completed", true)
-                    .in("exercice_id", allExerciseIds.length ? allExerciseIds : ['none'])
-                    .then(({data, error}) => {
-                        if (error) throw error;
-                        return data as ExerciceComplete[] || [];
-                    }),
+                    // Fetch only relevant completed exercises
+                    supabase
+                        .from("exercices_complete")
+                        .select("exercice_id")
+                        .eq("user_id", userId)
+                        .eq("is_completed", true)
+                        .in("exercice_id", allExerciseIds.length ? allExerciseIds : ['none'])
+                        .then(({data, error}) => {
+                            if (error) {
+                                console.error("[useProgramProgress] Erreur dans la requête des exercices complétés:", error);
+                                throw error;
+                            }
+                            return data as ExerciceComplete[] || [];
+                        }),
 
 
-                // Fetch only relevant archive progress
-                supabase
-                    .from("user_completed_archives")
-                    .select("id")
-                    .eq("user_id", userId)
-                    .in("archive_id", relevantArchivesIds)
-                    .then(({data, error}) => {
-                        if (error) {
-                            console.log("Error fetching completed archives:", error);
-                            return [];
-                        }
-                        return data as ArchiveComplete[] || [];
-                    }),
-            ]);
+                    // Fetch only relevant archive progress
+                    supabase
+                        .from("user_completed_archives")
+                        .select("id")
+                        .eq("user_id", userId)
+                        .in("archive_id", relevantArchivesIds.length ? relevantArchivesIds : ['none']) // Ajout d'une condition pour ne pas faire une requête IN vide
+                        .then(({data, error}) => {
+                            if (error) {
+                                console.log("Erreur silencieuse (non bloquante) lors de la récupération des archives complétées:", error);
+                                return [];
+                            }
+                            return data as ArchiveComplete[] || [];
+                        }),
+                ]);
 
-            // Calculate course progress
-            const totalCourses = program.course_learningpath.length || 0;
-
-            // Cap individual course progress values at 100%
-            const cappedCourseProgressData = courseProgressData.map(course => ({
-                ...course,
-                progress_percentage: Math.min(course.progress_percentage, 100)
-            }));
-
-            const totalCourseProgress = cappedCourseProgressData.reduce((acc, course) => {
-                return acc + course.progress_percentage;
-            }, 0);
-
-            // Ensure courseProgress percentage doesn't exceed 100%
-            let calculatedCourseProgress = 0;
-            if (totalCourses > 0) {
-                calculatedCourseProgress = capPercentage(totalCourseProgress / (totalCourses * 100) * 100);
-            }
-
-            // Make sure completed courses count doesn't exceed total courses
-            const courseCompleted = Math.min(
-                cappedCourseProgressData.filter(course => course.progress_percentage === 100).length,
-                totalCourses
-            );
-
-            // Calculate quiz progress
-            const totalQuizzes = program.quiz_learningpath.length || 0;
-
-            // Make sure completedQuizzes count doesn't exceed total quizzes
-            const completedQuizzes = Math.min(quizData.length, totalQuizzes);
-
-            // Ensure quizProgress percentage doesn't exceed 100%
-            let calculatedQuizProgress = 0;
-            if (totalQuizzes > 0) {
-                calculatedQuizProgress = capPercentage((completedQuizzes / totalQuizzes) * 100);
-            }
-
-            // Calculate exercises progress
-            const totalExercises = allExerciseIds.length;
-
-            // Get unique completed exercise IDs
-            const completedExerciseIds = new Set(
-                exerciseData
-                    .map(exercise => exercise.exercice_id)
-                    .filter(id => allExerciseIds.includes(id))
-            );
-
-            // Make sure completedExercises count doesn't exceed total exercises
-            const completedExercises = Math.min(completedExerciseIds.size, totalExercises);
-
-            // Ensure exercisesProgress percentage doesn't exceed 100%
-            let calculatedExercisesProgress = 0;
-            if (totalExercises > 0) {
-                calculatedExercisesProgress = capPercentage((completedExercises / totalExercises) * 100);
-            }
-
-            return {
-                program,
-                courseProgress: {
-                    completed: courseCompleted,
-                    percentage: calculatedCourseProgress,
-                },
-                quizProgress: {
-                    completed: completedQuizzes,
-                    percentage: calculatedQuizProgress,
-                },
-                exercisesProgress: {
-                    completed: completedExercises,
-                    total: totalExercises,
-                    percentage: calculatedExercisesProgress
-                },
-                archiveProgress: {
-                    completed: archiveProgressData.length,
-                    percentage: capPercentage((archiveProgressData.length / relevantArchivesIds.length) * 100)
+                console.log("[useProgramProgress] Étape 2: Toutes les données de progression ont été récupérées avec succès.");
+                
+                // Calculate course progress
+                const totalCourses = program.course_learningpath.length || 0;
+                const cappedCourseProgressData = courseProgressData.map(course => ({
+                    ...course,
+                    progress_percentage: Math.min(course.progress_percentage, 100)
+                }));
+                const totalCourseProgress = cappedCourseProgressData.reduce((acc, course) => {
+                    return acc + course.progress_percentage;
+                }, 0);
+                let calculatedCourseProgress = 0;
+                if (totalCourses > 0) {
+                    calculatedCourseProgress = capPercentage(totalCourseProgress / (totalCourses * 100) * 100);
                 }
-            };
+                const courseCompleted = Math.min(
+                    cappedCourseProgressData.filter(course => course.progress_percentage === 100).length,
+                    totalCourses
+                );
+
+                // Calculate quiz progress
+                const totalQuizzes = program.quiz_learningpath.length || 0;
+                const completedQuizzes = Math.min(quizData.length, totalQuizzes);
+                let calculatedQuizProgress = 0;
+                if (totalQuizzes > 0) {
+                    calculatedQuizProgress = capPercentage((completedQuizzes / totalQuizzes) * 100);
+                }
+
+                // Calculate exercises progress
+                const totalExercises = allExerciseIds.length;
+                const completedExerciseIds = new Set(
+                    exerciseData
+                        .map(exercise => exercise.exercice_id)
+                        .filter(id => allExerciseIds.includes(id))
+                );
+                const completedExercises = Math.min(completedExerciseIds.size, totalExercises);
+                let calculatedExercisesProgress = 0;
+                if (totalExercises > 0) {
+                    calculatedExercisesProgress = capPercentage((completedExercises / totalExercises) * 100);
+                }
+
+                console.log("[useProgramProgress] Fetcher SWR terminé avec succès. Retour des données calculées.");
+                return {
+                    program,
+                    courseProgress: {
+                        completed: courseCompleted,
+                        percentage: calculatedCourseProgress,
+                    },
+                    quizProgress: {
+                        completed: completedQuizzes,
+                        percentage: calculatedQuizProgress,
+                    },
+                    exercisesProgress: {
+                        completed: completedExercises,
+                        total: totalExercises,
+                        percentage: calculatedExercisesProgress
+                    },
+                    archiveProgress: {
+                        completed: archiveProgressData.length,
+                        percentage: relevantArchivesIds.length > 0 ? capPercentage((archiveProgressData.length / relevantArchivesIds.length) * 100) : 0
+                    }
+                };
+
+            } catch (e) {
+                // LOG: Si une des requêtes de Promise.all échoue, on le saura ici.
+                console.error("[useProgramProgress] ERREUR CRITIQUE à l'étape 2: Une des requêtes de progression a échoué dans Promise.all.", e);
+                throw e; // Relance l'erreur pour que SWR la capture
+            }
         },
         {
             revalidateOnFocus: true,
@@ -370,6 +388,13 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
             refreshInterval: 10000, // Refresh every 10 seconds
         }
     );
+
+    // LOG: Ce useEffect se déclenchera UNIQUEMENT si SWR renvoie une erreur finale.
+    useEffect(() => {
+        if (error) {
+            console.error("[useProgramProgress] HOOK FINAL: SWR a rapporté une erreur qui sera retournée au composant:", error);
+        }
+    }, [error]);
 
     useEffect(() => {
         if (programData) {
@@ -387,7 +412,7 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
         const totalExercises = exercisesProgress?.total || 0;
         const totalArchives = programData?.program?.concours_learningpaths?.concour?.concours_archives?.length || 0;
 
-        if (!totalCourses && !totalQuizzes && !totalExercises) return 0;
+        if (!totalCourses && !totalQuizzes && !totalExercises && !totalArchives) return 0;
 
         // Define weights for each component
         const componentsWeight = {
