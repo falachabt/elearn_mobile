@@ -215,7 +215,7 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                 console.error("[useProgramProgress] ERREUR CRITIQUE à l'étape 1: Échec de la récupération du programme.", programError);
                 throw programError; // Lance l'erreur pour que SWR la capture
             }
-             if (!rawProgramData) {
+            if (!rawProgramData) {
                 const noDataError = new Error("Aucune donnée de programme trouvée pour cet ID. .single() a probablement échoué car 0 ligne retournée.");
                 console.error("[useProgramProgress] ERREUR CRITIQUE à l'étape 1:", noDataError.message);
                 throw noDataError;
