@@ -12,7 +12,7 @@ on:
           - android
           - ios
           - all
-      eas_profile:
+      eas_channel:
         description: 'EAS Profile (development, preview, production)'
         required: true
         default: 'production'
@@ -62,11 +62,12 @@ jobs:
       - name: Run EAS Update
         env:
           EAS_ACCESS_TOKEN: ${{ secrets.EAS_ACCESS_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EAS_ACCESS_TOKEN }}
         run: |
           if [ "${{ github.event.inputs.platform }}" = "all" ]; then
             echo "Running EAS update for all platforms..."
-            eas update --platform all --profile "${{ github.event.inputs.eas_profile }}" --message "${{ github.event.inputs.update_message || 'Mise à jour' }}"
+            eas update --platform all --channel "${{ github.event.inputs.eas_channel }}" --message "${{ github.event.inputs.update_message || 'Mise à jour' }}"
           else
             echo "Running EAS update for ${{ github.event.inputs.platform }} platform..."
-            eas update --platform "${{ github.event.inputs.platform }}" --profile "${{ github.event.inputs.eas_profile }}" --message "${{ github.event.inputs.update_message || 'Mise à jour' }}"
+            eas update --platform "${{ github.event.inputs.platform }}" --channel "${{ github.event.inputs.eas_channel }}" --message "${{ github.event.inputs.update_message || 'Mise à jour' }}"
           fi
