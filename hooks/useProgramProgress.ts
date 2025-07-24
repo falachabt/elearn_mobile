@@ -406,7 +406,9 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
         const totalExercises = exercisesProgress?.total || 0;
         const totalArchives = programData?.program?.concours_learningpaths?.concour?.concours_archives?.length || 0;
 
-        if (!totalCourses && !totalQuizzes && !totalExercises && !totalArchives) return 0;
+        if (!totalCourses && !totalQuizzes && !totalExercises && !totalArchives) {
+            return 0;
+        }
 
         // Define weights for each component
         const componentsWeight = {
