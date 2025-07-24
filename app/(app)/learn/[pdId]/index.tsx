@@ -155,6 +155,7 @@ const ProgramDetails = () => {
         if (progressError) {
             // C'est le log qui nous intéresse le plus pour notre problème !
             console.error("[ProgramDetails] Erreur détectée lors du chargement de la PROGRESSION:", progressError);
+            console.error("[ProgramDetails] Progress error details:", progressError);
         }
     }, [programError, progressError]);
 
@@ -434,15 +435,8 @@ const ProgramDetails = () => {
         return (
             <View style={[styles.container, isDark && styles.containerDark, styles.loadingContainer]}>
                 <ThemedText style={[styles.errorText, isDark && styles.errorTextDark]}>
-                    {
-                        "Une erreur est survenue lors du chargement du programme." 
-
-                    }
-                    {
-                        console.error("[ProgramDetails] Progress error details:", progressError);
-                    }
-
-                    {progressError ? "Erreur lors du chargement de votre progression" : "Erreur lors du chargement du programme"}
+                    Une erreur est survenue lors du chargement du programme.
+                    {progressError ? " Erreur lors du chargement de votre progression" : " Erreur lors du chargement du programme"}
                 </ThemedText>
             </View>
         );
