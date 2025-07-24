@@ -435,11 +435,11 @@ const ProgramDetails = () => {
             <View style={[styles.container, isDark && styles.containerDark, styles.loadingContainer]}>
                 <ThemedText style={[styles.errorText, isDark && styles.errorTextDark]}>
                     {
-                        JSON.stringify(programError) 
+                        "Une erreur est survenue lors du chargement du programme." 
 
                     }
                     {
-                        JSON.stringify(progressError)
+                        console.error("[ProgramDetails] Progress error details:", progressError);
                     }
 
                     {progressError ? "Erreur lors du chargement de votre progression" : "Erreur lors du chargement du programme"}
