@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F9FAFB",
-        marginBottom: 60, // To avoid overlap with bottom tab bar
+        marginBottom: 80, // To avoid overlap with bottom tab bar
         paddingBottom: 40,
     },
     containerDark: {
