@@ -326,37 +326,10 @@ const ProgramDetails = () => {
                             color={isDark ? "#FBBF24" : "#FF9800"}
                         />
                     ),
-                    progress: isEnrolled ? {
-                        current: archiveProgress?.completed || 0,
-                        total: program?.concours_learningpaths && program.concours_learningpaths.length > 0 && 
-                               program.concours_learningpaths[0]?.concour?.concours_archives ? 
-                               program.concours_learningpaths[0].concour.concours_archives.length : 0,
-                        percentage: archiveProgress?.percentage || 0,
-                    } : undefined,
-                    route: `/(app)/manuel/anciens-sujets/${program.concours_learningpaths?.[0]?.concour?.id}`,
+                    
+                    route: `/(app)/manuel/anciens-sujets/${program.concours_learningpaths?.concour?.id}`,
                     color: isDark ? "#FBBF24" : "#FF9800",
-                    rightContent: isEnrolled ? (
-                        <View style={styles.progressIndicator}>
-                            <ThemedText
-                                style={[styles.progressText, isDark && styles.progressTextDark]}
-                            >
-                                {archiveProgress?.completed}/
-                                {program?.concours_learningpaths  &&
-                                 //    @ts-ignore
-                                 program.concours_learningpaths?.[0]?.concour?.concours_archives ?
-                                 //    @ts-ignore
-                                 program.concours_learningpaths[0].concour.concours_archives.length : 0}
-                            </ThemedText>
-                            <ThemedText
-                                style={[
-                                    styles.progressLabel,
-                                    isDark && styles.progressLabelDark,
-                                ]}
-                            >
-                                Anales révisés
-                            </ThemedText>
-                        </View>
-                    ) : undefined,
+
                 },
             );
 
@@ -484,15 +457,15 @@ const ProgramDetails = () => {
                         style={[styles.programTitle, isDark && styles.programTitleDark]}
                     >
                         {program?.concours_learningpaths &&
-                         program.concours_learningpaths[0]?.concour?.school?.name ?
-                         program.concours_learningpaths[0].concour.school.name : ''}
+                         program.concours_learningpaths?.concour?.school?.name ?
+                         program.concours_learningpaths.concour.school.name : ''}
                     </ThemedText>
                     <ThemedText
                         numberOfLines={1}
                         style={[styles.concoursName, isDark && styles.concoursNameDark]}
                     >
                         {program?.concours_learningpaths  &&
-                         program.concours_learningpaths[0]?.concour?.name || ''}
+                         program.concours_learningpaths?.concour?.name || ''}
 
                     </ThemedText>
                     {!isEnrolled && (
