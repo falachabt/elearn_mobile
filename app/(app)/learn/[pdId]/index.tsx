@@ -434,6 +434,14 @@ const ProgramDetails = () => {
         return (
             <View style={[styles.container, isDark && styles.containerDark, styles.loadingContainer]}>
                 <ThemedText style={[styles.errorText, isDark && styles.errorTextDark]}>
+                    {
+                        JSON.stringify(programError) 
+
+                    }
+                    {
+                        JSON.stringify(progressError)
+                    }
+
                     {progressError ? "Erreur lors du chargement de votre progression" : "Erreur lors du chargement du programme"}
                 </ThemedText>
             </View>
