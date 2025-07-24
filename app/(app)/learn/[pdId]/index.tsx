@@ -74,9 +74,6 @@ const ProgramDetails = () => {
     const {  isLearningPathEnrolled } = useUser();
     const isEnrolled = isLearningPathEnrolled(id);
 
-    // LOG: Au début du composant pour voir les informations initiales
-    console.log(`[ProgramDetails] Rendu du composant pour l'id: ${id}.`);
-    console.log(`[ProgramDetails] Statut d'inscription (isEnrolled): ${isEnrolled}.`);
 
     const router = useRouter();
     const colorScheme = useColorScheme();

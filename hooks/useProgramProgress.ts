@@ -124,9 +124,7 @@ const capPercentage = (value: number): number => {
 };
 
 export const useProgramProgress = (lpId: string, userId: string): ProgramProgress => {
-    // LOG: Au début du hook pour voir avec quels paramètres il est appelé.
-    console.log(`[useProgramProgress] Hook initialisé. lpId: "${lpId}", userId: "${userId}"`);
-
+ 
     const [courseProgress, setCourseProgress] = useState<{
         completed: number;
         percentage: number;
@@ -165,11 +163,7 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
     const {data: programData, error, isLoading} = useSWR<ProgressData>(
         lpId && userId ? programProgressKeys.detail(lpId, userId) : null, // Use specific key
         async () => {
-            // LOG: Début de la fonction de fetch SWR. Si ce log n'apparaît pas, c'est que lpId ou userId est manquant.
-            console.log(`[useProgramProgress] Début du fetcher SWR pour lpId: ${lpId}`);
-
-            // --- ÉTAPE 1: Récupération des données du programme ---
-            console.log("[useProgramProgress] Étape 1: Tentative de récupération des données du programme...");
+           
             const {data: rawProgramData, error: programError} = await supabase
                 .from("learning_paths")
                 .select(
@@ -220,7 +214,6 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                 console.error("[useProgramProgress] ERREUR CRITIQUE à l'étape 1:", noDataError.message);
                 throw noDataError;
             }
-            console.log("[useProgramProgress] Étape 1: Données du programme récupérées avec succès.");
 
             const program = rawProgramData as unknown as LearningPath;
 
@@ -232,7 +225,6 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
             }
 
             // --- Extraction des IDs ---
-            console.log("[useProgramProgress] Extraction des IDs pour les requêtes de progression...");
             const relevantCourseIds = program.course_learningpath.map(c => c.courseId).filter(Boolean);
             const relevantQuizIds = program.quiz_learningpath.map(q => q.quizId).filter(Boolean);
             const relevantArchivesIds = program.concours_learningpaths?.concour?.concours_archives?.map(a => a.id).filter(Boolean) || [];
