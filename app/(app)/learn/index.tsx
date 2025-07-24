@@ -10,24 +10,29 @@ import {
     useColorScheme,
     View
 } from 'react-native'
-import React, { useState } from 'react'
-import {useAuth} from '@/contexts/auth'
+import React, { useState, useMemo } from 'react'
+import { useAuth } from '@/contexts/auth'
 import useSWR from 'swr'
-import {supabase} from '@/lib/supabase'
-import {MaterialCommunityIcons} from '@expo/vector-icons'
-import {useRouter} from 'expo-router'
-import {theme} from '@/constants/theme'
-import {useProgramProgress} from "@/hooks/useProgramProgress";
-import {HapticType, useHaptics} from "@/hooks/useHaptics";
-import NoProgram from "@/components/shared/catalogue/NoProgramCard";
-import ModernLearningPathCard from "@/components/shared/learn/LearningPathCard";
-import {useUser} from '@/contexts/useUserInfo';
+import { supabase } from '@/lib/supabase'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
+import { theme } from '@/constants/theme'
+import { useProgramProgress } from "@/hooks/useProgramProgress"
+import { HapticType, useHaptics } from "@/hooks/useHaptics"
+import NoProgram from "@/components/shared/catalogue/NoProgramCard"
+import ModernLearningPathCard from "@/components/shared/learn/LearningPathCard"
+import { useUser } from '@/contexts/useUserInfo'
 
 interface School {
     id: string
     name: string
     imageUrl?: string
+    sigle: string
     localisation: string
+}
+
+interface StudyCycle {
+    level: string
 }
 
 interface Concours {
@@ -36,6 +41,7 @@ interface Concours {
     description: string
     schoolId: string
     school: School
+    study_cycles: StudyCycle
     dates: { start: string; end: string }
     nextDate: Date
 }
@@ -47,6 +53,11 @@ interface ConcoursLearningPath {
     price: number
     isActive: boolean
     concour: Concours
+}
+
+interface UserProgramEnrollment {
+    id: number
+    user_id: string
 }
 
 export interface LearningPath {
@@ -70,14 +81,14 @@ export interface LearningPath {
     quiz_count: number
     total_duration: number
     progress?: number
-    isEnrolled: boolean // New property to indicate enrollment status
-    enrollmentId?: number // ID of enrollment if user is enrolled
-    isGenerousWeek?: boolean // Property to indicate if this is the generous week program
+    isEnrolled: boolean
+    enrollmentId?: number
+    isGenerousWeek?: boolean
 }
 
 const MyLearningPaths = () => {
-    const {session, user: authUser} = useAuth()
-    const {user} = useUser() // Get user data including metadata
+    const { session, user: authUser } = useAuth()
+    const { user } = useUser()
     const router = useRouter()
     const colorScheme = useColorScheme()
     const isDarkMode = colorScheme === 'dark'
@@ -86,11 +97,11 @@ const MyLearningPaths = () => {
     // Get generous week program ID from user metadata
     const generousWeekProgramId = user?.metadata?.generousWeek?.programId
 
-    const {data, error, isLoading, mutate} = useSWR(
+    const { data, error, isLoading, mutate } = useSWR(
         authUser ? 'all-learning-paths-with-enrollment' : null,
         async () => {
             // Single optimized query using LEFT JOIN to get all learning paths with enrollment status
-            const {data: learningPathsData, error: lpError} = await supabase
+            const { data: learningPathsData, error: lpError } = await supabase
                 .from('concours_learningpaths')
                 .select(`
                     id,
@@ -129,29 +140,33 @@ const MyLearningPaths = () => {
                         user_id
                     )
                 `)
-                // Filter by active learning paths only
                 .eq('isActive', true)
 
-            console.log("lpError", lpError)
+            if (lpError) {
+                console.error("Learning paths fetch error:", lpError)
+                throw lpError
+            }
 
-            if (lpError) throw lpError
+            if (!learningPathsData) {
+                return []
+            }
 
             // Group by learning path to avoid duplicates and determine enrollment status
-            const learningPathMap = new Map()
+            const learningPathMap = new Map<string, LearningPath>()
 
-            learningPathsData?.forEach((item: any) => {
+            learningPathsData.forEach((item: any) => {
                 const learningPathId = item.learning_path.id
                 const isUserEnrolled = item.user_program_enrollments?.some(
-                    (enrollment: any) => enrollment.user_id === authUser?.id
+                    (enrollment: UserProgramEnrollment) => enrollment.user_id === authUser?.id
                 )
                 const userEnrollment = item.user_program_enrollments?.find(
-                    (enrollment: any) => enrollment.user_id === authUser?.id
+                    (enrollment: UserProgramEnrollment) => enrollment.user_id === authUser?.id
                 )
 
                 if (!learningPathMap.has(learningPathId)) {
                     learningPathMap.set(learningPathId, {
                         id: item.learning_path.id,
-                        title: "Programme " + item.concour.school.sigle + " Niveau : " + item.concour.study_cycles.level,
+                        title: `Programme ${item.concour.school.sigle} Niveau : ${item.concour.study_cycles.level}`,
                         description: item.learning_path.description,
                         image: item.learning_path.image,
                         duration: item.learning_path.duration,
@@ -161,23 +176,26 @@ const MyLearningPaths = () => {
                         total_duration: item.learning_path.total_duration,
                         concours_learningpaths: [],
                         isEnrolled: isUserEnrolled,
-                        enrollmentId: userEnrollment?.id || (Math.floor(Math.random() * 100) + Math.floor(Math.random() * 100)), // Use enrollment ID if exists, else random for demo
-                        progress: isUserEnrolled ? Math.floor(Math.random() * 100) : 0 // Only show progress if enrolled
+                        enrollmentId: userEnrollment?.id || (Math.floor(Math.random() * 100) + Math.floor(Math.random() * 100)),
+                        progress: isUserEnrolled ? Math.floor(Math.random() * 100) : 0
                     })
                 }
 
                 // Add concours learning path info
-                learningPathMap.get(learningPathId).concours_learningpaths.push({
-                    id: item.id,
-                    concourId: item.concourId,
-                    learningPathId: item.learningPathId,
-                    price: item.price,
-                    isActive: item.isActive,
-                    concour: item.concour
-                })
+                const existingPath = learningPathMap.get(learningPathId)
+                if (existingPath) {
+                    existingPath.concours_learningpaths!.push({
+                        id: item.id,
+                        concourId: item.concourId,
+                        learningPathId: item.learningPathId,
+                        price: item.price,
+                        isActive: item.isActive,
+                        concour: item.concour
+                    })
+                }
             })
 
-            const allPaths = Array.from(learningPathMap.values()) as LearningPath[]
+            const allPaths = Array.from(learningPathMap.values())
 
             // Mark the generous week program
             if (generousWeekProgramId) {
@@ -185,49 +203,82 @@ const MyLearningPaths = () => {
                     // Check if any of the concours_learningpaths matches the generous week program ID
                     const isGenerousWeek = path.concours_learningpaths?.some(
                         clp => clp.id === generousWeekProgramId
-                    );
+                    )
 
                     if (isGenerousWeek) {
                         // Check if the generous week period is still active
                         if (user?.metadata?.generousWeek) {
                             const generousWeek = user.metadata.generousWeek
-                            const selectedAt = new Date(generousWeek.selectedAt);
-                            const durationInMs = generousWeek.duration * 24 * 60 * 60 * 1000;
+                            const selectedAt = new Date(generousWeek.selectedAt)
+                            const durationInMs = generousWeek.duration * 24 * 60 * 60 * 1000
 
                             // Only mark as generous week if the period hasn't expired
                             if (Date.now() < selectedAt.getTime() + durationInMs) {
-                                path.isGenerousWeek = true;
+                                path.isGenerousWeek = true
                             }
                         }
                     }
-                });
+                })
             }
 
-            // Trier pour mettre les programmes de la semaine généreuse et enrollés en premier
+            // Sort to put generous week and enrolled programs first
             return allPaths.sort((a, b) => {
                 // Generous week program comes first
-                if (a.isGenerousWeek && !b.isGenerousWeek) return -1;
-                if (!a.isGenerousWeek && b.isGenerousWeek) return 1;
+                if (a.isGenerousWeek && !b.isGenerousWeek) return -1
+                if (!a.isGenerousWeek && b.isGenerousWeek) return 1
 
                 // Then enrolled programs
-                if (a.isEnrolled && !b.isEnrolled) return -1;
-                if (!a.isEnrolled && b.isEnrolled) return 1;
+                if (a.isEnrolled && !b.isEnrolled) return -1
+                if (!a.isEnrolled && b.isEnrolled) return 1
 
-                return 0;
+                return 0
             })
         }
     )
 
+    // Memoize filtered data to prevent unnecessary re-renders
+    const filteredData = useMemo(() => {
+        if (!data) return []
+        
+        return data.filter(item => 
+            item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        )
+    }, [data, searchQuery])
+
+    // Redirect to login if not authenticated
     if (!session) {
         router.replace('/(auth)/login' as any)
         return null
     }
 
+    // Loading state
     if (isLoading) {
         return (
             <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color={theme.color.primary[500]}/>
-                <Text style={styles.loadingText}>Chargement de vos parcours...</Text>
+                <ActivityIndicator size="large" color={theme.color.primary[500]} />
+                <Text style={[styles.loadingText, isDarkMode && { color: '#FFFFFF' }]}>
+                    Chargement de vos parcours...
+                </Text>
+            </View>
+        )
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <View style={styles.centerContainer}>
+                <MaterialCommunityIcons 
+                    name="alert-circle" 
+                    size={48} 
+                    color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
+                />
+                <Text style={[styles.errorText, isDarkMode && { color: '#CCCCCC' }]}>
+                    Une erreur est survenue lors du chargement
+                </Text>
+                <Pressable style={styles.retryButton} onPress={() => mutate()}>
+                    <Text style={styles.retryText}>Réessayer</Text>
+                </Pressable>
             </View>
         )
     }
@@ -235,7 +286,9 @@ const MyLearningPaths = () => {
     return (
         <View style={[styles.container, isDarkMode && styles.containerDark]}>
             <View style={[styles.header, isDarkMode && styles.headerDark]}>
-                <Text style={[styles.title, isDarkMode && styles.titleDark]}>Mes Parcours</Text>
+                <Text style={[styles.title, isDarkMode && styles.titleDark]}>
+                    Mes Parcours
+                </Text>
                 <Text style={[styles.subtitle, isDarkMode && styles.subtitleDark]}>
                     Continuez votre préparation aux concours
                 </Text>
@@ -268,66 +321,53 @@ const MyLearningPaths = () => {
             </View>
 
             {data && data.length > 0 ? (
-                (() => {
-                    const filteredData = data.filter(item => 
-                        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
-                    );
-
-                    if (filteredData.length === 0 && searchQuery.length > 0) {
-                        return (
-                            <View style={styles.centerContainer}>
-                                <MaterialCommunityIcons 
-                                    name="magnify" 
-                                    size={48} 
-                                    color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
-                                />
-                                <Text style={[styles.loadingText, {textAlign: 'center', marginTop: 16}]}>
-                                    Aucun parcours trouvé pour "{searchQuery}"
-                                </Text>
-                                <Pressable 
-                                    style={[styles.retryButton, {marginTop: 16}]} 
-                                    onPress={() => setSearchQuery('')}
-                                >
-                                    <Text style={styles.retryText}>Effacer la recherche</Text>
-                                </Pressable>
-                            </View>
-                        );
-                    }
-
-                    return (
-                        <FlatList
-                            data={filteredData}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({item}) => (
-                                <ModernLearningPathCard
-                                    path={item}
-                                />
-                            )}
-                            contentContainerStyle={styles.listContainer}
-                            refreshControl={
-                                <RefreshControl
-                                    refreshing={isLoading}
-                                    onRefresh={() => mutate()}
-                                    colors={[theme.color.primary[500]]}
-                                    tintColor={theme.color.primary[500]}
-                                />
-                            }
-                            removeClippedSubviews={true}
-                            maxToRenderPerBatch={8}
-                            windowSize={10}
-                            initialNumToRender={5}
-                            updateCellsBatchingPeriod={30}
-                            getItemLayout={(data, index) => ({
-                                length: 170, // Hauteur approximative de chaque carte
-                                offset: 170 * index,
-                                index,
-                            })}
+                filteredData.length === 0 && searchQuery.length > 0 ? (
+                    <View style={styles.centerContainer}>
+                        <MaterialCommunityIcons 
+                            name="magnify" 
+                            size={48} 
+                            color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
                         />
-                    );
-                })()
+                        <Text style={[styles.loadingText, { textAlign: 'center', marginTop: 16 }, isDarkMode && { color: '#CCCCCC' }]}>
+                            Aucun parcours trouvé pour "{searchQuery}"
+                        </Text>
+                        <Pressable 
+                            style={[styles.retryButton, { marginTop: 16 }]} 
+                            onPress={() => setSearchQuery('')}
+                        >
+                            <Text style={styles.retryText}>Effacer la recherche</Text>
+                        </Pressable>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={filteredData}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
+                            <ModernLearningPathCard path={item} />
+                        )}
+                        contentContainerStyle={styles.listContainer}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={isLoading}
+                                onRefresh={() => mutate()}
+                                colors={[theme.color.primary[500]]}
+                                tintColor={theme.color.primary[500]}
+                            />
+                        }
+                        removeClippedSubviews={true}
+                        maxToRenderPerBatch={8}
+                        windowSize={10}
+                        initialNumToRender={5}
+                        updateCellsBatchingPeriod={30}
+                        getItemLayout={(data, index) => ({
+                            length: 170,
+                            offset: 170 * index,
+                            index,
+                        })}
+                    />
+                )
             ) : (
-                <NoProgram/>
+                <NoProgram />
             )}
         </View>
     )
