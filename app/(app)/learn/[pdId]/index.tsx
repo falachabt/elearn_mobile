@@ -327,7 +327,7 @@ const ProgramDetails = () => {
                         />
                     ),
                     
-                    route: `/(app)/manuel/anciens-sujets/${program.concours_learningpaths?.concour?.id}`,
+                    route: `/(app)/manuel/anciens-sujets/${program.concours_learningpaths?.concour?.id || "default-id"}`,
                     color: isDark ? "#FBBF24" : "#FF9800",
 
                 },
