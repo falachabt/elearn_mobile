@@ -15,10 +15,11 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Message de motivation unique
+// Message de motivation unique, version J-1 combinée
 const promotionalMessage = {
-  title: "🚀 Pas de place pour la flemme",
-  body: "Ouvre l’app et avance vers tes objectifs — les autres bossent déjà 💪"
+  title: "🚨 J-1 : Grand Concours Blanc National !",
+  body: "Il ne reste que 24h pour vous inscrire et vous mesurer aux meilleurs. Serez-vous prêt(e) demain à 9h ?\n\nOuvrez vite l'app pour vous inscrire et valider votre place !",
+  image: "https://cykuewswzkgancjlwyxy.supabase.co/storage/v1/object/public/images/notifications/concours%20blanc1.jpg"
 };
 
 async function sendPushNotifications() {
