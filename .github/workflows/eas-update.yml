@@ -30,6 +30,16 @@ on:
         description: 'Message pour eas update'
         required: false
         default: 'Mise à jour'
+      send_push_notification:
+        description: 'Envoyer une notification push aux utilisateurs'
+        required: false
+        default: false
+        type: boolean
+      notification_message:
+        description: 'Message de notification push (optionnel)'
+        required: false
+        default: 'Nouvelle mise à jour disponible ! Découvrez les nouveautés.'
+        type: string
 
 jobs:
   eas-update:
@@ -71,3 +81,15 @@ jobs:
             echo "Running EAS update for ${{ github.event.inputs.platform }} platform..."
             eas update --platform "${{ github.event.inputs.platform }}" --channel "${{ github.event.inputs.eas_channel }}" --message "${{ github.event.inputs.update_message || 'Mise à jour' }}"
           fi
+
+      - name: Send Push Notification
+        if: ${{ github.event.inputs.send_push_notification == 'true' && github.event.inputs.eas_channel == 'production' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          NOTIFICATION_MESSAGE: ${{ github.event.inputs.notification_message || 'Nouvelle mise à jour disponible ! Découvrez les nouveautés.' }}
+        run: |
+          echo "Sending push notification to production users..."
+          cd scripts
+          npm install
+          node sendPushNotifications.js
