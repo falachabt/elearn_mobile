@@ -1,17 +1,17 @@
-import React from 'react';
+import React, { forwardRef, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import Modal from 'react-native-modal';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
 import { theme } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useUpdates } from '@/contexts/UpdatesContext';
 
-interface UpdateModalProps {
-  isVisible: boolean;
-  onClose: () => void;
+interface UpdateBottomSheetProps {
+  // No props needed, we'll control it via ref
 }
 
-export default function UpdateModal({ isVisible, onClose }: UpdateModalProps) {
+const UpdateBottomSheet = forwardRef<BottomSheetModal, UpdateBottomSheetProps>((props, ref) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const { downloadAndApplyUpdate, dismissUpdate, isUpdating, updateError } = useUpdates();
@@ -28,6 +28,30 @@ export default function UpdateModal({ isVisible, onClose }: UpdateModalProps) {
     ? theme.color.dark.text.secondary 
     : theme.color.light.text.secondary;
 
+  // Define snap points for the bottom sheet
+  const snapPoints = useMemo(() => ['50%'], []);
+
+  const handleDismiss = useCallback(() => {
+    dismissUpdate();
+    if (ref && typeof ref !== 'function' && ref.current) {
+      ref.current.dismiss();
+    }
+  }, [dismissUpdate, ref]);
+
+  // Backdrop component
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.5}
+        onPress={handleDismiss}
+      />
+    ),
+    [handleDismiss]
+  );
+
   const handleApplyUpdate = async () => {
     try {
       await downloadAndApplyUpdate();
@@ -36,28 +60,24 @@ export default function UpdateModal({ isVisible, onClose }: UpdateModalProps) {
     }
   };
 
-  const handleDismiss = () => {
-    dismissUpdate();
-    onClose();
-  };
-
   return (
-    <Modal
-      isVisible={isVisible}
-      onBackdropPress={handleDismiss}
-      onBackButtonPress={handleDismiss}
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      backdropTransitionOutTiming={0}
-      style={{ margin: 0, justifyContent: 'flex-end' }}
+    <BottomSheetModal
+      ref={ref}
+      index={0}
+      snapPoints={snapPoints}
+      enablePanDownToClose
+      backdropComponent={renderBackdrop}
+      backgroundStyle={{
+        backgroundColor,
+      }}
+      handleIndicatorStyle={{
+        backgroundColor: isDarkMode ? theme.color.gray[600] : theme.color.gray[400],
+      }}
     >
-      <View
+      <BottomSheetView
         style={{
-          backgroundColor,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
+          flex: 1,
           padding: 24,
-          minHeight: 200,
         }}
       >
         {/* Header */}
@@ -214,7 +234,11 @@ export default function UpdateModal({ isVisible, onClose }: UpdateModalProps) {
         >
           Le redémarrage prendra quelques secondes
         </Text>
-      </View>
-    </Modal>
+      </BottomSheetView>
+    </BottomSheetModal>
   );
-}
+});
+
+UpdateBottomSheet.displayName = 'UpdateBottomSheet';
+
+export default UpdateBottomSheet;
