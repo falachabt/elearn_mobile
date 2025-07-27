@@ -4,6 +4,8 @@ Elearn Prepa is a React Native mobile application that provides an interactive a
 
 The application leverages modern mobile development technologies to deliver a seamless learning experience with features like real-time progress tracking, personalized learning paths, interactive quizzes with instant feedback, and offline content access. Built with Expo and React Native, it provides a native experience across iOS and Android platforms while maintaining a single codebase.
 
+
+
 ## Repository Structure
 ```
 .
