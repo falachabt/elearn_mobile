@@ -205,8 +205,8 @@ Cette application implémente un agent de mise à jour automatique qui gère les
    - Fournit les fonctions de vérification et d'application des mises à jour
    - Gère la logique de vérification périodique et au retour de l'application
 
-2. **UpdateModal** (`components/shared/UpdateModal.tsx`)
-   - Interface utilisateur pour notifier de la disponibilité d'une mise à jour
+2. **UpdateBottomSheet** (`components/shared/UpdateBottomSheet.tsx`)
+   - Interface utilisateur pour notifier de la disponibilité d'une mise à jour via un bottom sheet
    - Propose à l'utilisateur d'appliquer la mise à jour ou de reporter
    - Affiche l'état de chargement pendant l'application de la mise à jour
 

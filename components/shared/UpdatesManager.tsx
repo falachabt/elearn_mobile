@@ -1,31 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useUpdates } from '@/contexts/UpdatesContext';
-import UpdateModal from './UpdateModal';
+import UpdateBottomSheet from './UpdateBottomSheet';
 
 /**
- * Component that automatically shows the update modal when an update is available.
- * This component should be placed high in the component tree to ensure the modal
+ * Component that automatically shows the update bottom sheet when an update is available.
+ * This component should be placed high in the component tree to ensure the bottom sheet
  * is displayed over all other content.
  */
 export default function UpdatesManager() {
   const { isUpdateAvailable, isUpdating } = useUpdates();
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
 
-  // Show modal when update becomes available
+  // Show bottom sheet when update becomes available
   useEffect(() => {
     if (isUpdateAvailable && !isUpdating) {
-      setIsModalVisible(true);
+      bottomSheetRef.current?.present();
     }
   }, [isUpdateAvailable, isUpdating]);
 
-  const handleCloseModal = () => {
-    setIsModalVisible(false);
-  };
-
   return (
-    <UpdateModal
-      isVisible={isModalVisible}
-      onClose={handleCloseModal}
+    <UpdateBottomSheet
+      ref={bottomSheetRef}
     />
   );
 }
