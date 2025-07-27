@@ -13,7 +13,10 @@ import AuthDeepLinkHandler from "@/components/shared/DeepLinkHandler";
 import {NotificationProvider} from "@/contexts/NotificationContext";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {ChatProvider} from "@/contexts/chatBotContext";
+import {UpdatesProvider} from "@/contexts/UpdatesContext";
+import UpdatesManager from "@/components/shared/UpdatesManager";
 import * as amplitude from '@amplitude/analytics-react-native';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 // Array of motivational messages to show when user tries to exit
 const MOTIVATIONAL_MESSAGES = [
@@ -298,15 +301,19 @@ export function Provider({children}: { children: React.ReactNode }) {
                     <AppConfigProvider>
                         <UserProvider>
                             <GestureHandlerRootView style={{flex: 1}}>
-                                <ChatProvider>
-
-                                    <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
-                                        <UserActivityTracker/>
-                                        <BackHandlerManager>
-                                            {children}
-                                        </BackHandlerManager>
-                                    </QuizProvider>
-                                </ChatProvider>
+                                <BottomSheetModalProvider>
+                                    <UpdatesProvider>
+                                        <ChatProvider>
+                                            <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
+                                                <UserActivityTracker/>
+                                                <UpdatesManager/>
+                                                <BackHandlerManager>
+                                                    {children}
+                                                </BackHandlerManager>
+                                            </QuizProvider>
+                                        </ChatProvider>
+                                    </UpdatesProvider>
+                                </BottomSheetModalProvider>
                             </GestureHandlerRootView>
                         </UserProvider>
                     </AppConfigProvider>
