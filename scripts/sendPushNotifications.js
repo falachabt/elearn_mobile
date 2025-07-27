@@ -16,14 +16,29 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Message de motivation unique, version J-1 combinée
-const promotionalMessage = {
+const defaultPromotionalMessage = {
   title: "🚨 J-1 : Grand Concours Blanc National !",
   body: "Il ne reste que 24h pour vous inscrire et vous mesurer aux meilleurs. Serez-vous prêt(e) demain à 9h ?\n\nOuvrez vite l'app pour vous inscrire et valider votre place !",
   image: "https://cykuewswzkgancjlwyxy.supabase.co/storage/v1/object/public/images/notifications/concours%20blanc1.jpg"
 };
 
+// Check if custom notification message is provided via environment variable
+const customMessage = process.env.NOTIFICATION_MESSAGE;
+const promotionalMessage = customMessage ? {
+  title: "🔔 Nouvelle mise à jour",
+  body: customMessage,
+  image: null // No image for custom messages to keep it simple
+} : defaultPromotionalMessage;
+
 async function sendPushNotifications() {
   try {
+    // Log which type of message will be sent
+    if (customMessage) {
+      console.log('Using custom notification message:', customMessage);
+    } else {
+      console.log('Using default promotional message');
+    }
+    
     console.log('Fetching users with Expo push tokens...');
 
     // Query the database for users with Expo push tokens
@@ -63,25 +78,30 @@ async function sendPushNotifications() {
       }
 
       // Create a message with image support using richContent
-      return {
+      const messagePayload = {
         to: token,
         sound: 'default',
         title: promotionalMessage.title,
         body: promotionalMessage.body,
         data: {
-          type: "promotion",
+          type: customMessage ? "update" : "promotion",
           userId: user.id,
-          imageUrl: promotionalMessage.image,
           action: "open_app"
         },
-        // Utilisation du champ richContent pour l'image (compatible iOS et Android)
-        richContent: {
-          image: promotionalMessage.image
-        },
         // Configuration spécifique Android
-        channelId: 'promotion',
+        channelId: customMessage ? 'default' : 'promotion',
         priority: 'high'
       };
+
+      // Add image and imageUrl only if available (for default promotional message)
+      if (promotionalMessage.image) {
+        messagePayload.data.imageUrl = promotionalMessage.image;
+        messagePayload.richContent = {
+          image: promotionalMessage.image
+        };
+      }
+
+      return messagePayload;
     }).filter(Boolean); // Remove null entries
 
     console.log(`Sending notifications to ${messages.length} users`);
