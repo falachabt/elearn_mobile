@@ -242,6 +242,27 @@ L'agent utilise les paramètres suivants :
 5. **Vérifications périodiques** : L'agent continue à vérifier les mises à jour toutes les 30 minutes
 6. **Retour au premier plan** : Quand l'application revient du second plan, une nouvelle vérification est effectuée après 5 secondes
 
+### Utilisation dans les composants
+
+Pour utiliser les mises à jour dans vos composants, utilisez le hook `useAppUpdates` :
+
+```tsx
+import { useAppUpdates } from '@/hooks/useAppUpdates';
+
+function SettingsScreen() {
+  const { hasUpdate, isChecking, checkNow, applyUpdate } = useAppUpdates();
+  
+  return (
+    <TouchableOpacity 
+      onPress={hasUpdate ? applyUpdate : checkNow}
+      disabled={isChecking}
+    >
+      <Text>{hasUpdate ? 'Appliquer la mise à jour' : 'Vérifier les mises à jour'}</Text>
+    </TouchableOpacity>
+  );
+}
+```
+
 ### Compatibilité
 
 L'agent fonctionne sur iOS et Android et utilise la configuration Expo Updates déjà présente dans `app.json` :
