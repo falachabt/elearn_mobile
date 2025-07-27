@@ -60,7 +60,7 @@ export default function Index() {
             description: "Le concours Blanc 1 est ouvert, Donnez le meilleur de vous-même pour réussir !",
             customComponent: <NewsCardExam />,
             startDate: new Date('2025-07-27T00:00:00Z'), // Set the start date for the card
-            endDate: new Date('2025-07-27T23:59:59Z'), // Set the end date for the card
+            endDate: new Date('2025-07-28T23:59:59Z'), // Set the end date for the card
             actionLabel: 'Participer à l\'examen',
             onPress: () => router.push('/concours-blanc-register'),
         },
