@@ -220,20 +220,6 @@ const UpdateBottomSheet = forwardRef<BottomSheetModal, UpdateBottomSheetProps>((
             </Text>
           </TouchableOpacity>
         </View>
-
-        {/* Additional info */}
-        <Text
-          style={{
-            fontSize: 12,
-            color: secondaryTextColor,
-            fontFamily: theme.typography.fontFamily,
-            textAlign: 'center',
-            marginTop: 16,
-            opacity: 0.8,
-          }}
-        >
-          Le redémarrage prendra quelques secondes
-        </Text>
       </BottomSheetView>
     </BottomSheetModal>
   );
