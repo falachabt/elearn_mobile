@@ -181,3 +181,84 @@ Key interactions:
 - Payment processing service
 - Handles mobile money and card payments
 - Webhook integration for payment status updates
+
+## Expo Updates Agent
+
+Cette application implémente un agent de mise à jour automatique qui gère les mises à jour OTA (Over-The-Air) via Expo Updates.
+
+### Fonctionnalités
+
+- **Vérification automatique** : L'agent vérifie automatiquement les mises à jour au démarrage de l'application et toutes les 30 minutes
+- **Téléchargement en arrière-plan** : Les mises à jour sont téléchargées automatiquement en arrière-plan sans interrompre l'utilisateur
+- **Notification utilisateur** : Une modal élégante informe l'utilisateur lorsqu'une mise à jour est prête à être appliquée
+- **Application immédiate** : L'utilisateur peut choisir d'appliquer la mise à jour immédiatement ou plus tard
+- **Vérification au premier plan** : L'agent vérifie les mises à jour lorsque l'application revient au premier plan
+
+### Architecture
+
+#### Composants principaux
+
+1. **UpdatesContext** (`contexts/UpdatesContext.tsx`)
+   - Gère l'état des mises à jour
+   - Fournit les fonctions de vérification et d'application des mises à jour
+   - Gère la logique de vérification périodique et au retour de l'application
+
+2. **UpdateModal** (`components/shared/UpdateModal.tsx`)
+   - Interface utilisateur pour notifier de la disponibilité d'une mise à jour
+   - Propose à l'utilisateur d'appliquer la mise à jour ou de reporter
+   - Affiche l'état de chargement pendant l'application de la mise à jour
+
+3. **UpdatesManager** (`components/shared/UpdatesManager.tsx`)
+   - Composant qui gère l'affichage automatique de la modal
+   - Réagit aux changements d'état des mises à jour
+
+#### Intégration
+
+L'agent est intégré dans la chaîne des providers de l'application :
+
+```tsx
+<UpdatesProvider>
+  <UpdatesManager />
+  {/* Rest of the app */}
+</UpdatesProvider>
+```
+
+### Configuration
+
+L'agent utilise les paramètres suivants :
+
+- **Intervalle de vérification** : 30 minutes
+- **Délai après retour au premier plan** : 5 secondes
+- **Intervalle minimum entre vérifications** : 5 minutes
+
+### Comportement
+
+1. **Au démarrage** : L'agent vérifie immédiatement s'il y a des mises à jour disponibles
+2. **Téléchargement automatique** : Si une mise à jour est trouvée, elle est téléchargée en arrière-plan
+3. **Notification** : Une fois le téléchargement terminé, la modal s'affiche pour informer l'utilisateur
+4. **Choix utilisateur** :
+   - **"Redémarrer"** : Applique immédiatement la mise à jour via `Updates.reloadAsync()`
+   - **"Plus tard"** : Ferme la modal, la mise à jour sera appliquée au prochain redémarrage
+5. **Vérifications périodiques** : L'agent continue à vérifier les mises à jour toutes les 30 minutes
+6. **Retour au premier plan** : Quand l'application revient du second plan, une nouvelle vérification est effectuée après 5 secondes
+
+### Compatibilité
+
+L'agent fonctionne sur iOS et Android et utilise la configuration Expo Updates déjà présente dans `app.json` :
+
+```json
+{
+  "runtimeVersion": {
+    "policy": "appVersion"
+  },
+  "updates": {
+    "url": "https://u.expo.dev/7d5dd0db-20aa-4d48-8efe-e66031ebf960"
+  }
+}
+```
+
+### Notes importantes
+
+- L'agent est désactivé en mode développement (`__DEV__`) et dans Expo Go
+- Les erreurs de mise à jour sont capturées et affichées à l'utilisateur
+- La logique empêche les vérifications trop fréquentes pour préserver les performances et la batterie
