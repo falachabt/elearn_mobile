@@ -17,9 +17,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Message de motivation unique, version J-1 combinée
 const defaultPromotionalMessage = {
-  title: "🚨 J-1 : Grand Concours Blanc National !",
-  body: "Il ne reste que 24h pour vous inscrire et vous mesurer aux meilleurs. Serez-vous prêt(e) demain à 9h ?\n\nOuvrez vite l'app pour vous inscrire et valider votre place !",
-  image: "https://cykuewswzkgancjlwyxy.supabase.co/storage/v1/object/public/images/notifications/concours%20blanc1.jpg"
+  title: "Concours Blanc N°2 – Dernière chance !",
+  body: "⏳ T’as loupé le 1er ? Rattrape-toi ce dimanche 🗓 3 août. 🎯 Inscris-toi vite et prouve ce que tu vaux 💪",
+  image: "https://cykuewswzkgancjlwyxy.supabase.co/storage/v1/object/public/images/notifications/cocours%20blanc2.png"
 };
 
 // Check if custom notification message is provided via environment variable
