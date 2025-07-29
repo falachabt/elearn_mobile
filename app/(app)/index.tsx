@@ -46,7 +46,7 @@ export default function Index() {
             id: '1',
             type: 'custom',
             title: 'Concours Blanc 2',
-            description: "Inscris-toi maintenant pour participer au Concours Blanc 1 !",
+            description: "Inscris-toi maintenant pour participer au Concours Blanc 2 !",
             customComponent: <NewsCardConcoursBlanc1 />,
             endDate: new Date('2025-08-03T08:00:00Z'), // Set the end date for the card
             actionLabel: 'S\'inscrire maintenant',
