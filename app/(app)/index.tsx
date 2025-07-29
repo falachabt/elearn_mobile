@@ -45,10 +45,10 @@ export default function Index() {
         {
             id: '1',
             type: 'custom',
-            title: 'Concours Blanc 1',
+            title: 'Concours Blanc 2',
             description: "Inscris-toi maintenant pour participer au Concours Blanc 1 !",
             customComponent: <NewsCardConcoursBlanc1 />,
-            endDate: new Date('2025-07-28T00:00:00Z'), // Set the end date for the card
+            endDate: new Date('2025-08-03T08:00:00Z'), // Set the end date for the card
             actionLabel: 'S\'inscrire maintenant',
             onPress: () => router.push('/concours-blanc-register'),
         },
@@ -56,11 +56,11 @@ export default function Index() {
         {
             id: '3',
             type: 'custom',
-            title: 'Examen Concours Blanc 1',
-            description: "Le concours Blanc 1 est ouvert, Donnez le meilleur de vous-même pour réussir !",
+            title: 'Examen Concours Blanc 2',
+            description: "Le concours Blanc 2 est ouvert, Donnez le meilleur de vous-même pour réussir !",
             customComponent: <NewsCardExam />,
-            startDate: new Date('2025-07-28T00:00:00Z'), // Set the start date for the card
-            endDate: new Date('2025-07-28T23:59:59Z'), // Set the end date for the card
+            startDate: new Date('2025-08-03T08:00:00Z'), // Set the start date for the card
+            endDate: new Date('2025-08-03T23:59:59Z'), // Set the end date for the card
             actionLabel: 'Participer à l\'examen',
             onPress: () => router.push('/concours-blanc-register'),
         },
