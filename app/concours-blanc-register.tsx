@@ -121,7 +121,7 @@ const ConcoursBlancRegisterScreen = () => {
                 
                 <View style={styles.headerTitleContainer}>
                     <Text style={[styles.headerTitle, isDarkMode && styles.headerTitleDark]}>
-                        Concours Blanc 1
+                        Concours Blanc 2
                     </Text>
                 </View>
 
