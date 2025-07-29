@@ -21,8 +21,7 @@ const NewsCardConcoursBlanc1: React.FC<NewsCardConcoursBlanc1Props> = ({ onPress
     const router = useRouter();
 
     // Set the target date to Sunday, July 28th
-    const targetDate = new Date(2025, 7, 03); // Month is 0-indexed, so 6 is July
-
+    const targetDate = new Date(2025, 7, 3, 12, 0, 0); // 3 August 2025, 14:00:00
     const [timeLeft, setTimeLeft] = useState({
         days: 0,
         hours: 0,
