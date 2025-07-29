@@ -21,7 +21,7 @@ const NewsCardConcoursBlanc1: React.FC<NewsCardConcoursBlanc1Props> = ({ onPress
     const router = useRouter();
 
     // Set the target date to Sunday, July 28th
-    const targetDate = new Date(2025, 6, 28); // Month is 0-indexed, so 6 is July
+    const targetDate = new Date(2025, 7, 03); // Month is 0-indexed, so 6 is July
 
     const [timeLeft, setTimeLeft] = useState({
         days: 0,
@@ -80,8 +80,8 @@ const NewsCardConcoursBlanc1: React.FC<NewsCardConcoursBlanc1Props> = ({ onPress
                     <View style={styles.leftHeader}>
 
                         <View style={styles.headerTextContainer}>
-                            <Text style={styles.title}>Concours Blanc 1</Text>
-                            <Text style={styles.date}>📅 28 Juillet 2025</Text>
+                            <Text style={styles.title}>Concours Blanc 2</Text>
+                            <Text style={styles.date}>📅 03 Aout 2025</Text>
                         </View>
                     </View>
                 </View>
