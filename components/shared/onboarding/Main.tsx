@@ -18,11 +18,13 @@ import { theme } from "@/constants/theme";
 import * as Animatable from "react-native-animatable";
 import StepProgress from "./StepProgress";
 import PathChoice from "./PathChoice";
+import SpaceChoice from "./SpaceChoice";
 import ProfileForm, { Profile } from "./ProfileForm";
 import Programs from "./Programs";
 import UserInfoForm from "./UserForm";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
+import { useSpace, SpaceType } from "@/contexts/spaceContext";
 import { AccountsInput } from "@/types/type";
 import PaymentPage, { PaymentPageRef } from "./Bill";
 import { useCart } from "@/hooks/useCart";
@@ -52,8 +54,10 @@ const MainOnboarding = () => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // Start with step 0 for space selection
   const { user, signOut } = useAuth();
+  const { currentSpace, setCurrentSpace } = useSpace();
+  const [selectedSpace, setSelectedSpace] = useState<SpaceType | null>(null);
   const [knowsProgram, setKnowsProgram] = useState(false);
   const userInfoFormRef = useRef<{ validate: () => boolean } | null>(null);
   const [userInfo, setUserInfo] = useState<AccountsInput | null>(null);
@@ -308,6 +312,23 @@ const MainOnboarding = () => {
   }
 
   const handleNextStep = async () => {
+    // Handle space selection at step 0
+    if (step === 0) {
+      if (!selectedSpace) {
+        return; // Don't proceed without space selection
+      }
+      await setCurrentSpace(selectedSpace);
+      
+      // For secondary school space, we can end onboarding early or have different flow
+      if (selectedSpace === 'secondary') {
+        setStep(1); // Go to simplified flow for secondary school
+        return;
+      }
+      // For prepa space, continue with normal flow
+      setStep(1);
+      return;
+    }
+
     if (step === 3 && userInfoFormRef.current) {
       const isValid = userInfoFormRef.current.validate();
       if (!isValid) {
@@ -365,6 +386,13 @@ const MainOnboarding = () => {
 
   const renderStepContent = () => {
     switch (step) {
+      case 0:
+        return (
+          <SpaceChoice
+            selectedSpace={selectedSpace}
+            setSelectedSpace={setSelectedSpace}
+          />
+        );
       case 3:
         return <UserInfoForm
             ref={userInfoFormRef}
@@ -448,7 +476,7 @@ const MainOnboarding = () => {
             </View>
 
             <View style={[styles.footer, isDark && styles.footerDark]}>
-              {step > 1 && (
+              {step > 0 && (
                   <TouchableOpacity
                       style={[
                         styles.button,
@@ -478,10 +506,10 @@ const MainOnboarding = () => {
                   style={[
                     styles.button,
                     styles.primaryButton,
-                    ((step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding) && styles.disabledButton,
+                    ((step === 0 && !selectedSpace) || (step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding) && styles.disabledButton,
                   ]}
                   onPress={handleNextStep}
-                  disabled={(step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding}
+                  disabled={(step === 0 && !selectedSpace) || (step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding}
               >
                 <Text style={styles.buttonText}>
                   {renderNextButtonLabel()}

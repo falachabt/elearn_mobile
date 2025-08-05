@@ -17,6 +17,7 @@ import {UpdatesProvider} from "@/contexts/UpdatesContext";
 import UpdatesManager from "@/components/shared/UpdatesManager";
 import * as amplitude from '@amplitude/analytics-react-native';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { SpaceProvider } from "@/contexts/spaceContext";
 
 // Array of motivational messages to show when user tries to exit
 const MOTIVATIONAL_MESSAGES = [
@@ -298,25 +299,27 @@ export function Provider({children}: { children: React.ReactNode }) {
             <NotificationProvider>
                 <AuthDeepLinkHandler/>
                 <AuthProvider>
-                    <AppConfigProvider>
-                        <UserProvider>
-                            <GestureHandlerRootView style={{flex: 1}}>
-                                <BottomSheetModalProvider>
-                                    <UpdatesProvider>
-                                        <ChatProvider>
-                                            <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
-                                                <UserActivityTracker/>
-                                                <UpdatesManager/>
-                                                <BackHandlerManager>
-                                                    {children}
-                                                </BackHandlerManager>
-                                            </QuizProvider>
-                                        </ChatProvider>
-                                    </UpdatesProvider>
-                                </BottomSheetModalProvider>
-                            </GestureHandlerRootView>
-                        </UserProvider>
-                    </AppConfigProvider>
+                    <SpaceProvider>
+                        <AppConfigProvider>
+                            <UserProvider>
+                                <GestureHandlerRootView style={{flex: 1}}>
+                                    <BottomSheetModalProvider>
+                                        <UpdatesProvider>
+                                            <ChatProvider>
+                                                <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
+                                                    <UserActivityTracker/>
+                                                    <UpdatesManager/>
+                                                    <BackHandlerManager>
+                                                        {children}
+                                                    </BackHandlerManager>
+                                                </QuizProvider>
+                                            </ChatProvider>
+                                        </UpdatesProvider>
+                                    </BottomSheetModalProvider>
+                                </GestureHandlerRootView>
+                            </UserProvider>
+                        </AppConfigProvider>
+                    </SpaceProvider>
                 </AuthProvider>
             </NotificationProvider>
         </SWRConfig>

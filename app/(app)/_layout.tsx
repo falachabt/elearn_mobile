@@ -2,6 +2,7 @@ import React, {useEffect, useState, useCallback} from "react";
 import {Redirect, router, Tabs, useNavigation} from "expo-router";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAuth} from "@/contexts/auth";
+import {useSpace} from "@/contexts/spaceContext";
 import {
     AccessibilityState,
     GestureResponderEvent,
@@ -21,14 +22,13 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 export default function AppLayout() {
     const {session, isLoading, user} = useAuth();
+    const {currentSpace, isLoading: spaceLoading} = useSpace();
     const navigation = useNavigation();
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme != 'light';
     const {mutate} = useSWRConfig();
     const {trigger} = useHaptics();
     const [needsRedirect, setNeedsRedirect] = useState(false);
-
-
 
     // Check redirect conditions once and store result, don't re-evaluate on every render
     useEffect(() => {
@@ -40,6 +40,13 @@ export default function AppLayout() {
             setNeedsRedirect(false);
         }
     }, [session, user?.onboarding_done]);
+
+    // Redirect to secondary school space if selected
+    useEffect(() => {
+        if (!spaceLoading && currentSpace === 'secondary' && user?.onboarding_done) {
+            router.replace('/(app)/(secondary)/feed');
+        }
+    }, [currentSpace, spaceLoading, user?.onboarding_done]);
 
     // Handle tab press with memoized callback to avoid recreation on each render
 //     @ts-ignore
@@ -75,7 +82,7 @@ export default function AppLayout() {
     }
 
     // Show loading indicator when we have session but user data is still loading
-    if (isLoading || (session && !user)) {
+    if (isLoading || spaceLoading || (session && !user)) {
         return (
             <View style={{
                 flex: 1,
@@ -86,6 +93,11 @@ export default function AppLayout() {
                 <LoadingAnimation isDarkMode={isDarkMode}/>
             </View>
         );
+    }
+
+    // If user has selected secondary school space, don't render the prepa tabs
+    if (currentSpace === 'secondary') {
+        return null; // The useEffect above will handle the redirect
     }
 
     return (
