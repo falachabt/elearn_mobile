@@ -22,6 +22,7 @@ import SpaceChoice from "./SpaceChoice";
 import ProfileForm, { Profile } from "./ProfileForm";
 import Programs from "./Programs";
 import UserInfoForm from "./UserForm";
+import SecondarySchoolProfile, { SecondaryProfileData } from "@/components/secondary-school/SecondarySchoolProfile";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import { useSpace, SpaceType } from "@/contexts/spaceContext";
@@ -58,6 +59,7 @@ const MainOnboarding = () => {
   const { user, signOut } = useAuth();
   const { currentSpace, setCurrentSpace } = useSpace();
   const [selectedSpace, setSelectedSpace] = useState<SpaceType | null>(null);
+  const [secondaryProfileData, setSecondaryProfileData] = useState<SecondaryProfileData | null>(null);
   const [knowsProgram, setKnowsProgram] = useState(false);
   const userInfoFormRef = useRef<{ validate: () => boolean } | null>(null);
   const [userInfo, setUserInfo] = useState<AccountsInput | null>(null);
@@ -319,13 +321,23 @@ const MainOnboarding = () => {
       }
       await setCurrentSpace(selectedSpace);
       
-      // For secondary school space, we can end onboarding early or have different flow
+      // For secondary school space, show simplified onboarding
       if (selectedSpace === 'secondary') {
-        setStep(1); // Go to simplified flow for secondary school
+        setStep(1); // Go to secondary school specific onboarding
         return;
       }
       // For prepa space, continue with normal flow
       setStep(1);
+      return;
+    }
+
+    // Handle secondary school onboarding completion at step 1
+    if (step === 1 && selectedSpace === 'secondary') {
+      setIsEndingOnboarding(true);
+      await handleSkipOnboarding();
+      setTimeout(() => {
+        setIsEndingOnboarding(false);
+      }, 1500);
       return;
     }
 
@@ -392,6 +404,38 @@ const MainOnboarding = () => {
             selectedSpace={selectedSpace}
             setSelectedSpace={setSelectedSpace}
           />
+        );
+      case 1:
+        // Show secondary school profile form if secondary space is selected
+        if (selectedSpace === 'secondary') {
+          return (
+            <SecondarySchoolProfile
+              onComplete={(profileData) => {
+                setSecondaryProfileData(profileData);
+                handleNextStep();
+              }}
+            />
+          );
+        }
+        // Otherwise show normal onboarding content
+        return (
+            <Animatable.View
+                animation="fadeIn"
+                duration={800}
+                style={[styles.defaultContent, isDark && styles.defaultContentDark]}
+            >
+              <Animatable.Image
+                  source={getImageSource(step)}
+                  style={styles.stepImage}
+                  resizeMode="contain"
+              />
+              <Text style={[styles.title, isDark && styles.titleDark]}>
+                {stepsContent[step - 1]?.title}
+              </Text>
+              <Text style={[styles.description, isDark && styles.descriptionDark]}>
+                {stepsContent[step - 1]?.description}
+              </Text>
+            </Animatable.View>
         );
       case 3:
         return <UserInfoForm
@@ -475,47 +519,50 @@ const MainOnboarding = () => {
               {renderStepContent()}
             </View>
 
-            <View style={[styles.footer, isDark && styles.footerDark]}>
-              {step > 0 && (
-                  <TouchableOpacity
-                      style={[
-                        styles.button,
-                        styles.secondaryButton,
-                        isDark && styles.secondaryButtonDark
-                      ]}
-                      disabled={isPaymentLoading || isOnboardingLoading || loading || isEndingonboarding}
-                      onPress={() => {
-                        if (step == 6 && knowsProgram) {
-                          setStep(step - 2);
-                        } else {
-                          setStep(step - 1);
-                        }
-                      }}
-                  >
-                    <Text style={[
-                      styles.buttonText,
-                      styles.secondaryButtonText,
-                      isDark && styles.secondaryButtonTextDark
-                    ]}>
-                      Précédent
-                    </Text>
-                  </TouchableOpacity>
-              )}
+            {/* Hide footer for secondary school profile step as it has its own button */}
+            {!(step === 1 && selectedSpace === 'secondary') && (
+              <View style={[styles.footer, isDark && styles.footerDark]}>
+                {step > 0 && (
+                    <TouchableOpacity
+                        style={[
+                          styles.button,
+                          styles.secondaryButton,
+                          isDark && styles.secondaryButtonDark
+                        ]}
+                        disabled={isPaymentLoading || isOnboardingLoading || loading || isEndingonboarding}
+                        onPress={() => {
+                          if (step == 6 && knowsProgram) {
+                            setStep(step - 2);
+                          } else {
+                            setStep(step - 1);
+                          }
+                        }}
+                    >
+                      <Text style={[
+                        styles.buttonText,
+                        styles.secondaryButtonText,
+                        isDark && styles.secondaryButtonTextDark
+                      ]}>
+                        Précédent
+                      </Text>
+                    </TouchableOpacity>
+                )}
 
-              <TouchableOpacity
-                  style={[
-                    styles.button,
-                    styles.primaryButton,
-                    ((step === 0 && !selectedSpace) || (step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding) && styles.disabledButton,
-                  ]}
-                  onPress={handleNextStep}
-                  disabled={(step === 0 && !selectedSpace) || (step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding}
-              >
-                <Text style={styles.buttonText}>
-                  {renderNextButtonLabel()}
-                </Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                    style={[
+                      styles.button,
+                      styles.primaryButton,
+                      ((step === 0 && !selectedSpace) || (step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding) && styles.disabledButton,
+                    ]}
+                    onPress={handleNextStep}
+                    disabled={(step === 0 && !selectedSpace) || (step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding}
+                >
+                  <Text style={styles.buttonText}>
+                    {renderNextButtonLabel()}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <Modal
                 animationType="slide"
