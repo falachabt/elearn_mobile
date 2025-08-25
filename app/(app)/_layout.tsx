@@ -18,6 +18,7 @@ import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useColorScheme} from '@/hooks/useColorScheme';
 import {LoadingAnimation} from "@/components/shared/LoadingAnimation1";
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import RatingModal from '@/components/RatingModal';
 
 export default function AppLayout() {
     const {session, isLoading, user} = useAuth();
@@ -92,6 +93,7 @@ export default function AppLayout() {
         <SafeAreaView
             style={{flex: 1, backgroundColor: isDarkMode ? theme.color.dark.background.primary : "transparent"}}
         >
+            <RatingModal />
             <Tabs
                 screenOptions={{
                     headerShown: false,

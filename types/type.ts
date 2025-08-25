@@ -80,7 +80,8 @@ export interface Accounts {
        selectedAt: Date;
        programId: number;
     },
-    expoPushToken?: string
+    expoPushToken?: string,
+    hasRated?: boolean,
   } | null;
 }
 export interface AccountsInput {
