@@ -28,6 +28,8 @@ import { theme } from '@/constants/theme';
 import { ThemedText } from '@/components/ThemedText';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import run from '@/config/gemini';
+import { Events, trackEvent } from '@/utils/analytics';
+
 
 
 // Define interfaces for context elements
@@ -283,6 +285,7 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
     // Load chat history and current chat on mount
     useEffect(() => {
         if (visible) {
+            trackEvent(Events.CHAT_OPENED);
             loadChatHistory();
 
             if (initialChatSessionId) {
@@ -675,7 +678,7 @@ ${data?.level ? `Niveau: ${data.level}` : ''}
 ${data?.duration ? `Durée estimée: ${data.duration}` : ''}
 ${data?.prerequisites ? `Prérequis: ${data.prerequisites}` : ''}
 ${data?.quiz_count ? `Nombre de quiz: ${data.quiz_count}` : ''}
-${data?.exercise_count ? `Nombre d'exercices: ${data.exercise_count}` : ''}
+${data?.exercise_count ? `Nombre d\'exercices: ${data.exercise_count}` : ''}
 `;
 
                 case 'lesson':
@@ -723,7 +726,7 @@ ${data?.passing_score ? `Score de réussite: ${data.passing_score}%` : ''}
 ${data?.time_limit ? `Temps limite: ${data.time_limit} minutes` : ''}
 ${data?.quiz_questions && data.quiz_questions.length > 0 ? 
   `Questions: ${data.quiz_questions.map((q, index) => 
-    `${index + 1}. ${q.question_text?.replace(/<[^>]*>/g, '')} ${
+    `${index + 1}. ${q.question_text?.replace(/<[^>]*>/g, '')} ${ 
       q.question_type ? `(Type: ${q.question_type})` : ''
     }`
   ).join('\n')}` : ''}
@@ -776,6 +779,7 @@ ${data?.related_resources && data.related_resources.length > 0 ?
     const handleSend = async () => {
         if (inputText.trim() === '') return;
 
+        trackEvent(Events.MESSAGE_SENT);
         trigger(HapticType.LIGHT);
 
         // Create and add user message

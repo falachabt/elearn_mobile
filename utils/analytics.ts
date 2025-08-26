@@ -83,4 +83,8 @@ export const Events = {
 
   // Search events
   SEARCH: 'Search',
+
+  // Chat events
+  CHAT_OPENED: 'Chat Opened',
+  MESSAGE_SENT: 'Message Sent',
 };

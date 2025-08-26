@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { NotchPayService } from '@/lib/notchpay';
+import { PURCHASE_VALIDITY_DAYS } from '@/utils/pricing';
 
 export interface ProgramPayment {
   id: string;
@@ -60,13 +61,13 @@ export const ProgramPaymentService = {
       const notchpay = new NotchPayService();
       console.log("Initiating direct charge with NotchPay:", { 
         phone: phoneNumber, 
-        channel: phoneNumber.startsWith('655') ? 'cm.orange' : 'cm.mtn',
+        channel: 'cm.mobile',
         amount: firstInstallmentAmount 
       });
 
       const result = await notchpay.initiateDirectCharge({
         phone: phoneNumber,
-        channel: phoneNumber.startsWith('655') ? 'cm.orange' : 'cm.mtn',
+        channel: 'cm.mobile',
         currency: 'XAF',
         amount: firstInstallmentAmount,
         customer: {
@@ -276,7 +277,7 @@ export const ProgramPaymentService = {
   async createPayment(
     programId: string,
     phoneNumber: string,
-    amount: number = 2500, // Default amount
+    amount: number = 2500,
     trx_reference: string,
     promoCodeId?: string,
     isInstallment: boolean = false,
@@ -296,16 +297,36 @@ export const ProgramPaymentService = {
       throw new Error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
     }
 
-    // Calculate expiry date (6 months from now)
-    const paymentDate = nextInstallmentDate || new Date();
-    const expiryDate = new Date(paymentDate);
-    expiryDate.setMonth(expiryDate.getMonth() + 6);
+    // Calcul de la date de paiement
+    const paymentDate = new Date();
 
-    // Calculate next payment due date for installments (1 week from now)
-    let nextPaymentDueDate = null;
-    if (isInstallment && currentInstallment && totalInstallments && currentInstallment < totalInstallments) {
-      nextPaymentDueDate = new Date(paymentDate);
-      nextPaymentDueDate.setDate(nextPaymentDueDate.getDate() + 7); // Next payment due in 1 week
+    // Correction du calcul de la date d'expiration et de la prochaine échéance
+    let expiryDate: Date;
+    let nextPaymentDueDate: string | null = null;
+
+    if (isInstallment && currentInstallment && totalInstallments) {
+      if (currentInstallment < totalInstallments) {
+        // Paiement intermédiaire : expiry = date du prochain paiement, next_payment_due_date = date du prochain paiement
+        if (nextInstallmentDate) {
+          expiryDate = new Date(nextInstallmentDate);
+          nextPaymentDueDate = nextInstallmentDate.toISOString();
+        } else {
+          // Si la date n'est pas fournie, fallback sur aujourd'hui + 7 jours
+          expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + 7);
+          nextPaymentDueDate = expiryDate.toISOString();
+        }
+      } else {
+        // Dernier versement : expiry = aujourd'hui + durée de validité, next_payment_due_date = null
+        expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + PURCHASE_VALIDITY_DAYS);
+        nextPaymentDueDate = null;
+      }
+    } else {
+      // Paiement direct : expiry = aujourd'hui + durée de validité, next_payment_due_date = null
+      expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + PURCHASE_VALIDITY_DAYS);
+      nextPaymentDueDate = null;
     }
 
     const { data: payment, error } = await supabase
@@ -324,7 +345,7 @@ export const ProgramPaymentService = {
         is_installment: isInstallment,
         total_installments: totalInstallments,
         current_installment: currentInstallment,
-        next_payment_due_date: nextPaymentDueDate ? nextPaymentDueDate.toISOString() : null,
+        next_payment_due_date: nextPaymentDueDate,
         total_amount: totalAmount,
         parent_payment_id: parentPaymentId
       })
@@ -449,6 +470,8 @@ export const ProgramPaymentService = {
   },
 
   async getActivePayment(programId: string): Promise<ProgramPayment | null> {
+
+    console.log("Getting active payment for program ID:", programId);
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) return null;
 
@@ -487,7 +510,7 @@ export const ProgramPaymentService = {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) return null;
     if (!programId) {
-      console.error("Program ID is required to get the latest payment.");
+      console.log("Program ID is required to get the latest payment.");
       return null;
     }else {
         console.log("Getting latest payment for program ID:", programId);
@@ -510,6 +533,9 @@ export const ProgramPaymentService = {
       .limit(1)
       .single();
 
+
+    console.log("Getting latest payment for program ID:", programId);
+    console.log("latest payment data:", data);
     if (error) {
       if (error.code === 'PGRST116') {
         // No payment found

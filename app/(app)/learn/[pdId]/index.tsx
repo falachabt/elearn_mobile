@@ -1,5 +1,5 @@
 import {Image, Platform, Pressable, ScrollView, StyleSheet, View} from "react-native";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useState, useCallback} from "react";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import useSWR from 'swr';
@@ -12,6 +12,7 @@ import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useProgramProgress} from "@/hooks/useProgramProgress";
 import {useUser} from "@/contexts/useUserInfo";
 import {supabase} from '@/lib/supabase';
+import { ProgramPaymentService } from '@/services/program-payment.service';
 
 interface ActionCard {
     id: string;
@@ -72,8 +73,10 @@ const ProgramDetails = () => {
     const id = local.pdId as string;
     const {trigger} = useHaptics();
     const {user } = useAuth();
-    const {  isLearningPathEnrolled } = useUser();
+    const { isLearningPathEnrolled, getProgramAccessStatus } = useUser();
+    const accessStatus = getProgramAccessStatus(id);
     const isEnrolled = isLearningPathEnrolled(id);
+    const isExpired = accessStatus.isExpired;
 
 
     const router = useRouter();
@@ -169,17 +172,64 @@ const ProgramDetails = () => {
     // Prepare action cards
     const [actionCards, setActionCards] = useState<ActionCard[]>([]);
 
+    // Ajout : état pour l'id du programme (concours_learningpaths.id)
+    const [programId, setProgramId] = useState<string | null>(null);
+    const [activeInstallment, setActiveInstallment] = useState<any>(null);
+
+    // Récupérer l'id du programme à partir du learning path id
+    useEffect(() => {
+        const fetchProgramId = async () => {
+            if (id) {
+                const { data, error } = await supabase
+                    .from("concours_learningpaths")
+                    .select("id")
+                    .eq("learningPathId", id)
+                    .single();
+                if (!error && data?.id) {
+                    setProgramId(data.id);
+                } else {
+                    setProgramId(null);
+                }
+            } else {
+                setProgramId(null);
+            }
+        };
+        fetchProgramId();
+    }, [id]);
+
+    // Utiliser l'id du programme pour récupérer le dernier paiement (échelonné ou non)
+    useEffect(() => {
+        const fetchInstallment = async () => {
+            if (programId) {
+                // Récupère le dernier paiement (même expiré)
+                const payment = await ProgramPaymentService.getLatestPayment(programId);
+                if (payment && payment.is_installment) {
+                    setActiveInstallment(payment);
+                } else {
+                    setActiveInstallment(null);
+                }
+            } else {
+                setActiveInstallment(null);
+            }
+        };
+        fetchInstallment();
+    }, [isEnrolled, programId]);
+
     // Update actionCards when program or progress data changes
     useEffect(() => {
         if (program) {
             const cards: ActionCard[] = [];
 
-            // Add shop card first for non-enrolled users
-            if (!isEnrolled) {
+            // Affiche la carte shop si non inscrit ou paiement expiré
+            if (!isEnrolled || isExpired) {
                 cards.push({
                     id: "shop",
-                    title: "Débloquer le programme complet",
-                    subtitle: "Accédez à tous les contenus du programme",
+                    title: isExpired
+                        ? "Votre accès a expiré"
+                        : "Débloquer le programme complet",
+                    subtitle: isExpired
+                        ? "Votre accès au programme a expiré. Veuillez payer la prochaine échéance pour continuer à suivre ce programme."
+                        : "Accédez à tous les contenus du programme",
                     icon: (
                         <MaterialCommunityIcons
                             name="cart"
@@ -189,7 +239,9 @@ const ProgramDetails = () => {
                     ),
                     route: `/(app)/learn/${id}/payment`,
                     routeParams: { selectedProgramId : id  },
-                    color: isDark ? "#6EE7B7" : "#4CAF50",
+                    color: isExpired
+                        ? "#F59E0B" // orange pour accès expiré
+                        : (isDark ? "#6EE7B7" : "#4CAF50"),
                     isShopCard: true,
                     rightContent: (
                         <View style={styles.shopCardIndicator}>
@@ -335,9 +387,60 @@ const ProgramDetails = () => {
                 },
             );
 
+
+            console.log("[ProgramDetails] Active Installment:", activeInstallment);
+
+            // Ajout de la carte paiement échelonné si actif ou expiré
+            if (activeInstallment) {
+                const currentInstallment = activeInstallment.current_installment || 1;
+                const totalInstallments = activeInstallment.total_installments || 1;
+                const paidAmount = (activeInstallment.amount || 0) * currentInstallment;
+                const totalAmount = activeInstallment.total_amount || 0;
+                const remainingAmount = totalAmount - paidAmount;
+                const nextPaymentDueDate = activeInstallment.next_payment_due_date
+                    ? new Date(activeInstallment.next_payment_due_date)
+                    : null;
+                const formattedNextPaymentDate = nextPaymentDueDate
+                    ? nextPaymentDueDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+                    : 'Non défini';
+
+                // Vérifie si le paiement est expiré ou échoué
+                const isExpiredInstallment = activeInstallment.expiry_date && new Date(activeInstallment.expiry_date) < new Date();
+                const isFailed = activeInstallment.payment_status === 'failed' || activeInstallment.payment_status === 'canceled';
+
+                cards.push({
+                    id: "installmentRecap",
+                    title: "Paiement échelonné",
+                    subtitle: (isExpiredInstallment || isFailed)
+                        ? `Votre paiement est expiré ou échoué.\nPayé: ${paidAmount} FCFA / ${totalAmount} FCFA\nRestant: ${remainingAmount} FCFA\nProchaine échéance: ${formattedNextPaymentDate}\nVeuillez payer la prochaine échéance pour continuer à accéder au programme.`
+                        : `Payé: ${paidAmount} FCFA / ${totalAmount} FCFA\nRestant: ${remainingAmount} FCFA\nProchaine échéance: ${formattedNextPaymentDate}`,
+                    icon: (
+                        <MaterialCommunityIcons
+                            name="credit-card-clock"
+                            size={24}
+                            color={isExpiredInstallment || isFailed ? "#F59E0B" : "#F59E0B"}
+                        />
+                    ),
+                    route: `/(app)/learn/${id}/payment`,
+                    routeParams: { selectedProgramId: id },
+                    color: isExpiredInstallment || isFailed ? "#F59E0B" : (isDark ? "#F59E0B" : "#F59E0B"),
+                    rightContent: (
+                        <View style={styles.progressIndicator}>
+                            <ThemedText style={[styles.progressText, isDark && styles.progressTextDark]}>
+                                {currentInstallment}/{totalInstallments}
+                            </ThemedText>
+                            <ThemedText style={[styles.progressLabel, isDark && styles.progressLabelDark]}>
+                                versements effectués
+                            </ThemedText>
+                        </View>
+                    ),
+                });
+            }
+
             setActionCards(cards);
         }
-    }, [program, courseProgress, quizProgress, exercisesProgress, archiveProgress, id, isDark, isEnrolled]);
+    // Ajout de la dépendance activeInstallment
+    }, [program, courseProgress, quizProgress, exercisesProgress, archiveProgress, id, isDark, isEnrolled, activeInstallment, isExpired]);
 
     // Handle card press
     const handleCardPress = (card: ActionCard) => {
@@ -358,8 +461,11 @@ const ProgramDetails = () => {
             style={[
                 styles.card,
                 isDark && styles.cardDark,
-                card.isShopCard && styles.shopCard,
-                card.isShopCard && isDark && styles.shopCardDark
+                card.isShopCard && (
+                    card.color === "#F59E0B"
+                        ? (isDark ? styles.shopCardExpiredDark : styles.shopCardExpired)
+                        : (isDark ? styles.shopCardDark : styles.shopCard)
+                )
             ]}
             onPress={() => handleCardPress(card)}
         >
@@ -439,6 +545,12 @@ const ProgramDetails = () => {
                     Une erreur est survenue lors du chargement du programme.
                     {progressError ? " Erreur lors du chargement de votre progression" : " Erreur lors du chargement du programme"}
                 </ThemedText>
+                {/* Ajout : notification accès refusé si expiry */}
+                {activeInstallment && activeInstallment.expiry_date && new Date(activeInstallment.expiry_date) < new Date() && (
+                    <ThemedText style={[styles.errorText, isDark && styles.errorTextDark]}>
+                        Votre accès à ce programme a expiré. Veuillez renouveler votre paiement pour continuer.
+                    </ThemedText>
+                )}
             </View>
         );
     }
@@ -651,6 +763,24 @@ const styles = StyleSheet.create({
     },
     shopCardDark: {
         backgroundColor: "#6EE7B7",
+    },
+    // Ajout : style pour carte shop expirée
+    shopCardExpired: {
+        backgroundColor: "#F59E0B",
+        ...Platform.select({
+            ios: {
+                shadowColor: "#000",
+                shadowOffset: {width: 0, height: 3},
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 6,
+            },
+        }),
+    },
+    shopCardExpiredDark: {
+        backgroundColor: "#F59E0B",
     },
     cardMain: {
         flexDirection: "row",

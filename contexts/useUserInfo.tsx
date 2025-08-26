@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Accounts, Courses, LearningPaths, CourseProgressSummary, tables, UserXp } from '@/types/type';
 import { useAuth } from '@/contexts/auth';
 import { useAppConfig } from '@/contexts/useAppConfig';
+import { ProgramPaymentService } from '@/services/program-payment.service';
 
 interface UserStreak {
   id: string;
@@ -44,6 +45,14 @@ type UserContextType = {
   mutateTodayExercises: () => void;
   mutateUserPrograms: () => void;
   isLearningPathEnrolled: (learningPathId: string) => boolean;
+    getProgramAccessStatus: (learningPathId: string) => ProgramAccessStatus;
+    mutateProgramAccessMap: () => void;
+};
+
+type ProgramAccessStatus = {
+  hasAccess: boolean;
+  isExpired: boolean;
+  expiryDate?: string;
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -181,17 +190,42 @@ const fetchUserPrograms = async (userId: string) => {
 
   if (error) return [];
 
-  const learningPaths = data
-    ?.map(enrollment => enrollment.concours_learningpaths?.learning_paths)
-    .filter((path): path is LearningPaths[] => path !== undefined && path !== null && typeof path === 'object');
 
-  return learningPaths.flat() || [];
+  // Correction : on retourne un tableau d'objets { ...learningPath, concours_learningpaths }
+  const learningPaths = data
+    ?.map(enrollment => {
+      const concoursLearningPath = enrollment.concours_learningpaths;
+      const learningPath = concoursLearningPath?.learning_paths;
+      // On fusionne les propriétés pour garder la référence au concours_learningpaths
+      if (learningPath && typeof learningPath === 'object' ) {
+        // Si learningPath est un tableau, on mappe chaque élément
+        if (Array.isArray(learningPath)) {
+          return learningPath.map(lp => ({
+            ...lp,
+            concours_learningpaths: concoursLearningPath
+          }));
+        } else {
+          // Sinon, on retourne l'objet fusionné
+          return [{
+            ...learningPath,
+            concours_learningpaths: concoursLearningPath
+          }];
+        }
+      }
+      return [];
+    })
+    .flat();
+
+  return learningPaths || [];
 };
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const { user: authUser } = useAuth();
   const { isGenerousWeekActive } = useAppConfig();
   const [isLoading, setIsLoading] = useState(true);
+
+  // Ajout : déclaration et initialisation de generousWeekLearningPathId
+  const generousWeekLearningPathId = null;
 
   const { data: user, mutate: mutateUser } = useSWR<Account | null>(
     authUser?.id ? authUser.id : null,
@@ -223,68 +257,71 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   );
 
   const { data: userPrograms, mutate: mutateUserPrograms } = useSWR<LearningPaths[]>(
-    authUser?.id ? `userPrograms-${authUser.id}` : null,
+    authUser?.id ? `userProgramsEnrollments-${authUser.id}` : null,
     () => fetchUserPrograms(authUser!.id)
   );
 
-  // Cache for generous week program learning path ID
-  const [generousWeekLearningPathId, setGenerousWeekLearningPathId] = useState<string | null>(null);
+  // Récupère tous les programIds de l'utilisateur
+  const programIds = userPrograms
+    ?.map(p => p?.concours_learningpaths?.id)
+    .filter((id): id is string => !!id) || [];
 
-  // Fetch the learning path ID for the generous week program
-  useEffect(() => {
-    const fetchGenerousWeekLearningPath = async () => {
-      // Make sure user is defined before accessing its properties
-      if (!user) return;
 
-      if (user.metadata && typeof user.metadata === 'object' && 'generousWeek' in user.metadata) {
-        const generousWeek = user.metadata.generousWeek as { programId: number, selectedAt: string, duration: number };
 
-        if (generousWeek.programId) {
-          try {
-            const { data, error } = await supabase
-              .from("concours_learningpaths")
-              .select("learningPathId")
-              .eq("id", generousWeek.programId)
-              .single();
-
-            if (!error && data) {
-              setGenerousWeekLearningPathId(data.learningPathId);
-            }
-          } catch (error) {
-            console.error("Error fetching generous week learning path:", error);
-          }
+  // Mapping d'accès aux programmes via SWR
+  const { data: programAccessMap, mutate: mutateProgramAccessMap } = useSWR<Record<string, ProgramAccessStatus>>(
+    programIds.length > 0 ? `program-access-map-${programIds.join(',')}` : null,
+    async () => {
+      const accessMap: Record<string, ProgramAccessStatus> = {};
+      for (const programId of programIds) {
+        if (!programId) continue;
+        const payment = await ProgramPaymentService.getLatestPayment(programId);
+        if (!payment) {
+          accessMap[programId] = { hasAccess: false, isExpired: false };
+        } else {
+          const now = new Date();
+          const expiryDate = new Date(payment.expiry_date);
+          const isExpired = now > expiryDate;
+          accessMap[programId] = {
+            hasAccess: !isExpired,
+            isExpired,
+            expiryDate: payment.expiry_date
+          };
         }
       }
-    };
+      return accessMap;
+    },
+    { revalidateOnFocus: true, dedupingInterval: 60000 }
+  );
 
-    fetchGenerousWeekLearningPath();
-  }, [user?.metadata]);
-
-
-
-  const isLearningPathEnrolled = (learningPathId: string) => {
-    // return true
-
-    // Check if user is enrolled in the program
-    const isEnrolled = userPrograms?.some(program => program.id === learningPathId);
-
-    if (isEnrolled) return true;
-
-    // Check if the generous week feature is currently active based on app_config
-    if (!isGenerousWeekActive()) return false;
-
-    // Check if this is the generous week program and user's 7-day period is still active
-    if (generousWeekLearningPathId === learningPathId && user?.metadata?.generousWeek) {
-      const generousWeek = user.metadata.generousWeek as { programId: number, selectedAt: string, duration: number };
-      const selectedAt = new Date(generousWeek.selectedAt);
-      const durationInMs = generousWeek.duration * 24 * 60 * 60 * 1000;
-      if (Date.now() < selectedAt.getTime() + durationInMs) {
-        return true;
-      }
+  // Nouvelle fonction utilitaire pour obtenir le statut d'accès d'un programme
+  const getProgramAccessStatus = (learningPathId: string): ProgramAccessStatus => {
+    const userProgram = userPrograms?.find(program => program.id === learningPathId);
+    const programId = userProgram?.concours_learningpaths?.id;
+    if (!programId || !programAccessMap) {
+      return { hasAccess: false, isExpired: false };
     }
+    return programAccessMap[programId] || { hasAccess: false, isExpired: false };
+  };
 
-    return false;
-  }
+  // Nouvelle version de isLearningPathEnrolled
+  const isLearningPathEnrolled = (learningPathId: string) => {
+    const userProgram = userPrograms?.find(program => program.id === learningPathId);
+    if (!userProgram) {
+      if (!isGenerousWeekActive()) return false;
+      if (generousWeekLearningPathId === learningPathId && user?.metadata?.generousWeek) {
+        const generousWeek = user.metadata.generousWeek as { programId: number, selectedAt: string, duration: number };
+        const selectedAt = new Date(generousWeek.selectedAt);
+        const durationInMs = generousWeek.duration * 24 * 60 * 60 * 1000;
+        if (Date.now() < selectedAt.getTime() + durationInMs) {
+          return true;
+        }
+      }
+      return false;
+    }
+    const status = getProgramAccessStatus(learningPathId);
+    return status.hasAccess;
+  };
 
   useEffect(() => {
     setIsLoading(!user || !lastCourse || toDayXp === undefined || toDayExo === undefined || !userPrograms);
@@ -431,6 +468,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     mutateTodayExercises,
     mutateUserPrograms,
     isLearningPathEnrolled,
+    getProgramAccessStatus,
+    // Expose mutate pour accès map et userPrograms
+    mutateProgramAccessMap,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
@@ -438,8 +478,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 export function useUser() {
   const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
+  if (!context) {
+    throw new Error("useUser must be used within a UserProvider");
   }
   return context;
 }
