@@ -7,7 +7,7 @@
 export const GENEROUS_WEEK_PRICE = 7900;
 
 // Regular price for the first course
-export const REGULAR_FIRST_COURSE_PRICE = 9000;
+export const REGULAR_FIRST_COURSE_PRICE = 90;
 
 // Price for additional courses in the Essential formula
 export const ADDITIONAL_COURSE_PRICE = 7900;
