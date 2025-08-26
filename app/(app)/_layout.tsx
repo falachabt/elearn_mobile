@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useCallback} from "react";
-import {Redirect, router, Tabs, useNavigation} from "expo-router";
+import {Redirect, router, Tabs} from "expo-router";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {
     AccessibilityState,
@@ -8,11 +8,9 @@ import {
     StyleSheet,
     TouchableOpacity,
     View,
-    Text,
 } from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {useSWRConfig} from "swr";
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 import {useAuth} from "@/contexts/auth";
 import {theme} from "@/constants/theme";
@@ -23,7 +21,6 @@ import RatingModal from '@/components/RatingModal';
 
 export default function AppLayout() {
     const {session, isLoading, user} = useAuth();
-    const navigation = useNavigation();
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme != 'light';
     const {mutate} = useSWRConfig();
@@ -44,7 +41,7 @@ export default function AppLayout() {
     }, [session, user?.onboarding_done]);
 
     // Handle tab press with memoized callback to avoid recreation on each render
-//     @ts-ignore
+//    @ts-expect-error
     const handleTabPress = useCallback((e) => {
         // Accéder à l'ID du tab via la propriété routeNames si disponible
         const currentRoute = e.target?.toString() || '';

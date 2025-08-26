@@ -15,6 +15,9 @@ export const ADDITIONAL_COURSE_PRICE = 7900;
 // Fixed price for all formations when user already has enrollments
 export const FIXED_PRICE = 5000;
 
+// Durée de validité d'un achat (en jours)
+export const PURCHASE_VALIDITY_DAYS = 90; // 3 mois
+
 // Pricing plans definitions
 export const PRICING_PLANS = [
   {

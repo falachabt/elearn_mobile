@@ -870,6 +870,9 @@ const groups = {
 
 // Table learning_paths
 export interface LearningPaths {
+    concours_learningpaths?: {
+    id: number | string;
+    };
   created_at: Date;
   title: string | null;
   description: string | null;

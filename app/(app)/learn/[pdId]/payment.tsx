@@ -25,6 +25,7 @@ import { ProgramPaymentService } from '@/services/program-payment.service';
 import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/contexts/auth';
 import { supabase } from '@/lib/supabase';
+import { useUser } from "@/contexts/useUserInfo";
 
 // Get screen dimensions for layout
 const { height, width } = Dimensions.get('window');
@@ -931,6 +932,7 @@ const ProgramPaymentPage = () => {
     const scheme = useColorScheme();
     const isDark = scheme === 'dark';
     const { trigger } = useHaptics();
+    const { mutateUserPrograms, mutateProgramAccessMap } = useUser();
 
     // Main state management
     const [currentState, setCurrentState] = useState<PaymentFlowState>(PaymentFlowState.LOADING);
@@ -1019,7 +1021,7 @@ const ProgramPaymentPage = () => {
                 console.log("all payments: ", allPayments);
 
                 const hasCompletedFirstInstallment = latestPayment?.is_installment &&
-                    allPayments.some(payment => payment.is_installment && payment.current_installment === 1 && payment.payment_status === "completed")  || false;
+                    allPayments?.some(payment => payment.is_installment && payment.current_installment === 1 && payment.payment_status === "completed")  || false;
                 const installmentPayment = latestPayment?.is_installment ? latestPayment : null;
 
                 setProgramContext({
@@ -1176,6 +1178,10 @@ const ProgramPaymentPage = () => {
                 if (isFinalStatus(status)) {
                     console.log(`Terminal status reached (${status}), stopping status check`);
                     stopStatusCheck();
+
+                    // Ajout : mutation des programmes et du mapping d'accès
+                    await mutateUserPrograms();
+                    await mutateProgramAccessMap();
                 }
             }
         }, 5000);
@@ -2286,11 +2292,11 @@ const styles = StyleSheet.create({
                 shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.1,
                 shadowRadius: 2,
-            },
             android: {
                 elevation: 2,
             },
-        }),
+        },
+    }),
     },
     paymentHistoryContainerDark: {
         backgroundColor: '#374151',
@@ -2381,3 +2387,4 @@ const styles = StyleSheet.create({
 });
 
 export default ProgramPaymentPage;
+
