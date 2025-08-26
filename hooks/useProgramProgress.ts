@@ -1,6 +1,7 @@
 import {useState, useEffect} from 'react';
-import {supabase} from '@/lib/supabase';
 import useSWR from 'swr';
+
+import {supabase} from '@/lib/supabase';
 import {programProgressKeys} from "@/constants/swr-path";
 
 // Interfaces for data structures

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
+
 import { theme } from '@/constants/theme';
 
 interface LearningStyleSelectorProps {

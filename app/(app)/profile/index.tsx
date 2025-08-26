@@ -12,10 +12,11 @@ import {
 } from 'react-native';
 import {MaterialCommunityIcons, Ionicons, MaterialIcons, FontAwesome5} from '@expo/vector-icons';
 import {Link, router} from 'expo-router';
+import useSWR from "swr";
+
 import TopBar from '@/components/TopBar';
 import {theme} from '@/constants/theme';
 import {useAuth} from '@/contexts/auth';
-import useSWR from "swr";
 import {supabase} from "@/lib/supabase";
 
 interface MenuItem {

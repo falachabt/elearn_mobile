@@ -7,6 +7,7 @@ import React, {
     ReactNode,
 } from "react";
 import * as Notifications from "expo-notifications";
+
 // import { Subscription } from "expo-modules-core";
 import {registerForPushNotificationsAsync} from "@/components/TestNotifications";
 

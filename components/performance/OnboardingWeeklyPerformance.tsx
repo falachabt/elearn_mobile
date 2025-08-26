@@ -10,11 +10,6 @@ import {
   Alert
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/auth';
-import { theme } from '@/constants/theme';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { supabase } from '@/lib/supabase';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -33,6 +28,12 @@ import {
   GestureHandlerRootView,
   PanGestureHandlerGestureEvent
 } from 'react-native-gesture-handler';
+
+import { useAuth } from '@/contexts/auth';
+import { theme } from '@/constants/theme';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { supabase } from '@/lib/supabase';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');

@@ -1,8 +1,9 @@
 import useSWR, { mutate } from "swr";
+import { useEffect } from "react";
+
 import { useAuth } from "@/contexts/auth";
 import { CourseProgressService } from "@/services/course.progress.service";
 import { supabase } from "@/lib/supabase";
-import { useEffect } from "react";
 import {courseProgressKeys} from "@/constants/swr-path";
 
 interface CourseProgress {

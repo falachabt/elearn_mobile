@@ -1,7 +1,8 @@
 import {Platform, TouchableOpacity, Text} from 'react-native'
 import * as AppleAuthentication from 'expo-apple-authentication'
-import {supabase} from "@/lib/supabase";
 import axios from "axios";
+
+import {supabase} from "@/lib/supabase";
 import {useAuth} from "@/contexts/auth";
 import {ThemedText} from "@/components/ThemedText";
 

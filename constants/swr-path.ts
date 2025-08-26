@@ -129,6 +129,82 @@ export const archiveProgressKeys = {
         swrMutate(`archive-progress-${archiveId}-${userId}`)
 };
 
+// ====== PROGRAM KEYS ====== //
+export const programKeys = {
+    // String-based keys
+    program: (pdId: string) => `program-${pdId}`,
+    index: (pdId: string) => `program-index-${pdId}`,
+    courses: (pdId: string) => `program-courses-${pdId}`,
+
+    // Mutation helpers
+    mutateProgram: (pdId: string) => swrMutate(`program-${pdId}`),
+    mutateIndex: (pdId: string) => swrMutate(`program-index-${pdId}`),
+    mutateCourses: (pdId: string) => swrMutate(`program-courses-${pdId}`),
+
+    // Batch mutation helpers
+    mutateAllForProgram: (pdId: string) => {
+        swrMutate(`program-${pdId}`);
+        swrMutate(`program-index-${pdId}`);
+        swrMutate(`program-courses-${pdId}`);
+    }
+};
+
+// ====== PROGRAM PAYMENT KEYS ====== //
+export const programPaymentKeys = {
+    // String-based keys
+    all: () => 'program-payment',
+    list: (userId: string) => `program-payment-list-${userId}`,
+    detail: (programId: string) => `program-payment-${programId}`,
+    access: (programId: string) => `program-payment-access-${programId}`,
+    latest: (programId: string) => `program-payment-latest-${programId}`,
+    active: (programId: string) => `program-payment-active-${programId}`,
+    allPayments: (programId: string) => `program-payment-all-${programId}`,
+
+    // Array-based keys
+    allArray: () => ['program-payment'] as const,
+    listArray: (userId: string) => ['program-payment', 'list', userId] as const,
+    detailArray: (programId: string) => ['program-payment', 'detail', programId] as const,
+    accessArray: (programId: string) => ['program-payment', 'access', programId] as const,
+    latestArray: (programId: string) => ['program-payment', 'latest', programId] as const,
+    activeArray: (programId: string) => ['program-payment', 'active', programId] as const,
+    allPaymentsArray: (programId: string) => ['program-payment', 'all', programId] as const,
+
+    // Mutation helpers for string-based keys
+    mutateAll: () => swrMutate('program-payment'),
+    mutateList: (userId: string) => swrMutate(`program-payment-list-${userId}`),
+    mutateDetail: (programId: string) => swrMutate(`program-payment-${programId}`),
+    mutateAccess: (programId: string) => swrMutate(`program-payment-access-${programId}`),
+    mutateLatest: (programId: string) => swrMutate(`program-payment-latest-${programId}`),
+    mutateActive: (programId: string) => swrMutate(`program-payment-active-${programId}`),
+    mutateAllPayments: (programId: string) => swrMutate(`program-payment-all-${programId}`),
+
+    // Mutation helpers for array-based keys
+    mutateAllArray: () => swrMutate(['program-payment']),
+    mutateListArray: (userId: string) => swrMutate(['program-payment', 'list', userId]),
+    mutateDetailArray: (programId: string) => swrMutate(['program-payment', 'detail', programId]),
+    mutateAccessArray: (programId: string) => swrMutate(['program-payment', 'access', programId]),
+    mutateLatestArray: (programId: string) => swrMutate(['program-payment', 'latest', programId]),
+    mutateActiveArray: (programId: string) => swrMutate(['program-payment', 'active', programId]),
+    mutateAllPaymentsArray: (programId: string) => swrMutate(['program-payment', 'all', programId]),
+
+    // Batch mutation helpers
+    mutateAllForProgram: (programId: string) => {
+        swrMutate(`program-payment-${programId}`);
+        swrMutate(`program-payment-access-${programId}`);
+        swrMutate(`program-payment-latest-${programId}`);
+        swrMutate(`program-payment-active-${programId}`);
+        swrMutate(`program-payment-all-${programId}`);
+        swrMutate(['program-payment', 'detail', programId]);
+        swrMutate(['program-payment', 'access', programId]);
+        swrMutate(['program-payment', 'latest', programId]);
+        swrMutate(['program-payment', 'active', programId]);
+        swrMutate(['program-payment', 'all', programId]);
+
+        // Also mutate program data
+        programKeys.mutateProgram(programId);
+    }
+};
+
 // Utility function to invalidate all progress for a user
 export const invalidateAllUserProgress = (userId: string) => {
     // Invalidate all progress types for this user
@@ -137,8 +213,10 @@ export const invalidateAllUserProgress = (userId: string) => {
     quizProgressKeys.mutateList(userId);
     exerciseProgressKeys.mutateList(userId);
     archiveProgressKeys.mutateList(userId);
+    programPaymentKeys.mutateList(userId);
 
     // Also invalidate array-based keys if used
     quizProgressKeys.mutateAllArray(userId);
     exerciseProgressKeys.mutateAllArray(userId);
+    programPaymentKeys.mutateListArray(userId);
 };

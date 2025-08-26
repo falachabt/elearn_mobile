@@ -21,12 +21,14 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePathname } from 'expo-router';
+import { useSWRConfig } from 'swr';
+import Markdown from 'react-native-markdown-display';
+
 import { theme } from '@/constants/theme';
 import { ThemedText } from '@/components/ThemedText';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
-import { useSWRConfig } from 'swr';
 import run from '@/config/gemini';
-import Markdown from 'react-native-markdown-display';
+
 
 // Define interfaces for context elements
 export interface ContextElement {

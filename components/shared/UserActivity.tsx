@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { useNavigationState } from '@react-navigation/native';
+import { usePathname } from 'expo-router';
+
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
-import { usePathname } from 'expo-router';
 
 const HEARTBEAT_INTERVAL = 1000; // 1 seconds
 const SESSION_TIMEOUT = 300000; // 5 minutes

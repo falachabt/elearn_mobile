@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useUpdates } from '@/contexts/UpdatesContext';
+
 import UpdateBottomSheet from './UpdateBottomSheet';
+
+import { useUpdates } from '@/contexts/UpdatesContext';
 
 /**
  * Component that automatically shows the update bottom sheet when an update is available.

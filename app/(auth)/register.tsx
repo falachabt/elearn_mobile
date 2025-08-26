@@ -16,17 +16,19 @@ import {
     useColorScheme,
     View,
 } from "react-native";
+import {StatusBar} from "expo-status-bar";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
+import Head from "expo-router/head";
+
+import OTPInput from "../../components/ui/OTPInput";
 
 import {theme} from "@/constants/theme";
 import {useAuth} from "@/contexts/auth";
 import {supabase} from "@/lib/supabase";
-import {StatusBar} from "expo-status-bar";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import OTPInput from "../../components/ui/OTPInput";
 import GoogleAuth from "@/components/GoogleLogin";
 import {AppleLogin} from "@/components/AppleLogin";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
-import Head from "expo-router/head";
+
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

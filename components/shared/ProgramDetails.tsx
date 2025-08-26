@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { theme } from '@/constants/theme';
-import { Course } from '@/app/(app)/(catalogue)/shop';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+
+import { theme } from '@/constants/theme';
+import { Course } from '@/types/course.type';
 
 interface ProgramDetailsProps {
   program: Course;

@@ -14,19 +14,22 @@ import {
   PixelRatio,
   KeyboardAvoidingView,
 } from "react-native";
-import { theme } from "@/constants/theme";
 import * as Animatable from "react-native-animatable";
+import { Ionicons } from "@expo/vector-icons";
+
 import StepProgress from "./StepProgress";
 import PathChoice from "./PathChoice";
 import ProfileForm, { Profile } from "./ProfileForm";
 import Programs from "./Programs";
 import UserInfoForm from "./UserForm";
+import PaymentPage, { PaymentPageRef } from "./Bill";
+
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import { AccountsInput } from "@/types/type";
-import PaymentPage, { PaymentPageRef } from "./Bill";
+import { theme } from "@/constants/theme";
 import { useCart } from "@/hooks/useCart";
-import { Ionicons } from "@expo/vector-icons";
+
 
 // Get screen dimensions
 const { width, height } = Dimensions.get("window");

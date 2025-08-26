@@ -1,11 +1,13 @@
 import React, {useState} from 'react';
 import {View, Modal, Pressable, StyleSheet, Platform, ActivityIndicator} from 'react-native';
-import {ThemedText} from '@/components/ThemedText';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
-import {theme} from '@/constants/theme';
 import LottieView from 'lottie-react-native';
-import {QuizResults} from '@/types/quiz.type';
 import {useGlobalSearchParams, useRouter} from 'expo-router';
+
+import {ThemedText} from '@/components/ThemedText';
+import {theme} from '@/constants/theme';
+import {QuizResults} from '@/types/quiz.type';
+
 
 
 interface QuizResultDialogProps {

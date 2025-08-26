@@ -12,10 +12,11 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import useSWR from "swr";
+
 import { theme } from "@/constants/theme";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { supabase } from "@/lib/supabase";
-import useSWR from "swr";
 
 // Interface for competition data
 interface Competition {

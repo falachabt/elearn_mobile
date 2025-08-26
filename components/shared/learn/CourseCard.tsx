@@ -2,11 +2,12 @@ import React, { useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Image as CachedImage } from 'expo-image';
+
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { theme } from '@/constants/theme';
 import { useCourseProgress } from '@/hooks/useCourseProgress';
-import { Image as CachedImage } from 'expo-image';
 import { CourseItem, CourseCardProps } from '@/types/course.type';
 import { CATEGORY_THEMES, DEFAULT_THEME } from '@/constants/categoryThemes';
 

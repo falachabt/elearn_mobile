@@ -7,9 +7,11 @@ import {
     Dimensions,
     useColorScheme
 } from 'react-native';
-import { theme } from '@/constants/theme';
-import NewsCard, { NewsCardProps } from './NewsCard';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import NewsCard, { NewsCardProps } from './NewsCard';
+
+import { theme } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 const HORIZONTAL_PADDING = 16;

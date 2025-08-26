@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {Button, Alert, TouchableOpacity, Platform} from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
+
 import {supabase} from "@/lib/supabase";
 
 

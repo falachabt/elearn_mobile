@@ -1,22 +1,24 @@
-import {
-    ActivityIndicator,
-    Pressable,
-    StyleSheet,
-    View,
-    Text,
-    Platform,
-    Modal,
-    FlatList,
-    TouchableOpacity,
-    Dimensions
-} from "react-native";
-import React, {useEffect, useState, useRef} from "react";
-import {useLocalSearchParams, useRouter} from "expo-router";
-import {ThemedText} from "@/components/ThemedText";
+import {useLocalSearchParams} from "expo-router";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import useSWR, { mutate as globalMutate } from "swr";
-import {supabase} from "@/lib/supabase";
 import {WebView} from "react-native-webview";
+import * as ScreenCapture from 'expo-screen-capture';
+import {useEffect, useRef, useState} from "react";
+import {
+    ActivityIndicator,
+    Dimensions,
+    FlatList,
+    Modal,
+    Platform,
+    Pressable,
+    TouchableOpacity,
+    StyleSheet,
+    View,
+    Text
+} from "react-native";
+
+import {ThemedText} from "@/components/ThemedText";
+import {supabase} from "@/lib/supabase";
 import {useAuth} from "@/contexts/auth";
 import {useCourseProgress} from "@/hooks/useCourseProgress";
 import {useColorScheme} from "@/hooks/useColorScheme";
@@ -27,15 +29,16 @@ import PreloadWebView from "@/components/shared/learn/WebViewCourrseSection";
 import {programProgressKeys} from "@/constants/swr-path";
 import {theme} from "@/constants/theme";
 import {useUser} from "@/contexts/useUserInfo";
-import * as ScreenCapture from 'expo-screen-capture';
 import { trackEvent, Events } from '@/utils/analytics';
+import {useCustomRouter} from "@/hooks/useCustomRouter";
+
 
 interface Course extends Courses {
     courses_content: CoursesContent[];
 }
 
 const SectionDetail = () => {
-    const router = useRouter();
+    const router = useCustomRouter();
     const {sectionId, courseId, pdId} = useLocalSearchParams();
     const {session} = useAuth();
     const [scrolledToEnd, setScrolledToEnd] = useState(false);
@@ -72,7 +75,7 @@ const SectionDetail = () => {
                 learning_path_id: pdId
             });
         }
-    }, [sectionId, category]);
+    }, [sectionId]);
 
     // Prevent screenshots
     useEffect(() => {
@@ -204,12 +207,7 @@ const SectionDetail = () => {
     // Handle purchase flow
     const handlePurchaseFlow = () => {
         trigger(HapticType.SELECTION);
-        router.push({
-            pathname : `/(app)/(catalogue)/shop`,
-            params : {
-                selectedProgramId : pdId,
-            }
-        });
+        router.navigateToShop(pdId);
     };
 
     // Preload next section data directly into SWR cache
@@ -649,6 +647,7 @@ const SectionDetail = () => {
                     )}
                 </>
             )}
+
 
             <View style={[styles.navigationContainer, isDark && styles.navigationContainerDark]}>
                 {previousSection && (

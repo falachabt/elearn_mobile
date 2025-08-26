@@ -6,16 +6,16 @@ import {
     ActivityIndicator,
 } from "react-native";
 import React from "react";
-import {ThemedText} from "@/components/ThemedText";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useRouter} from "expo-router";
 import useSWR from "swr";
+import {format} from "date-fns";
+import {fr} from "date-fns/locale";
+
 import {supabase} from "@/lib/supabase";
 import {theme} from "@/constants/theme";
 import {useColorScheme} from "@/hooks/useColorScheme";
-
-import {format} from "date-fns";
-import {fr} from "date-fns/locale";
+import {ThemedText} from "@/components/ThemedText";
 import {useAuth} from "@/contexts/auth";
 
 const SkeletonCard = ({isDark}: { isDark: boolean }) => {

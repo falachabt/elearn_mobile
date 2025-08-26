@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
+
 import OnboardingWeeklyPerformance from '@/components/performance/OnboardingWeeklyPerformance';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { theme } from '@/constants/theme';

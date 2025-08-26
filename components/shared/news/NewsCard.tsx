@@ -3,7 +3,6 @@ import {Dimensions, Image, Pressable, StyleSheet, Text, TouchableOpacity, useCol
 import {ResizeMode, Video} from 'expo-av';
 import {LinearGradient} from 'expo-linear-gradient';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
-import {theme} from '@/constants/theme';
 import Animated, {
     Extrapolate,
     interpolate,
@@ -11,6 +10,8 @@ import Animated, {
     useSharedValue,
     withSpring
 } from 'react-native-reanimated';
+
+import {theme} from '@/constants/theme';
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import { trackEvent, Events } from '@/utils/analytics';
 

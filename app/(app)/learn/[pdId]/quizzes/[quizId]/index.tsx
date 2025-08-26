@@ -1,5 +1,3 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
-import { useRouter, useLocalSearchParams } from "expo-router";
 import {
     ScrollView,
     StyleSheet,
@@ -10,20 +8,21 @@ import {
     StatusBar,
     Animated,
     Easing,
-    Image,
     Dimensions
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import useSWR from "swr";
+
 import { ThemedText } from "@/components/ThemedText";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "@/constants/theme";
-import useSWR from "swr";
 import { supabase } from "@/lib/supabase";
 import { CoursesCategories, Quiz, Tags } from "@/types/type";
 import { useAuth } from "@/contexts/auth";
 import QuizAttemptsList from "@/components/shared/learn/quiz/QuizAttempList";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useUser } from "@/contexts/useUserInfo";
+import { useCustomRouter } from "@/hooks/useCustomRouter";
 
 // Define interfaces for the data
 interface QuizCourse {
@@ -208,7 +207,7 @@ const StatCard: React.FC<StatCardProps> = ({ icon, value, label, color, isDark, 
             ]}
         >
             <MaterialCommunityIcons
-                name={icon as any}
+                name={icon as "help-circle-outline" | "clock-outline" | "trophy-outline"}
                 size={24}
                 color={cardColor}
             />
@@ -294,35 +293,9 @@ const ErrorState: React.FC<{ onRetry: () => void; isDark: boolean }> = ({ onRetr
     </View>
 );
 
-// Locked Content Component
-const LockedContent: React.FC<{ isDark: boolean; onPurchase: () => void }> = ({ isDark, onPurchase }) => (
-    <View style={[styles.centerContainer, isDark && styles.containerDark]}>
-        <MaterialCommunityIcons
-            name="lock"
-            size={64}
-            color={isDark ? "#6EE7B7" : "#65B741"}
-        />
-        <ThemedText style={styles.lockedTitle}>
-            Contenu verrouillé
-        </ThemedText>
-        <ThemedText style={styles.lockedDescription}>
-            Ce quiz fait partie du contenu premium. Inscrivez-vous au programme pour accéder à tous les quiz et exercices.
-        </ThemedText>
-        <Pressable
-            style={[styles.purchaseButton, isDark && styles.purchaseButtonDark]}
-            onPress={onPurchase}
-        >
-            <MaterialCommunityIcons name="cart" size={20} color="#FFFFFF" />
-            <ThemedText style={styles.purchaseButtonText}>
-                S'inscrire au programme
-            </ThemedText>
-        </Pressable>
-    </View>
-);
-
 // Main Quiz Detail Component
 const QuizDetail: React.FC = () => {
-    const router = useRouter();
+    const router = useCustomRouter();
     const { quizId, pdId } = useLocalSearchParams();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
@@ -337,7 +310,7 @@ const QuizDetail: React.FC = () => {
     const isEnrolled = isLearningPathEnrolled(String(pdId));
 
     // Set preview mode based on enrollment status
-    const [isPreviewMode, setIsPreviewMode] = useState<boolean>(!isEnrolled);
+    const [, setIsPreviewMode] = useState<boolean>(!isEnrolled);
 
     // Update preview mode when enrollment status changes
     useEffect(() => {
@@ -347,12 +320,7 @@ const QuizDetail: React.FC = () => {
     // Handle purchase flow
     const handlePurchaseFlow = () => {
         trigger(HapticType.SELECTION);
-        router.push({
-            pathname : `/(app)/(catalogue)/shop`,
-            params : {
-                selectedProgramId : pdId,
-            }
-        });
+        router.navigateToShop(pdId);
     };
 
     // Animation refs

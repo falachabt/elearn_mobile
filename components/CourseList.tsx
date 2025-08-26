@@ -1,7 +1,9 @@
 import React from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { useColorScheme } from "@/hooks/useColorScheme";
+
 import CourseRowItem from "./shared/CourseRowItem";
+
+import { useColorScheme } from "@/hooks/useColorScheme";
 import { ThemedText } from "@/components/ThemedText";
 import {theme} from "@/constants/theme";
 

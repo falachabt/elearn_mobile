@@ -14,12 +14,13 @@ import {
     useWindowDimensions,
     Linking,
 } from 'react-native';
-import { theme } from '@/constants/theme';
 import Lottie from 'lottie-react-native';
 import { Link } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import Head from "expo-router/head";
+
+import { HapticType, useHaptics } from "@/hooks/useHaptics";
+import { theme } from '@/constants/theme';
 
 // Component for iOS
 const IOSStartPage = ({ dimensions, isDark, fadeAnim, slideUpAnim, scaleAnim, trigger } : {

@@ -10,12 +10,13 @@ import {
   Dimensions, ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Katex from 'react-native-katex';
+
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/constants/theme';
 import { QuizAttempt, QuizQuestion, QuizResults } from '@/types/quiz.type';
 import { Attempt } from '@/hooks/useQuiz';
 import { useQuizContext } from '@/contexts/quizContext';
-import Katex from 'react-native-katex';
 import {CorrectionService} from "@/services/correrction.service";
 import {QuizService} from "@/services/quiz.service";
 
@@ -44,7 +45,7 @@ const MixedContentRenderer = React.memo(({
   // Convert mixed content to LaTeX expression
   const convertToLatexExpression = useCallback((mixedText : string) => {
     const tempMarker = "___DOLLAR___";
-    let processedText = mixedText.replace(/\\\$/g, tempMarker);
+    const processedText = mixedText.replace(/\\\$/g, tempMarker);
 
     const segments = processedText.split(/(\$\$[^$]+\$\$)/g);
 

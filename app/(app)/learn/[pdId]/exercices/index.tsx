@@ -1,4 +1,3 @@
-import React, {useState} from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -11,15 +10,18 @@ import {
 } from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {ScrollView} from "react-native-gesture-handler";
+import {useLocalSearchParams} from "expo-router";
+import useSWR from "swr";
+import React, { useState } from "react"; // <-- Ajouté ici
+
 import {supabase} from "@/lib/supabase";
-import {useLocalSearchParams, useRouter} from "expo-router";
 import {theme} from "@/constants/theme";
 import {useAuth} from "@/contexts/auth";
-import useSWR from "swr";
 import CategoryFilter from "@/components/shared/learn/CategoryFilter";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useUser} from "@/contexts/useUserInfo";
 import ExerciseCard from "@/components/shared/learn/exercices/ExerciceCard";
+import {useCustomRouter} from "@/hooks/useCustomRouter";
 
 // Types
 interface Exercise {
@@ -45,7 +47,7 @@ type FilterType = "all" | "pinned" | "uncompleted";
 export const ExercisesList = () => {
     const params = useLocalSearchParams();
     const pdId = params["pdId"];
-    const router = useRouter();
+    const router = useCustomRouter();
     const {user} = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -64,12 +66,7 @@ export const ExercisesList = () => {
     // Handle purchase flow
     const handlePurchaseFlow = () => {
         trigger(HapticType.SELECTION);
-        router.push({
-            pathname : `/(app)/(catalogue)/shop`,
-            params : {
-                selectedProgramId : pdId,
-            }
-        });
+        router.navigateToShop(pdId);
     };
 
     const fetcher = async () => {
@@ -131,9 +128,10 @@ export const ExercisesList = () => {
 
         // Process categories
         const allCategories = exerciseRes.data
-            // @ts-ignore
+            // @ts-expect-error
             .map((exercise) => exercise.course?.courses_categories)
             .filter(Boolean);
+
 
         const categoryMap = new Map();
 
@@ -179,7 +177,7 @@ export const ExercisesList = () => {
             const matchesCategory =
                 !selectedCategory ||
                 selectedCategory === "all" ||
-                // @ts-ignore
+                // @ts-expect-error
                 exercise.course?.courses_categories?.name === selectedCategory;
 
             const matchesFilter =
@@ -235,7 +233,7 @@ export const ExercisesList = () => {
         try {
             const userId = user?.id;
 
-            const {data: updatedData, error} = await supabase
+            const {error} = await supabase
                 .from("exercices_pin")
                 .upsert(
                     {
@@ -282,7 +280,7 @@ export const ExercisesList = () => {
         try {
             const userId = user?.id;
 
-            const {data: updatedData, error} = await supabase
+            const {error} = await supabase
                 .from("exercices_complete")
                 .upsert(
                     {

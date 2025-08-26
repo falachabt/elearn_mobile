@@ -12,12 +12,13 @@ import {
     View,
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import Markdown, {RenderImageFunction} from 'react-native-markdown-display';
+import FitImage from "react-native-fit-image";
+
 import {ThemedText} from '@/components/ThemedText';
 import {theme} from '@/constants/theme';
 import {supabase} from '@/lib/supabase';
 import {useColorScheme} from '@/hooks/useColorScheme';
-import Markdown, {RenderImageFunction} from 'react-native-markdown-display';
-import FitImage from "react-native-fit-image";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 
 const {height: SCREEN_HEIGHT, width: SCREEN_WIDTH} = Dimensions.get('window');

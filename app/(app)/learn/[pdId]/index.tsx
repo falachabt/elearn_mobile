@@ -1,15 +1,16 @@
 import {Image, Platform, Pressable, ScrollView, StyleSheet, View} from "react-native";
 import React, {useEffect, useState} from "react";
-import {ThemedText} from "@/components/ThemedText";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useLocalSearchParams, useRouter} from "expo-router";
+import useSWR from 'swr';
+
+import {ThemedText} from "@/components/ThemedText";
 import {theme} from "@/constants/theme";
 import {useColorScheme} from "@/hooks/useColorScheme";
 import {useAuth} from "@/contexts/auth";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useProgramProgress} from "@/hooks/useProgramProgress";
 import {useUser} from "@/contexts/useUserInfo";
-import useSWR from 'swr';
 import {supabase} from '@/lib/supabase';
 
 interface ActionCard {
@@ -186,7 +187,7 @@ const ProgramDetails = () => {
                             color="#FFFFFF"
                         />
                     ),
-                    route: "/(app)/(catalogue)/shop",
+                    route: `/(app)/learn/${id}/payment`,
                     routeParams: { selectedProgramId : id  },
                     color: isDark ? "#6EE7B7" : "#4CAF50",
                     isShopCard: true,
@@ -527,7 +528,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F9FAFB",
-        marginBottom: 80, // To avoid overlap with bottom tab bar
         paddingBottom: 40,
     },
     containerDark: {

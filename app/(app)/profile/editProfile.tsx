@@ -12,12 +12,14 @@ import {
     Animated,
     Dimensions,
 } from 'react-native';
-import { theme } from '@/constants/theme';
-import { useAuth } from '@/contexts/auth';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import {supabase} from "@/lib/supabase";
 import useSWR from 'swr';
+
+import { theme } from '@/constants/theme';
+import { useAuth } from '@/contexts/auth';
+import {supabase} from "@/lib/supabase";
+
 
 const { width } = Dimensions.get('window');
 

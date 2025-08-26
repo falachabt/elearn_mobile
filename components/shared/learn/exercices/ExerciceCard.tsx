@@ -7,6 +7,7 @@ import {
     useColorScheme,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { theme } from "@/constants/theme";
 import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/components/shared/learn/CategoryFilter";
 

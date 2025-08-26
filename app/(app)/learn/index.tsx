@@ -11,11 +11,12 @@ import {
     View
 } from 'react-native'
 import React, { useState, useMemo } from 'react'
-import { useAuth } from '@/contexts/auth'
 import useSWR from 'swr'
-import { supabase } from '@/lib/supabase'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/auth'
 import { theme } from '@/constants/theme'
 import { useProgramProgress } from "@/hooks/useProgramProgress"
 import { HapticType, useHaptics } from "@/hooks/useHaptics"
@@ -176,7 +177,7 @@ const MyLearningPaths = () => {
                         total_duration: item.learning_path.total_duration,
                         concours_learningpaths: [],
                         isEnrolled: isUserEnrolled,
-                        enrollmentId: userEnrollment?.id || (Math.floor(Math.random() * 100) + Math.floor(Math.random() * 100)),
+                        enrollmentId: userEnrollment?.id ,
                         progress: isUserEnrolled ? Math.floor(Math.random() * 100) : 0
                     })
                 }

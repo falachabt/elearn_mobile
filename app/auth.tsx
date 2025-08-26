@@ -1,8 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import {View, StyleSheet, useColorScheme, Text, TouchableOpacity, ViewStyle, TextStyle} from 'react-native';
+import {router} from 'expo-router';
+
 import {LoadingAnimation} from "@/components/shared/LoadingAnimation1";
 import {theme} from '@/constants/theme';
-import {router} from 'expo-router';
 
 function Auth() {
     const colorScheme = useColorScheme();

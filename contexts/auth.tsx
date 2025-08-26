@@ -1,9 +1,10 @@
 import {createContext, useContext, useEffect, useState, useRef} from 'react'
 import {RealtimeChannel, Session} from '@supabase/supabase-js'
-import {supabase} from '@/lib/supabase'
 import axios from 'axios'
-import {Accounts, tables, UserXp} from '@/types/type'
 import useSWR from 'swr'
+
+import {supabase} from '@/lib/supabase'
+import {Accounts, tables, UserXp} from '@/types/type'
 import { trackEvent, Events, setUserId } from '@/utils/analytics'
 import { registerForPushNotificationsAsync, setupNotifications } from '@/utils/pushNotifications'
 

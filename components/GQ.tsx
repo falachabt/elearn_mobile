@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { supabase } from '@/lib/supabase';
 import {CorrectionService} from "@/services/correrction.service"; // Adjust import path as needed
 
@@ -162,7 +163,7 @@ const JustificationGenerator = () => {
 
         addLog(`Starting to process ${questions.length} questions in batch #${batchNumber + 1}`, 'info');
 
-        let localStats = { ...stats };
+        const localStats = { ...stats };
 
         // Process each question in the batch
         for (let i = 0; i < questions.length; i++) {

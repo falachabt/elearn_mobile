@@ -1,5 +1,6 @@
 import React, {useEffect, useRef} from "react";
 import {Animated, Easing, Text, View, StyleSheet} from "react-native";
+
 import {theme} from "@/constants/theme";
 
 export function LoadingAnimation({ isDarkMode } : { isDarkMode: boolean }) {

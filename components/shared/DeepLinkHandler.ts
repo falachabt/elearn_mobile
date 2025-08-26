@@ -1,8 +1,9 @@
 import React, {useEffect} from 'react';
 import {Linking} from 'react-native';
-import {supabase} from '@/lib/supabase';
 import axios from "axios";
 import {useRouter} from "expo-router";
+
+import {supabase} from '@/lib/supabase';
 
 
 // Define prop types for the component

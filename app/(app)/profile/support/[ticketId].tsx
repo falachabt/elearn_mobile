@@ -17,12 +17,13 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useRoute } from '@react-navigation/native';
+import {useLocalSearchParams} from "expo-router";
+
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';
 import { useSupportStorage } from '@/hooks/useStorage';
-import { useRoute } from '@react-navigation/native';
 import {useTicketMessages} from "@/hooks/useSupportTicket";
-import {useLocalSearchParams} from "expo-router";
 import { Message } from '@/hooks/useSupportTicket';
 // Types
 interface ContactInfo {

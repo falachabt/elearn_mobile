@@ -8,8 +8,9 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import WebView from 'react-native-webview';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';

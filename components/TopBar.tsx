@@ -1,9 +1,10 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Image, Platform} from 'react-native';
 import {MaterialCommunityIcons, FontAwesome5} from '@expo/vector-icons';
+import {Link, useRouter} from 'expo-router';
+
 import {theme} from '@/constants/theme';
 import {useAuth} from '@/contexts/auth';
-import {Link, useRouter} from 'expo-router';
 
 interface TopBarProps {
     userName: string;

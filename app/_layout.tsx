@@ -12,12 +12,12 @@ import "react-native-reanimated";
 import {View, Text, StyleSheet, Platform} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {SafeAreaView} from "react-native-safe-area-context";
+import * as Notifications from "expo-notifications";
+import Head from "expo-router/head";
 
 import {useColorScheme} from "@/hooks/useColorScheme";
 import {Provider} from "@/providers";
 import {theme} from "@/constants/theme";
-import * as Notifications from "expo-notifications";
-import Head from "expo-router/head";
 import ScreenTracker from "@/components/shared/ScreenTracker";
 
 // Define app expiration date - March 16, 2025 (one week after March 9, 2025)

@@ -1,4 +1,5 @@
 import {useState, useEffect, useCallback} from 'react';
+
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/contexts/auth';
 import { Ticket } from "@/hooks/useTicketList";

@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import useSWR from 'swr';
+
 import { supabase } from '@/lib/supabase';
 import { Accounts, Courses, LearningPaths, CourseProgressSummary, tables, UserXp } from '@/types/type';
-import useSWR from 'swr';
 import { useAuth } from '@/contexts/auth';
 import { useAppConfig } from '@/contexts/useAppConfig';
 
@@ -262,7 +263,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 
   const isLearningPathEnrolled = (learningPathId: string) => {
-    return true
+    // return true
 
     // Check if user is enrolled in the program
     const isEnrolled = userPrograms?.some(program => program.id === learningPathId);

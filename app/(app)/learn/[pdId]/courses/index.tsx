@@ -10,11 +10,12 @@ import {
 } from 'react-native';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import useSWR from 'swr';
+
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemedText } from '@/components/ThemedText';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { theme } from '@/constants/theme';
-import useSWR from 'swr';
 import { supabase } from '@/lib/supabase';
 import CategoryFilter from '@/components/shared/learn/CategoryFilter';
 import {CourseGridByCategory} from "@/components/shared/learn/CourseGrid";

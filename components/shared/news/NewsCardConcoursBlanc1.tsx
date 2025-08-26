@@ -6,10 +6,11 @@ import {
     TouchableOpacity,
     useColorScheme
 } from 'react-native';
-import { theme } from '@/constants/theme';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import { theme } from '@/constants/theme';
 
 interface NewsCardConcoursBlanc1Props {
     onPress?: () => void;

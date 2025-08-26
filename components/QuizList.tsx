@@ -6,25 +6,26 @@ import {
     TextInput,
     Pressable,
     ScrollView,
-    ActivityIndicator,
     SafeAreaView,
     Animated,
     FlatList,
     Easing
 } from 'react-native';
-import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useLocalSearchParams} from 'expo-router';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import useSWR from 'swr';
+
 import {useColorScheme} from '@/hooks/useColorScheme';
 import {ThemedText} from '@/components/ThemedText';
 import {HapticType, useHaptics} from '@/hooks/useHaptics';
 import {theme} from '@/constants/theme';
-import useSWR from 'swr';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/contexts/auth';
 import EnhancedQuizCard from '@/components/shared/learn/quiz/QuizCard';
 import EnhancedQuizRowItem from '@/components/shared/learn/quiz/QuizRowItem';
 import EnhancedQuizCategoryFilter from '@/components/shared/learn/quiz/QuizCategoryFilter';
 import {useUser} from "@/contexts/useUserInfo";
+import {useCustomRouter} from "@/hooks/useCustomRouter";
 
 // ==========================
 // Types
@@ -240,7 +241,7 @@ const ErrorState = ({onRetry, isDark}) => {
 // ==========================
 
 const EnhancedQuizScreen = () => {
-    const router = useRouter();
+    const router = useCustomRouter();
     const {pdId} = useLocalSearchParams();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
@@ -394,12 +395,6 @@ const EnhancedQuizScreen = () => {
         return isEnrolled ? filteredList : filteredList.slice(0, 2);
     }, [quizzesWithProgress, searchQuery, selectedCategory, isEnrolled]);
 
-    // Handle quiz press
-    const handleQuizPress = (quizItem) => {
-        trigger(HapticType.SELECTION);
-        router.push(`/(app)/learn/${pdId}/quizzes/${quizItem.quiz?.id}`);
-    };
-
     // Handle back button press
     const handleBackPress = () => {
         trigger(HapticType.LIGHT);
@@ -441,12 +436,7 @@ const EnhancedQuizScreen = () => {
     // Handle purchase flow
     const handlePurchaseFlow = () => {
         trigger(HapticType.SELECTION);
-        router.push({
-            pathname : `/(app)/(catalogue)/shop`,
-            params : {
-                selectedProgramId : pdId,
-            }
-        });
+        router.navigateToShop(pdId);
     };
 
 

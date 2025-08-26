@@ -6,6 +6,7 @@ import {
     StyleSheet,
     Platform,
 } from 'react-native';
+
 import { useSound } from '@/hooks/useSound';
 import {theme} from "@/constants/theme";
 

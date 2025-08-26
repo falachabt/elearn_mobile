@@ -12,8 +12,9 @@ import {
     Alert, Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { theme } from '@/constants/theme';
 import { router } from 'expo-router';
+
+import { theme } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
 import {useTickets} from "@/hooks/useTicketList";

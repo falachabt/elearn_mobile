@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useColorScheme } from 'react-native';
+
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
-import { useColorScheme } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import {theme} from "@/constants/theme";
 

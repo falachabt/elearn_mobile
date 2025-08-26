@@ -15,14 +15,16 @@ import {
 } from "react-native";
 import {Redirect, useRouter} from "expo-router";
 import {StatusBar} from "expo-status-bar";
-import {useAuth} from "@/contexts/auth";
-import {theme} from "@/constants/theme";
 import {Pressable} from "react-native-gesture-handler";
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import Head from "expo-router/head";
+
+import {useAuth} from "@/contexts/auth";
+import {theme} from "@/constants/theme";
 import GoogleAuth from "@/components/GoogleLogin";
 import {AppleLogin} from "@/components/AppleLogin";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
-import Head from "expo-router/head";
+
 
 
 const PHONE_REGEX = /^\+?[1-9]\d{1,14}$/;

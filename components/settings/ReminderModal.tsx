@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Modal } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
 import { theme } from '@/constants/theme';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { ReminderDays } from '@/types/settings.type';
 
 interface ReminderModalProps {

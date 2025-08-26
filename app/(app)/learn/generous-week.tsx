@@ -13,13 +13,14 @@ import {
   Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import { useUser } from "@/contexts/useUserInfo";
 import { useAppConfig } from "@/contexts/useAppConfig";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "@/constants/theme";
-import { Course } from "@/app/(app)/(catalogue)/shop";
+import { Course } from "@/types/course.type";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 interface FilterState {
@@ -32,14 +33,14 @@ const GenerousWeekPage = () => {
   const router = useRouter();
   const { user: authUser } = useAuth();
   const { user, mutateUser } = useUser();
-  const { isGenerousWeekActive, appConfig } = useAppConfig();
+  const { isGenerousWeekActive } = useAppConfig();
 
   // State management
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [programs, setPrograms] = useState<Course[]>([]);
   const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
-  const [savingChoice, setSavingChoice] = useState(false);
+  const [, setSavingChoice] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
@@ -458,7 +459,7 @@ const GenerousWeekPage = () => {
 
             <TouchableOpacity
                 style={styles.continueButton}
-                onPress={() => router.replace(redirectPath as any)}
+                onPress={() => router.replace(redirectPath as `/(app)/learn/${string}` | "/(app)")}
             >
               <Text style={styles.continueButtonText}>Aller à mon programme</Text>
               <MaterialCommunityIcons name="arrow-right" size={20} color="#fff"/>

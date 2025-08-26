@@ -1,6 +1,7 @@
 import React, {createContext, useContext, useState, ReactNode, useEffect} from 'react';
 import {usePathname} from 'expo-router';
 import {useSWRConfig} from 'swr';
+
 import {ContextElement} from '@/components/shared/ChatBot'; // Import the ContextElement type
 
 // Define the context interface

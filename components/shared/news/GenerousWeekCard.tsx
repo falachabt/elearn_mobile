@@ -6,8 +6,9 @@ import {
     TouchableOpacity,
     useColorScheme
 } from 'react-native';
-import { theme } from '@/constants/theme';
 import { useRouter } from 'expo-router';
+
+import { theme } from '@/constants/theme';
 
 interface GenerousWeekCardProps {
     endDate: Date;
@@ -46,7 +47,7 @@ const GenerousWeekCard: React.FC<GenerousWeekCardProps> = ({ endDate }) => {
     }, [endDate]);
 
     const handlePress = () => {
-        router.push('/(app)/(catalogue)/shop');
+        router.push('/(app)/learn');
     };
 
     return (

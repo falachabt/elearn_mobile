@@ -7,9 +7,10 @@ import {
     Dimensions,
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import useSWR from 'swr';
+
 import {ThemedText} from '@/components/ThemedText';
 import {theme} from '@/constants/theme';
-import useSWR from 'swr';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from "@/contexts/auth";
 

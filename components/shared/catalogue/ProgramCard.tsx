@@ -9,8 +9,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { theme } from "@/constants/theme";
 import * as Animatable from "react-native-animatable";
+
+import { theme } from "@/constants/theme";
 
 interface ProgramCardProps {
   title: string;

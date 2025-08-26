@@ -11,12 +11,13 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import useSWR, { mutate } from "swr";
+
 import { theme } from "@/constants/theme";
 import { useFileDownload } from "@/hooks/useFileDownload";
 import { ArchiveCard } from "@/components/ArchiveCard";
 import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
-import useSWR, { mutate } from "swr";
 import { supabase } from "@/lib/supabase";
 import { useCompetitionPayment } from "@/hooks/useCompetitionPayment";
 import CompetitionPaymentBottomSheet from "@/components/shared/CompetitionPaymentBottomSheet";

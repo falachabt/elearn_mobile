@@ -25,6 +25,7 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from 'react-native-reanimated';
+
 import {theme} from "@/constants/theme";
 
 // Initialize Gemini

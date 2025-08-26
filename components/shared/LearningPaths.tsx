@@ -2,11 +2,6 @@ import React, { useEffect, useCallback, memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, FlatList } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { theme } from '@/constants/theme';
-import { LearningPaths as LearningPath } from '@/types/type';
-import { useAuth } from '@/contexts/auth';
-import { useProgramProgress } from "@/hooks/useProgramProgress";
-import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,6 +10,12 @@ import Animated, {
   Easing,
   runOnJS
 } from 'react-native-reanimated';
+
+import { theme } from '@/constants/theme';
+import { LearningPaths as LearningPath } from '@/types/type';
+import { useAuth } from '@/contexts/auth';
+import { useProgramProgress } from "@/hooks/useProgramProgress";
+import { HapticType, useHaptics } from "@/hooks/useHaptics";
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.75;

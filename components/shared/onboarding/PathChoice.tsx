@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
-import { theme } from '@/constants/theme';
 import * as Animatable from 'react-native-animatable';
 import { FontAwesome5 } from '@expo/vector-icons';
+
+import { theme } from '@/constants/theme';
 
 interface PathChoiceProps {
   knowsProgram: boolean;

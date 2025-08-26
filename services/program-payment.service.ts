@@ -1,0 +1,801 @@
+import { supabase } from '@/lib/supabase';
+import { NotchPayService } from '@/lib/notchpay';
+
+export interface ProgramPayment {
+  id: string;
+  user_id: string;
+  program_id: string;
+  amount: number;
+  payment_date: string;
+  expiry_date: string;
+  payment_reference: string;
+  payment_status: string;
+  payment_provider: string;
+  phone_number: string;
+  promo_code_id?: string;
+  created_at: string;
+  updated_at: string;
+  is_installment?: boolean;
+  total_installments?: number;
+  current_installment?: number;
+  next_payment_due_date?: string;
+  authorizationUrl?: string;
+  total_amount?: number;
+  parent_payment_id?: string;
+}
+
+export const ProgramPaymentService = {
+  // Calculate installment amount based on total price and number of installments
+  calculateInstallmentAmount(totalAmount: number, totalInstallments: number, currentInstallment: number = 1): number {
+    // Ensure we have valid numbers to avoid NaN
+    if (!totalAmount || isNaN(totalAmount) || !totalInstallments || isNaN(totalInstallments) || totalInstallments <= 0) {
+      return 0;
+    }
+
+    if (totalInstallments <= 1) return totalAmount;
+
+    // For the first installment, we might want to charge a different amount
+    // For simplicity, we'll divide equally for now
+    return Math.ceil(totalAmount / totalInstallments);
+  },
+
+  // Create an installment payment plan
+  async createInstallmentPlan(
+    programId: string,
+    phoneNumber: string,
+    totalAmount: number,
+    totalInstallments: number,
+    promoCodeId?: string,
+    currentInstallment: number = 1,
+    nextInstallmentDate?: Date
+  ): Promise<ProgramPayment> {
+    console.log("Creating installment plan:", { programId, phoneNumber, totalAmount, totalInstallments, promoCodeId, currentInstallment });
+
+    // Calculate first installment amount
+    const firstInstallmentAmount = this.calculateInstallmentAmount(totalAmount, totalInstallments);
+    console.log("Calculated first installment amount:", firstInstallmentAmount);
+
+    try {
+      // Create the parent payment record (first installment)
+      const notchpay = new NotchPayService();
+      console.log("Initiating direct charge with NotchPay:", { 
+        phone: phoneNumber, 
+        channel: phoneNumber.startsWith('655') ? 'cm.orange' : 'cm.mtn',
+        amount: firstInstallmentAmount 
+      });
+
+      const result = await notchpay.initiateDirectCharge({
+        phone: phoneNumber,
+        channel: phoneNumber.startsWith('655') ? 'cm.orange' : 'cm.mtn',
+        currency: 'XAF',
+        amount: firstInstallmentAmount,
+        customer: {
+          email: 'default@gmail.com', // This should be user's email if available
+        },
+      });
+
+      console.log("NotchPay initResponse:", result.initResponse);
+      console.log("NotchPay chargeResponse:", result.chargeResponse);
+      console.log("NotchPay needsFallback:", result.needsFallback);
+
+      if (!result.initResponse.transaction?.reference) {
+        console.error("Payment initialization failed: No transaction reference");
+        throw new Error("Payment initialization failed");
+      }
+
+      // Create the first installment payment record
+      console.log("Creating payment record with:", { 
+        programId, 
+        phoneNumber, 
+        amount: firstInstallmentAmount,
+        reference: result.initResponse.transaction.reference,
+        isInstallment: true,
+        totalInstallments,
+        currentInstallment: 1,
+        totalAmount
+      });
+
+      const payment = await this.createPayment(
+        programId,
+        phoneNumber,
+        firstInstallmentAmount,
+        result.initResponse.transaction.reference,
+        promoCodeId,
+        true, // isInstallment
+        totalInstallments,
+        currentInstallment, // currentInstallment
+        totalAmount,
+          null,
+        nextInstallmentDate
+
+      );
+
+      console.log("Payment record created:", payment);
+
+      // If direct charge was successful or needs fallback
+      if (result.chargeResponse || result.needsFallback) {
+        console.log("Setting payment status to initialized");
+
+        if(payment.id){
+          await this.setStatus(payment.id, 'initialized');
+        }else {
+          console.log("progblem with payment id", payment.id);
+        }
+
+        return {
+          ...payment,
+          needsFallback: result.needsFallback,
+          authorizationUrl: result.initResponse.authorization_url,
+          trxReference: result.initResponse.transaction.reference
+        } as any;
+      }
+
+      console.error("Installment plan creation failed: No chargeResponse or needsFallback");
+      throw new Error("Installment plan creation failed");
+    } catch (error) {
+      console.error("Error in createInstallmentPlan:", error);
+      throw error;
+    }
+  },
+
+  // Get pending installments for a program
+  async getPendingInstallments(programId: string): Promise<ProgramPayment[]> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return [];
+
+    const numericProgramId = parseInt(programId, 10);
+    if (isNaN(numericProgramId)) {
+      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('program_id', numericProgramId)
+      .eq('is_installment', true)
+      .lt('current_installment', 'total_installments')
+      .eq('payment_status', 'completed')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error getting pending installments:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Process the next installment payment
+  async processNextInstallment(
+    parentPaymentId: string,
+    phoneNumber: string
+  ): Promise<ProgramPayment> {
+    console.log("Processing next installment for parent payment ID:", parentPaymentId, "and phone number:", phoneNumber);
+    // Get the parent payment
+    const { data: parentPayment, error: parentError } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('id', parentPaymentId)
+      .single();
+
+    if (parentError || !parentPayment) {
+      console.error('Error getting parent payment:', parentError);
+      throw new Error('Parent payment not found');
+    }
+
+    // Check if all installments are already paid
+    if (parentPayment.current_installment >= parentPayment.total_installments) {
+      throw new Error('All installments are already paid');
+    }
+
+    // Calculate next installment amount
+    const nextInstallmentNumber = parentPayment.current_installment + 1;
+    const nextInstallmentAmount = this.calculateInstallmentAmount(
+      parentPayment.total_amount,
+      parentPayment.total_installments,
+      nextInstallmentNumber
+    );
+
+    // Create the next installment payment
+    const notchpay = new NotchPayService();
+    const result = await notchpay.initiateDirectCharge({
+      phone: phoneNumber,
+      channel: phoneNumber.startsWith('655') ? 'cm.orange' : 'cm.mtn',
+      currency: 'XAF',
+      amount: nextInstallmentAmount,
+      customer: {
+        email: 'default@gmail.com', // This should be user's email if available
+      },
+    });
+
+    if (!result.initResponse.transaction?.reference) {
+      throw new Error("Payment initialization failed");
+    }
+
+    // Create the next installment payment record
+    const payment = await this.createPayment(
+      parentPayment.program_id.toString(),
+      phoneNumber,
+      nextInstallmentAmount,
+      result.initResponse.transaction.reference,
+      parentPayment.promo_code_id,
+      true, // isInstallment
+      parentPayment.total_installments,
+      nextInstallmentNumber,
+      parentPayment.total_amount,
+      parentPayment.id
+    );
+
+    // If direct charge was successful or needs fallback
+    if (result.chargeResponse || result.needsFallback) {
+      await this.setStatus(payment.id, 'initialized');
+
+      return {
+        ...payment,
+        needsFallback: result.needsFallback,
+        authorizationUrl: result.initResponse.authorization_url,
+        trxReference: result.initResponse.transaction.reference
+      } as any;
+    }
+
+    throw new Error("Next installment payment failed");
+  },
+
+  // Update parent payment after successful installment payment
+  async updateParentPaymentAfterInstallment(paymentId: string): Promise<void> {
+    // Get the current payment
+    const { data: payment, error } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('id', paymentId)
+      .single();
+
+    if (error || !payment || !payment.parent_payment_id) {
+      console.error('Error getting payment:', error);
+      return;
+    }
+
+    // Update the parent payment with the new current installment number
+    const { error: updateError } = await supabase
+      .from('user_program_payments')
+      .update({
+        current_installment: payment.current_installment,
+        next_payment_due_date: payment.next_payment_due_date,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', payment.parent_payment_id);
+
+    if (updateError) {
+      console.error('Error updating parent payment:', updateError);
+    }
+  },
+
+
+  async createPayment(
+    programId: string,
+    phoneNumber: string,
+    amount: number = 2500, // Default amount
+    trx_reference: string,
+    promoCodeId?: string,
+    isInstallment: boolean = false,
+    totalInstallments?: number,
+    currentInstallment?: number,
+    totalAmount?: number,
+    parentPaymentId?: string,
+    nextInstallmentDate?: Date
+  ): Promise<ProgramPayment> {
+    // Convert programId to a number if it's a string
+    const numericProgramId = parseInt(programId, 10);
+
+
+    console.log("currentInstallment", currentInstallment);
+
+    if (isNaN(numericProgramId)) {
+      throw new Error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+    }
+
+    // Calculate expiry date (6 months from now)
+    const paymentDate = nextInstallmentDate || new Date();
+    const expiryDate = new Date(paymentDate);
+    expiryDate.setMonth(expiryDate.getMonth() + 6);
+
+    // Calculate next payment due date for installments (1 week from now)
+    let nextPaymentDueDate = null;
+    if (isInstallment && currentInstallment && totalInstallments && currentInstallment < totalInstallments) {
+      nextPaymentDueDate = new Date(paymentDate);
+      nextPaymentDueDate.setDate(nextPaymentDueDate.getDate() + 7); // Next payment due in 1 week
+    }
+
+    const { data: payment, error } = await supabase
+      .from('user_program_payments')
+      .insert({
+        program_id: numericProgramId,
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        amount,
+        payment_status: 'pending',
+        phone_number: phoneNumber,
+        payment_provider: phoneNumber.startsWith('655') ? 'orange' : 'mtn',
+        payment_reference: trx_reference,
+        promo_code_id: promoCodeId,
+        payment_date: paymentDate.toISOString(),
+        expiry_date: expiryDate.toISOString(),
+        is_installment: isInstallment,
+        total_installments: totalInstallments,
+        current_installment: currentInstallment,
+        next_payment_due_date: nextPaymentDueDate ? nextPaymentDueDate.toISOString() : null,
+        total_amount: totalAmount,
+        parent_payment_id: parentPaymentId
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating program payment:', error);
+      throw new Error(error.message);
+    }
+
+    return payment;
+  },
+
+  async setStatus(paymentId: string, status: string) {
+    const { error } = await supabase
+      .from('user_program_payments')
+      .update({
+        payment_status: status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', paymentId);
+
+    if (error) {
+      console.error('Error updating program payment status:', error);
+      throw new Error(error.message);
+    }
+  },
+
+  subscribeToPaymentStatus(paymentId: string, callback: (status: string, payment: ProgramPayment) => void) {
+    return supabase
+      .channel('program_payments')
+      .on(
+        'postgres_changes' as any,
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_program_payments',
+          filter: `id=eq.${paymentId}`
+        },
+        (payload: { new: { payment_status: string } }) => callback(payload.new.payment_status, payload.new as ProgramPayment)
+      )
+      .subscribe();
+  },
+
+  async checkProgramAccess(programId: string): Promise<boolean> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return false;
+
+
+    // Convert programId to a number if it's a string
+    const numericProgramId = parseInt(programId, 10);
+
+    if (isNaN(numericProgramId)) {
+      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      return false;
+    }
+
+    // Check if user is enrolled in the program
+    const { data: enrollmentData, error: enrollmentError } = await supabase
+      .from('user_program_enrollments')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('program_id', numericProgramId)
+      .limit(1);
+
+    if (enrollmentError) {
+      console.error('Error checking program enrollment:', enrollmentError);
+      return false;
+    }
+
+    // If user is enrolled, check if they have a valid payment
+    if (enrollmentData && enrollmentData.length > 0) {
+      // Get the latest payment for this program
+      const { data: paymentData, error: paymentError } = await supabase
+        .from('user_program_payments')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('program_id', numericProgramId)
+        .eq('payment_status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (paymentError) {
+        console.error('Error checking program payment:', paymentError);
+        return false;
+      }
+
+      // If no payment found, user doesn't have access
+      if (!paymentData || paymentData.length === 0) {
+        return false;
+      }
+
+      const payment = paymentData[0];
+
+      // Check if payment is expired
+      const now = new Date();
+      const expiryDate = new Date(payment.expiry_date);
+      if (now > expiryDate) {
+        return false;
+      }
+
+      // For installment payments, check if next payment is overdue
+      if (payment.is_installment && payment.next_payment_due_date) {
+        const nextPaymentDueDate = new Date(payment.next_payment_due_date);
+
+        // If next payment is overdue by more than 2 days, restrict access
+        const gracePeriod = 2; // 2 days grace period
+        const gracePeriodDate = new Date(nextPaymentDueDate);
+        gracePeriodDate.setDate(gracePeriodDate.getDate() + gracePeriod);
+
+        if (now > gracePeriodDate && payment.current_installment < payment.total_installments) {
+          return false;
+        }
+      }
+
+      // If we got here, user has valid access
+      return true;
+    }
+
+    return false;
+  },
+
+  async getActivePayment(programId: string): Promise<ProgramPayment | null> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return null;
+
+    // Convert programId to a number if it's a string
+    const numericProgramId = parseInt(programId, 10);
+
+    if (isNaN(numericProgramId)) {
+      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('program_id', numericProgramId)
+      .eq('payment_status', 'completed')
+      .gt('expiry_date', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No active payment found
+        return null;
+      }
+      console.error('Error getting active program payment:', error);
+      throw new Error(error.message);
+    }
+
+    return data;
+  },
+
+  async getLatestPayment(programId: string): Promise<ProgramPayment | null> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return null;
+    if (!programId) {
+      console.error("Program ID is required to get the latest payment.");
+      return null;
+    }else {
+        console.log("Getting latest payment for program ID:", programId);
+    }
+
+    // Convert programId to a number if it's a string
+    const numericProgramId = parseInt(programId, 10);
+
+    if (isNaN(numericProgramId)) {
+      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('program_id', numericProgramId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No payment found
+        return null;
+      }
+      console.error('Error getting latest program payment:', error);
+      throw new Error(error.message);
+    }
+
+    return data;
+  },
+
+
+  async getAllPayments(programId: string): Promise<ProgramPayment[]> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return [];
+
+    // Convert programId to a number if it's a string
+    const numericProgramId = parseInt(programId, 10);
+
+    if (isNaN(numericProgramId)) {
+      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('program_id', numericProgramId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error getting all program payments:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Check if a payment status is final (completed or canceled)
+  isFinalStatus(status: string): boolean {
+    return ['completed', 'canceled', 'failed'].includes(status);
+  },
+
+  async initiateDirectPayment(
+    programId: string,
+    phoneNumber: string,
+    amount: number = 2500,
+    promoCodeId?: string,
+    isInstallment: boolean = false,
+    totalInstallments: number = 1,
+    currentInstallment: number = 1,
+    nextInstallmentDate?: Date
+  ) {
+    try {
+      console.log("Initiating direct payment:", { 
+        programId, 
+        phoneNumber, 
+        amount, 
+        promoCodeId, 
+        isInstallment, 
+        totalInstallments ,
+        currentInstallment
+      });
+
+      // Convert programId to a number if it's a string
+      const numericProgramId = parseInt(programId, 10);
+
+      if (isNaN(numericProgramId)) {
+        console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+        throw new Error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      }
+
+      // If this is an installment payment, use the installment plan method
+      if (isInstallment && totalInstallments > 1) {
+        console.log("Using installment plan method with total amount:", amount);
+        // For installment plans, we need to pass the total amount, not the first installment amount
+        return await this.createInstallmentPlan(
+          programId,
+          phoneNumber,
+          amount * totalInstallments, // Pass the total amount, not just the first installment
+          totalInstallments,
+          promoCodeId,
+            currentInstallment,
+            nextInstallmentDate
+        );
+      }
+
+      // Otherwise, proceed with a regular one-time payment
+      const notchpay = new NotchPayService();
+      const network = phoneNumber.startsWith('655') ? 'orange' : 'mtn';
+
+      const result = await notchpay.initiateDirectCharge({
+        phone: phoneNumber,
+        channel:"cm.mobile",
+        currency: 'XAF',
+        amount: amount,
+        customer: {
+          email: 'default@gmail.com', // This should be user's email if available
+        },
+      });
+
+      console.log("non installment NotchPay result:", result);
+
+      // If we got an error during charge but initialization was successful
+      if (result.error && result.initResponse.transaction?.reference) {
+        // Create payment record with pending status
+        const payment = await this.createPayment(
+          numericProgramId.toString(), // Use the numeric ID we've already validated
+          phoneNumber,
+          amount,
+          result.initResponse.transaction.reference,
+          promoCodeId,
+          false // Not an installment payment
+        );
+
+        await this.setStatus(payment.id, 'pending');
+
+        return {
+          payment,
+          needsFallback: true,
+          authorizationUrl: result.initResponse.authorization_url,
+          trxReference: result.initResponse.transaction.reference
+        };
+      }
+
+      // If charge was successful
+      if (result.chargeResponse && result.initResponse.transaction?.reference) {
+        const payment = await this.createPayment(
+          numericProgramId.toString(), // Use the numeric ID we've already validated
+          phoneNumber,
+          amount,
+          result.initResponse.transaction.reference,
+          promoCodeId,
+          false // Not an installment payment
+        );
+
+
+
+        await this.setStatus(payment.id, 'initialized');
+
+        return {
+          payment,
+          needsFallback: false,
+          trxReference: result.initResponse.transaction.reference
+        };
+      }
+
+      throw new Error("Payment initialization failed");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error in direct program payment:", error.message);
+      } else {
+        console.error("Error in direct program payment:", error);
+      }
+      throw error;
+    }
+  },
+
+  async verifyPaymentStatus(reference: string, paymentId?: string) {
+    if (!reference) return;
+
+    try {
+      const notchpay = new NotchPayService();
+      const result = await notchpay.verifyTransaction(reference);
+
+      console.log("NotchPay verification result:", result);
+
+      // If we have a transaction status from NotchPay and a payment ID, update our database
+      if (result?.transaction?.status && paymentId) {
+        // Map NotchPay status to our status format if needed
+        let ourStatus = result.transaction.status;
+        if (ourStatus === "complete") {
+          ourStatus = "completed";
+        }
+
+        // Update the payment status in our database
+        await this.setStatus(paymentId, ourStatus);
+
+        // If the status is complete/completed, handle additional logic
+        if (result.transaction.status === "complete") {
+          // Get the payment to get the program_id, user_id, and installment details
+          const { data: payment, error } = await supabase
+            .from('user_program_payments')
+            .select('*')
+            .eq('id', paymentId)
+            .single();
+
+          if (error) {
+            console.error("Error fetching payment details:", error);
+          } else {
+            // If this is an installment payment, update the parent payment
+            if (payment.is_installment) {
+              // Calculate next payment due date (1 week from now)
+              let nextPaymentDueDate = null;
+              if (payment.current_installment < payment.total_installments) {
+                nextPaymentDueDate = new Date();
+                nextPaymentDueDate.setDate(nextPaymentDueDate.getDate() + 7); // Next payment due in 1 week
+
+                // Update the payment with next payment due date
+                await supabase
+                  .from('user_program_payments')
+                  .update({
+                    next_payment_due_date: nextPaymentDueDate.toISOString()
+                  })
+                  .eq('id', paymentId);
+              }
+
+              // If this payment has a parent, update the parent payment
+              if (payment.parent_payment_id) {
+                await this.updateParentPaymentAfterInstallment(paymentId);
+              }
+
+              // Only create enrollment for the first installment
+              if (payment.current_installment === 1) {
+                // Create enrollment record
+                const { error: enrollmentError } = await supabase
+                  .from('user_program_enrollments')
+                  .insert({
+                    user_id: payment.user_id,
+                    program_id: payment.program_id
+                  });
+
+                if (enrollmentError) {
+                  console.error("Error creating enrollment:", enrollmentError);
+                }
+              }
+            } else {
+              // For one-time payments, create enrollment record
+              const { error: enrollmentError } = await supabase
+                .from('user_program_enrollments')
+                .insert({
+                  user_id: payment.user_id,
+                  program_id: payment.program_id
+                });
+
+              if (enrollmentError) {
+                console.error("Error creating enrollment:", enrollmentError);
+              }
+            }
+          }
+        }
+      }
+
+      return result;
+    } catch (error) {
+      console.log("Error verifying payment status:", error);
+      console.error("Error verifying program payment status:", error);
+    }
+  },
+
+  async cancelPayment(paymentId: string, reference: string) {
+    try {
+      // First, check the current status of the payment
+      const { data: payment, error: fetchError } = await supabase
+        .from('user_program_payments')
+        .select('payment_status')
+        .eq('id', paymentId)
+        .single();
+
+      if (fetchError) {
+        console.error("Error fetching payment status:", fetchError);
+        throw fetchError;
+      }
+
+      // If payment is already canceled, don't try to update it again
+      if (payment.payment_status === "canceled") {
+        console.log("Payment already canceled, skipping update");
+        return;
+      }
+
+      // Mark as canceled in our system
+      await this.setStatus(paymentId, "canceled");
+
+      // Try to cancel with NotchPay (this might fail silently if payment already processed)
+      try {
+        // Uncomment if you want to cancel in NotchPay
+        // const notchpay = new NotchPayService();
+        // await notchpay.cancelPayment(reference);
+      } catch (e) {
+        console.log("Error cancelling payment with NotchPay:", e);
+      }
+    } catch (error) {
+      console.error("Error cancelling program payment:", error);
+      throw error;
+    }
+  }
+};

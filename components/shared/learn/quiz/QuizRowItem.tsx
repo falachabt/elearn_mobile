@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Pressable, StyleSheet, Animated, Easing } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/constants/theme';

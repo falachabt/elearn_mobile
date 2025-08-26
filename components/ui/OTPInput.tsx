@@ -10,6 +10,7 @@ import {
   TextStyle,
   Clipboard,
 } from 'react-native';
+
 import {theme} from "@/constants/theme";
 
 interface OTPInputProps {

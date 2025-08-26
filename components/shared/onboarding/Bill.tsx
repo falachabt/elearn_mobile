@@ -25,16 +25,18 @@ import {
     PixelRatio,
     KeyboardAvoidingView,
 } from "react-native";
+import * as Animatable from "react-native-animatable";
+import LottieView from "lottie-react-native";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
+
 import {theme} from "@/constants/theme";
 import {supabase} from "@/lib/supabase";
 import {usePayment} from "@/hooks/usePayment";
 import {useCart} from "@/hooks/useCart";
 import {NotchPayService} from "@/lib/notchpay";
-import * as Animatable from "react-native-animatable";
-import LottieView from "lottie-react-native";
 import {CartService} from "@/services/cart.service";
 import {useAuth} from "@/contexts/auth";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+
 
 // Get screen dimensions
 const { width, height } = Dimensions.get('window');
