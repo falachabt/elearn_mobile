@@ -11,8 +11,9 @@ import {
     FlatList
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
-import {theme} from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import {theme} from '@/constants/theme';
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {STORAGE_KEY_CUSTOM_GOALS} from "@/constants/storage-keys";
 

@@ -1,10 +1,12 @@
 // hooks/useSound.ts
 import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState, AppStateStatus } from 'react-native';
+
 import { SoundKey } from "@/types/soundType";
 import soundManager from "@/lib/soundManager";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEY_SETTINGS } from "@/constants/storage-keys";
-import { AppState, AppStateStatus } from 'react-native';
+
 
 interface SoundConfigs {
     correct: { volume: number; rate: number };

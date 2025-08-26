@@ -14,9 +14,10 @@ import {
   Dimensions
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { theme } from '@/constants/theme';
 import Modal from 'react-native-modal';
 import LottieView from 'lottie-react-native';
+
+import { theme } from '@/constants/theme';
 import { useCompetitionPayment } from '@/hooks/useCompetitionPayment';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 

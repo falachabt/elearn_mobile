@@ -1,11 +1,14 @@
 import React, { useCallback } from 'react';
 import { View, StyleSheet, FlatList, Text } from 'react-native';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import CategorySection from './CategorySection';
+
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { theme } from "@/constants/theme";
 import { CourseItem, CourseGridByCategoryProps } from '@/types/course.type';
 import { useCourseGrouping } from '@/hooks/useCourseGrouping';
-import CategorySection from './CategorySection';
+
 
 /**
  * CourseGridByCategory component displaying courses in a grid grouped by category

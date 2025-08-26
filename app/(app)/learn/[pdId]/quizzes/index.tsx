@@ -1,4 +1,5 @@
 import {View} from 'react-native';
+
 import QuizList from '@/components/QuizList';
 
 const index = () => {

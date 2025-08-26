@@ -4,11 +4,11 @@ import {
     Text,
     View,
     TouchableOpacity,
-    useColorScheme,
-    Dimensions
+    useColorScheme
 } from 'react-native';
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { theme } from "@/constants/theme";
 
 interface NoProgramProps {
@@ -24,7 +24,7 @@ const NoProgram: React.FC<NoProgramProps> = ({ onVisitCatalog }) => {
         if (onVisitCatalog) {
             onVisitCatalog();
         } else {
-            router.push("/(app)/(catalogue)/shop");
+            router.push("/(app)/learn");
         }
     };
 

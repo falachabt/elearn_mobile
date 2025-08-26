@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
+
 import { theme } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useUpdates } from '@/contexts/UpdatesContext';

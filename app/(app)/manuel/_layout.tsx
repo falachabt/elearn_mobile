@@ -1,7 +1,8 @@
 import {Stack} from "expo-router";
 import {Portal} from "@gorhom/portal";
-import FloatingChatButton from "@/components/shared/FloatingChatButton";
 import React, {useState} from "react";
+
+import FloatingChatButton from "@/components/shared/FloatingChatButton";
 import ChatFab from "@/components/shared/FloatingChatButton";
 import {useChatBox} from "@/contexts/chatBotContext";
 import NewChatBot from "@/components/shared/NewChatBot";

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import {View, useColorScheme, StyleSheet, Dimensions, Platform} from 'react-native';
+
 import {Archive} from "@/app/(app)/learn/[pdId]/anales";
 import {theme} from "@/constants/theme";
 

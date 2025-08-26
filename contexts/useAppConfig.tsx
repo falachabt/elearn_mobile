@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import useSWR from 'swr';
+
+import { supabase } from '@/lib/supabase';
 
 // Define types for app_config data
 interface GenerousWeekConfig {

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { usePathname } from 'expo-router';
+
 import { trackEvent, Events } from '@/utils/analytics';
 
 /**

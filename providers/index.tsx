@@ -1,9 +1,14 @@
-import {AuthProvider} from "@/contexts/auth";
 import {AppState, AppStateStatus, BackHandler, ToastAndroid} from "react-native";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import {SWRConfig} from "swr";
 import {useEffect, useRef, useState} from "react";
 import {useLocalSearchParams, useRouter} from "expo-router";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as amplitude from '@amplitude/analytics-react-native';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import React from 'react';
+
+import {AuthProvider} from "@/contexts/auth";
 import {QuizProvider} from "@/contexts/quizContext";
 import {UserProvider} from "@/contexts/useUserInfo";
 import {AppConfigProvider} from "@/contexts/useAppConfig";
@@ -11,12 +16,10 @@ import UserActivityTracker from "@/components/shared/UserActivity";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import AuthDeepLinkHandler from "@/components/shared/DeepLinkHandler";
 import {NotificationProvider} from "@/contexts/NotificationContext";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {ChatProvider} from "@/contexts/chatBotContext";
 import {UpdatesProvider} from "@/contexts/UpdatesContext";
 import UpdatesManager from "@/components/shared/UpdatesManager";
-import * as amplitude from '@amplitude/analytics-react-native';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+
 
 // Array of motivational messages to show when user tries to exit
 const MOTIVATIONAL_MESSAGES = [
@@ -141,7 +144,6 @@ function asyncStorageProvider() {
     };
 }
 // Separate BackHandler logic into its own component for better separation of concerns
-import React from 'react';
 
 const BackHandlerManager = React.memo(({ children }: { children: React.ReactNode }) => {
     const router = useRouter();

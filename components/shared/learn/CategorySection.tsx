@@ -1,8 +1,10 @@
 import React, { useCallback } from 'react';
 import { View, StyleSheet, FlatList, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ThemedText } from '@/components/ThemedText';
+
 import CompactCourseCard from './CourseCard';
+
+import { ThemedText } from '@/components/ThemedText';
 import { CategoryGroup, CourseItem } from '@/types/course.type';
 
 interface CategorySectionProps {

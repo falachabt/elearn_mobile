@@ -9,9 +9,10 @@ import {
     Text, Platform
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { usePathname } from 'expo-router';
 import { useSWRConfig } from 'swr';
+
+import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { theme } from '@/constants/theme';
 import {getContextElementFromCache, useChatBox} from "@/contexts/chatBotContext";
 

@@ -10,6 +10,7 @@ import {
   Linking,
 } from 'react-native';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { theme } from "@/constants/theme";
 
 // Core Types

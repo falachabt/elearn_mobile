@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Pressable, ActivityIndicator, BackHandler, useColorScheme, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { useLocalSearchParams, usePathname } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useVideoPlayer, VideoView } from 'expo-video';
+
+import { supabase } from '@/lib/supabase';
 import { ThemedText } from '@/components/ThemedText';
 import type { CourseVideos } from '@/types/type';
-import { useVideoPlayer, VideoView } from 'expo-video';
 import { VideoPlaylist } from '@/components/shared/learn/VideoPlayList';
 import { theme } from '@/constants/theme';
 import { useSound } from '@/hooks/useSound';
 import { useUser } from '@/contexts/useUserInfo';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { trackEvent, Events } from '@/utils/analytics';
+import { useCustomRouter } from "@/hooks/useCustomRouter";
+import {ActivityIndicator, Pressable, useColorScheme, View, StyleSheet} from "react-native";
+import {useCallback, useEffect, useState} from "react";
 
 // Locked Content Component
 const LockedContent = ({ 
@@ -61,7 +63,7 @@ const LockedContent = ({
 
 const VideoPlayerScreen = () => {
     const { videoId, courseId, pdId } = useLocalSearchParams();
-    const router = useRouter();
+    const router = useCustomRouter();
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
     const [isLoading, setIsLoading] = useState(true);
@@ -69,7 +71,6 @@ const VideoPlayerScreen = () => {
     const [currentVideo, setCurrentVideo] = useState<CourseVideos | null>(null);
     const [currentVideoIndex, setCurrentVideoIndex] = useState<number>(-1);
     const [error, setError] = useState<string | null>(null);
-    const [hasError, setHasError] = useState(false);
     const [isVideoDone, setIsVideoDone] = useState(false);
     const pathname = usePathname();
     const { playClick } = useSound();
@@ -82,7 +83,7 @@ const VideoPlayerScreen = () => {
     // Handle purchase flow
     const handlePurchaseFlow = () => {
         trigger(HapticType.SELECTION);
-        router.push(`/(app)/(catalogue)/shop`);
+        router.navigateToShop(String(pdId));
     };
 
     const videoSource = currentVideo ? `https://stream.mux.com/${currentVideo.mux_playback_id}.m3u8` : '';
@@ -148,7 +149,7 @@ const VideoPlayerScreen = () => {
     });
 
     // Helper function to track video progress
-    const trackVideoProgress = (progressPercent) => {
+    const trackVideoProgress = (progressPercent: number) => {
         if (currentVideo) {
             trackEvent(Events.VIDEO_PROGRESS, {
                 video_id: currentVideo.id,
@@ -295,11 +296,11 @@ const VideoPlayerScreen = () => {
                     />
                 </View>
 
-                {hasError && (
-                    <ThemedText style={styles.errorText}>
-                        An error occurred while loading the video
-                    </ThemedText>
-                )}
+                {/*{hasError && (*/}
+                {/*    <ThemedText style={styles.errorText}>*/}
+                {/*        An error occurred while loading the video*/}
+                {/*    </ThemedText>*/}
+                {/*)}*/}
 
 
             </View>

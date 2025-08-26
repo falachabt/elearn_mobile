@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, useColorScheme, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { theme } from '@/constants/theme';
 import LottieView from 'lottie-react-native';
 import * as Animatable from 'react-native-animatable';
+
+import { theme } from '@/constants/theme';
 
 export default function PaymentFailedCallback() {
     const router = useRouter();

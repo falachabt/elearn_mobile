@@ -4,8 +4,9 @@ import { WebView } from 'react-native-webview';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { theme } from '@/constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { theme } from '@/constants/theme';
 
 // URL fixe pour les CGU
 const CGU_URL = 'https://elearn.ezadrive.com/en/privacy';

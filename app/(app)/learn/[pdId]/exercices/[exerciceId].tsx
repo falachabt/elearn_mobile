@@ -1,4 +1,3 @@
-import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -8,37 +7,41 @@ import {
     useColorScheme,
     Platform
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { supabase } from "@/lib/supabase";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { theme } from "@/constants/theme";
-import { useAuth } from "@/contexts/auth";
-import { HapticType, useHaptics } from "@/hooks/useHaptics";
-import { useSound } from "@/hooks/useSound";
-import { useUser } from "@/contexts/useUserInfo";
-import { trackEvent, Events } from '@/utils/analytics';
+import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {useLocalSearchParams} from "expo-router";
 import useSWR from "swr";
 import WebView from "react-native-webview"; // Ensure this is imported for mobile
+import {useCallback, useEffect, useState} from "react";
+
+import {supabase} from "@/lib/supabase";
+import {theme} from "@/constants/theme";
+import {useAuth} from "@/contexts/auth";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
+import {useSound} from "@/hooks/useSound";
+import {useUser} from "@/contexts/useUserInfo";
+import {trackEvent, Events} from '@/utils/analytics';
+import {useCustomRouter} from "@/hooks/useCustomRouter";
+
 
 const ExercisePage = () => {
-    const { exerciceId, pdId } = useLocalSearchParams();
-    const router = useRouter();
+    const {exerciceId, pdId} = useLocalSearchParams();
+    const router = useCustomRouter();
     const scheme = useColorScheme();
     const isDark = scheme === "dark";
-    const { trigger } = useHaptics();
-    const { playNextLesson, playCorrect } = useSound();
-    const { isLearningPathEnrolled } = useUser();
+    const {trigger} = useHaptics();
+    const {playNextLesson, playCorrect} = useSound();
+    const {isLearningPathEnrolled} = useUser();
 
     // Check if user is enrolled in this program
     const isEnrolled = isLearningPathEnrolled(String(pdId));
     const [isCorrection, setIsCorrection] = useState(false);
     const [correctionLoading, setCorrectionLoading] = useState(true);
     const [contentLoading, setContentLoading] = useState(true);
-    const { session, user } = useAuth();
+    const {session, user} = useAuth();
 
     // Fetcher for exercise data
     const exerciseFetcher = useCallback(async () => {
-        const { data, error } = await supabase
+        const {data, error} = await supabase
             .from("exercices")
             .select(`
                 *,
@@ -60,16 +63,16 @@ const ExercisePage = () => {
 
     // Fetcher for pin state
     const pinFetcher = useCallback(async () => {
-        if (!user?.id) return { is_pinned: false };
+        if (!user?.id) return {is_pinned: false};
 
-        const { data, error } = await supabase
+        const {data, error} = await supabase
             .from("exercices_pin")
             .select("is_pinned")
             .eq("exercice_id", exerciceId)
             .eq("user_id", user.id)
             .single();
 
-        if (error && error.code === "PGRST116") return { is_pinned: false };
+        if (error && error.code === "PGRST116") return {is_pinned: false};
         if (error) throw error;
 
         return data;
@@ -77,16 +80,16 @@ const ExercisePage = () => {
 
     // Fetcher for completion state
     const completeFetcher = useCallback(async () => {
-        if (!user?.id) return { is_completed: false };
+        if (!user?.id) return {is_completed: false};
 
-        const { data, error } = await supabase
+        const {data, error} = await supabase
             .from("exercices_complete")
             .select("is_completed")
             .eq("exercice_id", exerciceId)
             .eq("user_id", user.id)
             .single();
 
-        if (error && error.code === "PGRST116") return { is_completed: false };
+        if (error && error.code === "PGRST116") return {is_completed: false};
         if (error) throw error;
 
         return data;
@@ -96,7 +99,7 @@ const ExercisePage = () => {
     const nextExerciseFetcher = useCallback(async () => {
         if (!exerciceId) return null;
 
-        const { data: currentExercise } = await supabase
+        const {data: currentExercise} = await supabase
             .from("exercices")
             .select(`course_id, created_at`)
             .eq("id", exerciceId)
@@ -104,12 +107,12 @@ const ExercisePage = () => {
 
         if (!currentExercise) return null;
 
-        const { data: nextExo } = await supabase
+        const {data: nextExo} = await supabase
             .from("exercices")
             .select("id")
             .eq("course_id", currentExercise?.course_id)
             .neq("id", exerciceId)
-            .order('created_at', { ascending: true })
+            .order('created_at', {ascending: true})
             .gt("created_at", currentExercise?.created_at)
             .limit(1)
             .single();
@@ -121,7 +124,7 @@ const ExercisePage = () => {
     const previousExerciseFetcher = useCallback(async () => {
         if (!exerciceId) return null;
 
-        const { data: currentExercise } = await supabase
+        const {data: currentExercise} = await supabase
             .from("exercices")
             .select(`course_id, created_at`)
             .eq("id", exerciceId)
@@ -129,12 +132,12 @@ const ExercisePage = () => {
 
         if (!currentExercise) return null;
 
-        const { data: previousExo } = await supabase
+        const {data: previousExo} = await supabase
             .from("exercices")
             .select("id")
             .eq("course_id", currentExercise?.course_id)
             .neq("id", exerciceId)
-            .order('created_at', { ascending: false })
+            .order('created_at', {ascending: false})
             .lt("created_at", currentExercise?.created_at)
             .limit(1)
             .single();
@@ -142,19 +145,19 @@ const ExercisePage = () => {
         return previousExo?.id || null;
     }, [exerciceId]);
 
-    const { data: exercise, error: exerciseError, isLoading: exerciseLoading } =
+    const {data: exercise, error: exerciseError, isLoading: exerciseLoading} =
         useSWR(`exercise-${exerciceId}`, exerciseFetcher);
 
-    const { data: pinData, mutate: mutatePinData } =
+    const {data: pinData, mutate: mutatePinData} =
         useSWR(`exercise-pin-${exerciceId}-${user?.id}`, pinFetcher);
 
-    const { data: completeData, mutate: mutateCompleteData } =
+    const {data: completeData, mutate: mutateCompleteData} =
         useSWR(`exercise-complete-${exerciceId}-${user?.id}`, completeFetcher);
 
-    const { data: nextExerciseId } =
+    const {data: nextExerciseId} =
         useSWR(`next-exercise-${exerciceId}`, nextExerciseFetcher);
 
-    const { data: previousExerciseId } =
+    const {data: previousExerciseId} =
         useSWR(`previous-exercise-${exerciceId}`, previousExerciseFetcher);
 
     const isPinned = pinData?.is_pinned || false;
@@ -175,7 +178,7 @@ const ExercisePage = () => {
 
     const handleToggleComplete = async () => {
         const newCompletionState = !isCompleted;
-        mutateCompleteData({ is_completed: newCompletionState }, false);
+        mutateCompleteData({is_completed: newCompletionState}, false);
         trigger(HapticType.SUCCESS);
 
         if (newCompletionState) {
@@ -196,45 +199,45 @@ const ExercisePage = () => {
         try {
             await supabase
                 .from("exercices_complete")
-                // @ts-ignore
+                // @ts-expect-error
                 .upsert(
                     {
                         user_id: user?.id,
                         exercice_id: String(exerciceId),
                         is_completed: newCompletionState,
                     },
-                    { onConflict: ["user_id", "exercice_id"] }
+                    {onConflict: ["user_id", "exercice_id"]}
                 );
 
             mutateCompleteData();
         } catch (error) {
             console.error("Error updating completion state:", error);
-            mutateCompleteData({ is_completed: isCompleted }, false);
+            mutateCompleteData({is_completed: isCompleted}, false);
         }
     };
 
     const handleTogglePin = async () => {
         const newPinState = !isPinned;
-        mutatePinData({ is_pinned: newPinState }, false);
+        mutatePinData({is_pinned: newPinState}, false);
         trigger(HapticType.SUCCESS);
 
         try {
             await supabase
                 .from("exercices_pin")
-            // @ts-ignore
+                // @ts-expect-error
                 .upsert(
                     {
                         user_id: user?.id,
                         exercice_id: exerciceId,
                         is_pinned: newPinState,
                     },
-                    { onConflict: ["user_id", "exercice_id"] }
+                    {onConflict: ["user_id", "exercice_id"]}
                 );
 
             mutatePinData();
         } catch (error) {
             console.error("Error updating pin state:", error);
-            mutatePinData({ is_pinned: isPinned }, false);
+            mutatePinData({is_pinned: isPinned}, false);
         }
     };
 
@@ -291,8 +294,8 @@ const ExercisePage = () => {
 
                     // Inject dark mode style
                     const darkModeStyle = document.createElement('style');
-                    darkModeStyle.textContent = \`
-                        body { 
+                    darkModeStyle.textContent = 
+                        "body { 
                             background-color: #0F172A;
                             color: #FFFFFF;
                         }
@@ -311,7 +314,8 @@ const ExercisePage = () => {
                             background-color: #0F172A;
                             color: #FFFFFF;
                         }
-                    \`;
+                        ";
+                    
                     document.head.appendChild(darkModeStyle);
                 }
             }
@@ -363,7 +367,7 @@ const ExercisePage = () => {
     if (exerciseLoading) {
         return (
             <View style={[styles.container, styles.centered]}>
-                <ActivityIndicator size="large" color={theme.color.primary[500]} />
+                <ActivityIndicator size="large" color={theme.color.primary[500]}/>
             </View>
         );
     }
@@ -393,7 +397,7 @@ const ExercisePage = () => {
                 </TouchableOpacity>
                 <View style={styles.headerTitleContainer}>
                     <Text style={[styles.courseName, isDark && styles.textDark]} numberOfLines={2}>
-                        {exercise.title}
+                        {exercise.name}
                     </Text>
                     <View style={styles.metaContainer}>
                         <Text style={[styles.categoryName, isDark && styles.textDark]} numberOfLines={2}>
@@ -455,7 +459,7 @@ const ExercisePage = () => {
                         {/* Loading indicators for web */}
                         {(contentLoading || correctionLoading) && (
                             <View style={[styles.loadingContainer, isDark && styles.loadingContainerDark]}>
-                                <ActivityIndicator size="large" color={theme.color.primary[500]} />
+                                <ActivityIndicator size="large" color={theme.color.primary[500]}/>
                                 <Text style={[styles.loadingText, isDark && styles.textDark]}>
                                     {isCorrection ? "Chargement de la correction..." : "Chargement de l'exercice..."}
                                 </Text>
@@ -504,7 +508,7 @@ const ExercisePage = () => {
                         {/* Loading indicators for mobile */}
                         {(contentLoading || correctionLoading) && (
                             <View style={[styles.loadingContainer, isDark && styles.loadingContainerDark]}>
-                                <ActivityIndicator size="large" color={theme.color.primary[500]} />
+                                <ActivityIndicator size="large" color={theme.color.primary[500]}/>
                                 <Text style={[styles.loadingText, isDark && styles.textDark]}>
                                     {isCorrection ? "Chargement de la correction..." : "Chargement de l'exercice..."}
                                 </Text>
@@ -566,10 +570,10 @@ const ExercisePage = () => {
                 {/* Only show navigation buttons if user is enrolled */}
                 {isEnrolled && previousExerciseId && (
                     <TouchableOpacity
-                        style={[styles.nextButton, { marginRight: 8 }]}
+                        style={[styles.nextButton, {marginRight: 8}]}
                         onPress={handlePreviousExercise}
                     >
-                        <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
+                        <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF"/>
                     </TouchableOpacity>
                 )}
 
@@ -577,10 +581,10 @@ const ExercisePage = () => {
                     style={[
                         styles.correctionButton,
                         !exercise.correction && styles.disabledButton,
-                        !isEnrolled && { flex: 1 }, // Take full width if not enrolled
+                        !isEnrolled && {flex: 1}, // Take full width if not enrolled
                     ]}
                     onPress={toggleCorrection}
-                    disabled={!exercise.correction || (correctionLoading && contentLoading)}
+                    disabled={!exercise.correction || correctionLoading || contentLoading}
                 >
                     <Text style={[styles.correctionButtonText, isDark && styles.textDark]}>
                         {isCorrection ? "Voir l'exercice" : "Voir la correction"}
@@ -592,17 +596,17 @@ const ExercisePage = () => {
                         style={styles.nextButton}
                         onPress={handleNextExercise}
                     >
-                        <MaterialCommunityIcons name="arrow-right" size={24} color="#FFFFFF" />
+                        <MaterialCommunityIcons name="arrow-right" size={24} color="#FFFFFF"/>
                     </TouchableOpacity>
                 )}
 
                 {/* Show purchase button if not enrolled */}
                 {!isEnrolled && (
                     <TouchableOpacity
-                        style={[styles.nextButton, { backgroundColor: '#F59E0B' }]}
-                        onPress={() => router.push({ pathname :  `/(app)/(catalogue)/shop`, params : { selectedProgramId: pdId } })}
+                        style={[styles.nextButton, {backgroundColor: '#F59E0B'}]}
+                        onPress={() => router.navigateToShop(pdId)}
                     >
-                        <MaterialCommunityIcons name="cart" size={24} color="#FFFFFF" />
+                        <MaterialCommunityIcons name="cart" size={24} color="#FFFFFF"/>
                     </TouchableOpacity>
                 )}
             </View>
@@ -775,3 +779,4 @@ const styles = StyleSheet.create({
 });
 
 export default ExercisePage;
+

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
+
 import { CartService } from '@/services/cart.service';
 import { CartItems, Carts } from '@/types/type';
 import { supabase } from '@/lib/supabase';

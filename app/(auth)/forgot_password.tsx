@@ -14,13 +14,14 @@ import {
     useColorScheme,
     View,
 } from "react-native";
-
-import {theme} from "@/constants/theme";
-import {supabase} from "@/lib/supabase";
 import {StatusBar} from "expo-status-bar";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import OTPInput from "../../components/ui/OTPInput";
 import {useSearchParams} from "expo-router/build/hooks";
+
+import OTPInput from "../../components/ui/OTPInput";
+
+import {supabase} from "@/lib/supabase";
+import {theme} from "@/constants/theme";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

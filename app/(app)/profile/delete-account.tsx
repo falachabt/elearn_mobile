@@ -14,11 +14,13 @@ import {
 } from 'react-native';
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import axios from "axios";
+
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';
-import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { supabase } from "@/lib/supabase";
-import axios from "axios";
+
 
 // Define confirmation types to fix TypeScript errors
 type ConfirmationKey = 'loseData' | 'cannotRecover' | 'confirmFinal';

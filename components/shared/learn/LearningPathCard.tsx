@@ -11,10 +11,6 @@ import {
 } from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import {MaterialCommunityIcons, Ionicons} from '@expo/vector-icons';
-import {theme} from '@/constants/theme';
-import {useAuth} from '@/contexts/auth';
-import {useProgramProgress} from "@/hooks/useProgramProgress";
-import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useRouter} from 'expo-router';
 import Animated, {
     useSharedValue,
@@ -23,6 +19,11 @@ import Animated, {
     interpolate,
     Extrapolate
 } from 'react-native-reanimated';
+
+import {theme} from '@/constants/theme';
+import {useAuth} from '@/contexts/auth';
+import {useProgramProgress} from "@/hooks/useProgramProgress";
+import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {LearningPath} from "@/app/(app)/learn";
 
 const {width} = Dimensions.get('window');
@@ -30,6 +31,7 @@ const {width} = Dimensions.get('window');
 const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPath, previewMode?: boolean }) => {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
+
     const isEnrolled = path.enrollmentId || false
     const isGenerousWeek = path.isGenerousWeek || false;
     const {user} = useAuth();
@@ -67,7 +69,7 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
 
     const handleShopPress = () => {
         trigger(HapticType.MEDIUM);
-        router.push(`/(app)/(catalogue)/shop`);
+        router.push(`/(app)/learn/${path.id}/payment`);
     };
 
     const handleLongPress = () => {
@@ -83,7 +85,7 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
                     },
                     {
                         text: "Voir l'offre",
-                        onPress: () => router.push(`/(app)/(catalogue)/shop`),
+                        onPress: () => router.push(`/(app)/learn/${path.id}/payment`),
                     },
                     {
                         text: "Annuler",

@@ -1,9 +1,10 @@
-import { useAuth } from '@/contexts/auth'
 import { Stack, usePathname } from 'expo-router'
 import { Redirect } from 'expo-router'
 import React, { useState, useEffect } from 'react';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { View } from 'react-native';
+
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { useAuth } from '@/contexts/auth'
 import { theme } from '@/constants/theme';
 import { LoadingAnimation } from "@/components/shared/LoadingAnimation1";
 

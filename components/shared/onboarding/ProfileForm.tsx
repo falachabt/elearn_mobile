@@ -1,9 +1,11 @@
 import React from "react";
 import { View, Text, TextInput, ScrollView, StyleSheet, useColorScheme } from "react-native";
-import { theme } from "@/constants/theme";
 import * as Animatable from "react-native-animatable";
+
 import SubjectSelector from "./SubjectSelector";
 import LearningStyleSelector from "./LearningStyleSelector";
+
+import { theme } from "@/constants/theme";
 
 // Matching the accounts table schema
 export interface Profile {

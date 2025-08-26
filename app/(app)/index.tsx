@@ -1,9 +1,11 @@
 import React, {useEffect} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, useColorScheme} from 'react-native';
-import TopBar from '@/components/TopBar';
-import {theme} from '@/constants/theme';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {Link, useRouter} from 'expo-router';
+import Head from "expo-router/head";
+
+import TopBar from '@/components/TopBar';
+import {theme} from '@/constants/theme';
 import {useAuth} from '@/contexts/auth';
 import {useUser} from '@/contexts/useUserInfo';
 import {useAppConfig} from '@/contexts/useAppConfig';
@@ -14,7 +16,6 @@ import {checkAndUpdateNotifications} from "@/utils/notification-utils";
 import CustomizableGoals from "@/components/CustimizableHomeScreenGoals";
 import GeminiChatbot from "@/components/shared/GeminiChatBot";
 import JustificationGenerator from "@/components/GQ";
-import Head from "expo-router/head";
 import NewsSection from '@/components/shared/news/NewsSection';
 import newsCard, { NewsCardProps } from '@/components/shared/news/NewsCard';
 import GenerousWeekCard from '@/components/shared/news/GenerousWeekCard';

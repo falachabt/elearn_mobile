@@ -1,7 +1,8 @@
 // useStorage.ts
 import { useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import useSWR, { useSWRConfig } from 'swr';
+
+import { supabase } from '@/lib/supabase';
 
 interface UseStorageOptions {
     bucket: string;

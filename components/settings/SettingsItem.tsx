@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Switch, Pressable, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import { theme } from '@/constants/theme';
 import { MaterialIconName } from '@/constants/iconNames';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';

@@ -1,12 +1,14 @@
 // contexts/QuizContext.tsx
 import React, {createContext, useContext, useReducer, useEffect, useRef} from 'react';
+import {Alert} from 'react-native';
+import {useGlobalSearchParams, useLocalSearchParams, useRouter} from "expo-router";
+import useSWR from "swr";
+
 import {useQuizQuestions, useQuizAttempt, Attempt} from '@/hooks/useQuiz';
 import {QuizAttempt, QuizOption, QuizProgress, QuizQuestion, QuizResults} from '@/types/quiz.type';
-import {Alert} from 'react-native';
 import {QuizService} from '@/services/quiz.service';
-import {useGlobalSearchParams, useLocalSearchParams, useRouter} from "expo-router";
 import {Quiz} from "@/types/type";
-import useSWR from "swr";
+
 
 type QuizAction =
     | { type: 'SELECT_ANSWER'; payload: string }

@@ -1,8 +1,9 @@
 import React from "react";
 import {Image, Pressable, StyleSheet, View} from "react-native";
-import {ThemedText} from "@/components/ThemedText";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useRouter} from "expo-router";
+
+import {ThemedText} from "@/components/ThemedText";
 import {theme} from "@/constants/theme";
 import {useCourseProgress} from "@/hooks/useCourseProgress";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";

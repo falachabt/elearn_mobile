@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {View, useColorScheme, StyleSheet, Dimensions, Platform} from 'react-native';
 import Pdf from 'react-native-pdf';
+import * as ScreenCapture from 'expo-screen-capture';
+
 import {Archive} from "@/app/(app)/learn/[pdId]/anales";
 import {theme} from "@/constants/theme";
-import * as ScreenCapture from 'expo-screen-capture';
 export interface FileViewerProps {
     file: Archive;
     style?: object;

@@ -1,7 +1,6 @@
 import React, {useEffect, useState, useCallback} from "react";
 import {Redirect, router, Tabs, useNavigation} from "expo-router";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useAuth} from "@/contexts/auth";
 import {
     AccessibilityState,
     GestureResponderEvent,
@@ -11,13 +10,15 @@ import {
     View,
     Text,
 } from "react-native";
-import {theme} from "@/constants/theme";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {useSWRConfig} from "swr";
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+
+import {useAuth} from "@/contexts/auth";
+import {theme} from "@/constants/theme";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useColorScheme} from '@/hooks/useColorScheme';
 import {LoadingAnimation} from "@/components/shared/LoadingAnimation1";
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import RatingModal from '@/components/RatingModal';
 
 export default function AppLayout() {

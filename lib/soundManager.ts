@@ -2,6 +2,7 @@
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { Asset } from 'expo-asset';
 import { Platform } from 'react-native';
+
 import type { SoundKey, SoundConfig, SoundItem } from '@/types/soundType';
 import { SOUND_ASSETS } from "@/constants/songs";
 

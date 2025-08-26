@@ -12,6 +12,12 @@ import {
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {SchedulableTriggerInputTypes} from 'expo-notifications';
+import * as Device from 'expo-device';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
+
 import {theme} from '@/constants/theme';
 import {useAuth} from '@/contexts/auth';
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
@@ -19,16 +25,12 @@ import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
 import {registerForPushNotificationsAsync} from "@/components/TestNotifications";
 import {useColorScheme} from '@/hooks/useColorScheme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {SchedulableTriggerInputTypes} from 'expo-notifications';
 import reminderMessages from "@/constants/reminderMessages";
-import * as Device from 'expo-device';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { IconNames } from '@/constants/iconNames';
 import { ReminderDays, AppSettings } from '@/types/settings.type';
 import SettingsItem from '@/components/settings/SettingsItem';
 import ReminderModal from '@/components/settings/ReminderModal';
-import { useRouter } from 'expo-router';
+
 
 // TODO: check the notification udpates and the last update
 

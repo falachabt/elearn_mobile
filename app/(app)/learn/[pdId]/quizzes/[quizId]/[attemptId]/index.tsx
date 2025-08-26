@@ -14,6 +14,8 @@ import {
 } from "react-native";
 import {useRouter, useLocalSearchParams} from "expo-router";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
+import Katex from 'react-native-katex';
+
 import {ThemedText} from "@/components/ThemedText";
 import {useColorScheme} from "@/hooks/useColorScheme";
 import {theme} from "@/constants/theme";
@@ -27,7 +29,6 @@ import {useAuth} from "@/contexts/auth";
 import QuizResultsDisplay from "@/components/shared/learn/quiz/QuizResultDisplay";
 import BlockNoteContent from "@/components/shared/BlockNoteContent";
 import ExerciseInstructionsDrawer from "@/components/shared/learn/quiz/ExerciseInstructionsDrawer";
-import Katex from 'react-native-katex';
 import MathLiveTextRenderer from "@/components/shared/learn/quiz/MathLiveTextRender";
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
@@ -84,7 +85,7 @@ const MixedContentRenderer = memo(({
     // Hooks are now always called, regardless of conditions
     const convertToLatexExpression = useCallback((mixedText: string) => {
         const tempMarker = "___DOLLAR___";
-        let processedText = mixedText.replace(/\\\$/g, tempMarker);
+        const processedText = mixedText.replace(/\\\$/g, tempMarker);
 
         const segments = processedText.split(/(\$\$[^$]+\$\$)/g);
 

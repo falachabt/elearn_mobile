@@ -1,8 +1,9 @@
-import {Ticket, useTickets} from "@/hooks/useTicketList";
 import {ActivityIndicator, FlatList, TouchableOpacity, useColorScheme, View, StyleSheet, Platform, Text} from "react-native";
-import {theme} from "@/constants/theme";
 import {useRouter} from "expo-router";
 import {MaterialIcons} from "@expo/vector-icons";
+
+import {theme} from "@/constants/theme";
+import {Ticket, useTickets} from "@/hooks/useTicketList";
 
 const TicketsList = () => {
     const { tickets, loading, error } = useTickets();

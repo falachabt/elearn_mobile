@@ -3,6 +3,7 @@ import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, useColorScheme, Platform} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
+
 import {theme} from '@/constants/theme';
 import {Archive} from '@/app/(app)/learn/[pdId]/anales';
 

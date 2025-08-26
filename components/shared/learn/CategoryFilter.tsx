@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, ScrollView, Pressable, Image} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+
 import {useColorScheme} from '@/hooks/useColorScheme';
 import {HapticType, useHaptics} from '@/hooks/useHaptics';
 import {theme} from '@/constants/theme';

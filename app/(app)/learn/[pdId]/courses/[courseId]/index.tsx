@@ -1,9 +1,10 @@
 import {ActivityIndicator, Pressable, ScrollView, StyleSheet, View,} from "react-native";
 import React, {useState, useEffect} from "react";
-import {ThemedText} from "@/components/ThemedText";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useLocalSearchParams, useRouter} from "expo-router";
+import {useLocalSearchParams} from "expo-router";
 import useSWR from "swr";
+
+import {ThemedText} from "@/components/ThemedText";
 import {supabase} from "@/lib/supabase";
 import {theme} from "@/constants/theme";
 import {useCourseProgress} from "@/hooks/useCourseProgress";
@@ -12,6 +13,7 @@ import {useColorScheme} from "@/hooks/useColorScheme";
 import {useAuth} from "@/contexts/auth";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useUser} from "@/contexts/useUserInfo";
+import {useCustomRouter} from "@/hooks/useCustomRouter";
 
 interface Course extends Courses {
     course_category: CoursesCategories;
@@ -59,13 +61,13 @@ const EmptyState = ({type, isDark}: { type: ViewType; isDark: boolean; }) => {
 };
 
 const CourseDetail = () => {
-    const router = useRouter();
+    const router = useCustomRouter();
     const {courseId, pdId} = useLocalSearchParams();
     const [selectedView, setSelectedView] = useState<ViewType>("content");
     const {sectionsProgress} = useCourseProgress(Number(courseId));
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
-    const {user, session} = useAuth();
+    const {user} = useAuth();
     const { trigger } = useHaptics();
 
     // Check if user is enrolled in this program
@@ -83,16 +85,11 @@ const CourseDetail = () => {
     // Handle purchase or enrollment flow
     const handlePurchaseFlow = () => {
         trigger(HapticType.SELECTION);
-        router.push({
-            pathname : `/(app)/(catalogue)/shop`,
-            params : {
-                selectedProgramId : pdId,
-            }
-        });
+        router.navigateToShop(pdId);
     };
 
     // Handle locked content access attempts
-    const handleLockedContentAccess = (contentType: string) => {
+    const handleLockedContentAccess = () => {
         trigger(HapticType.NOTIFICATION_ERROR);
         // Show alert or navigate to purchase
         // Alert.alert(
@@ -145,25 +142,25 @@ const CourseDetail = () => {
         return data;
     });
 
-    const {data: quizzes, mutate: mutateQuiz} = useSWR(
+    const {data: quizzes} = useSWR(
         courseId ? `quizzes-${courseId}` : null,
         async () => {
-            const {data, error} = await supabase
+            const {data} = await supabase
                 .from("quiz_courses")
                 .select("quiz(id, name  , questions:quiz_questions(id))")
                 .eq("courseId", courseId)
-            return data?.map((d: any) => d.quiz);
+            return data?.map((d: {quiz: unknown}) => d.quiz);
         }
     );
 
     const {data: quizProgress} = useSWR(
         user ? [`quiz-progress-${user.id}`, courseId, quizzes] : null,
-        async (key: any, courseId: any) => {
-            const {data, error} = await supabase
+        async () => {
+            const {data} = await supabase
                 .from("quiz_attempts")
                 .select("id, status, score, quiz_id")
                 .eq("user_id", user?.id)
-                .in("quiz_id", quizzes?.map((q: any) => q.id) || [])
+                .in("quiz_id", quizzes?.map((q: {id: number}) => q.id) || [])
             return data;
         }
     )
@@ -235,7 +232,7 @@ const CourseDetail = () => {
                     return <EmptyState type="content" isDark={isDark}/>;
                 }
 
-                // In preview mode, only show the first 2 sections
+                // En mode aperçu, afficher uniquement la première section
                 const visibleSections = isPreviewMode ? sections.slice(0, 1) : sections;
 
                 const sectionItems = visibleSections.map((section, index) => {
@@ -249,8 +246,8 @@ const CourseDetail = () => {
                             key={section.id}
                             style={[styles.contentItem, isDark && styles.contentItemDark]}
                             onPress={() => {
-                                if (isPreviewMode && index >= 2) {
-                                    handleLockedContentAccess("section");
+                                if (isPreviewMode && index >= 1) {
+                                    handleLockedContentAccess();
                                     return;
                                 }
                                 trigger(HapticType.SELECTION);
@@ -306,7 +303,7 @@ const CourseDetail = () => {
                     );
                 });
 
-                // Add purchase banner if in preview mode
+                // Bannière d'achat si mode aperçu et plus d'une section
                 if (isPreviewMode && sections.length > 1) {
                     return (
                         <>
@@ -345,8 +342,8 @@ const CourseDetail = () => {
                     return <EmptyState type="videos" isDark={isDark}/>;
                 }
 
-                // In preview mode, only show the first video
-                const visibleVideos = isPreviewMode ? videos.slice(0, 0) : videos;
+                // En mode aperçu, afficher uniquement la première vidéo
+                const visibleVideos = isPreviewMode ? videos.slice(0, 1) : videos;
 
                 const videoItems = visibleVideos.map((video, index) => (
                     <Pressable
@@ -354,7 +351,7 @@ const CourseDetail = () => {
                         style={[styles.videoItem, isDark && styles.videoItemDark]}
                         onPress={() => {
                             if (isPreviewMode && index >= 1) {
-                                handleLockedContentAccess("vidéo");
+                                handleLockedContentAccess();
                                 return;
                             }
                             trigger(HapticType.SELECTION);
@@ -398,8 +395,8 @@ const CourseDetail = () => {
                     </Pressable>
                 ));
 
-                // Add purchase banner if in preview mode
-                if (isPreviewMode && videos.length > 0) {
+                // Bannière d'achat si mode aperçu et plus d'une vidéo
+                if (isPreviewMode && videos.length > 1) {
                     return (
                         <>
                             {videoItems}
@@ -411,7 +408,7 @@ const CourseDetail = () => {
                                 />
                                 <View style={styles.previewBannerTextContainer}>
                                     <ThemedText style={[styles.previewBannerTitle, isDark && styles.previewBannerTitleDark]}>
-                                        Accédez à {videos.length} vidéos
+                                        Accédez à {videos.length - 1} vidéos supplémentaires
                                     </ThemedText>
                                     <ThemedText style={styles.previewBannerDescription}>
                                         Achetez ce programme pour débloquer toutes les vidéos
@@ -437,16 +434,16 @@ const CourseDetail = () => {
                     return <EmptyState type="quizzes" isDark={isDark}/>;
                 }
 
-                // In preview mode, only show the first two quizzes
-                const visibleQuizzes = isPreviewMode ? quizzes.slice(0, 0) : quizzes;
+                // En mode aperçu, afficher uniquement le premier quiz
+                const visibleQuizzes = isPreviewMode ? quizzes.slice(0, 1) : quizzes;
 
                 const quizItems = visibleQuizzes.map((quiz, index) => quiz?.id && (
                     <Pressable
                         key={quiz.id + index}
                         style={[styles.quizItem, isDark && styles.quizItemDark]}
                         onPress={() => {
-                            if (isPreviewMode && index >= 2) {
-                                handleLockedContentAccess("quiz");
+                            if (isPreviewMode && index >= 1) {
+                                handleLockedContentAccess();
                                 return;
                             }
                             trigger(HapticType.SELECTION);
@@ -521,8 +518,8 @@ const CourseDetail = () => {
                     </Pressable>
                 ));
 
-                // Add purchase banner if in preview mode
-                if (isPreviewMode && quizzes.length > 0) {
+                // Bannière d'achat si mode aperçu et plus d'un quiz
+                if (isPreviewMode && quizzes.length > 1) {
                     return (
                         <>
                             {quizItems}
@@ -534,7 +531,7 @@ const CourseDetail = () => {
                                 />
                                 <View style={styles.previewBannerTextContainer}>
                                     <ThemedText style={[styles.previewBannerTitle, isDark && styles.previewBannerTitleDark]}>
-                                        Accédez à {quizzes.length} quiz
+                                        Accédez à {quizzes.length - 1} quiz supplémentaires
                                     </ThemedText>
                                     <ThemedText style={styles.previewBannerDescription}>
                                         Achetez ce programme pour débloquer tous les quiz

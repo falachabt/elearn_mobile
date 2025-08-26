@@ -10,15 +10,17 @@ import {
   useColorScheme,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { supabase } from "@/lib/supabase";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { theme } from "@/constants/theme";
+import useSWR from "swr";
+
+import { useCustomRouter } from "@/hooks/useCustomRouter";
 import { useFileDownload } from "@/hooks/useFileDownload";
 import { ArchiveCard } from "@/components/ArchiveCard";
 import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
-import useSWR from "swr";
 import { useUser } from "@/contexts/useUserInfo";
+import {supabase} from "@/lib/supabase";
+import {useLocalSearchParams} from "expo-router";
+import {theme} from "@/constants/theme";
 
 export interface Archive {
   id: string;
@@ -76,7 +78,7 @@ const fetchPathData = async (url: string): Promise<PathData> => {
   return {
     concourId: data.concourId,
     concours: {
-  // @ts-ignore
+  // @ts-expect-error - concours is not always present
       name: data.concours?.name || ""
     }
   };
@@ -120,7 +122,7 @@ const fetchArchivesData = async (url: string): Promise<Archive[]> => {
 
 export const ArchivesList = () => {
   const { pdId } = useLocalSearchParams<{ pdId: string }>();
-  const router = useRouter();
+  const router = useCustomRouter();
   const { trigger } = useHaptics();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -144,22 +146,17 @@ export const ArchivesList = () => {
   // Handle purchase flow - memoized with useCallback
   const handlePurchaseFlow = useCallback(() => {
     trigger(HapticType.SELECTION);
-    router.push({
-      pathname : `/(app)/(catalogue)/shop`,
-      params : {
-        selectedProgramId : pdId,
-      }
-    });
+    router.navigateToShop(pdId)
   }, [trigger, router, pdId]);
 
   // Use SWR to fetch path data with dedicated fetcher
-  const { data: pathData, error: pathError } = useSWR<PathData>(
+  const { data: pathData } = useSWR<PathData>(
       pdId ? `/path/${pdId}` : null,
       fetchPathData
   );
 
   // Use SWR to fetch archives data when pathData is available with dedicated fetcher
-  const { data: archivesData, error: archivesError } = useSWR<Archive[]>(
+  const { data: archivesData } = useSWR<Archive[]>(
       pathData?.concourId ? `/archives/${pathData.concourId}` : null,
       fetchArchivesData
   );
@@ -415,22 +412,17 @@ export const ArchivesList = () => {
 
     // If in preview mode, only show the first 2 archives
     if (isPreviewMode) {
-      // Check if user is in generous week
-      const isGenerousWeek = user?.metadata?.generousWeek && 
-                            typeof user.metadata.generousWeek === 'object' &&
-                            user.metadata.generousWeek !== null;
-
       // During generous week or regular preview mode, don't show any archives
       // Old subjects remain exclusive to premium subscribers
       filteredArchives = filteredArchives.slice(0, 0);
     }
 
     return filteredArchives;
-  }, [archives, searchQuery, selectedCategory, filterType, isPreviewMode, user?.metadata?.generousWeek]);
+  }, [archives, searchQuery, selectedCategory, filterType, isPreviewMode]);
 
 
   // function to render item in FlatList
-    const renderItem = useCallback(({ item } : { item : any}) => (
+    const renderItem = useCallback(({ item } : { item : Archive}) => (
         <ArchiveCard
         item={item}
         isDark={isDark}
@@ -443,7 +435,7 @@ export const ArchivesList = () => {
     ), [isDark, handlePin, handleDownload, handleView, handleToggleComplete, downloadState]);
 
     // Memoized key extractor for FlatList
-    const keyExtractor = useCallback((item : any) => item.id, []);
+    const keyExtractor = useCallback((item : Archive) => item.id, []);
 
 
   return (
@@ -496,7 +488,7 @@ export const ArchivesList = () => {
             ];
 
             // Memoized renderItem function for filter buttons
-            const renderFilterButton = ({ item } : { item : any}) => (
+            const renderFilterButton = ({ item } : { item : {id: string, icon: string, label: string}}) => (
               <TouchableOpacity
                 style={[
                   styles.filterButton,
@@ -509,7 +501,7 @@ export const ArchivesList = () => {
                 }}
               >
                 <MaterialCommunityIcons
-                  name={item.icon}
+                  name={item.icon as "format-list-bulleted" | "pin" | "check-circle" | "circle-outline"}
                   size={20}
                   color={filterType === item.id ? '#FFFFFF' : (isDark ? theme.color.gray[400] : theme.color.gray[600])}
                 />
@@ -544,7 +536,7 @@ export const ArchivesList = () => {
           {/* Categories */}
           {useMemo(() => {
             // Memoized renderItem function for categories
-            const renderCategoryItem = ({ item } : { item : any}) => (
+            const renderCategoryItem = ({ item } : { item : string}) => (
               <TouchableOpacity
                 style={[
                   styles.categoryChip,

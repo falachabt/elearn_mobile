@@ -11,11 +11,7 @@ import {
   ActivityIndicator,
   Pressable
 } from 'react-native';
-import { theme } from '@/constants/theme';
 import * as Animatable from 'react-native-animatable';
-import { ProgramCard } from '../ProgramCard';
-import { supabase } from '@/lib/supabase';
-import { useCart } from '@/hooks/useCart';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useSWR from 'swr';
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
@@ -27,6 +23,12 @@ import {
   BottomSheetBackdropProps
 } from "@gorhom/bottom-sheet";
 import Animated from "react-native-reanimated";
+
+import { ProgramCard } from '../ProgramCard';
+
+import { useCart } from '@/hooks/useCart';
+import { supabase } from '@/lib/supabase';
+import { theme } from '@/constants/theme';
 
 interface Program {
   id: number;

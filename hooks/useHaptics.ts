@@ -1,6 +1,7 @@
 // src/hooks/useHaptics.ts
 import { Platform, AppState, AppStateStatus } from 'react-native';
 import { useEffect, useState } from 'react';
+
 import { STORAGE_KEY_SETTINGS } from "@/constants/storage-keys";
 
 // Platform-specific imports

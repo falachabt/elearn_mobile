@@ -1,7 +1,8 @@
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, useColorScheme } from 'react-native';
-import { theme } from '@/constants/theme';
 import { TextInput } from 'react-native-gesture-handler';
+
+import { theme } from '@/constants/theme';
 import { AccountsInput } from '@/types/type';
 import { useAuth } from '@/contexts/auth';
 
@@ -22,7 +23,7 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
 
   const validate = () => {
     let valid = true;
-    let newErrors: { [key: string]: string } = {};
+    const newErrors: { [key: string]: string } = {};
 
     if (!userInfo?.firstname) {
       newErrors.firstName = 'Le prénom est requis';
