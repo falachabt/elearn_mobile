@@ -30,6 +30,11 @@ on:
         description: 'Message pour eas update'
         required: false
         default: 'Mise à jour'
+      update_web:
+        description: 'Mettre à jour la version web (true/false)'
+        required: false
+        default: false
+        type: boolean
       send_push_notification:
         description: 'Envoyer une notification push aux utilisateurs'
         required: false
@@ -93,3 +98,43 @@ jobs:
           cd scripts
           npm install
           node sendPushNotifications.js
+
+
+  eas-update-web:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.update_web == 'true' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '21.7.3'
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Switch platform imports to web
+        run: node scripts/switch-platform.js web
+
+      - name: Update app version for web
+        run: node scripts/update-version.js "${{ github.event.inputs.app_version }}"
+
+      - name: Build web version
+        run: yarn build:web
+
+      - name: Deploy web version
+        env:
+          EAS_ACCESS_TOKEN: ${{ secrets.EAS_ACCESS_TOKEN }}
+        run: |
+          if [ "${{ github.event.inputs.eas_channel }}" = "production" ]; then
+            yarn deploy:web:prod
+          else
+            yarn deploy:web
+          fi
+
