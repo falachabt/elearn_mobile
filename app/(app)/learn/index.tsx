@@ -321,7 +321,7 @@ const MyLearningPaths = () => {
                 </View>
             </View>
 
-            {data && data.length > 0 ? (
+            {data && data?.length > 0 ? (
                 filteredData.length === 0 && searchQuery.length > 0 ? (
                     <View style={styles.centerContainer}>
                         <MaterialCommunityIcons 
