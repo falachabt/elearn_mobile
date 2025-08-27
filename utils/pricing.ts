@@ -4,13 +4,13 @@
  */
 
 // Price for generous week or special promotions
-export const GENEROUS_WEEK_PRICE = 7900;
+export const GENEROUS_WEEK_PRICE = 5000;
 
 // Regular price for the first course
-export const REGULAR_FIRST_COURSE_PRICE = 90;
+export const REGULAR_FIRST_COURSE_PRICE = 5000;
 
 // Price for additional courses in the Essential formula
-export const ADDITIONAL_COURSE_PRICE = 7900;
+export const ADDITIONAL_COURSE_PRICE = 5000;
 
 // Fixed price for all formations when user already has enrollments
 export const FIXED_PRICE = 5000;
