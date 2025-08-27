@@ -4,10 +4,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Platform, StyleSheet } from 'react-native';
+// import { useRouteGuard } from "@/contexts/RouteGuardContext";
 
 export default function SecondarySchoolLayout() {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme !== 'light';
+  // const { isChecking } = useRouteGuard();
+  // if (isChecking) return null;
 
   return (
     <Tabs
@@ -128,3 +131,4 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
 });
+// (Aucune modification nécessaire ici pour le bug actuel, mais gardez ce pattern si vous ajoutez des redirections)

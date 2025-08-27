@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useCallback} from "react";
-import {Redirect, router, Tabs, useNavigation} from "expo-router";
+import {router, Tabs, useNavigation} from "expo-router";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAuth} from "@/contexts/auth";
 import {useSpace} from "@/contexts/spaceContext";
@@ -19,6 +19,7 @@ import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useColorScheme} from '@/hooks/useColorScheme';
 import {LoadingAnimation} from "@/components/shared/LoadingAnimation1";
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { useRouteGuard } from "@/contexts/RouteGuardContext";
 
 export default function AppLayout() {
     const {session, isLoading, user} = useAuth();
@@ -29,17 +30,32 @@ export default function AppLayout() {
     const {mutate} = useSWRConfig();
     const {trigger} = useHaptics();
     const [needsRedirect, setNeedsRedirect] = useState(false);
+    const [isRootMounted, setIsRootMounted] = useState(false);
+    const { isChecking } = useRouteGuard();
+
+    useEffect(() => {
+        setIsRootMounted(true);
+    }, []);
 
     // Check redirect conditions once and store result, don't re-evaluate on every render
     useEffect(() => {
+        if (!isRootMounted) return; // Ne jamais rediriger avant le montage racine
         if (!session) {
-            setNeedsRedirect(true);
+            if (!router.asPath.startsWith("/(auth)")) {
+                setNeedsRedirect(true);
+            } else {
+                setNeedsRedirect(false);
+            }
         } else if (user && !user.onboarding_done) {
-            setNeedsRedirect(true);
+            if (!router.asPath.startsWith("/(auth)/onboarding")) {
+                setNeedsRedirect(true);
+            } else {
+                setNeedsRedirect(false);
+            }
         } else {
             setNeedsRedirect(false);
         }
-    }, [session, user?.onboarding_done]);
+    }, [session, user?.onboarding_done, isRootMounted]);
 
     // Redirect to secondary school space if selected
     useEffect(() => {
@@ -69,20 +85,15 @@ export default function AppLayout() {
     }, [trigger, mutate, user?.id]);
     // CRITICAL: This is a protected route - no session means redirect immediately
     if (needsRedirect) {
-        // Handle onboarding redirect if needed
-        if (user && !user.onboarding_done) {
+        if (user && !user.onboarding_done && !router.asPath.startsWith("/(auth)/onboarding")) {
             return <Redirect href="/(auth)/onboarding"/>;
         }
-
-        if (!session) {
+        if (!session && !router.asPath.startsWith("/(auth)")) {
             return <Redirect href="/(auth)"/>;
         }
-
-
     }
 
-    // Show loading indicator when we have session but user data is still loading
-    if (isLoading || spaceLoading || (session && !user)) {
+    if (isChecking || isLoading || spaceLoading || (session && !user)) {
         return (
             <View style={{
                 flex: 1,
