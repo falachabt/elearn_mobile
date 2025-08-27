@@ -193,6 +193,7 @@ export const useProgramPayment = (pdId: string | undefined) => {
             );
 
             // Store the authorization URL for fallback
+            // @ts-ignore
             if (result.needsFallback && result.authorizationUrl) {
                 setAuthorizationUrl(pay.authorizationUrl);
             }
@@ -267,7 +268,7 @@ export const useProgramPayment = (pdId: string | undefined) => {
                     displayStatus = "completed";
 
                     // mutate the program_data
-                    programKeys.mutateProgram(pdId)
+                    programKeys.mutateProgram(String(pdId))
                 }
 
                 // Update the payment status in the UI
