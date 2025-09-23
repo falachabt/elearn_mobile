@@ -7,16 +7,16 @@
 export const GENEROUS_WEEK_PRICE = 5000;
 
 // Regular price for the first course
-export const REGULAR_FIRST_COURSE_PRICE = 5000;
+export const REGULAR_FIRST_COURSE_PRICE = 15000;
 
 // Price for additional courses in the Essential formula
-export const ADDITIONAL_COURSE_PRICE = 5000;
+export const ADDITIONAL_COURSE_PRICE = 15000;
 
 // Fixed price for all formations when user already has enrollments
-export const FIXED_PRICE = 5000;
+export const FIXED_PRICE = 15000;
 
 // Durée de validité d'un achat (en jours)
-export const PURCHASE_VALIDITY_DAYS = 90; // 3 mois
+export const PURCHASE_VALIDITY_DAYS = 300; // 3 mois
 
 // Pricing plans definitions
 export const PRICING_PLANS = [
