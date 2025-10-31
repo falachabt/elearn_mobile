@@ -9,8 +9,14 @@ interface GenerousWeekConfig {
   end_at: string;
 }
 
+interface WebViewConfig {
+  course_url: string;
+  exercise_url: string;
+}
+
 interface AppConfigData {
   generous_week?: GenerousWeekConfig;
+  webview?: WebViewConfig;
   // Add other app config properties as needed
 }
 
@@ -24,6 +30,7 @@ type AppConfigContextType = {
   appConfig: AppConfig | null;
   isLoading: boolean;
   isGenerousWeekActive: () => boolean;
+  getWebViewUrls: () => WebViewConfig | null;
   mutateAppConfig: () => Promise<AppConfig | null | undefined>;
 };
 
@@ -69,6 +76,11 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     return now >= startDate && now <= endDate;
   };
 
+  const getWebViewUrls = () => {
+    if (!appConfig?.data?.webview) return null;
+    return appConfig.data.webview;
+  };
+
   useEffect(() => {
     setIsLoading(appConfig === undefined);
   }, [appConfig]);
@@ -97,6 +109,7 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     appConfig: appConfig ?? null,
     isLoading,
     isGenerousWeekActive,
+    getWebViewUrls,
     mutateAppConfig,
   };
 
