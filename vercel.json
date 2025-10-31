@@ -2,6 +2,7 @@
  "buildCommand": "npm run build:web",
  "outputDirectory": "dist",
  "devCommand": "expo",
+ "framework": null,
  "cleanUrls": true,
  "rewrites": [
    { "source": "/:path*", "destination": "/" }
