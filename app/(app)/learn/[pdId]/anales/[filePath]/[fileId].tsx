@@ -12,8 +12,8 @@ import { theme } from '@/constants/theme';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
-import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
-import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer.web";
+import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
 
 
 // Define TypeScript interfaces for our data

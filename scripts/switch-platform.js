@@ -70,3 +70,21 @@ if (process.argv.length < 3) {
 
 // Run the script with the provided platform
 switchPlatform(process.argv[2]);
+
+// Execute remaining arguments as a command if provided
+if (process.argv.length > 3) {
+  const { spawn } = require('child_process');
+  const command = process.argv[3];
+  const args = process.argv.slice(4);
+  
+  console.log(`\nExecuting: ${command} ${args.join(' ')}\n`);
+  
+  const child = spawn(command, args, {
+    stdio: 'inherit',
+    shell: true
+  });
+  
+  child.on('exit', (code) => {
+    process.exit(code);
+  });
+}
