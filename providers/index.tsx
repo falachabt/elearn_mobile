@@ -1,4 +1,4 @@
-import {AppState, AppStateStatus, BackHandler, ToastAndroid} from "react-native";
+import {AppState, AppStateStatus, BackHandler, Platform, ToastAndroid} from "react-native";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import {SWRConfig} from "swr";
 import {useEffect, useRef, useState} from "react";
@@ -48,14 +48,24 @@ const MOTIVATIONAL_MESSAGES = [
 // Create a provider function that returns a Cache instance compatible with SWR
 function asyncStorageProvider() {
     const SWR_CACHE_PREFIX = 'swr-cache:';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const map = new Map<string, any>();
     let initialized = false;
     let initializing = false;
     let initPromise: Promise<void> | null = null;
+    
+    // Check if we're in a browser/native environment (not SSR)
+    const isClient = typeof window !== 'undefined';
 
     // Initialize cache from AsyncStorage
     const initCache = async () => {
         if (initialized || initializing) return initPromise;
+        
+        // Skip initialization on server-side (SSR)
+        if (!isClient) {
+            initialized = true;
+            return Promise.resolve();
+        }
 
         initializing = true;
         initPromise = (async () => {
@@ -114,8 +124,12 @@ function asyncStorageProvider() {
             return map.get(key);
         },
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         set(key: string, value: any) {
             map.set(key, value);
+
+            // Only persist to AsyncStorage on client-side (not SSR)
+            if (!isClient) return;
 
             // Asynchronously persist to AsyncStorage
             // We don't await this to avoid blocking
@@ -130,6 +144,9 @@ function asyncStorageProvider() {
 
         delete(key: string) {
             map.delete(key);
+
+            // Only remove from AsyncStorage on client-side (not SSR)
+            if (!isClient) return;
 
             // Asynchronously remove from AsyncStorage
             // We don't await this to avoid blocking
@@ -153,8 +170,13 @@ const BackHandlerManager = React.memo(({ children }: { children: React.ReactNode
     const [lastUsedMessageIndex, setLastUsedMessageIndex] = useState(-1);
     const lastExitTimeRef = useRef<number>(0);
 
+    // Only run on native platforms (not web/SSR)
+    const isNative = Platform.OS === 'android' || Platform.OS === 'ios';
+
     // Listen for app state changes to track when app returns from background
     useEffect(() => {
+        if (!isNative) return;
+
         const handleAppStateChange = (nextAppState: AppStateStatus) => {
             if (nextAppState === 'active') {
                 // App has come to the foreground
@@ -166,9 +188,10 @@ const BackHandlerManager = React.memo(({ children }: { children: React.ReactNode
         return () => {
             subscription.remove();
         };
-    }, []);
+    }, [isNative]);
 
     useEffect(() => {
+        if (!isNative) return;
         const backAction = () => {
             try {
                 trigger(HapticType.LIGHT);
@@ -183,11 +206,6 @@ const BackHandlerManager = React.memo(({ children }: { children: React.ReactNode
                 if (exitAppCount === 0) {
                     // First press - show motivational message
                     setExitAppCount(1);
-
-                    // Current time to check if we should always show a message
-                    const currentTime = Date.now();
-                    const timeSinceLastExit = currentTime - lastExitTimeRef.current;
-                    const showMessageAnyway = timeSinceLastExit > 30000; // 30 seconds
 
                     // Get random motivational message (different from the last one if possible)
                     let randomIndex;
@@ -208,7 +226,7 @@ const BackHandlerManager = React.memo(({ children }: { children: React.ReactNode
                     // Reset the exit counter after 2 seconds
                     exitTimerRef.current = setTimeout(() => {
                         setExitAppCount(0);
-                    }, 2000);
+                    }, 2000) as unknown as NodeJS.Timeout;
 
                     return true;
                 } else {
@@ -227,15 +245,15 @@ const BackHandlerManager = React.memo(({ children }: { children: React.ReactNode
             }
         };
 
-        BackHandler.addEventListener("hardwareBackPress", backAction);
+        const backHandlerSubscription = BackHandler.addEventListener("hardwareBackPress", backAction);
 
         return () => {
             if (exitTimerRef.current) {
                 clearTimeout(exitTimerRef.current);
             }
-            BackHandler.removeEventListener("hardwareBackPress", backAction);
+            backHandlerSubscription.remove();
         };
-    }, [router, exitAppCount, trigger]);
+    }, [router, exitAppCount, trigger, isNative]);
 
     return <>{children}</>;
 });
@@ -271,6 +289,11 @@ export function Provider({children}: { children: React.ReactNode }) {
                 focusThrottleInterval: 5000, // 5 seconds
 
                 initFocus(callback) {
+                    // Skip on web/SSR
+                    if (typeof window === 'undefined' || Platform.OS === 'web') {
+                        return () => {}; // Return empty cleanup function
+                    }
+
                     let appState = AppState.currentState;
 
                     const onAppStateChange = (nextAppState: AppStateStatus) => {
