@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "elear-445209",
+  "private_key_id": "84a14787bd00cb62645496cf5fc11db71f012fa0",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCbddSAJjKJaOF7\nbJGQDprA3ot15hlJo0MezniPewQ79riagZEbV3RPtPMICYg4bNZoOoAH8jBBVVFc\nmPQU6j/3+Zk5S4iWEHMQ5owZvxlBCD7IK+Y7YvyCpE9abtzuKU9fW625MPEpDFB5\n/xtj4cy7wDxSQTUVoy+qf7RZdGcLbSXBmK8zlUUBlKlV+NfPjoUTnnI6CDoh/Vg7\nYneV/Eg+LbSp1SrKvFfpER72gCCIORQCBhV+CngdzoXxJzEHyxT+mag1w1KHdIl7\n1G+kMg0hNYWr7qSAbTUTHFUwj3sFw8xMaSy6vbsqg7/4clZkFNuO4AArDGHWNXV1\nS9AygnXdAgMBAAECggEACjOCtMAM6+hmd29p496ZeBOCakOloCfm9SQOVDf50KeB\neJ4M9BLajopssjfR6QX3UdKY6SySzw62rpFY3vB6Lx8BV3ml5lcA/fhq9BuOoC5W\n1FLRIk9+C2KV1HTW6YfrbfH5pd/Yy11EAKVlWjoMcbuNGcauoZNaQuFrZ71UL7Mp\nIsrTn5RGNc07ixfh9nuYAnTa4mRB7WA2FZyxaL19VW89G4rQ3Rce7vxShOkLQC57\nsfpmD/l1fzGhiClFLE7s0QYOQDGfXG3goVswg64KOCrd9ib9WF3MabNGK6E34nOM\nDLUqVlHmCBiAX0Tb7nXjfQ/OdpWP6G4g2aifUL2j7wKBgQDRqKl9sdM+7gHpICBC\nfVTdotmCXRKOtZ55PCG1kbttaMJ0u5QsTW9ZZQLu3OYesTxDMxgdlY3LRsHAsfON\n9Qzy2xNOmsfm7VQZm2XRpqgjvHqjEyLIUmV6hKCx2kDXF/euD8iWg1IZXuQEE9nJ\n4nrOSIXuD2hWzB4mxmgaWB8WwwKBgQC90mVchXwICU7eT+TXu457W2gkcP9LTreo\nzrD/IERsDoB/qxxj12WyZytL+Zn/Yr7Le51V2c/lnuCtNb+geqSWo1bFVg5oDpvV\nvrDCqtnkvOphesRy8WR06K+7khwSC6eY/4JQa7tCbpRs8VnS/4Oc45PPtgZp3i/g\nLqNct9W23wKBgHMz1SYfDy92ApDBuVgvm/FJKXFriOXnwBNnyjIFyNI+jRMteya4\nyeV6DpmHwd69jppyOd8PrWE0GQS0A1tOenX7kOlRPWSTpfGIJPOFOsCgMVboDeW6\n+M3QkKgJgDVwkwUO4S5rLDKKpInlCnfXPZmZ2hXMW43ODQdLYCqRn0uXAoGBAKLU\ninKVZtIV+fumGS4eC5kxzeIEtFpLSiyaMSaI7Wir//qEM7RJn0ksSu2/TSTP9c7j\nWRG96CKW6TBr/NeSnQFDWDmrGmyUq4TtMP+sQ4F9tKiuATqAa6YFvElwinfIW5pZ\nA9Yss9PGu7fASUdAPAwnBDKXeGT0Xak3GJd+cuuNAoGAFh9fsT+62/6+IWkuU0Oe\nnWQtpzSnQvryT2tUNN8JbowrlfLEv0kxDkVCLATUFl5EaUUWUuzf6HLpc5Vd59sX\nYltAhrmo8P3lfW5pu3d2nJZaIfYmau6CBrTfizxgXxqzO+NGYxkmZ0oMOo2ypXkx\nN0ht4u8+aSUG+nQsWfb6HF8=\n-----END PRIVATE KEY-----\n",
+  "client_email": "elearn-prepa@elear-445209.iam.gserviceaccount.com",
+  "client_id": "103656198379381159797",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/elearn-prepa%40elear-445209.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
