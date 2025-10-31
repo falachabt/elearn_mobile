@@ -17,6 +17,7 @@ interface WebViewConfig {
 interface AppConfigData {
   generous_week?: GenerousWeekConfig;
   webview?: WebViewConfig;
+  api_base_url?: string;
   // Add other app config properties as needed
 }
 
@@ -31,6 +32,7 @@ type AppConfigContextType = {
   isLoading: boolean;
   isGenerousWeekActive: () => boolean;
   getWebViewUrls: () => WebViewConfig | null;
+  getApiBaseUrl: () => string | null;
   mutateAppConfig: () => Promise<AppConfig | null | undefined>;
 };
 
@@ -77,8 +79,20 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getWebViewUrls = () => {
-    if (!appConfig?.data?.webview) return null;
+    if (!appConfig?.data?.webview) {
+        return {
+            course_url: "https://elearn.ezadrive.com/fr/webview/courseContent",
+            exercise_url: "https://elearn.ezadrive.com/fr/webview/exercices"
+        };
+    }
     return appConfig.data.webview;
+  };
+
+  const getApiBaseUrl = () => {
+    if (!appConfig?.data?.api_base_url) {
+        return "https://elearn.ezadrive.com";
+    }
+    return appConfig.data.api_base_url;
   };
 
   useEffect(() => {
@@ -110,6 +124,7 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     isGenerousWeekActive,
     getWebViewUrls,
+    getApiBaseUrl,
     mutateAppConfig,
   };
 
