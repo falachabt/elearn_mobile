@@ -21,6 +21,7 @@ import {useSound} from "@/hooks/useSound";
 import {useUser} from "@/contexts/useUserInfo";
 import {trackEvent, Events} from '@/utils/analytics';
 import {useCustomRouter} from "@/hooks/useCustomRouter";
+import {useAppConfig} from "@/contexts/useAppConfig";
 
 
 const ExercisePage = () => {
@@ -31,6 +32,8 @@ const ExercisePage = () => {
     const {trigger} = useHaptics();
     const {playNextLesson, playCorrect} = useSound();
     const {isLearningPathEnrolled} = useUser();
+    const {getWebViewUrls} = useAppConfig();
+    const webViewUrls = getWebViewUrls();
 
     // Check if user is enrolled in this program
     const isEnrolled = isLearningPathEnrolled(String(pdId));
@@ -472,7 +475,7 @@ const ExercisePage = () => {
                             !isCorrection && styles.hidden
                         ]}>
                             <iframe
-                                src={`https://elearn.ezadrive.com/fr/webview/exercices/${exerciceId}/correction?theme=${isDark ? "dark" : "light"}`}
+                                src={`${webViewUrls?.exercise_url}/${exerciceId}/correction?theme=${isDark ? "dark" : "light"}`}
                                 style={{
                                     width: '100%',
                                     height: '100%',
@@ -489,7 +492,7 @@ const ExercisePage = () => {
                             isCorrection && styles.hidden
                         ]}>
                             <iframe
-                                src={`https://elearn.ezadrive.com/fr/webview/exercices/${exerciceId}/content?theme=${isDark ? "dark" : "light"}`}
+                                src={`${webViewUrls?.exercise_url}/${exerciceId}/content?theme=${isDark ? "dark" : "light"}`}
                                 style={{
                                     width: '100%',
                                     height: '100%',
@@ -522,7 +525,7 @@ const ExercisePage = () => {
                         ]}>
                             <WebView
                                 source={{
-                                    uri: `https://elearn.ezadrive.com/fr/webview/exercices/${exerciceId}/correction?theme=${isDark ? "dark" : "light"}`,
+                                    uri: `${webViewUrls?.exercise_url}/${exerciceId}/correction?theme=${isDark ? "dark" : "light"}`,
                                     headers: {
                                         Authorization: `Bearer ${session?.access_token}`,
                                         "color-scheme": isDark ? "dark" : "light",
@@ -546,7 +549,7 @@ const ExercisePage = () => {
                         ]}>
                             <WebView
                                 source={{
-                                    uri: `https://elearn.ezadrive.com/fr/webview/exercices/${exerciceId}/content?theme=${isDark ? "dark" : "light"}`,
+                                    uri: `${webViewUrls?.exercise_url}/${exerciceId}/content?theme=${isDark ? "dark" : "light"}`,
                                     headers: {
                                         Authorization: `Bearer ${session?.access_token}`,
                                         "color-scheme": isDark ? "dark" : "light",
