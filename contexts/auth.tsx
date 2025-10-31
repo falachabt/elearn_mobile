@@ -7,6 +7,7 @@ import {supabase} from '@/lib/supabase'
 import {Accounts, tables, UserXp} from '@/types/type'
 import { trackEvent, Events, setUserId } from '@/utils/analytics'
 import { registerForPushNotificationsAsync, setupNotifications } from '@/utils/pushNotifications'
+import { useAppConfig } from './useAppConfig'
 
 interface UserStreak {
     id: string
@@ -103,6 +104,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     const [isAccountCreating, setIsAccountCreating] = useState(false);
     const initialLoadRef = useRef(false);
     const streakCheckedRef = useRef(false);
+    const { getApiBaseUrl } = useAppConfig();
+    const apiBaseUrl = getApiBaseUrl();
 
     // User data fetching with SWR
     const {data: user, error: userError, mutate: mutateUser} = useSWR<Account | null>(
@@ -404,7 +407,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 try {
                     console.log("Creating account...");
                     // Account creation API call
-                    await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
+                    await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
                         {phone, password},
                         {
                             headers: {
@@ -473,7 +476,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
 
                         // Account creation API call
-                        await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
+                        await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
                             // await axios.post('http://192.168.1.168:3000/api/mobile/auth/createAccount',
                             {phone, password},
                             {
