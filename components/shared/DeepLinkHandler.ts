@@ -27,8 +27,6 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
     useEffect(() => {
         // Handler function to process deep link URLs
         const handleDeepLink = async (url: string) => {
-            console.log('Received deep link:', url);
-
             // Check if this is an auth callback URL (either with /callback or just #)
             if (url && (url.includes('auth/callback') || url.includes('auth#'))) {
                 try {
@@ -54,8 +52,6 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
 
                     // If there's a code/token, process the authentication
                     if (params.access_token || params.refresh_token || params.code) {
-                        console.log('Processing auth callback parameters');
-
                         if (params.access_token && params.refresh_token) {
                             // Direct token exchange (more common with OAuth)
                             const {error} = await supabase.auth.setSession({
@@ -85,7 +81,6 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                                 console.error('Error setting session:', error);
                                 onAuthError?.(new Error(`Failed to set session: ${error.message}`));
                             } else {
-                                console.log('Authentication successful via tokens');
                                 onAuthSuccess?.();
                             }
                         } else if (params.code) {
@@ -97,7 +92,6 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                                 console.error('Error getting session after code exchange:', error);
                                 onAuthError?.(new Error(`Failed to get session: ${error.message}`));
                             } else if (data?.session) {
-                                console.log('Authentication successful via code');
                                 onAuthSuccess?.();
                             }
                         }
@@ -112,8 +106,6 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                     const parsedURL = new URL(url);
                     const params = Object.fromEntries(parsedURL.searchParams.entries());
 
-
-                    console.log("params", params)
                     // Redirect to the payment callback page with the parameters
                     const urlParams = new URLSearchParams(params).toString();
 

@@ -63,7 +63,6 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
 
   useEffect(() => {
     if (user?.birthdate) {
-      console.log(user.birthdate);
       const dateString = String(user.birthdate);
       const dateParts = dateString.split('-');
       updateUserInfo('birthdate', `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`);
