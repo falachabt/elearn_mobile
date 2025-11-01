@@ -5,9 +5,12 @@ import axios from "axios";
 import {supabase} from "@/lib/supabase";
 import {useAuth} from "@/contexts/auth";
 import {ThemedText} from "@/components/ThemedText";
+import {useAppConfig} from "@/contexts/useAppConfig";
 
 export function AppleLogin() {
     const {setIsAccountCreating, signOut} = useAuth();
+    const {getApiBaseUrl} = useAppConfig();
+    const apiBaseUrl = getApiBaseUrl();
     if (Platform.OS === 'ios')
         return (
             <AppleAuthentication.AppleAuthenticationButton
@@ -37,7 +40,7 @@ export function AppleLogin() {
                             if (!error) {
                                 setTimeout(async () => {
                                     const {data: userData} = await supabase.auth.getUser();
-                                    await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
+                                    await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
                                         {
                                             email: userData?.user?.email,
                                             phone: userData?.user?.phone

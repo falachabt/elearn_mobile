@@ -9,8 +9,15 @@ interface GenerousWeekConfig {
   end_at: string;
 }
 
+interface WebViewConfig {
+  course_url: string;
+  exercise_url: string;
+}
+
 interface AppConfigData {
   generous_week?: GenerousWeekConfig;
+  webview?: WebViewConfig;
+  api_base_url?: string;
   // Add other app config properties as needed
 }
 
@@ -24,6 +31,8 @@ type AppConfigContextType = {
   appConfig: AppConfig | null;
   isLoading: boolean;
   isGenerousWeekActive: () => boolean;
+  getWebViewUrls: () => WebViewConfig | null;
+  getApiBaseUrl: () => string | null;
   mutateAppConfig: () => Promise<AppConfig | null | undefined>;
 };
 
@@ -69,6 +78,23 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     return now >= startDate && now <= endDate;
   };
 
+  const getWebViewUrls = () => {
+    if (!appConfig?.data?.webview) {
+        return {
+            course_url: "https://elearn.ezadrive.com/fr/webview/courseContent",
+            exercise_url: "https://elearn.ezadrive.com/fr/webview/exercices"
+        };
+    }
+    return appConfig.data.webview;
+  };
+
+  const getApiBaseUrl = () => {
+    if (!appConfig?.data?.api_base_url) {
+        return "https://elearn.ezadrive.com";
+    }
+    return appConfig.data.api_base_url;
+  };
+
   useEffect(() => {
     setIsLoading(appConfig === undefined);
   }, [appConfig]);
@@ -97,6 +123,8 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     appConfig: appConfig ?? null,
     isLoading,
     isGenerousWeekActive,
+    getWebViewUrls,
+    getApiBaseUrl,
     mutateAppConfig,
   };
 
