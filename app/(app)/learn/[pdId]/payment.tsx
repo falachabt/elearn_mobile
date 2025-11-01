@@ -1018,8 +1018,6 @@ const ProgramPaymentPage = () => {
                 const latestPayment = await getLatestPayment(programId);
                 const allPayments = await getAllPayments(programId);
 
-                console.log("all payments: ", allPayments);
-
                 const hasCompletedFirstInstallment = latestPayment?.is_installment &&
                     allPayments?.some(payment => payment.is_installment && payment.current_installment === 1 && payment.payment_status === "completed")  || false;
                 const installmentPayment = latestPayment?.is_installment ? latestPayment : null;
@@ -1176,7 +1174,6 @@ const ProgramPaymentPage = () => {
             if (result?.transaction?.status) {
                 const status = result.transaction.status === "complete" ? "completed" : result.transaction.status;
                 if (isFinalStatus(status)) {
-                    console.log(`Terminal status reached (${status}), stopping status check`);
                     stopStatusCheck();
 
                     // Ajout : mutation des programmes et du mapping d'accès
@@ -1193,7 +1190,6 @@ const ProgramPaymentPage = () => {
         if (statusCheckInterval) {
             clearInterval(statusCheckInterval);
             setStatusCheckInterval(null);
-            console.log("Status check stopped");
         }
     };
 
@@ -1233,8 +1229,6 @@ const ProgramPaymentPage = () => {
                 // case of non installment payment
                 const payment = result.payment;
                 if(payment && payment.payment_reference) {
-                    console.log('Payment initiated successfully:', payment);
-
                     setCurrentTrxReference(payment.payment_reference);
                     setCurrentState(PaymentFlowState.VERIFYING);
                     startStatusCheck(payment.payment_reference);
@@ -1245,9 +1239,6 @@ const ProgramPaymentPage = () => {
             }else{
                 // case of installment payment
                 if (result && result.payment_reference) {
-                    console.log('Payment initiated successfully:', result);
-
-
                     setCurrentTrxReference(result.payment_reference);
                     setCurrentState(PaymentFlowState.VERIFYING);
                     startStatusCheck(result.payment_reference);

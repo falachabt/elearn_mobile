@@ -173,8 +173,6 @@ const ResetPassword: React.FC = () => {
 
     const b = useSearchParams();
 
-    console.log(b.get('come_from'));
-
     // Toast state
     const [toast, setToast] = useState<ToastState>({
         visible: false,
@@ -498,7 +496,6 @@ const ResetPassword: React.FC = () => {
             }, 2000);
         }  catch (error: unknown) {
             if (error instanceof Error) {
-                console.log("error", error.message);
                 setToast({
                     visible: true,
                     message: error.message.includes("old password") && error.message.includes("different") ? "Le nouveau mot de passe doit être différent de l'ancien" : "Erreur lors de la réinitialisation du mot de passe",
@@ -506,7 +503,6 @@ const ResetPassword: React.FC = () => {
                     action: null
                 });
             } else {
-                console.log("error", error);
                 setToast({
                     visible: true,
                     message: "Erreur inconnue lors de la réinitialisation du mot de passe",
