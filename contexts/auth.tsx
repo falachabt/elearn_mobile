@@ -85,8 +85,6 @@ const userDataFetcher = async (authId: string) => {
         const userData = await getUserAccountData(authId);
         const enrollments = await getUserEnrollments(userData.id);
 
-        console.log(enrollments);
-
         return {
             ...userData,
             user_program_enrollments: enrollments || []
@@ -145,11 +143,9 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     return data;
                 }
 
-                console.log(`Account data not available yet, retry ${i + 1}/${maxRetries}`);
                 // Wait before retrying
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
             } catch (err) {
-                console.log(`Error checking account data, retry ${i + 1}/${maxRetries}`, err);
                 if (i === maxRetries - 1) throw err;
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
             }
@@ -216,7 +212,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
         // Listen for auth changes
         const {data: {subscription}} = supabase.auth.onAuthStateChange((_event, session) => {
-            console.log("Auth state changed:", _event);
             setSession(session);
 
             // Update user ID for analytics
@@ -353,7 +348,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             setIsLoading(true);
             streakCheckedRef.current = false;
 
-            console.log("Signing in...");
             const {data, error} = await supabase.auth.signInWithPassword({
                 phone: phone.toString(),
                 password,
@@ -364,8 +358,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 setIsLoading(false);
                 throw error;
             }
-
-            console.log("Sign in successful, session:", data.session ? "exists" : "null");
 
             // Track login event
             trackEvent(Events.LOGIN, { method: 'phone' });
@@ -405,7 +397,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // For signup flow, create the account
             if (type === "signup" && session?.access_token) {
                 try {
-                    console.log("Creating account...");
                     // Account creation API call
                     await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
                         {phone, password},
@@ -417,15 +408,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         }
                     );
 
-                    console.log("Account creation API call successful, waiting for database...");
-
                     // Wait for the account data to be available in the database
                     await waitForAccountData(phone);
 
                     // Force revalidation of user data
                     await mutateUser();
-
-                    console.log("Account created and data loaded successfully");
                 } catch (apiError) {
                     console.error('Error in account creation process:', apiError);
                     throw apiError;
@@ -470,11 +457,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 // make the logic that create the account
 
                 if (data.session) {
-                    console.log("Sign up successful, session:", data.session);
                     try {
-                        console.log("Creating account...");
-
-
                         // Account creation API call
                         await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
                             // await axios.post('http://192.168.1.168:3000/api/mobile/auth/createAccount',
@@ -488,8 +471,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                             }
                         );
 
-                        console.log("Account creation API call successful, waiting for database...");
-
                         // Wait for the account data to be available in the database
 
                         try {
@@ -499,13 +480,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                             await waitForAccountData(phone);
 
                         } catch (error) {
-                            console.log("Error waiting for account data", error);
+                            // Silently handle account data waiting errors
                         }
 
                         // Force revalidation of user data
                         await mutateUser();
-
-                        console.log("Account created and data loaded successfully");
 
                         // Track sign up event
                         trackEvent(Events.SIGN_UP, { method: 'phone' });
@@ -516,8 +495,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         setIsAccountCreating(false);
                         setIsLoading(false);
                     }
-                } else {
-                    console.log("Sign up successful, no session");
                 }
 
                 if (error) {
