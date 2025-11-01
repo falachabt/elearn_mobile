@@ -72,7 +72,7 @@
             "enableProguardInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
             "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
+            "targetSdkVersion": 34,
             "buildToolsVersion": "35.0.0",
             "usesCleartextTraffic": false,
             "useLegacyPackaging": false

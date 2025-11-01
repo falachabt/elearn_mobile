@@ -23,7 +23,7 @@ Added the `expo-build-properties` plugin with Android-specific configurations:
     "enableProguardInReleaseBuilds": true,
     "enableShrinkResourcesInReleaseBuilds": true,
     "compileSdkVersion": 35,
-    "targetSdkVersion": 35,
+    "targetSdkVersion": 34,
     "buildToolsVersion": "35.0.0",
     "usesCleartextTraffic": false,
     "useLegacyPackaging": false
@@ -32,9 +32,11 @@ Added the `expo-build-properties` plugin with Android-specific configurations:
 ```
 
 Key settings:
-- **compileSdkVersion**: 35 (Android 15)
-- **targetSdkVersion**: 35 (Android 15)
+- **compileSdkVersion**: 35 (Android 15) - Compile against latest SDK to access new APIs
+- **targetSdkVersion**: 34 (Android 14) - Maintains device compatibility while being ready for 16KB pages
 - **useLegacyPackaging**: false (enables new packaging format with proper alignment)
+
+> **Important**: We keep `targetSdkVersion: 34` instead of 35 to maintain compatibility with existing devices. The 16KB page size support is configured through the packaging settings (`extractNativeLibs: false` and `useLegacyPackaging: false`), making the app ready for when we upgrade to targetSdkVersion 35 in the future without losing device support now.
 
 ### 2. Custom Config Plugin (`plugins/withAndroid16KBPageSize.js`)
 
@@ -100,8 +102,19 @@ To test the configuration:
 ## Impact
 
 After these changes:
-- ✅ App complies with Google Play requirements for Android 15+
-- ✅ App supports devices with 16KB memory page sizes
-- ✅ Proper back navigation handling for Android 15
+- ✅ App is ready for 16KB page size support when targeting Android 15+
+- ✅ App maintains compatibility with existing devices (targets Android 14)
+- ✅ Native libraries are properly packaged for 16KB page sizes
+- ✅ Proper back navigation handling for Android 15 is configured
 - ✅ Improved memory efficiency and performance
 - ✅ No breaking changes to existing functionality
+- ✅ No device compatibility loss
+
+## Why targetSdkVersion is 34, not 35
+
+While Google Play requires apps to support 16KB page sizes when targeting Android 15+, this doesn't mean you must target Android 15 immediately. By:
+- Keeping `targetSdkVersion: 34` (Android 14)
+- Setting `compileSdkVersion: 35` (to compile against latest SDK)
+- Configuring 16KB page size support (`extractNativeLibs: false`, `useLegacyPackaging: false`)
+
+We ensure the app is **ready** for 16KB page sizes without losing device compatibility. When you're ready to target Android 15, simply change `targetSdkVersion` to 35.
