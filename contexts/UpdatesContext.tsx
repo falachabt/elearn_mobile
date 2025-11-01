@@ -34,14 +34,12 @@ export function UpdatesProvider({ children }: UpdatesProviderProps) {
   const checkForUpdates = useCallback(async () => {
     // Skip if we're in development or expo go
     if (__DEV__ || !Updates.isEnabled) {
-      console.log('Updates disabled in development or expo go');
       return;
     }
 
     // Prevent too frequent checks (minimum 5 minutes between checks)
     const now = Date.now();
     if (now - lastCheckTimeRef.current < 5 * 60 * 1000) {
-      console.log('Skipping update check - too recent');
       return;
     }
 
@@ -50,19 +48,15 @@ export function UpdatesProvider({ children }: UpdatesProviderProps) {
     lastCheckTimeRef.current = now;
 
     try {
-      console.log('Checking for updates...');
       const updateInfo = await Updates.checkForUpdateAsync();
       
       if (updateInfo.isAvailable) {
-        console.log('Update available, downloading...');
         const downloadResult = await Updates.fetchUpdateAsync();
         
         if (downloadResult.isNew) {
-          console.log('New update downloaded successfully');
           setIsUpdateAvailable(true);
         }
       } else {
-        console.log('No updates available');
         setIsUpdateAvailable(false);
       }
     } catch (error) {
@@ -82,7 +76,6 @@ export function UpdatesProvider({ children }: UpdatesProviderProps) {
     setUpdateError(null);
 
     try {
-      console.log('Applying update and restarting...');
       await Updates.reloadAsync();
     } catch (error) {
       console.error('Error applying update:', error);

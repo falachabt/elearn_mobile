@@ -87,8 +87,6 @@ export const CompetitionPaymentBottomSheet = ({
           const payment = await getLatestPayment(competitionId);
 
           if (payment) {
-            console.log('Found existing payment:', payment);
-
             // If payment is not in a final status, set up for verification
             if (!isFinalStatus(payment.payment_status)) {
               setProcessingState('verifying');
@@ -152,8 +150,7 @@ export const CompetitionPaymentBottomSheet = ({
     if (currentTrxReference && isStatusCheckActive && processingState === 'verifying') {
       const interval = setInterval(async () => {
         try {
-          const result = await verifyPaymentStatus(currentTrxReference);
-          console.log('Payment verification result:', result);
+          await verifyPaymentStatus(currentTrxReference);
         } catch (error) {
           console.error('Error verifying payment:', error);
         }
@@ -261,8 +258,7 @@ export const CompetitionPaymentBottomSheet = ({
       setIsStatusCheckActive(true);
 
       try {
-        const result = await verifyPaymentStatus(currentTrxReference);
-        console.log('Payment verification result:', result);
+        await verifyPaymentStatus(currentTrxReference);
       } catch (error) {
         console.error('Error verifying payment:', error);
       }
@@ -281,7 +277,6 @@ export const CompetitionPaymentBottomSheet = ({
   };
 
   const renderContent = () => {
-    console.log("Rendering content for processing state:", processingState);
     switch (processingState) {
       case 'existing_payment':
         if (!latestPayment) return null;

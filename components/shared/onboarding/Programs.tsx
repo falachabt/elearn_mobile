@@ -150,16 +150,13 @@ const optimizedProgramsFetcher = async () => {
       });
 
       if (!rpcError && rpcData) {
-        console.log('Successfully fetched programs via RPC');
         return rpcData;
       }
     } catch (rpcErr) {
-      console.log('RPC fetch failed, falling back to standard query', rpcErr);
+      // Fallback to standard query
     }
 
     // Fallback to standard query with corrected filter for active schools
-    console.log('Using standard query for active schools');
-
     // First, get all active schools
     const { data: activeSchools, error: schoolsError } = await supabase
         .from("schools")
@@ -280,7 +277,7 @@ const loadProgramDetails = async (programId: number) => {
         return procData;
       }
     } catch (procErr) {
-      console.log('RPC program details fetch failed, falling back to standard query', procErr);
+      // Fallback to standard query
     }
 
     // Fallback to standard implementation

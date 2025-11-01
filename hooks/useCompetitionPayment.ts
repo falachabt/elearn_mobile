@@ -153,7 +153,6 @@ export const useCompetitionPayment = () => {
    * Cancel a payment
    */
   const cancelPayment = async () => {
-    console.log("payment : ", payment, latestPayment)
     if (payment) {
       try {
         await CompetitionPaymentService.cancelPayment(

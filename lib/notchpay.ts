@@ -40,7 +40,6 @@ export class NotchPayService {
       // 1. Initialize payment
       const initResponse = await this.initializePayment(params);
       const endInit = performance.now();
-      console.log(`Initialization time: ${(endInit - startInit) / 1000}s`);
 
       // 2. Process direct charge if transaction reference exists
       if (initResponse.transaction?.reference) {
@@ -52,7 +51,6 @@ export class NotchPayService {
               params.channel || "cm.mobile"
           );
           const endCharge = performance.now();
-          console.log(`Charge time: ${(endCharge - startCharge) / 1000}s`);
 
           return {
             initResponse,
@@ -60,7 +58,6 @@ export class NotchPayService {
           };
        } catch (chargeError: any) {
           // If charging fails, return initialization response with error
-          console.log("Charge failed, returning init response with auth URL for fallback");
           return {
             initResponse,
             error: (chargeError as Error).message || "Failed to charge mobile money"
@@ -71,7 +68,6 @@ export class NotchPayService {
       throw new Error('Failed to get transaction reference');
 
     } catch (error) {
-      console.log((error as Error).message);
       this.handleError(error);
     }
   }
@@ -139,8 +135,6 @@ export class NotchPayService {
 
       return response.data;
     } catch (error) {
-      // @ts-ignore
-      console.log("error", error.message);
       throw error; // Throw error to be caught by initiateDirectCharge
     }
   }
@@ -181,7 +175,6 @@ export class NotchPayService {
   }
 
   private handleError(error: any): never {
-    console.log("error", error.message);
     if (axios.isAxiosError(error)) {
       console.error(error, error.message);
       throw new Error(error.response?.data?.message || 'NotchPay API error');

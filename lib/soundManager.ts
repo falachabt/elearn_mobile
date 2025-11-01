@@ -103,12 +103,9 @@ class SoundManager {
 
         try {
             if (!soundItem.sound) {
-                console.log(`Sound ${key} not loaded, loading...`);
                 const loaded = await this.loadSound(key);
                 if (!loaded) return;
             }
-
-            console.log(`Playing sound ${key}...`);
 
             const sound = this.sounds.get(key)?.sound;
             if (sound) {
