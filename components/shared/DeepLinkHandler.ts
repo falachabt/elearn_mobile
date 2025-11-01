@@ -4,6 +4,7 @@ import axios from "axios";
 import {useRouter} from "expo-router";
 
 import {supabase} from '@/lib/supabase';
+import {useAppConfig} from "@/contexts/useAppConfig";
 
 
 // Define prop types for the component
@@ -20,6 +21,8 @@ interface AuthDeepLinkHandlerProps {
 const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess, onAuthError}) => {
 
     const router = useRouter();
+    const {getApiBaseUrl} = useAppConfig();
+    const apiBaseUrl = getApiBaseUrl();
 
     useEffect(() => {
         // Handler function to process deep link URLs
@@ -65,7 +68,7 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
 
                                 if (params?.access_token) {
                                     // await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
-                                    await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
+                                    await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
                                         { email: data?.user?.email, phone: data?.user?.phone },
                                         {
                                             headers: {

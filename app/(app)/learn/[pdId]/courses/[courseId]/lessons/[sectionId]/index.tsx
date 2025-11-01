@@ -31,6 +31,7 @@ import {theme} from "@/constants/theme";
 import {useUser} from "@/contexts/useUserInfo";
 import { trackEvent, Events } from '@/utils/analytics';
 import {useCustomRouter} from "@/hooks/useCustomRouter";
+import {useAppConfig} from "@/contexts/useAppConfig";
 
 
 interface Course extends Courses {
@@ -57,6 +58,8 @@ const SectionDetail = () => {
     const isDark = colorScheme === "dark";
     const { playNextLesson, playCorrect } = useSound();
     const { trigger } = useHaptics();
+    const { getWebViewUrls } = useAppConfig();
+    const webViewUrls = getWebViewUrls();
 
     const {markSectionComplete, sectionsProgress, updateLastAccessed, refreshProgress} = useCourseProgress(
         Number(courseId)
@@ -587,7 +590,7 @@ const SectionDetail = () => {
                     {Platform.OS === 'web' ? (
                         <View style={styles.webViewContainer}>
                             <iframe
-                                src={`https://elearn.ezadrive.com/fr/webview/courseContent/${sectionId}${isDark ? '?theme=dark' : '?theme=light'}&device=web`}
+                                src={`${webViewUrls?.course_url}/${sectionId}${isDark ? '?theme=dark' : '?theme=light'}&device=web`}
                                 style={{
                                     width: Dimensions.get("window").width >= 640 ? '100%' : '117%',
                                     left: Dimensions.get("window").width  >= 640 ? 0 : "-8%",
@@ -606,7 +609,7 @@ const SectionDetail = () => {
                         <WebView
                             ref={webViewRef}
                             source={{
-                                uri: `https://elearn.ezadrive.com/fr/webview/courseContent/${sectionId}?theme=${
+                                uri: `${webViewUrls?.course_url}/${sectionId}?theme=${
                                     isDark ? "dark" : "light"
                                 }`,
                                 headers: {
@@ -695,7 +698,7 @@ const SectionDetail = () => {
             {/* Preload next section - only on mobile and if not locked */}
             {Platform.OS !== 'web' && nextSection && !isNextSectionLocked && (
                 <PreloadWebView
-                    uri={`https://elearn.ezadrive.com/webview/courseContent/${nextSection.id}?theme=${isDark ? "dark" : "light"}`}
+                    uri={`${webViewUrls?.course_url}/${nextSection.id}?theme=${isDark ? "dark" : "light"}`}
                     accessToken={session?.access_token}
                     isDark={isDark}
                 />

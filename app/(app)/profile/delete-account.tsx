@@ -20,6 +20,7 @@ import axios from "axios";
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';
 import { supabase } from "@/lib/supabase";
+import { useAppConfig } from "@/contexts/useAppConfig";
 
 
 // Define confirmation types to fix TypeScript errors
@@ -37,6 +38,8 @@ interface CheckboxProps {
 
 const DeleteAccount = () => {
     const { user, signOut } = useAuth();
+    const { getApiBaseUrl } = useAppConfig();
+    const apiBaseUrl = getApiBaseUrl();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [confirmations, setConfirmations] = useState<Confirmations>({
@@ -72,7 +75,7 @@ const DeleteAccount = () => {
         try {
             const { data: session } = await supabase.auth.getSession();
 
-            const response = await axios.delete('https://elearn.ezadrive.com/api/mobile/auth/delete', {
+            const response = await axios.delete(`${apiBaseUrl}/api/mobile/auth/delete`, {
                 headers: {
                     'Authorization': `Bearer ${session?.session?.access_token}`
                 }
