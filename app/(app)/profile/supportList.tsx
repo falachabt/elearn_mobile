@@ -64,7 +64,7 @@ const TicketListScreen = () => {
             await refetch();
             router.push(`/profile/support/${ticket.id}`);
         } catch (error: any) {
-            console.log('Error creating ticket:', error);
+            console.error('Error creating ticket:', error);
             Alert.alert('Erreur', 'Impossible de créer le ticket. Veuillez réessayer.');
         } finally {
             setIsCreating(false);
@@ -85,8 +85,6 @@ const TicketListScreen = () => {
             resolved: 'Résolu',
             closed: 'Fermé'
         };
-
-        console.log(item.tickets_messages)
 
         const unreadCount = item.tickets_messages?.filter(
             (msg: any) => !msg.read_at && msg.sender_id !== user?.id &&  msg?.sender_id != null

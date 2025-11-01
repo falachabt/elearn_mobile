@@ -239,10 +239,7 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                     });
                 }
             });
-            console.log(`[useProgramProgress] IDs extraits: ${relevantCourseIds.length} cours, ${relevantQuizIds.length} quiz, ${allExerciseIds.length} exercices, ${relevantArchivesIds.length} archives.`);
-
             // --- ÉTAPE 2: Récupération des données de progression en parallèle ---
-            console.log("[useProgramProgress] Étape 2: Lancement des requêtes de progression en parallèle...");
             try {
                 const [courseProgressData, quizData, exerciseData, archiveProgressData] = await Promise.all([
                     // Fetch only relevant course progress
@@ -307,8 +304,6 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                         }),
                 ]);
 
-                console.log("[useProgramProgress] Étape 2: Toutes les données de progression ont été récupérées avec succès.");
-                
                 // Calculate course progress
                 const totalCourses = program.course_learningpath.length || 0;
                 const cappedCourseProgressData = courseProgressData.map(course => ({
@@ -348,7 +343,6 @@ export const useProgramProgress = (lpId: string, userId: string): ProgramProgres
                     calculatedExercisesProgress = capPercentage((completedExercises / totalExercises) * 100);
                 }
 
-                console.log("[useProgramProgress] Fetcher SWR terminé avec succès. Retour des données calculées.");
                 return {
                     program,
                     courseProgress: {

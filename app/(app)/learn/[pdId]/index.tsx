@@ -139,8 +139,6 @@ const ProgramDetails = () => {
     );
 
     // Only fetch progress data if enrolled
-    // LOG: On vérifie les paramètres passés au hook de progression.
-    console.log(`[ProgramDetails] Appel de useProgramProgress avec id: "${isEnrolled ? id : ""}" et userId: "${isEnrolled ? (user?.id || "") : ""}"`);
     const {
         courseProgress,
         quizProgress,
@@ -387,9 +385,6 @@ const ProgramDetails = () => {
                 },
             );
 
-
-            console.log("[ProgramDetails] Active Installment:", activeInstallment);
-
             // Ajout de la carte paiement échelonné si actif ou expiré
             if (activeInstallment) {
                 const currentInstallment = activeInstallment.current_installment || 1;
@@ -525,8 +520,6 @@ const ProgramDetails = () => {
 
     // --- Logique de rendu ---
     if (isLoading) {
-        // LOG: Confirme que l'on affiche l'écran de chargement
-        console.log(`[ProgramDetails] Rendu du bloc de chargement. (programLoading: ${programLoading}, progressLoading: ${progressLoading})`);
         return (
             <View style={[styles.container, isDark && styles.containerDark, styles.loadingContainer]}>
                 <ThemedText style={[styles.loadingText, isDark && styles.loadingTextDark]}>
@@ -554,9 +547,6 @@ const ProgramDetails = () => {
             </View>
         );
     }
-    
-    // LOG: Confirme que le rendu principal s'effectue
-    console.log("[ProgramDetails] Rendu du contenu principal du programme.");
 
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>

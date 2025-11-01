@@ -20,8 +20,6 @@ export const usePayment = () => {
   ) => {
     setLoading(true);
     try {
-      console.log("we are debugging")
-
       return
       const payment = await PaymentService.createPayment(
           cartId,
@@ -32,14 +30,11 @@ export const usePayment = () => {
       );
 
       setPayment(payment);
-      console.log(payment);
       PaymentService.subscribeToPaymentStatus(payment.id, (status, payment) => {
         setPayment(payment);
-        console.log("status  realtime", status)
         if (status === "initialized" || status === "completed") {
           setPaymentStatus(status);
         } else {
-          console.log("Payment status", status);
           setPaymentStatus(status);
         }
       });
@@ -83,19 +78,14 @@ export const usePayment = () => {
         },
       });
 
-      console.log("debug 1")
-
       // Store the authorization URL for fallback
       if (result.initResponse.authorization_url) {
         setAuthorizationUrl(result.initResponse.authorization_url);
       }
-      console.log("debug 2")
 
       // If we got an error during charge but initialization was successful
       if (result.error && result.initResponse.transaction?.reference) {
         setChargeError(result.error);
-
-      console.log("debug 3")
 
         // Still create payment record, just with different initial status
         const payment = await PaymentService.createPayment(
@@ -174,7 +164,7 @@ export const usePayment = () => {
           // do not cancel in notch pay for dispute management
           // await notchpay.cancelPayment(payment.trx_reference);
         } catch (e) {
-          console.log("Error cancelling payment with NotchPay:", e);
+          // Silently ignore NotchPay cancellation errors
         }
 
         // Mark as canceled in our system
@@ -208,8 +198,6 @@ export const usePayment = () => {
     try {
       const notchpay = new NotchPayService();
       const result = await notchpay.verifyTransaction(reference);
-
-      console.log("result : ", result)
 
       if (payment && result?.transaction?.status === "complete") {
         await PaymentService.setStatus(payment.id, "completed");

@@ -182,7 +182,6 @@ const MainOnboarding = () => {
           if (accountData.onboarding_done) {
             // Handle case where onboarding was already completed
             // You might want to redirect or show a different UI
-            console.log('Onboarding was previously completed');
           }
         } else {
           // Set minimal defaults for new user

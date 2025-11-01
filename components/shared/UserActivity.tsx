@@ -16,7 +16,6 @@ const UserActivityTracker: React.FC = () => {
     const { user } = useAuth();
 
     const isLearningPath = (path: string) => {
-        console.log("path", path);
         const patterns = [
             /^\/learn\/[^\/]+\/courses\/[^\/]+\/lessons\/[^\/]+$/, // accapter quand l'utilisateur est sur une leçon
             /^\/learn\/[^\/]+\/courses\/[^\/]+\/videos\/[^\/]+$/, // accapter quand l'utilisateur est sur une video

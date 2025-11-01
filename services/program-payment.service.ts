@@ -50,20 +50,12 @@ export const ProgramPaymentService = {
     currentInstallment: number = 1,
     nextInstallmentDate?: Date
   ): Promise<ProgramPayment> {
-    console.log("Creating installment plan:", { programId, phoneNumber, totalAmount, totalInstallments, promoCodeId, currentInstallment });
-
     // Calculate first installment amount
     const firstInstallmentAmount = this.calculateInstallmentAmount(totalAmount, totalInstallments);
-    console.log("Calculated first installment amount:", firstInstallmentAmount);
 
     try {
       // Create the parent payment record (first installment)
       const notchpay = new NotchPayService();
-      console.log("Initiating direct charge with NotchPay:", { 
-        phone: phoneNumber, 
-        channel: 'cm.mobile',
-        amount: firstInstallmentAmount 
-      });
 
       const result = await notchpay.initiateDirectCharge({
         phone: phoneNumber,
@@ -75,27 +67,12 @@ export const ProgramPaymentService = {
         },
       });
 
-      console.log("NotchPay initResponse:", result.initResponse);
-      console.log("NotchPay chargeResponse:", result.chargeResponse);
-      console.log("NotchPay needsFallback:", result.needsFallback);
-
       if (!result.initResponse.transaction?.reference) {
         console.error("Payment initialization failed: No transaction reference");
         throw new Error("Payment initialization failed");
       }
 
       // Create the first installment payment record
-      console.log("Creating payment record with:", { 
-        programId, 
-        phoneNumber, 
-        amount: firstInstallmentAmount,
-        reference: result.initResponse.transaction.reference,
-        isInstallment: true,
-        totalInstallments,
-        currentInstallment: 1,
-        totalAmount
-      });
-
       const payment = await this.createPayment(
         programId,
         phoneNumber,
@@ -111,16 +88,10 @@ export const ProgramPaymentService = {
 
       );
 
-      console.log("Payment record created:", payment);
-
       // If direct charge was successful or needs fallback
       if (result.chargeResponse || result.needsFallback) {
-        console.log("Setting payment status to initialized");
-
         if(payment.id){
           await this.setStatus(payment.id, 'initialized');
-        }else {
-          console.log("progblem with payment id", payment.id);
         }
 
         return {
@@ -173,7 +144,6 @@ export const ProgramPaymentService = {
     parentPaymentId: string,
     phoneNumber: string
   ): Promise<ProgramPayment> {
-    console.log("Processing next installment for parent payment ID:", parentPaymentId, "and phone number:", phoneNumber);
     // Get the parent payment
     const { data: parentPayment, error: parentError } = await supabase
       .from('user_program_payments')
@@ -289,9 +259,6 @@ export const ProgramPaymentService = {
   ): Promise<ProgramPayment> {
     // Convert programId to a number if it's a string
     const numericProgramId = parseInt(programId, 10);
-
-
-    console.log("currentInstallment", currentInstallment);
 
     if (isNaN(numericProgramId)) {
       throw new Error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
@@ -470,8 +437,6 @@ export const ProgramPaymentService = {
   },
 
   async getActivePayment(programId: string): Promise<ProgramPayment | null> {
-
-    console.log("Getting active payment for program ID:", programId);
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) return null;
 
@@ -510,10 +475,7 @@ export const ProgramPaymentService = {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) return null;
     if (!programId) {
-      console.log("Program ID is required to get the latest payment.");
       return null;
-    }else {
-        console.log("Getting latest payment for program ID:", programId);
     }
 
     // Convert programId to a number if it's a string
@@ -533,9 +495,6 @@ export const ProgramPaymentService = {
       .limit(1)
       .single();
 
-
-    console.log("Getting latest payment for program ID:", programId);
-    console.log("latest payment data:", data);
     if (error) {
       if (error.code === 'PGRST116') {
         // No payment found
@@ -592,16 +551,6 @@ export const ProgramPaymentService = {
     nextInstallmentDate?: Date
   ) {
     try {
-      console.log("Initiating direct payment:", { 
-        programId, 
-        phoneNumber, 
-        amount, 
-        promoCodeId, 
-        isInstallment, 
-        totalInstallments ,
-        currentInstallment
-      });
-
       // Convert programId to a number if it's a string
       const numericProgramId = parseInt(programId, 10);
 
@@ -612,7 +561,6 @@ export const ProgramPaymentService = {
 
       // If this is an installment payment, use the installment plan method
       if (isInstallment && totalInstallments > 1) {
-        console.log("Using installment plan method with total amount:", amount);
         // For installment plans, we need to pass the total amount, not the first installment amount
         return await this.createInstallmentPlan(
           programId,
@@ -638,8 +586,6 @@ export const ProgramPaymentService = {
           email: 'default@gmail.com', // This should be user's email if available
         },
       });
-
-      console.log("non installment NotchPay result:", result);
 
       // If we got an error during charge but initialization was successful
       if (result.error && result.initResponse.transaction?.reference) {
@@ -702,8 +648,6 @@ export const ProgramPaymentService = {
     try {
       const notchpay = new NotchPayService();
       const result = await notchpay.verifyTransaction(reference);
-
-      console.log("NotchPay verification result:", result);
 
       // If we have a transaction status from NotchPay and a payment ID, update our database
       if (result?.transaction?.status && paymentId) {
@@ -783,7 +727,6 @@ export const ProgramPaymentService = {
 
       return result;
     } catch (error) {
-      console.log("Error verifying payment status:", error);
       console.error("Error verifying program payment status:", error);
     }
   },
@@ -804,7 +747,6 @@ export const ProgramPaymentService = {
 
       // If payment is already canceled, don't try to update it again
       if (payment.payment_status === "canceled") {
-        console.log("Payment already canceled, skipping update");
         return;
       }
 
@@ -817,7 +759,7 @@ export const ProgramPaymentService = {
         // const notchpay = new NotchPayService();
         // await notchpay.cancelPayment(reference);
       } catch (e) {
-        console.log("Error cancelling payment with NotchPay:", e);
+        // Silently ignore NotchPay cancellation errors
       }
     } catch (error) {
       console.error("Error cancelling program payment:", error);
