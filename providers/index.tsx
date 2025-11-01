@@ -321,9 +321,9 @@ export function Provider({children}: { children: React.ReactNode }) {
             }}
         >
             <NotificationProvider>
-                <AuthDeepLinkHandler/>
-                <AuthProvider>
-                    <AppConfigProvider>
+                <AppConfigProvider>
+                    <AuthDeepLinkHandler/>
+                    <AuthProvider>
                         <UserProvider>
                             <GestureHandlerRootView style={{flex: 1}}>
                                 <BottomSheetModalProvider>
@@ -341,8 +341,8 @@ export function Provider({children}: { children: React.ReactNode }) {
                                 </BottomSheetModalProvider>
                             </GestureHandlerRootView>
                         </UserProvider>
-                    </AppConfigProvider>
-                </AuthProvider>
+                    </AuthProvider>
+                </AppConfigProvider>
             </NotificationProvider>
         </SWRConfig>
     );
