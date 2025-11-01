@@ -42,7 +42,7 @@ const fetcher = async (key: string): Promise<{
     } = await supabase.from('user_streaks').select('max_streak').eq('user_id', id).maybeSingle();
 
     if (error || error2 || error3) {
-        console.log('Error fetching user activity:', error);
+        console.error('Error fetching user activity:', error);
         return {
             total_time_in_second: 0,
             completed_courses: 0,
@@ -68,8 +68,6 @@ const Profile = () => {
             revalidateOnFocus: true,
         }
     );
-
-    console.log("data", data);
 
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';

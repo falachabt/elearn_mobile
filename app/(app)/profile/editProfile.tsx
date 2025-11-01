@@ -140,11 +140,9 @@ export default function EditProfile() {
     };
 
     const handleSubmit = async () => {
-       console.log("try here")
         if (!validateForm()) {
             return;
         }
-       console.log("try here 2")
 
         try {
            const {error} = await supabase.from('accounts').update({
@@ -152,14 +150,14 @@ export default function EditProfile() {
             }).eq('id', user?.id);
 
             if (error) {
-                console.log('Error updating profile:', error);
+                console.error('Error updating profile:', error);
                 // Handle error appropriately
                 return;
             }
 
             router.back();
         } catch (error) {
-            console.log('Error updating profile:', error);
+            console.error('Error updating profile:', error);
             // Handle error appropriately
         }
     };
