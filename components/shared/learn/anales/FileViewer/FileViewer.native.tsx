@@ -79,7 +79,6 @@ export const FileViewer: React.FC<FileViewerProps> = ({ file }) => {
                 trustAllCerts={false}
                 onLoadComplete={(numberOfPages) => {
                     setNumPages(numberOfPages);
-                    console.log(`Loaded ${numberOfPages} pages`);
                 }}
                 spacing={1}
                 onError={(error) => {
