@@ -172,8 +172,6 @@ export const useProgramPayment = (pdId: string | undefined) => {
             // Store the payment
             setPayment(pay);
 
-            console.log("Payment initiated:", result);
-
             // Set up subscription to payment status changes
             ProgramPaymentService.subscribeToPaymentStatus(
                 pay.id,
@@ -219,7 +217,6 @@ export const useProgramPayment = (pdId: string | undefined) => {
     const cancelPayment = async () => {
         if (payment) {
             try {
-                console.log("payment : ", payment, latestPayment)
                 await ProgramPaymentService.cancelPayment(
                     payment.id,
                     payment.payment_reference
@@ -257,8 +254,6 @@ export const useProgramPayment = (pdId: string | undefined) => {
                 reference,
                 payment?.id
             );
-
-            console.log("payment verification result : ", result);
 
             // Update UI with the status from NotchPay
             if (result?.transaction?.status) {

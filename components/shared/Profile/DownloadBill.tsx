@@ -10,7 +10,6 @@ const downloadInvoice = async (paymentId: { paymentId: string }) => {
         // Replace with your API URL
         const apiUrl = `http://192.168.1.168:3000/api/invoices/generatePdf/${paymentId.paymentId}`;
 
-        console.log('Downloading invoice from:', apiUrl);
         // Generate unique filename
         const filename = `invoice-${paymentId.paymentId}.pdf`;
         const fileUri = `${FileSystem.documentDirectory}${filename}`;

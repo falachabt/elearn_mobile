@@ -45,8 +45,6 @@ const fetchAppConfig = async () => {
     .select('*')
     .limit(1)
 
-  console.log(data, "app_config data fetched");
-
   if (error) {
     console.error('Error fetching app_config:', error);
     return null;

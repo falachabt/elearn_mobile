@@ -26,7 +26,6 @@ export const useCart = () => {
   const { mutate } = useSWRConfig();
 
   useEffect(() => {
-    console.log("user", user?.id, currentCart?.id);
     const cartChannel = supabase
       .channel('cart-changes')
       .on(
@@ -38,7 +37,6 @@ export const useCart = () => {
           filter: `user_id=eq.${user?.id}`,
         },
         () => {
-          console.log('cart changed');
           mutate(CART_KEY);
         }
       )
@@ -51,7 +49,6 @@ export const useCart = () => {
           filter: currentCart ? `cart_id=eq.${currentCart.id}` : undefined,
         },
         () => {
-          console.log('cart items changed');
           mutate(CART_KEY);
         }
       )
@@ -141,10 +138,6 @@ export const useCart = () => {
       // If there's an error, revalidate to get correct state
       mutate(CART_KEY);
       throw new Error('Erreur lors de la suppression du panier');
-    } finally {
-      const end = performance.now();
-      const duration = end - start;
-      console.log(`removeFromCart a pris ${duration} millisecondes`);
     }
   };
   return {

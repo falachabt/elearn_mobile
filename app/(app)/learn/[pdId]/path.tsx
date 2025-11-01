@@ -55,7 +55,6 @@ export default function PathPage() {
     const handleMessage = (event: any) => {
         try {
             const data = JSON.parse(event.nativeEvent.data);
-            console.log('Message received:', data);
 
             // Handle navigation based on message type
             switch (data.type) {
@@ -88,16 +87,14 @@ export default function PathPage() {
                     break;
 
                 case 'LOADED':
-                    console.log('LOADED message received');
                     setIsLoading(false);
                     break;
 
                 default:
-                    console.log('Unknown message type:', data.type);
+                    break;
             }
         } catch (error) {
-            console.log('Message parsing error:', error);
-            console.log('Raw message:', event.nativeEvent.data);
+            // Silently handle parsing errors
         }
     };
 
@@ -211,7 +208,6 @@ export default function PathPage() {
         <script>
             // Simulate loading
             setTimeout(() => {
-                console.log('Simulated loading complete');
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('content').style.display = 'flex';
 
@@ -288,7 +284,6 @@ export default function PathPage() {
 
     // Handle WebView load end
     const handleLoadEnd = () => {
-        console.log('WebView load end');
         setIsLoading(false);
     };
 

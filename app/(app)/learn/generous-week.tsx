@@ -108,7 +108,7 @@ const GenerousWeekPage = () => {
             return;
           }
         } catch (rpcError) {
-          console.log("RPC error, falling back to standard query:", rpcError);
+          // Fallback to standard query
         }
 
         // Fallback to standard query if RPC fails

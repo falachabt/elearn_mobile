@@ -433,7 +433,6 @@ const Register: React.FC = () => {
             shakeError();
             trigger(HapticType.ERROR);
 
-            console.log("error",error.message);
             if (error.message === "email exists" || error.message === "User already registered") {
                 setToast({
                     visible: true,
