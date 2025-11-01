@@ -114,7 +114,6 @@ export const useTicketMessages = (ticketId: string) => {
                         filter: `ticket_id=eq.${ticketId}`
                     },
                     payload => {
-                        console.log('Message change:', payload);
                         if (payload.eventType === 'INSERT') {
                             setMessages(current => [...current, payload.new as Message]);
                         } else if (payload.eventType === 'UPDATE') {
