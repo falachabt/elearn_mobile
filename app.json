@@ -35,6 +35,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/withAndroid16KBPageSize.js",
       "expo-router",
       "expo-apple-authentication",
       [
@@ -62,6 +63,20 @@
           "sounds": [
             "./assets/sounds/notification.wav"
           ]
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "usesCleartextTraffic": false,
+            "useLegacyPackaging": false
+          }
         }
       ]
     ],
