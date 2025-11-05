@@ -43,36 +43,27 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
         useState<Notifications.Notification | null>(null);
     const [error, setError] = useState<Error | null>(null);
 
-    const notificationListener = useRef();
-    const responseListener = useRef();
+    const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
+    const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
 
     useEffect(() => {
-        registerForPushNotificationsAsync().then(
-            (token) => setExpoPushToken(token),
-            (error) => setError(error)
-        );
+        registerForPushNotificationsAsync()
+            .then((token: string | undefined) => setExpoPushToken(token))
+            .catch((error: Error) => setError(error));
 
-        // @ts-ignore
         notificationListener.current =
             Notifications.addNotificationReceivedListener((notification) => {
                 setNotification(notification);
             });
 
-        // @ts-ignore
         responseListener.current =
-            Notifications.addNotificationResponseReceivedListener((response) => {
+            Notifications.addNotificationResponseReceivedListener(() => {
                 // Handle the notification response here
             });
 
         return () => {
-            if (notificationListener.current) {
-                Notifications.removeNotificationSubscription(
-                    notificationListener.current
-                );
-            }
-            if (responseListener.current) {
-                Notifications.removeNotificationSubscription(responseListener.current);
-            }
+            notificationListener.current?.remove();
+            responseListener.current?.remove();
         };
     }, []);
 

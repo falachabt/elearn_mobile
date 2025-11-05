@@ -41,11 +41,15 @@ export default function AppLayout() {
     }, [session, user?.onboarding_done]);
 
     // Handle tab press with memoized callback to avoid recreation on each render
-//    @ts-expect-error
-    const handleTabPress = useCallback((e) => {
+    interface TabPressEvent {
+        target?: string | { toString(): string };
+        preventDefault?: () => void;
+    }
+
+    const handleTabPress = useCallback((e: TabPressEvent): void => {
         // Accéder à l'ID du tab via la propriété routeNames si disponible
-        const currentRoute = e.target?.toString() || '';
-        const target = currentRoute.includes('-') ? currentRoute.split('-')[0] : currentRoute;
+        const currentRoute: string = e.target?.toString() || '';
+        const target: string = currentRoute.includes('-') ? currentRoute.split('-')[0] : currentRoute;
 
         // Use focus event to trigger haptics to avoid unnecessary renders
         trigger(HapticType.SELECTION);
@@ -139,9 +143,22 @@ export default function AppLayout() {
 
                 {/* Other tab screens... */}
                 <Tabs.Screen
+                    name="secondary"
+                    options={{
+                        title: "College",
+                        tabBarIcon: ({color}) => (
+                            <MaterialCommunityIcons
+                                name="book-open-variant"
+                                color={color}
+                                size={26}
+                            />
+                        ),
+                    }}
+                />
+                <Tabs.Screen
                     name="learn"
                     options={{
-                        title: "Programmes",
+                        title: "Prepa",
                         tabBarIcon: ({color}) => (
                             <MaterialCommunityIcons
                                 name="book-open-variant"
@@ -260,7 +277,7 @@ const styles = StyleSheet.create({
         fontFamily: theme.typography.fontFamily,
         fontSize: 12,
         fontWeight: "500",
-        marginTop: -5,
+        marginTop: 5,
         marginBottom: 5,
     },
     tabButton: {

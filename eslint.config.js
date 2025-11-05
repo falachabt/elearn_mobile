@@ -26,6 +26,8 @@ module.exports = tseslint.config(
       import: eslintPluginImport,
     },
     rules: {
+      "@typescript-eslint/no-var-requires": "off",
+      "@typescript-eslint/no-require-imports": "off",
       "import/order": [
         "error",
         {
