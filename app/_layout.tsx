@@ -95,9 +95,9 @@ export default function RootLayout() {
     const isDarkMode = colorScheme === 'dark';
 
     const [loaded] = useFonts({
-        'Outfit-Regular': require('../assets/fonts/Outfit-Regular.ttf'), // eslint-disable-line
-        'PlusJakartaSans-Regular': require('../assets/fonts/PlusJakartaSans-Regular.ttf'), // eslint-disable-line
-        'SpaceMono-Regular': require('../assets/fonts/SpaceMono-Regular.ttf'), // eslint-disable-line
+        'Outfit': require('../assets/fonts/Outfit-Regular.ttf'), // eslint-disable-line
+        'PlusJakartaSans': require('../assets/fonts/PlusJakartaSans-Regular.ttf'), // eslint-disable-line
+        'SpaceMono': require('../assets/fonts/SpaceMono-Regular.ttf'), // eslint-disable-line
     });
 
     useEffect(() => {

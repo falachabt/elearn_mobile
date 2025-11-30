@@ -8,7 +8,10 @@ export async function getSecondaryPrograms(): Promise<SecondaryProgram[]> {
     .filter("is_active", "eq", true);
   console.log("Fetched secondary programs:", data, error);
   if (error) throw error;
-  return data;
+  return (data || []).map(program => ({
+    ...program,
+    document_count: 0 // TODO: Add document_count field to database
+  }));
 }
 
 export async function getSecondaryProgramById(
@@ -20,7 +23,10 @@ export async function getSecondaryProgramById(
     .eq("id", id)
     .single();
   if (error) throw error;
-  return data;
+  return {
+    ...data,
+    document_count: 0 // TODO: Add document_count field to database
+  };
 }
 
 export async function getSecondaryProgramsByClass(classId: string) {
@@ -44,7 +50,7 @@ export async function getSecondaryProgramsBySerie(serieId: string) {
 export async function getSecondaryProgramCourses(programId: string) {
   const { data, error } = await supabase
     .from("secondary_program_courses")
-    .select("*")
+    .select("*, course:courses(*)")
     .eq("program_id", programId);
   if (error) throw error;
   return data;
@@ -53,7 +59,22 @@ export async function getSecondaryProgramCourses(programId: string) {
 export async function getSecondaryProgramExercises(programId: string) {
   const { data, error } = await supabase
     .from("secondary_program_exercises")
-    .select("*")
+    .select(`
+      *,
+      exercise:exercices(
+        *,
+        course:courses(
+          id,
+          name,
+          category,
+          courses_categories(
+            id,
+            name,
+            description
+          )
+        )
+      )
+    `)
     .eq("program_id", programId);
   if (error) throw error;
   return data;
@@ -62,7 +83,22 @@ export async function getSecondaryProgramExercises(programId: string) {
 export async function getSecondaryProgramQuizzes(programId: string) {
   const { data, error } = await supabase
     .from("secondary_program_quizzes")
-    .select("*")
+    .select(`
+      *,
+      quiz(
+        *,
+        course:courses(
+          id,
+          name,
+          category,
+          courses_categories(
+            id,
+            name,
+            description
+          )
+        )
+      )
+    `)
     .eq("program_id", programId);
   if (error) throw error;
   return data;

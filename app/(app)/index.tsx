@@ -1,37 +1,23 @@
-import React, {useEffect} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, useColorScheme} from 'react-native';
-import {MaterialCommunityIcons} from '@expo/vector-icons';
-import {Link, useRouter} from 'expo-router';
-import Head from "expo-router/head";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Link, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 
-import TopBar from '@/components/TopBar';
-import {theme} from '@/constants/theme';
-import {useAuth} from '@/contexts/auth';
-import {useUser} from '@/contexts/useUserInfo';
-import {useAppConfig} from '@/contexts/useAppConfig';
-import LearningPaths from '@/components/shared/LearningPaths';
-import NoProgram from "@/components/shared/catalogue/NoProgramCard";
-import {useNotification} from "@/contexts/NotificationContext";
-import {checkAndUpdateNotifications} from "@/utils/notification-utils";
 import CustomizableGoals from "@/components/CustimizableHomeScreenGoals";
-import GeminiChatbot from "@/components/shared/GeminiChatBot";
-import JustificationGenerator from "@/components/GQ";
-import NewsSection from '@/components/shared/news/NewsSection';
-import newsCard, { NewsCardProps } from '@/components/shared/news/NewsCard';
-import GenerousWeekCard from '@/components/shared/news/GenerousWeekCard';
+import { NewsCardProps } from '@/components/shared/news/NewsCard';
 import NewsCardConcoursBlanc1 from '@/components/shared/news/NewsCardConcoursBlanc1';
 import NewsCardExam from '@/components/shared/news/NewsCardExam';
+import NewsSection from '@/components/shared/news/NewsSection';
+import TopBar from '@/components/TopBar';
 import WhatsAppContact from "@/components/WhatsappSupport";
+import { theme } from '@/constants/theme';
+import { useUser } from '@/contexts/useUserInfo';
+import { checkAndUpdateNotifications } from "@/utils/notification-utils";
 
-const {width} = Dimensions.get('window');
 const HORIZONTAL_PADDING = 16;
-const CARD_MARGIN = 12;
-const PATH_CARD_WIDTH = width * 0.6;
 
 export default function Index() {
-    const {user: authUser} = useAuth();
-    const {user, toDayXp, toDayExo, toDayTime, userPrograms, lastCourse} = useUser();
-    const { appConfig} = useAppConfig();
+    const {user, toDayXp, toDayExo, toDayTime, lastCourse} = useUser();
     const colorScheme = useColorScheme();
     const router = useRouter();
     const isDarkMode = colorScheme === 'dark';

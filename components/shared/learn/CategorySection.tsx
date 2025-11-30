@@ -1,17 +1,18 @@
-import React, { useCallback } from 'react';
-import { View, StyleSheet, FlatList, Pressable } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useCallback } from "react";
+import { View, StyleSheet, FlatList, Pressable } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import CompactCourseCard from './CourseCard';
+import CompactCourseCard from "./CourseCard";
 
-import { ThemedText } from '@/components/ThemedText';
-import { CategoryGroup, CourseItem } from '@/types/course.type';
+import { ThemedText } from "@/components/ThemedText";
+import { CategoryGroup, CourseItem } from "@/types/course.type";
 
 interface CategorySectionProps {
   item: CategoryGroup;
   pdId: string;
   isEnrolled?: boolean;
   isDark: boolean;
+  type?: "secondary" | "prepa";
   onCoursePress: (courseItem: CourseItem) => void;
 }
 
@@ -21,9 +22,10 @@ interface CategorySectionProps {
 const CategorySection: React.FC<CategorySectionProps> = ({
   item,
   pdId,
+  type = "prepa",
   isEnrolled = false,
   isDark,
-  onCoursePress
+  onCoursePress,
 }) => {
   // Skip rendering if the category has no courses
   if (item.courses.length === 0) {
@@ -31,26 +33,23 @@ const CategorySection: React.FC<CategorySectionProps> = ({
   }
 
   // Handle course press - memoized to prevent recreation on each render
-  const handleCoursePress = useCallback((courseItem: CourseItem) => {
-    if (onCoursePress) {
-      onCoursePress(courseItem);
-    }
-  }, [onCoursePress]);
+  const handleCoursePress = useCallback(
+    (courseItem: CourseItem) => {
+      if (onCoursePress) {
+        onCoursePress(courseItem);
+      }
+    },
+    [onCoursePress]
+  );
 
   return (
     <View style={styles.categorySection}>
       <View style={styles.categoryHeader}>
-        <ThemedText style={styles.categoryTitle}>
-          {item.name}
-        </ThemedText>
+        <ThemedText style={styles.categoryTitle}>{item.name}</ThemedText>
 
         {item.courses.length > 4 && (
-          <Pressable
-            style={styles.seeAllButton}
-          >
-            <ThemedText style={styles.seeAllText}>
-              Voir tout
-            </ThemedText>
+          <Pressable style={styles.seeAllButton}>
+            <ThemedText style={styles.seeAllText}>Voir tout</ThemedText>
             <MaterialCommunityIcons
               name="chevron-right"
               size={16}
@@ -65,11 +64,14 @@ const CategorySection: React.FC<CategorySectionProps> = ({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.courseRow}
         data={item.courses}
-        keyExtractor={(courseItem, index) => `${courseItem.course.id}-${index}`}
+        keyExtractor={(courseItem, index) =>
+          `${courseItem.course?.id || index}-${index}`
+        }
         renderItem={({ item: courseItem, index }) => (
           <CompactCourseCard
             courseItem={courseItem}
             pdId={pdId}
+            type={type}
             index={index + 1}
             isEnrolled={isEnrolled}
             onPress={() => handleCoursePress(courseItem)}
@@ -89,19 +91,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   categoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
     marginBottom: 8,
   },
   categoryTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   seeAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 4,
   },
   seeAllText: {

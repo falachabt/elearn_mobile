@@ -49,10 +49,18 @@ const SecondaryProgramDetails = () => {
   // Dummy data - à remplacer plus tard par les vraies données
   const isEnrolled = true; // Simuler l'inscription
   const progression = {
-    courses: { current: 8, total: 12, percentage: 65 },
-    quizzes: { current: 5, total: 10, percentage: 50 },
-    exercises: { current: 15, total: 20, percentage: 75 },
-    documents: { current: 3, total: 8, percentage: 37 },
+    courses: { current: 8, total: program?.course_count || 0, percentage: 65 },
+    quizzes: { current: 5, total: program?.quiz_count || 0, percentage: 50 },
+    exercises: {
+      current: 15,
+      total: program?.exercise_count || 0,
+      percentage: 75,
+    },
+    documents: {
+      current: 3,
+      total: program?.document_count || 0,
+      percentage: 37,
+    },
   };
 
   // Action cards
@@ -136,7 +144,7 @@ const SecondaryProgramDetails = () => {
             color={isDark ? "#E879F9" : "#9C27B0"}
           />
         ),
-        route: `/(app)/secondary/program/${programId}/exercises`,
+        route: `/(app)/secondary/program/${programId}/exercices`,
         color: isDark ? "#E879F9" : "#9C27B0",
         rightContent: isEnrolled ? (
           <View style={styles.progressIndicator}>
@@ -249,6 +257,7 @@ const SecondaryProgramDetails = () => {
         {!isEnrolled && (
           <View style={[styles.statusBanner, styles.notEnrolledBanner]}>
             <ThemedText style={styles.statusText}>
+              {/* Vous n'êtes pas encore inscrit à ce programmeTODO add action button here to enrol */}
               Vous n'êtes pas encore inscrit à ce programme
             </ThemedText>
           </View>
@@ -345,7 +354,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: theme.border.radius.small,
     padding: 16,
     marginBottom: 16,
   },
@@ -412,7 +421,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: theme.border.radius.small,
     padding: 16,
     ...Platform.select({
       ios: {

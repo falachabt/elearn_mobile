@@ -9,6 +9,13 @@ export type SecondaryProgram = Database["public"]["Tables"]["secondary_programs"
     class?: SecondaryClass | null;
     serie?: SecondaryClassSerie | null;
 };
-export type SecondaryProgramCourse = Database["public"]["Tables"]["secondary_program_courses"]["Row"];
-export type SecondaryProgramExercise = Database["public"]["Tables"]["secondary_program_exercises"]["Row"];
-export type SecondaryProgramQuiz = Database["public"]["Tables"]["secondary_program_quizzes"]["Row"];
+export type SecondaryProgramCourse = Database["public"]["Tables"]["secondary_program_courses"]["Row"] & {
+    course?: Database["public"]["Tables"]["courses"]["Row"] | null;
+};
+
+export type SecondaryProgramExercise = Database["public"]["Tables"]["secondary_program_exercises"]["Row"] & {
+    exercise?: Database["public"]["Tables"]["exercices"]["Row"] | null;
+}
+export type SecondaryProgramQuiz = Database["public"]["Tables"]["secondary_program_quizzes"]["Row"] & {
+    quiz?: Database["public"]["Tables"]["quiz"]["Row"] | null;
+}

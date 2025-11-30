@@ -1,17 +1,16 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
-import {View, Text, StyleSheet, ScrollView, Pressable, Image} from 'react-native';
-import {MaterialCommunityIcons} from '@expo/vector-icons';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import {useColorScheme} from '@/hooks/useColorScheme';
-import {HapticType, useHaptics} from '@/hooks/useHaptics';
-import {theme} from '@/constants/theme';
+import { theme } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { HapticType, useHaptics } from '@/hooks/useHaptics';
+import { Category } from '@/types';
+import { getCategoryTheme } from '@/constants/categoryThemes';
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 // TypeScript interfaces
-interface Category {
-    id?: number;
-    name: string;
-    icon?: string;
-}
 
 interface CategoryFilterProps {
     id : string,
@@ -76,15 +75,14 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({ id,categories,selectedC
         // }
 
         // Otherwise use a fallback icon from MaterialCommunityIcons
-        const iconName = CATEGORY_ICONS[category.name] || 'book-education';
-        const color = selectedCategory === category.name
+        const iconName = CATEGORY_ICONS[category?.name || ""] || 'book-education';
+        const color = selectedCategory === category?.name
             ? '#FFFFFF'
             : isDark ? '#D1D5DB' : '#4B5563';
 
         return (
             <MaterialCommunityIcons
-                // @ts-ignore
-                name={iconName}
+                name={iconName as IconName}
                 size={20}
                 color={color}
             />
@@ -93,7 +91,9 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({ id,categories,selectedC
 
     // Get background color for selected category
     const getCategoryColor = (categoryName: string): string => {
-        return CATEGORY_COLORS[categoryName] || theme.color.primary[500];
+        // Utiliser le générateur de thème qui gère automatiquement les couleurs prédéfinies et générées
+        const categoryTheme = getCategoryTheme(categoryName);
+        return categoryTheme.cardBg;
     };
 
     return (
@@ -139,7 +139,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({ id,categories,selectedC
                             backgroundColor: getCategoryColor(category.name)
                         }
                     ]}
-                    onPress={() => handleCategoryPress(category.name)}
+                    onPress={() => handleCategoryPress(category?.name || '')}
                 >
                     <View style={styles.chipContent}>
                         {getCategoryIcon(category)}

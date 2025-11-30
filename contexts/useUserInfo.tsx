@@ -45,6 +45,7 @@ type UserContextType = {
   mutateTodayExercises: () => void;
   mutateUserPrograms: () => void;
   isLearningPathEnrolled: (learningPathId: string) => boolean;
+  isSecondaryProgramEnrolled: (programId: string) => boolean;
     getProgramAccessStatus: (learningPathId: string) => ProgramAccessStatus;
     mutateProgramAccessMap: () => void;
 };
@@ -323,6 +324,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return status.hasAccess;
   };
 
+  // Check if user is enrolled in a secondary program
+  const isSecondaryProgramEnrolled = (programId: string) => {
+    // TODO: Implement actual check against user_program_enrollments table
+    // For now, return true to allow testing
+    // This should query the database to check if the user has an active enrollment
+    return false;
+  };
+
   useEffect(() => {
     setIsLoading(!user || !lastCourse || toDayXp === undefined || toDayExo === undefined || !userPrograms);
   }, [user, lastCourse, toDayXp, toDayExo, userPrograms]);
@@ -447,11 +456,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     return () => {
-      if (subscription) {
-        supabase.removeChannel(subscription);
-      }
+      subscription?.unsubscribe();
     };
-  }, [authUser?.id]);
+  }, [authUser?.id, mutateUser, mutateLastCourse, mutateTodayXp, mutateTodayExercises, mutateTodayTime, mutateUserPrograms]);
 
   const value: UserContextType = {
     user: user ?? null,
@@ -468,12 +475,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     mutateTodayExercises,
     mutateUserPrograms,
     isLearningPathEnrolled,
+    isSecondaryProgramEnrolled,
     getProgramAccessStatus,
     // Expose mutate pour accès map et userPrograms
     mutateProgramAccessMap,
   };
 
-  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+	return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
 export function useUser() {
