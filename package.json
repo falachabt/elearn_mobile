@@ -3,7 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start",
+    "start": "expo start ",
     "reset-project": "node ./scripts/reset-project.js",
     "generate-types": "pg-to-ts generate -c \"postgresql://postgres.yhznbitjlzeslvudbsil:a6AuGzmldCIXzyGV@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" -o ./types/type.ts",
     "android": "node ./scripts/switch-platform.js native && expo start --android",
@@ -97,6 +97,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@eslint/js": "^9.34.0",
+    "@expo/ngrok": "^4.1.3",
     "@types/jest": "^29.5.12",
     "@types/react": "~19.1.10",
     "@types/react-test-renderer": "^18.3.0",

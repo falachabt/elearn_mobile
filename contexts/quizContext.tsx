@@ -215,7 +215,10 @@ export function QuizProvider({
     attemptId: string;
 }) {
     const params = useLocalSearchParams();
-    const {pdId} = useGlobalSearchParams();
+    const globalParams = useGlobalSearchParams();
+    // Support both pdId (learn) and programId (secondary)
+    const programId = String(globalParams.pdId || globalParams.programId || '');
+    const pdId = programId; // Keep pdId as alias for backward compatibility
     const quizId = String(params.quizId);
     const [state, dispatch] = useReducer(quizReducer, initialState);
     const {questions, isLoading: questionsLoading} = useQuizQuestions(quizId);
@@ -333,10 +336,12 @@ export function QuizProvider({
         // Allow navigation through questions when completed
         if (isCompleted) {
             if (state.currentQuestionIndex == totalQuestions - 1) {
-                // router.reload()
-                router.replace(`/(app)/learn/${pdId}/quizzes/${quizId}`);
+                // Determine the correct route based on which param is available
+                const basePath = globalParams.programId 
+                    ? `/(app)/secondary/program/${programId}`
+                    : `/(app)/learn/${programId}`;
+                router.replace(`${basePath}/quizzes/${quizId}` as any);
             } else {
-
                 dispatch({type: 'NEXT_QUESTION'});
             }
             return;
