@@ -56,11 +56,11 @@ export const courseProgressKeys = {
 
     // Batch mutation helpers
     mutateAllForUser: (userId: string) => {
-        swrMutate(`course-progress-list-${userId}`);
+        swrMutate(`course-progress-list-${userId}`, undefined, { revalidate: true });
     },
-    mutateAllForCourse: (userId: string, courseId: number | string) => {
-        swrMutate(['courseProgress', userId, courseId]);
-        swrMutate(['sectionsProgress', userId, courseId]);
+    mutateAllForCourse: async (userId: string, courseId: number | string) => {
+        await swrMutate(['courseProgress', userId, courseId], undefined, { revalidate: true });
+        await swrMutate(['sectionsProgress', userId, courseId], undefined, { revalidate: true });
     }
 };
 

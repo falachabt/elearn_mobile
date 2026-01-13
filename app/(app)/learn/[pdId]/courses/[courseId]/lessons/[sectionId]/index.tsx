@@ -90,6 +90,13 @@ const SectionDetail = () => {
     }
   }, [sectionId]);
 
+  // Refresh progress when the sections list modal is opened
+  useEffect(() => {
+    if (showSectionList) {
+      refreshProgress();
+    }
+  }, [showSectionList]);
+
   // Prevent screenshots
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -248,7 +255,7 @@ const SectionDetail = () => {
     }
   }, [nextSection, isNextSectionLocked]);
 
-  function handleNext() {
+  async function handleNext() {
     // Check if next section is locked
     if (isNextSectionLocked) {
       handlePurchaseFlow();
@@ -274,21 +281,12 @@ const SectionDetail = () => {
       });
     }
 
-    if (progress?.progress !== 1) {
-      markSectionComplete(Number(sectionId));
-    } else if (progress === undefined) {
-      markSectionComplete(Number(sectionId));
+    if (progress?.progress !== 1 || progress === undefined) {
+      await markSectionComplete(Number(sectionId));
+      
+      // Attendre un peu pour que les mutations se propagent
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
-
-    // Global mutations for course progress
-    if (user?.id) {
-      globalMutate(["courseProgress", user.id, courseId]);
-      globalMutate(["sectionsProgress", user.id, courseId]);
-    }
-
-    setTimeout(() => {
-      refreshProgress();
-    }, 1000);
 
     if (nextSection) {
       playNextLesson();

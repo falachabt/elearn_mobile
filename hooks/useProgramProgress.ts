@@ -477,6 +477,44 @@ export const useProgramProgress = (
     }
   }, [programData]);
 
+  // Listen to real-time changes in course progress
+  useEffect(() => {
+    if (!userId || !lpId) return;
+
+    const channel = supabase
+      .channel("program_progress_" + lpId)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "usercourseprogress",
+          filter: `userid=eq.${userId}`,
+        },
+        () => {
+          // Muter le cache du programme pour forcer un refresh
+          programProgressKeys.mutateDetail(lpId, userId);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "course_progress_summary",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          programProgressKeys.mutateDetail(lpId, userId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [userId, lpId]);
+
   // Calculate total progress with weighted components and capped at 100%
   //  --- BLOC DE CALCUL RESTAURÉ ---
   const totalProgress = (() => {
