@@ -178,6 +178,7 @@ export default function AppLayout() {
                         ),
                     }}
                 />
+               
 
                 <Tabs.Screen
                     name="profile"

@@ -6,7 +6,7 @@ interface LessonContentViewerProps {
   isDark: boolean;
   webViewUrls: { course_url?: string } | null;
   session: { access_token?: string } | null;
-  webViewRef: React.RefObject<WebView>;
+  webViewRef: React.RefObject<WebView | null>;
   isWebViewLoaded: boolean;
   darkModeScript: string;
   isListening: boolean;

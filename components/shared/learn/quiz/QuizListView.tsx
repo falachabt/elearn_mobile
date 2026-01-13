@@ -61,6 +61,7 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
   isLoading = false,
   programTitle = "Programme",
   programId = "",
+  baseRoute,
   onBack,
 }) => {
   const router = useRouter();
@@ -364,6 +365,7 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
                 <EnhancedQuizRowItem
                   quizItem={item}
                   pdId={programId}
+                  baseRoute={baseRoute}
                   isDark={isDark}
                   index={index}
                 />
@@ -383,6 +385,7 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
                 <EnhancedQuizCard
                   quizItem={item}
                   pdId={programId}
+                  baseRoute={baseRoute}
                   isDark={isDark}
                   index={index}
                 />

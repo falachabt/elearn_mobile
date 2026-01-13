@@ -19,6 +19,7 @@ import {NotificationProvider} from "@/contexts/NotificationContext";
 import {ChatProvider} from "@/contexts/chatBotContext";
 import {UpdatesProvider} from "@/contexts/UpdatesContext";
 import UpdatesManager from "@/components/shared/UpdatesManager";
+import {NavigationProvider} from "@/contexts/NavigationContext";
 
 
 // Array of motivational messages to show when user tries to exit
@@ -45,6 +46,23 @@ const MOTIVATIONAL_MESSAGES = [
     "Petit à petit, l'oiseau fait son nid. Continuez votre apprentissage!",
 ];
 
+// IndexedDB helper for web platform
+const openIndexedDB = (): Promise<IDBDatabase> => {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open('SWRCache', 1);
+        
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        
+        request.onupgradeneeded = (event) => {
+            const db = (event.target as IDBOpenDBRequest).result;
+            if (!db.objectStoreNames.contains('cache')) {
+                db.createObjectStore('cache');
+            }
+        };
+    });
+};
+
 // Create a provider function that returns a Cache instance compatible with SWR
 function asyncStorageProvider() {
     const SWR_CACHE_PREFIX = 'swr-cache:';
@@ -56,8 +74,10 @@ function asyncStorageProvider() {
     
     // Check if we're in a browser/native environment (not SSR)
     const isClient = typeof window !== 'undefined';
+    const isWeb = Platform.OS === 'web';
+    let db: IDBDatabase | null = null;
 
-    // Initialize cache from AsyncStorage
+    // Initialize cache from IndexedDB (web) or AsyncStorage (native)
     const initCache = async () => {
         if (initialized || initializing) return initPromise;
         
@@ -70,39 +90,61 @@ function asyncStorageProvider() {
         initializing = true;
         initPromise = (async () => {
             try {
-                const keys = await AsyncStorage.getAllKeys();
-
-                // Get only last 50 keys to prevent storage limit issues
-                const swrKeys = keys
-                    .filter(key => key.startsWith(SWR_CACHE_PREFIX))
-                    .slice(-50);
-
-                if (swrKeys.length > 0) {
-                    const items = await AsyncStorage.multiGet(swrKeys);
-
-                    items.forEach(([key, value]) => {
-                        if (value) {
-                            try {
-                                const parsedValue = JSON.parse(value);
-                                map.set(key.substring(SWR_CACHE_PREFIX.length), parsedValue);
-                            } catch (parseError) {
-                                console.error('Error parsing cached value:', parseError);
-                            }
-                        }
+                if (isWeb) {
+                    // Use IndexedDB on web
+                    db = await openIndexedDB();
+                    const transaction = db.transaction(['cache'], 'readonly');
+                    const store = transaction.objectStore('cache');
+                    const request = store.getAllKeys();
+                    
+                    const keys = await new Promise<IDBValidKey[]>((resolve, reject) => {
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
                     });
-
-                    // Clean up old keys
-                    const keysToRemove = keys
+                    
+                    // Load all cached items
+                    for (const key of keys) {
+                        const getRequest = store.get(key);
+                        const value = await new Promise((resolve, reject) => {
+                            getRequest.onsuccess = () => resolve(getRequest.result);
+                            getRequest.onerror = () => reject(getRequest.error);
+                        });
+                        if (value) {
+                            map.set(key as string, value);
+                        }
+                    }
+                } else {
+                    // Use AsyncStorage on native
+                    const keys = await AsyncStorage.getAllKeys();
+                    const swrKeys = keys
                         .filter(key => key.startsWith(SWR_CACHE_PREFIX))
-                        .slice(0, -50);
+                        .slice(-50);
 
-                    if (keysToRemove.length > 0) {
-                        await AsyncStorage.multiRemove(keysToRemove);
+                    if (swrKeys.length > 0) {
+                        const items = await AsyncStorage.multiGet(swrKeys);
+                        items.forEach(([key, value]) => {
+                            if (value) {
+                                try {
+                                    const parsedValue = JSON.parse(value);
+                                    map.set(key.substring(SWR_CACHE_PREFIX.length), parsedValue);
+                                } catch (parseError) {
+                                    console.error('Error parsing cached value:', parseError);
+                                }
+                            }
+                        });
+
+                        const keysToRemove = keys
+                            .filter(key => key.startsWith(SWR_CACHE_PREFIX))
+                            .slice(0, -50);
+
+                        if (keysToRemove.length > 0) {
+                            await AsyncStorage.multiRemove(keysToRemove);
+                        }
                     }
                 }
                 initialized = true;
             } catch (error) {
-                console.error('Error initializing SWR cache from AsyncStorage:', error);
+                console.error('Error initializing SWR cache:', error);
             } finally {
                 initializing = false;
             }
@@ -128,16 +170,21 @@ function asyncStorageProvider() {
         set(key: string, value: any) {
             map.set(key, value);
 
-            // Only persist to AsyncStorage on client-side (not SSR)
             if (!isClient) return;
 
-            // Asynchronously persist to AsyncStorage
-            // We don't await this to avoid blocking
             (async () => {
                 try {
-                    await AsyncStorage.setItem(`${SWR_CACHE_PREFIX}${key}`, JSON.stringify(value));
+                    if (isWeb && db) {
+                        // Use IndexedDB on web
+                        const transaction = db.transaction(['cache'], 'readwrite');
+                        const store = transaction.objectStore('cache');
+                        store.put(value, key);
+                    } else {
+                        // Use AsyncStorage on native
+                        await AsyncStorage.setItem(`${SWR_CACHE_PREFIX}${key}`, JSON.stringify(value));
+                    }
                 } catch (error) {
-                    console.error('Error setting SWR cache in AsyncStorage:', error);
+                    console.error('Error setting SWR cache:', error);
                 }
             })();
         },
@@ -145,16 +192,21 @@ function asyncStorageProvider() {
         delete(key: string) {
             map.delete(key);
 
-            // Only remove from AsyncStorage on client-side (not SSR)
             if (!isClient) return;
 
-            // Asynchronously remove from AsyncStorage
-            // We don't await this to avoid blocking
             (async () => {
                 try {
-                    await AsyncStorage.removeItem(`${SWR_CACHE_PREFIX}${key}`);
+                    if (isWeb && db) {
+                        // Use IndexedDB on web
+                        const transaction = db.transaction(['cache'], 'readwrite');
+                        const store = transaction.objectStore('cache');
+                        store.delete(key);
+                    } else {
+                        // Use AsyncStorage on native
+                        await AsyncStorage.removeItem(`${SWR_CACHE_PREFIX}${key}`);
+                    }
                 } catch (error) {
-                    console.error('Error deleting SWR cache from AsyncStorage:', error);
+                    console.error('Error deleting SWR cache:', error);
                 }
             })();
         }
@@ -180,7 +232,6 @@ const BackHandlerManager = React.memo(({ children }: { children: React.ReactNode
         const handleAppStateChange = (nextAppState: AppStateStatus) => {
             if (nextAppState === 'active') {
                 // App has come to the foreground
-                console.log('App has returned to the foreground');
             }
         };
 
@@ -267,7 +318,6 @@ export function Provider({children}: { children: React.ReactNode }) {
         amplitude.init('7487f52aac24f10f8ffd12ff25f4f48a', undefined, {
             serverZone: 'EU'  // ← OBLIGATOIRE
         });
-        console.log('Amplitude initialized');
     }, []);
 
     return (
@@ -298,7 +348,6 @@ export function Provider({children}: { children: React.ReactNode }) {
 
                     const onAppStateChange = (nextAppState: AppStateStatus) => {
                         /* If it's resuming from background or inactive mode to active one */
-                        console.log(appState, nextAppState);
                         if (
                             appState.match(/inactive|background/) &&
                             nextAppState === "active"
@@ -325,21 +374,23 @@ export function Provider({children}: { children: React.ReactNode }) {
                     <AuthDeepLinkHandler/>
                     <AuthProvider>
                         <UserProvider>
-                            <GestureHandlerRootView style={{flex: 1}}>
-                                <BottomSheetModalProvider>
-                                    <UpdatesProvider>
-                                        <ChatProvider>
-                                            <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
-                                                <UserActivityTracker/>
-                                                <UpdatesManager/>
-                                                <BackHandlerManager>
-                                                    {children}
-                                                </BackHandlerManager>
-                                            </QuizProvider>
-                                        </ChatProvider>
-                                    </UpdatesProvider>
-                                </BottomSheetModalProvider>
-                            </GestureHandlerRootView>
+                            <NavigationProvider>
+                                <GestureHandlerRootView style={{flex: 1}}>
+                                    <BottomSheetModalProvider>
+                                        <UpdatesProvider>
+                                            <ChatProvider>
+                                                <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
+                                                    <UserActivityTracker/>
+                                                    <UpdatesManager/>
+                                                    <BackHandlerManager>
+                                                        {children}
+                                                    </BackHandlerManager>
+                                                </QuizProvider>
+                                            </ChatProvider>
+                                        </UpdatesProvider>
+                                    </BottomSheetModalProvider>
+                                </GestureHandlerRootView>
+                            </NavigationProvider>
                         </UserProvider>
                     </AuthProvider>
                 </AppConfigProvider>

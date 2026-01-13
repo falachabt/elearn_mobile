@@ -6,14 +6,25 @@ import {
   useSecondaryProgramQuizzes,
 } from "@/hooks/secondary/useSecondaryPrograms";
 import { QuizListView } from "@/components/shared/learn/quiz/QuizListView";
+import { useQuizPins, useQuizAttempts } from "@/hooks/useQuizData";
 
 export default function QuizzesList() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
 
-  // Fetch data
+  // Fetch program and quizzes data
   const { program, isLoading: isLoadingProgram } = useSecondaryProgram(programId);
   const { quizzes, isLoading: isLoadingQuizzes } =
     useSecondaryProgramQuizzes(programId);
+
+  // Get quiz IDs for fetching pins and attempts
+  const quizIds = useMemo(
+    () => quizzes?.map((item) => item.quiz_id).filter((id): id is string => Boolean(id)) || [],
+    [quizzes]
+  );
+
+  // Use shared hooks for pins and attempts
+  const { pinnedMap } = useQuizPins(quizIds);
+  const { bestScoreMap } = useQuizAttempts(quizIds, "completed");
 
   const isLoading = isLoadingProgram || isLoadingQuizzes;
 
@@ -24,11 +35,15 @@ export default function QuizzesList() {
     return quizzes.map((item) => {
       if (!item.quiz) return null;
 
+      const quizId = item.quiz.id;
+      const isPinned = pinnedMap.has(quizId);
+      const progress = bestScoreMap.get(quizId) || 0;
+
       return {
-        quizId: parseInt(item.quiz.id),
+        quizId: quizId,
         lpId: programId,
         quiz: {
-          id: parseInt(item.quiz.id),
+          id: item.quiz.id,
           name: item.quiz.name || "Quiz sans titre",
           description: item.quiz.description,
           category: item.quiz.course?.courses_categories
@@ -37,7 +52,7 @@ export default function QuizzesList() {
                 name: item.quiz.course.courses_categories.name || "",
               }
             : undefined,
-          quiz_questions: [], // TODO: Add quiz questions if needed
+          quiz_questions: item.quiz.quiz_questions || [],
           course: item.quiz.course
             ? {
                 id: item.quiz.course.id,
@@ -45,11 +60,11 @@ export default function QuizzesList() {
               }
             : undefined,
         },
-        isPinned: false, // TODO: Implement pinning
-        progress: 0, // TODO: Implement progress tracking
+        isPinned: isPinned,
+        progress: progress,
       };
     }).filter(Boolean);
-  }, [quizzes, programId]);
+  }, [quizzes, programId, pinnedMap, bestScoreMap]);
 
   // Get program info
   const getProgramInfo = () => {
@@ -67,7 +82,7 @@ export default function QuizzesList() {
       isLoading={isLoading}
       programTitle={programTitle}
       programId={programId}
-      baseRoute="/(app)/secondary/program/[programId]/quizzes"
+      baseRoute={`/(app)/secondary/program/${programId}/quizzes`}
     />
   );
 }

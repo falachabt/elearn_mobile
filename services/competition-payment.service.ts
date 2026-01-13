@@ -233,7 +233,6 @@ export const CompetitionPaymentService = {
 
       return result;
     } catch (error) {
-      console.log("Error verifying payment status:", error);
       console.error("Error verifying competition payment status:", error);
     }
   },
@@ -254,7 +253,6 @@ export const CompetitionPaymentService = {
 
       // If payment is already canceled, don't try to update it again
       if (payment.payment_status === "canceled") {
-        console.log("Payment already canceled, skipping update");
         return;
       }
 
@@ -267,7 +265,7 @@ export const CompetitionPaymentService = {
         // const notchpay = new NotchPayService();
         // await notchpay.cancelPayment(reference);
       } catch (e) {
-        console.log("Error cancelling payment with NotchPay:", e);
+        // Payment cancellation with NotchPay failed
       }
     } catch (error) {
       console.error("Error cancelling competition payment:", error);

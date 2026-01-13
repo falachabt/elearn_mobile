@@ -8,6 +8,7 @@ export * from './quiz.type';
 export * from './settings.type';
 export * from './soundType';
 export * from './notchpay.types';
+export * from './news.type';
 
 // Export any additional types defined in this file
 // ...

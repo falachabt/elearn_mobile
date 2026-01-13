@@ -209,7 +209,6 @@ export const useProgramProgress = (
         .eq("id", lpId)
         .single();
 
-      // LOG: Vérification de l'erreur de la première requête. C'est un point de défaillance majeur.
       if (programError) {
         console.error(
           "[useProgramProgress] ERREUR CRITIQUE à l'étape 1: Échec de la récupération du programme.",
@@ -222,7 +221,7 @@ export const useProgramProgress = (
           "Aucune donnée de programme trouvée pour cet ID. .single() a probablement échoué car 0 ligne retournée."
         );
         console.error(
-          "[useProgramProgress] ERREUR CRITIQUE à l'étape 1:",
+          "[useProgramProgress] ❌ ERREUR CRITIQUE à l'étape 1:",
           noDataError.message
         );
         throw noDataError;
@@ -238,8 +237,10 @@ export const useProgramProgress = (
         console.error(
           "[useProgramProgress] ERREUR CRITIQUE DE STRUCTURE:",
           structureError,
-          "Données reçues:",
-          program
+          "course_learningpath:",
+          program.course_learningpath,
+          "quiz_learningpath:",
+          program.quiz_learningpath
         );
         throw structureError;
       }
@@ -268,10 +269,51 @@ export const useProgramProgress = (
 
       // --- ÉTAPE 2: Récupération des données de progression en parallèle ---
       try {
+        // Helper function to chunk array (Supabase URL limit workaround)
+        const chunkArray = (arr: string[], size: number): string[][] => {
+          const chunks: string[][] = [];
+          for (let i = 0; i < arr.length; i += size) {
+            chunks.push(arr.slice(i, i + size));
+          }
+          return chunks;
+        };
+
+        // Fetch exercises in chunks (max 100 per query to avoid URL length limit)
+        const exerciseChunks = chunkArray(allExerciseIds, 100);
+
+        const exerciseDataChunks = allExerciseIds.length > 0 
+          ? await Promise.all(
+              exerciseChunks.map((chunk, index) => {
+                return supabase
+                  .from("exercices_complete")
+                  .select("exercice_id")
+                  .eq("user_id", userId)
+                  .eq("is_completed", true)
+                  .in("exercice_id", chunk)
+                  .then(({ data, error }) => {
+                    if (error) {
+                      console.error(
+                        `[useProgramProgress] ❌ Erreur chunk exercices ${index + 1}:`,
+                        error,
+                        "Message:",
+                        error.message,
+                        "Code:",
+                        error.code
+                      );
+                      throw error;
+                    }
+                    return (data as ExerciceComplete[]) || [];
+                  });
+              })
+            )
+          : [];
+
+        // Flatten exercise data from chunks
+        const exerciseData = exerciseDataChunks.flat();
+
         const [
           courseProgressData,
           quizData,
-          exerciseData,
           archiveProgressData,
         ] = await Promise.all([
           // Fetch only relevant course progress
@@ -287,13 +329,9 @@ export const useProgramProgress = (
             )
             .then(({ data, error }) => {
               if (error) {
-                console.error(
-                  "[useProgramProgress] Erreur dans la requête de progression des cours:",
-                  error
-                );
                 throw error;
               }
-              return (data as CourseProgress[]) || [];çi
+              return (data as CourseProgress[]) || [];
             }),
 
           // Fetch only relevant quiz attempts
@@ -303,37 +341,12 @@ export const useProgramProgress = (
             .eq("user_id", userId)
             .eq("status", "completed")
             .gte("score", 70)
-            .in("quiz_id", relevantQuizIds.length ? relevantQuizIds : ["none"])
+            .in("quiz_id", relevantQuizIds.length ? relevantQuizIds : [])
             .then(({ data, error }) => {
               if (error) {
-                console.error(
-                  "[useProgramProgress] Erreur dans la requête des tentatives de quiz:",
-                  error
-                );
                 throw error;
               }
               return (data as QuizAttempt[]) || [];
-            }),
-
-          // Fetch only relevant completed exercises
-          supabase
-            .from("exercices_complete")
-            .select("exercice_id")
-            .eq("user_id", userId)
-            .eq("is_completed", true)
-            .in(
-              "exercice_id",
-              allExerciseIds.length ? allExerciseIds : ["none"]
-            )
-            .then(({ data, error }) => {
-              if (error) {
-                console.error(
-                  "[useProgramProgress] Erreur dans la requête des exercices complétés:",
-                  error
-                );
-                throw error;
-              }
-              return (data as ExerciceComplete[]) || [];
             }),
 
           // Fetch only relevant archive progress
@@ -348,10 +361,6 @@ export const useProgramProgress = (
             .then(({ data, error }) => {
               if (error) {
                 // Non-blocking error: logging for debugging purposes only
-                console.error(
-                  "Erreur silencieuse (non bloquante) lors de la récupération des archives complétées:",
-                  error
-                );
                 return [];
               }
               return (data as ArchiveComplete[]) || [];
@@ -439,10 +448,6 @@ export const useProgramProgress = (
         };
       } catch (e) {
         // LOG: Si une des requêtes de Promise.all échoue, on le saura ici.
-        console.error(
-          "[useProgramProgress] ERREUR CRITIQUE à l'étape 2: Une des requêtes de progression a échoué dans Promise.all.",
-          e
-        );
         throw e; // Relance l'erreur pour que SWR la capture
       }
     },
@@ -457,8 +462,8 @@ export const useProgramProgress = (
   useEffect(() => {
     if (error) {
       console.error(
-        "[useProgramProgress] HOOK FINAL: SWR a rapporté une erreur qui sera retournée au composant:",
-        error
+        "[useProgramProgress] Erreur:",
+        error.message
       );
     }
   }, [error]);

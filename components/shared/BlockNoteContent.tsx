@@ -307,9 +307,6 @@ const BlockRenderer = ({
 }) => {
   const renderBlockContent = () => {
     const { type, content, props } = block;
-    // console.log('BlockRenderer -> type', type);
-    // console.log('BlockRenderer -> content', content);
-    // console.log('BlockRenderer -> props', props);
 
     switch (type) {
       case 'paragraph':

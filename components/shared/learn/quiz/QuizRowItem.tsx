@@ -30,11 +30,12 @@ interface QuizItemProps {
         progress?: number;
     };
     pdId: string;
+    baseRoute: string; // Required - no fallback
     isDark?: boolean;
     index?: number;
 }
 
-const EnhancedQuizRowItem: React.FC<QuizItemProps> = ({ quizItem, pdId, isDark = false, index = 0 }) => {
+const EnhancedQuizRowItem: React.FC<QuizItemProps> = ({ quizItem, pdId, baseRoute, isDark = false, index = 0 }) => {
     const router = useRouter();
     const { trigger } = useHaptics();
 
@@ -96,7 +97,7 @@ const EnhancedQuizRowItem: React.FC<QuizItemProps> = ({ quizItem, pdId, isDark =
     // Handle quiz press
     const handleQuizPress = () => {
         trigger(HapticType.SELECTION);
-        router.push(`/(app)/learn/${pdId}/quizzes/${quiz.id}`);
+        router.push(`${baseRoute}/${quiz.id}`);
     };
 
     return (

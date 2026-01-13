@@ -17,7 +17,11 @@ export class CorrectionService {
             return question.justificatif;
         }
 
-        // Construction du prompt avec instructions détaillées pour Gemini
+        // TEMPORAIREMENT DÉSACTIVÉ : Génération via Gemini (problème de clé API)
+        // Retourne un message par défaut pour les questions sans justificatif
+        return "Explication non disponible pour cette question. Consultez votre cours pour plus de détails.";
+
+        /* CODE DÉSACTIVÉ - Génération Gemini
         const prompt = `
 Tu es un expert pédagogique chargé de fournir des explications claires et précises pour un quiz éducatif.
 
@@ -45,21 +49,15 @@ Ta réponse doit être pédagogique et permettre à l'apprenant de comprendre le
 `.trim();
 
         try {
-            // Appel à l'API Gemini avec timeout et gestion des limites
             const responseText = await run(prompt);
-
-            // Nettoyage et formatage de la réponse
             let cleanedResponse = responseText.trim();
-
-            // Suppression des préambules comme "Voici l'explication:" souvent générés
             cleanedResponse = cleanedResponse.replace(/^(Voici|Voilà).*?:/i, '').trim();
             cleanedResponse = cleanedResponse.replace(/^(\$).*?:/i, '$$').trim();
-
             return cleanedResponse;
         } catch (error: unknown) {
             console.error('Erreur dans CorrectionService.generateAnswer :', error);
-            // Renvoie un message d'erreur plus informatif
             throw new Error(`Impossible de générer une explication pour la question ID ${question.id}: ${(error as Error).message}`);
         }
+        */
     }
 }

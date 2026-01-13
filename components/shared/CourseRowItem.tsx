@@ -11,11 +11,12 @@ import {HapticType, useHaptics} from "@/hooks/useHaptics";
 interface CourseRowItemProps {
     courseItem: any;
     pdId: string;
+    baseRoute: string;
     isDark: boolean;
     isEnrolled?: boolean;
 }
 
-const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, isDark, isEnrolled = false}) => {
+const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRoute, isDark, isEnrolled = false}) => {
     const router = useRouter();
     const sections = courseItem.course?.courses_content?.length || 0;
     const videos = courseItem.course?.course_videos?.length || 0;
@@ -28,7 +29,7 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, isDark, 
             onPress={() => {
                 trigger(HapticType.SELECTION);
 
-                router.push(`/(app)/learn/${pdId}/courses/${courseItem.course?.id}`)
+                router.push(`${baseRoute}/${courseItem.course?.id}`)
             }
             }
         >

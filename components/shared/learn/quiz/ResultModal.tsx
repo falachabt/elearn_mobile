@@ -2,7 +2,6 @@ import React, {useState} from 'react';
 import {View, Modal, Pressable, StyleSheet, Platform, ActivityIndicator} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
-import {useGlobalSearchParams, useRouter} from 'expo-router';
 
 import {ThemedText} from '@/components/ThemedText';
 import {theme} from '@/constants/theme';
@@ -20,16 +19,15 @@ interface QuizResultDialogProps {
     onClose: () => void;
 }
 
-const StatCard = ({icon, value, label, color, isDark}: {
+const StatCard = ({icon, value, color, isDark}: {
     icon: string;
     value: string | number;
-    label: string;
     color?: string;
     isDark?: boolean;
 }) => (
     <View style={[styles.statCard, isDark && styles.statCardDark]}>
         <MaterialCommunityIcons
-            name={icon as any}
+            name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
             size={24}
             color={color || theme.color.primary[500]}
         />
@@ -47,10 +45,7 @@ export const QuizResultDialog = ({
                                      onClose,
                                  }: QuizResultDialogProps) => {
     const [loading, setLoading] = useState(false);
-    const router = useRouter();
-    const {pdId, quizId, attempId} = useGlobalSearchParams();
 
-    // console.log("results", results);
     const isPassed = (results && results.score !== null ? results.score >= 70 : false);
     const formattedTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -89,6 +84,8 @@ export const QuizResultDialog = ({
                             }
                             autoPlay
                             loop={false}
+                            resizeMode="contain"
+                            speed={1}
                             style={styles.animation}
                         />
                     </View>
@@ -116,7 +113,6 @@ export const QuizResultDialog = ({
                         <StatCard
                             icon="check-circle"
                             value={`${results?.correctAnswers}/${results?.totalQuestions}`}
-                            label="Correct Answers"
                             isDark={isDark}
                             color="#10B981"
                         />
@@ -124,13 +120,11 @@ export const QuizResultDialog = ({
                             icon="clock-outline"
                             value={formattedTime(results?.timeSpent ?? 0)}
                             isDark={isDark}
-                            label="Time Taken"
                         />
                         <StatCard
                             icon="star"
                             value={`+${results?.xpGained}`}
                             isDark={isDark}
-                            label="XP Gained"
                             color="#F59E0B"
                         />
                     </View>
@@ -239,6 +233,9 @@ const styles = StyleSheet.create({
         width: 120,
         height: 120,
         marginBottom: 16,
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     animation: {
         width: '100%',

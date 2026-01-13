@@ -45,13 +45,23 @@ export function useSecondaryProgramCourses(programId: string) {
   };
 }
 
-// Récupérer les exercices d'un programme
-export function useSecondaryProgramExercises(programId: string) {
-  const { data, error, isLoading } = useSWR(programId ? ['secondary-program-exercises', programId] : null, ([, id]) => getSecondaryProgramExercises(id));
+// Récupérer les exercices d'un programme avec pagination
+export function useSecondaryProgramExercises(programId: string, userId?: string, page: number = 0, searchQuery: string = "") {
+  const { data, error, isLoading, mutate } = useSWR(
+    programId ? ['secondary-program-exercises', programId, userId, page, searchQuery] : null, 
+    ([, id, uid, p, search]) => getSecondaryProgramExercises(id, uid, p, 20, search),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000, // 1 minute
+    }
+  );
   return {
-    exercises: data,
+    exercises: data?.data,
+    count: data?.count,
+    hasMore: data?.hasMore,
     isLoading,
     isError: !!error,
+    mutate,
   };
 }
 

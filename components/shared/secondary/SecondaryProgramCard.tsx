@@ -12,6 +12,8 @@ import { useRouter } from "expo-router";
 import { theme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { SecondaryProgram } from "@/types/secondary.type";
+import { useSecondaryProgramProgress } from "@/hooks/secondary/useSecondaryProgramProgress";
+import { useAuth } from "@/contexts/auth";
 
 // Import des icônes
 const calendarIcon =
@@ -39,11 +41,18 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   const router = useRouter();
+  const { user } = useAuth();
+
+  // Récupérer la vraie progression
+  const { totalProgress, isLoading } = useSecondaryProgramProgress(
+    program.id,
+    user?.id
+  );
 
   // Placeholder pour la date avant l'examen
   const daysBeforeExam = 42; // À remplacer par la vraie valeur plus tard
-  // Placeholder pour la progression
-  const progress = 75; // À remplacer par la vraie valeur plus tard
+  // Utiliser la vraie progression
+  const progress = isLoading ? 0 : totalProgress;
 
   const handlePress = () => {
     if (onPress) onPress();

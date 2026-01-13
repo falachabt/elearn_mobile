@@ -12,18 +12,17 @@ import {
     Dimensions
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import useSWR from "swr";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
-import { CoursesCategories, Quiz, Tags } from "@/types/type";
 import { useAuth } from "@/contexts/auth";
 import QuizAttemptsList from "@/components/shared/learn/quiz/QuizAttempList";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useUser } from "@/contexts/useUserInfo";
 import { useCustomRouter } from "@/hooks/useCustomRouter";
+import { useQuizDetails, useQuizPins, useQuizAttempts } from "@/hooks/useQuizData";
 
 // Define interfaces for the data
 interface QuizCourse {
@@ -33,35 +32,8 @@ interface QuizCourse {
     };
 }
 
-interface QuizTag {
-    tags: Tags;
-}
 
-interface QuizQuestion {
-    count: number;
-}
 
-interface QuizWithDetails extends Quiz {
-    quiz_category: CoursesCategories;
-    quiz_tags: QuizTag[];
-    quiz_questions: QuizQuestion[];
-    quiz_courses: QuizCourse[];
-}
-
-interface QuizAttempt {
-    id: string;
-    quiz_id: string;
-    user_id: string;
-    start_time: string;
-    end_time: string;
-    score: number;
-    status: string;
-    quiz?: {
-        quiz_questions: {
-            count: number;
-        }[];
-    };
-}
 
 // Define component interfaces
 interface StatCardProps {
@@ -214,7 +186,7 @@ const StatCard: React.FC<StatCardProps> = ({ icon, value, label, color, isDark, 
             ]}
         >
             <MaterialCommunityIcons
-                name={icon as any}
+                name={icon}
                 size={24}
                 color={cardColor}
             />
@@ -310,10 +282,15 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
     const [showAllPrereqs, setShowAllPrereqs] = useState(false);
     const { user } = useAuth();
     const { trigger } = useHaptics();
-    const { isLearningPathEnrolled } = useUser();
+    const { isLearningPathEnrolled, isSecondaryProgramEnrolled } = useUser();
+
+    // Check if we're in secondary context
+    const isSecondaryContext = basePath.includes("secondary");
 
     // Check if user is enrolled in this program
-    const isEnrolled = isLearningPathEnrolled(String(programId));
+    const isEnrolled = isSecondaryContext 
+        ? isSecondaryProgramEnrolled(String(programId))
+        : isLearningPathEnrolled(String(programId));
 
     // Set preview mode based on enrollment status
     const [, setIsPreviewMode] = useState<boolean>(!isEnrolled);
@@ -333,55 +310,13 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const headerOpacity = useRef(new Animated.Value(0)).current;
 
-    // SWR fetch for quiz pin status
-    const { data: isQuizPinned, mutate: mutateQuizPin } = useSWR<{ id: string } | null>(
-        quizId ? `quiz-pin-${quizId}` : null,
-        async () => {
-            const { data } = await supabase
-                .from("quiz_pin")
-                .select("*")
-                .eq("quiz_id", quizId)
-                .eq("user_id", user?.id)
-                .maybeSingle();
-
-            return data;
-        }
-    );
-
-    // SWR fetch for quiz attempts
-    const { data: quizAttempts } = useSWR<QuizAttempt[]>(
-        quizId ? `quiz-attemptss-${quizId}-${user?.id}` : null,
-        async () => {
-            const { data } = await supabase
-                .from("quiz_attempts")
-                .select("*, quiz(quiz_questions(count))")
-                .eq("quiz_id", quizId)
-                .eq("user_id", user?.id)
-                .eq("status", "completed");
-
-            return data || [];
-        }
-    );
-
-    // SWR fetch for quiz details
-    const {
-        data: quiz,
-        error: quizError,
-        isLoading: quizLoading,
-        mutate: refreshQuiz
-    } = useSWR<QuizWithDetails>(
-        quizId ? `quiz-${quizId}` : null,
-        async () => {
-            const { data } = await supabase
-                .from("quiz")
-                .select(
-                    "*, quiz_questions(count), category(name), quiz_tags(tags(id,name)), quiz_courses(courses(id,name))"
-                )
-                .eq("id", quizId)
-                .single();
-
-            return data;
-        }
+    // Use shared hooks for quiz data
+    const { isPinned: checkIsPinned, mutate: mutateQuizPin } = useQuizPins(quizId);
+    const { attempts: quizAttempts } = useQuizAttempts(quizId, "completed");
+    const { quiz, isLoading: quizLoading, error: quizError, mutate: refreshQuiz } = useQuizDetails(
+        quizId,
+        programId,
+        isSecondaryContext
     );
 
     // Create a new quiz attempt
@@ -399,11 +334,13 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
                 }
 
                 // Check if user has already made an attempt on this quiz
+                if (!user?.id) throw new Error("User not authenticated");
+                
                 const { data: existingAttempts, error: attemptsError } = await supabase
                     .from("quiz_attempts")
                     .select("id")
                     .eq("quiz_id", quizId)
-                    .eq("user_id", user?.id);
+                    .eq("user_id", user.id);
 
                 if (attemptsError) throw attemptsError;
 
@@ -431,7 +368,7 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
             if (error) throw error;
 
             // Navigate to the quiz play page with attempt ID using basePath
-            router.push(`${basePath}/${programId}/quizzes/${quizId}/${attempt.id}` as any);
+            router.push(`${basePath}/${programId}/quizzes/${quizId}/${attempt.id}` as Href);
         } catch (error) {
             console.error("Error creating quiz attempt:", error);
         }
@@ -440,6 +377,8 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
     // Toggle pin status for the quiz
     const triggerQuizPin = async (): Promise<void> => {
         try {
+            if (!user?.id) return;
+            
             trigger(HapticType.SELECTION);
             setPinned(!isPinned);
 
@@ -448,11 +387,11 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
                     .from("quiz_pin")
                     .delete()
                     .eq("quiz_id", quizId)
-                    .eq("user_id", user?.id);
+                    .eq("user_id", user.id);
             } else {
                 await supabase
                     .from("quiz_pin")
-                    .insert([{quiz_id: quizId, user_id: user?.id, is_pinned: true}]);
+                    .insert([{quiz_id: quizId, user_id: user.id, is_pinned: true}]);
             }
 
             await mutateQuizPin();
@@ -473,6 +412,7 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
         const averageSuccess = totalSuccessRate / quizAttempts.length;
 
         const totalDuration = quizAttempts.reduce((sum, attempt) => {
+            if (!attempt.start_time || !attempt.end_time) return sum;
             const startTime = new Date(attempt.start_time);
             const endTime = new Date(attempt.end_time);
             const durationInMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
@@ -512,13 +452,13 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
             return;
         }
 
-        router.push(`${basePath}/${programId}/courses/${courseId}` as any);
+        router.push(`${basePath}/${programId}/courses/${courseId}` as Href);
     };
 
-    // Update isPinned state when isQuizPinned changes
+    // Update isPinned state when checkIsPinned changes
     useEffect(() => {
-        setPinned(!!isQuizPinned);
-    }, [isQuizPinned]);
+        setPinned(checkIsPinned(quizId || ""));
+    }, [checkIsPinned, quizId]);
 
     // Fade-in animation when component mounts
     useEffect(() => {
@@ -803,7 +743,7 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
                         isDark={isDark}
                         onAttemptPress={(a) => {
                             trigger(HapticType.SELECTION);
-                            router.push(`${basePath}/${programId}/quizzes/${quizId}/${a.id}` as any);
+                            router.push(`${basePath}/${programId}/quizzes/${quizId}/${a.id}` as Href);
                         }}
                     />
                 </View>

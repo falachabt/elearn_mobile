@@ -11,7 +11,6 @@ import {
     Platform,
     ScrollView,
     KeyboardAvoidingView,
-    Dimensions
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
@@ -20,15 +19,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { useProgramPayment } from '@/hooks/useProgramPayment';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
-import { FIXED_PRICE, REGULAR_FIRST_COURSE_PRICE, isFixedPriceModeActive, getDisplayPrice } from '@/utils/pricing';
-import { ProgramPaymentService } from '@/services/program-payment.service';
+import { usePricing, isFixedPriceModeActive, getDisplayPrice } from '@/utils/pricing';
 import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/contexts/auth';
 import { supabase } from '@/lib/supabase';
 import { useUser } from "@/contexts/useUserInfo";
+import WhatsAppContact from '@/components/WhatsappSupport';
 
-// Get screen dimensions for layout
-const { height, width } = Dimensions.get('window');
 
 // Types and Enums
 export enum PaymentFlowState {
@@ -99,12 +96,20 @@ async function getProgramIdFromPdId(pdId: string | undefined): Promise<string | 
         .select("id")
         .eq('learningPathId', pdId)
         .single();
+    
     if (error) {
         console.error("Error fetching program ID:", error);
         return null;
     }
 
-    return data?.id || null;
+    if (!data || !data.id) {
+        console.error("No program found for pdId:", pdId);
+        return null;
+    }
+
+    // Convert id to string if it's a number
+    const id = typeof data.id === 'number' ? String(data.id) : data.id;
+    return typeof id === 'string' ? id : null;
 }
 
 // PaymentInstructions Component
@@ -114,11 +119,93 @@ interface PaymentInstructionsProps {
     isLoading: boolean;
     isDark: boolean;
     onContinue: () => void;
+    programId: string | null;
 }
 
-const PaymentInstructions: React.FC<PaymentInstructionsProps> = ({programName, hasInstallmentPayment, isLoading, isDark, onContinue}) => {
+const PaymentInstructions: React.FC<PaymentInstructionsProps> = ({
+    programName, 
+    hasInstallmentPayment, 
+    isLoading, 
+    isDark, 
+    onContinue,
+    programId
+}) => {
+    const [allPayments, setAllPayments] = useState<any[]>([]);
+    const [loadingPayments, setLoadingPayments] = useState(false);
+
+    // Charger l'historique des paiements
+    useEffect(() => {
+        const fetchPayments = async () => {
+            if (!programId) return;
+            
+            setLoadingPayments(true);
+            try {
+                const { data, error } = await supabase
+                    .from('user_program_payments')
+                    .select('*')
+                    .eq('program_id', programId)
+                    .order('created_at', { ascending: false });
+
+                if (!error && data) {
+                    setAllPayments(data);
+                }
+            } catch (error) {
+                console.error('Error fetching payments:', error);
+            } finally {
+                setLoadingPayments(false);
+            }
+        };
+
+        fetchPayments();
+    }, [programId]);
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'completed':
+                return '#4CAF50';
+            case 'failed':
+                return '#EF4444';
+            case 'canceled':
+                return '#F59E0B';
+            case 'pending':
+                return '#60A5FA';
+            default:
+                return '#6B7280';
+        }
+    };
+
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'completed':
+                return 'check-circle';
+            case 'failed':
+                return 'close-circle';
+            case 'canceled':
+                return 'cancel';
+            case 'pending':
+                return 'clock-outline';
+            default:
+                return 'help-circle';
+        }
+    };
+
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case 'completed':
+                return 'Réussi';
+            case 'failed':
+                return 'Échoué';
+            case 'canceled':
+                return 'Annulé';
+            case 'pending':
+                return 'En attente';
+            default:
+                return status;
+        }
+    };
+
     return (
-        <View style={styles.instructionsContainer}>
+        <ScrollView style={styles.instructionsContainer} showsVerticalScrollIndicator={false}>
             <ThemedText style={styles.instructionsTitle}>
                 Comment payer pour {programName}
             </ThemedText>
@@ -175,7 +262,140 @@ const PaymentInstructions: React.FC<PaymentInstructionsProps> = ({programName, h
                     </ThemedText>
                 </View>
             )}
-        </View>
+
+            {/* WhatsApp Support */}
+            <WhatsAppContact 
+                message={`Bonjour, j'ai besoin d'aide pour effectuer un paiement pour ${programName}`}
+                style={{ marginTop: 16, marginBottom: 16 }}
+            />
+
+            {/* Historique des paiements */}
+            {allPayments.length > 0 && (
+                <View style={styles.paymentHistorySection}>
+                    <View style={styles.paymentHistorySectionHeader}>
+                        <MaterialCommunityIcons 
+                            name="history" 
+                            size={24} 
+                            color={isDark ? "#9CA3AF" : "#6B7280"} 
+                        />
+                        <ThemedText style={styles.paymentHistorySectionTitle}>
+                            Historique des paiements
+                        </ThemedText>
+                    </View>
+
+                    {loadingPayments ? (
+                        <View style={styles.paymentHistoryLoading}>
+                            <ActivityIndicator size="small" color={isDark ? "#6EE7B7" : "#4CAF50"} />
+                        </View>
+                    ) : (
+                        <View style={styles.paymentHistoryList}>
+                            {allPayments.map((payment, index) => {
+                                const createdDate = new Date(payment.created_at);
+                                const expiryDate = payment.expiry_date ? new Date(payment.expiry_date) : null;
+                                const isExpired = expiryDate && expiryDate < new Date();
+
+                                return (
+                                    <View 
+                                        key={payment.id || index}
+                                        style={[
+                                            styles.paymentHistoryCard,
+                                            isDark && styles.paymentHistoryCardDark
+                                        ]}
+                                    >
+                                        <View style={styles.paymentHistoryCardHeader}>
+                                            <View style={styles.paymentHistoryCardStatus}>
+                                                <MaterialCommunityIcons
+                                                    name={getStatusIcon(payment.payment_status)}
+                                                    size={20}
+                                                    color={getStatusColor(payment.payment_status)}
+                                                />
+                                                <ThemedText style={[
+                                                    styles.paymentHistoryCardStatusText,
+                                                    { color: getStatusColor(payment.payment_status) }
+                                                ]}>
+                                                    {getStatusLabel(payment.payment_status)}
+                                                </ThemedText>
+                                            </View>
+                                            <ThemedText style={styles.paymentHistoryCardAmount}>
+                                                {payment.amount} FCFA
+                                            </ThemedText>
+                                        </View>
+
+                                        <View style={styles.paymentHistoryCardBody}>
+                                            <View style={styles.paymentHistoryCardRow}>
+                                                <MaterialCommunityIcons
+                                                    name="calendar"
+                                                    size={16}
+                                                    color={isDark ? "#9CA3AF" : "#6B7280"}
+                                                />
+                                                <ThemedText style={styles.paymentHistoryCardLabel}>
+                                                    Date: {createdDate.toLocaleDateString('fr-FR', { 
+                                                        day: 'numeric', 
+                                                        month: 'short', 
+                                                        year: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </ThemedText>
+                                            </View>
+
+                                            {payment.is_installment && (
+                                                <View style={styles.paymentHistoryCardRow}>
+                                                    <MaterialCommunityIcons
+                                                        name="credit-card-multiple"
+                                                        size={16}
+                                                        color={isDark ? "#9CA3AF" : "#6B7280"}
+                                                    />
+                                                    <ThemedText style={styles.paymentHistoryCardLabel}>
+                                                        Échéance {payment.current_installment}/{payment.total_installments}
+                                                    </ThemedText>
+                                                </View>
+                                            )}
+
+                                            {expiryDate && (
+                                                <View style={styles.paymentHistoryCardRow}>
+                                                    <MaterialCommunityIcons
+                                                        name={isExpired ? "alert-circle" : "calendar-clock"}
+                                                        size={16}
+                                                        color={isExpired ? "#EF4444" : (isDark ? "#9CA3AF" : "#6B7280")}
+                                                    />
+                                                    <ThemedText style={[
+                                                        styles.paymentHistoryCardLabel,
+                                                        isExpired && { color: '#EF4444' }
+                                                    ]}>
+                                                        {isExpired ? 'Expiré le' : 'Expire le'}: {expiryDate.toLocaleDateString('fr-FR', { 
+                                                            day: 'numeric', 
+                                                            month: 'short', 
+                                                            year: 'numeric' 
+                                                        })}
+                                                    </ThemedText>
+                                                </View>
+                                            )}
+
+                                            {payment.payment_reference && (
+                                                <View style={styles.paymentHistoryCardRow}>
+                                                    <MaterialCommunityIcons
+                                                        name="barcode"
+                                                        size={16}
+                                                        color={isDark ? "#9CA3AF" : "#6B7280"}
+                                                    />
+                                                    <ThemedText 
+                                                        style={styles.paymentHistoryCardReference}
+                                                        numberOfLines={1}
+                                                    >
+                                                        Réf: {payment.payment_reference}
+                                                    </ThemedText>
+                                                </View>
+                                            )}
+                                        </View>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    )}
+                </View>
+            )}
+        </ScrollView>
     );
 };
 
@@ -593,10 +813,20 @@ const PaymentProcessing: React.FC<PaymentProcessingProps> = ({
 
     return (
         <View style={styles.verifyingContainer}>
-            <View style={{ maxWidth: 200, alignItems: 'center', maxHeight: 300 }}>
+            <View style={{ 
+                maxWidth: 200, 
+                maxHeight: 200, 
+                alignItems: 'center', 
+                overflow: 'hidden',
+                justifyContent: 'center'
+            }}>
                 <LottieView
                     source={require('@/assets/animations/payment-loading.json')}
                     autoPlay
+                    loop
+                    resizeMode="contain"
+                    speed={1}
+                    style={{ width: 200, height: 200 }}
                     key="verifyingAnimation"
                 />
             </View>
@@ -613,138 +843,7 @@ const PaymentProcessing: React.FC<PaymentProcessingProps> = ({
     );
 };
 
-// PaymentResult Component
-interface PaymentResultProps {
-    state: 'success' | 'failed' | 'canceled';
-    programName: string;
-    isInstallment: boolean;
-    hasMoreInstallments: boolean;
-    hasCompletedFirstInstallment: boolean;
-    errorMessage?: string;
-    authorizationUrl?: string | null;
-    onRetry?: () => void;
-    onBack: () => void;
-    onViewDetails?: () => void;
-    onBackToDetails?: () => void;
-}
-
-const PaymentResult: React.FC<PaymentResultProps> = ({
-                                                         state,
-                                                         programName,
-                                                         isInstallment,
-                                                         hasMoreInstallments,
-                                                         hasCompletedFirstInstallment,
-                                                         errorMessage,
-                                                         authorizationUrl,
-                                                         onRetry,
-                                                         onBack,
-                                                         onViewDetails,
-                                                         onBackToDetails
-                                                     }) => {
-    if (state === 'success') {
-        return (
-            <View style={styles.successContainer}>
-                <View style={styles.successAnimation}>
-                    <LottieView
-                        source={require('@/assets/animations/payment-success.json')}
-                        autoPlay
-                        loop={false}
-                    />
-                </View>
-                <ThemedText style={styles.successTitle}>
-                    Paiement réussi !
-                </ThemedText>
-                <ThemedText style={styles.successMessage}>
-                    {isInstallment
-                        ? (hasMoreInstallments
-                            ? `Votre versement pour ${programName} a été effectué avec succès.`
-                            : `Tous vos versements pour ${programName} ont été effectués avec succès !`)
-                        : `Votre paiement pour ${programName} a été effectué avec succès.`}
-                </ThemedText>
-
-                {isInstallment && hasMoreInstallments && onViewDetails ? (
-                    <View style={styles.successButtonsContainer}>
-                        <TouchableOpacity style={styles.secondaryButton} onPress={onViewDetails}>
-                            <Text style={styles.secondaryButtonText}>Voir les détails</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.continueButton} onPress={onBack}>
-                            <Text style={styles.continueButtonText}>Retourner au programme</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <TouchableOpacity style={styles.continueButton} onPress={onBack}>
-                        <Text style={styles.continueButtonText}>Retourner au programme</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
-        );
-    }
-
-    if (state === 'failed') {
-        return (
-            <View style={styles.failedContainer}>
-                <LottieView
-                    source={require('@/assets/animations/payment-failed.json')}
-                    autoPlay
-                    loop={false}
-                    style={styles.failedAnimation}
-                />
-                <ThemedText style={styles.failedTitle}>
-                    Paiement échoué
-                </ThemedText>
-                <ThemedText style={styles.failedMessage}>
-                    {errorMessage || 'Une erreur est survenue lors du traitement de votre paiement.'}
-                </ThemedText>
-
-                {authorizationUrl && (
-                    <View style={styles.fallbackContainer}>
-                        <ThemedText style={styles.fallbackMessage}>
-                            Vous pouvez compléter votre paiement en cliquant sur le lien ci-dessous:
-                        </ThemedText>
-                        <TouchableOpacity
-                            style={styles.fallbackButton}
-                            onPress={() => Linking.openURL(authorizationUrl)}
-                        >
-                            <Text style={styles.fallbackButtonText}>Continuer vers la page de paiement</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-
-                {hasCompletedFirstInstallment && onBackToDetails ? (
-                    <TouchableOpacity style={styles.retryButton} onPress={onBackToDetails}>
-                        <Text style={styles.retryButtonText}>Retour aux détails</Text>
-                    </TouchableOpacity>
-                ) : onRetry ? (
-                    <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-                        <Text style={styles.retryButtonText}>Réessayer</Text>
-                    </TouchableOpacity>
-                ) : null}
-            </View>
-        );
-    }
-
-    return (
-        <View style={styles.canceledContainer}>
-            <MaterialCommunityIcons name="close-circle" size={80} color="#F87171" />
-            <ThemedText style={styles.canceledTitle}>
-                Paiement annulé
-            </ThemedText>
-            <ThemedText style={styles.canceledMessage}>
-                Vous avez annulé le processus de paiement.
-            </ThemedText>
-
-            {hasCompletedFirstInstallment && onBackToDetails ? (
-                <TouchableOpacity style={styles.retryButton} onPress={onBackToDetails}>
-                    <Text style={styles.retryButtonText}>Retour aux détails</Text>
-                </TouchableOpacity>
-            ) : onRetry ? (
-                <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-                    <Text style={styles.retryButtonText}>Réessayer</Text>
-                </TouchableOpacity>
-            ) : null}
-        </View>
-    );
-};
+// PaymentResult Component removed - now in payment-result.tsx
 
 // InstallmentDetails Component
 interface InstallmentDetailsProps {
@@ -933,13 +1032,17 @@ const ProgramPaymentPage = () => {
     const isDark = scheme === 'dark';
     const { trigger } = useHaptics();
     const { mutateUserPrograms, mutateProgramAccessMap } = useUser();
+    
+    // Get pricing configuration
+    const pricing = usePricing();
 
     // Main state management
     const [currentState, setCurrentState] = useState<PaymentFlowState>(PaymentFlowState.LOADING);
+    const [isInitialized, setIsInitialized] = useState(false); // Track if component is initialized
     const [programContext, setProgramContext] = useState<PaymentContextData>({
         programId: null,
         programName: '',
-        programPrice: FIXED_PRICE,
+        programPrice: pricing.FIXED_PRICE,
         user: null,
         hasCompletedFirstInstallment: false,
         latestPayment: null,
@@ -948,22 +1051,34 @@ const ProgramPaymentPage = () => {
 
     // Processing states
     const [currentTrxReference, setCurrentTrxReference] = useState<string | null>(null);
-    const [statusCheckInterval, setStatusCheckInterval] = useState<NodeJS.Timeout | null>(null);
+    const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [verificationMessages] = useState([
         'En attente de validation sur votre téléphone...',
         'Une fois validé, la vérification peut prendre jusqu\'à 5 minutes...'
     ]);
     const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-    const [justCompletedPayment, setJustCompletedPayment] = useState(false);
+
+    // Helper: get a reasonable timestamp for the latest payment
+    const getLatestPaymentTimestamp = (payment: any): number | null => {
+        if (!payment) return null;
+        const raw = payment.updated_at || payment.completed_at || payment.created_at || payment.createdAt || payment.timestamp;
+        if (!raw) return null;
+        const d = new Date(raw);
+        return isNaN(d.getTime()) ? null : d.getTime();
+    };
+
+    // Helper: check if a timestamp is older than N minutes
+    const isOlderThanMinutes = (ts: number | null, minutes: number): boolean => {
+        if (!ts) return false;
+        return (Date.now() - ts) > minutes * 60 * 1000;
+    };
 
     const {
         paymentStatus,
         loading,
-        latestPayment,
         latestPaymentLoading,
         authorizationUrl,
-        chargeError,
         getLatestPayment,
         getAllPayments,
         isFinalStatus,
@@ -974,13 +1089,21 @@ const ProgramPaymentPage = () => {
 
     // Initialize component data
     useEffect(() => {
+        // Ne pas réinitialiser si déjà initialisé ou si un paiement est en cours
+        if (isInitialized || currentState === PaymentFlowState.PROCESSING || currentState === PaymentFlowState.VERIFYING || currentState === PaymentFlowState.NEXT_PAYMENT_PROCESSING || currentState === PaymentFlowState.NEXT_PAYMENT_VERIFYING) {
+            return;
+        }
+
         const initializePaymentPage = async () => {
             try {
                 setCurrentState(PaymentFlowState.LOADING);
 
+                console.log('[Payment] Initializing with pdId:', pdId);
                 const programId = await getProgramIdFromPdId(pdId);
+                console.log('[Payment] Got programId:', programId);
+                
                 if (!programId) {
-                    throw new Error('Program not found');
+                    throw new Error(`Program not found for pdId: ${pdId}`);
                 }
 
                 const { data, error } = await supabase
@@ -997,22 +1120,27 @@ const ProgramPaymentPage = () => {
                           )
                         )
                       `)
-                    .eq('id', pdId)
+                    .eq('id', pdId!)
                     .single();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('[Payment] Error fetching learning path:', error);
+                    throw error;
+                }
+                
+                console.log('[Payment] Learning path data:', data);
 
-                let price = REGULAR_FIRST_COURSE_PRICE;
+                let price = pricing.REGULAR_FIRST_COURSE_PRICE;
                 if (user?.id) {
                     const { data: enrollments } = await supabase
-                        .from('user_enrollments')
+                        .from('user_program_enrollments')
                         .select('id')
                         .eq('user_id', user.id);
 
                     const enrollmentsCount = enrollments?.length || 0;
                     const isFixedPriceMode = isFixedPriceModeActive(enrollmentsCount);
-                    const basePrice = REGULAR_FIRST_COURSE_PRICE;
-                    price = getDisplayPrice(basePrice, isFixedPriceMode);
+                    const basePrice = pricing.REGULAR_FIRST_COURSE_PRICE;
+                    price = getDisplayPrice(basePrice, isFixedPriceMode, false, pricing.GENEROUS_WEEK_PRICE, pricing.FIXED_PRICE);
                 }
 
                 const latestPayment = await getLatestPayment(programId);
@@ -1033,6 +1161,7 @@ const ProgramPaymentPage = () => {
                 });
 
                 determineInitialState(latestPayment, hasCompletedFirstInstallment);
+                setIsInitialized(true); // Marquer comme initialisé
 
             } catch (error) {
                 console.error('Error initializing payment page:', error);
@@ -1042,7 +1171,7 @@ const ProgramPaymentPage = () => {
         };
 
         initializePaymentPage();
-    }, [pdId, user?.id]);
+    }, [pdId, user?.id, isInitialized, currentState]);
 
     // Determine the initial state based on payment history
     const determineInitialState = (latestPayment: any, hasCompletedFirstInstallment: boolean) => {
@@ -1051,9 +1180,59 @@ const ProgramPaymentPage = () => {
             return;
         }
 
+        // Vérifier l'âge du dernier paiement
+        const paymentTimestamp = getLatestPaymentTimestamp(latestPayment);
+        const isOlderThan5Minutes = isOlderThanMinutes(paymentTimestamp, 5);
+
+        // Vérifier localement si l'accès est expiré
+        const isAccessExpired = latestPayment.expiry_date && new Date(latestPayment.expiry_date) < new Date();
+        
+        // Si le paiement date de plus de 5 minutes
+        if (isOlderThan5Minutes) {
+            // Si c'est un paiement échelonné (installment), afficher les détails de l'installation
+            if (latestPayment.is_installment) {
+                setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
+                return;
+            }
+            
+            // Sinon, si accès expiré, afficher les instructions pour renouveler
+            if (isAccessExpired) {
+                setCurrentState(PaymentFlowState.INSTRUCTIONS);
+                return;
+            }
+            
+            // Si paiement complété et pas expiré, retourner en arrière
+            if (latestPayment.payment_status === 'completed') {
+                router.back();
+                return;
+            }
+            
+            // Sinon afficher les instructions
+            setCurrentState(PaymentFlowState.INSTRUCTIONS);
+            return;
+        }
+
+        // === Paiement récent (< 5 minutes) - Logique normale ===
+
+        // Si l'accès a expiré
+        if (isAccessExpired) {
+            if (hasCompletedFirstInstallment) {
+                const currentInstallment = latestPayment.current_installment || 1;
+                const totalInstallments = latestPayment.total_installments || 1;
+
+                if (currentInstallment < totalInstallments) {
+                    setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
+                } else {
+                    router.back();
+                }
+            } else {
+                setCurrentState(PaymentFlowState.INSTRUCTIONS);
+            }
+            return;
+        }
+
         // Si le paiement n'est pas en statut final, continuer la vérification
         if (!isFinalStatus(latestPayment.payment_status)) {
-            // Vérifier si c'est un paiement d'échéance suivante
             if (hasCompletedFirstInstallment && latestPayment.current_installment > 1) {
                 setCurrentState(PaymentFlowState.NEXT_PAYMENT_VERIFYING);
             } else {
@@ -1074,7 +1253,7 @@ const ProgramPaymentPage = () => {
             return;
         }
 
-        // Si le dernier paiement est réussi
+        // Si le dernier paiement est réussi (et récent < 5 minutes)
         if (latestPayment.payment_status === 'completed') {
             // Ne pas montrer la notification de succès si elle a déjà été vue
             if (NotificationManager.hasBeenViewed(latestPayment.id, 'success')) {
@@ -1093,22 +1272,25 @@ const ProgramPaymentPage = () => {
                 return;
             }
 
-            // Marquer comme vu et montrer le succès
+            // Marquer comme vu et naviguer vers le résultat
             NotificationManager.markAsViewed(latestPayment.id, 'success');
-
-            if (hasCompletedFirstInstallment) {
-                const currentInstallment = latestPayment.current_installment || 1;
-                const totalInstallments = latestPayment.total_installments || 1;
-
-                if (currentInstallment < totalInstallments) {
-                    setCurrentState(PaymentFlowState.NEXT_PAYMENT_SUCCESS);
-                } else {
-                    setCurrentState(PaymentFlowState.SUCCESS);
+            
+            // Paiement récent réussi, naviguer vers payment-result
+            const currentInstallment = latestPayment.current_installment || 1;
+            const totalInstallments = latestPayment.total_installments || 1;
+            const hasMoreInstallments = currentInstallment < totalInstallments;
+            
+            router.replace({
+                pathname: '/learn/[pdId]/payment-result',
+                params: {
+                    pdId: pdId || '',
+                    result: 'success',
+                    programName: programContext.programName,
+                    programId: programContext.programId || '',
+                    isInstallment: String(latestPayment.is_installment || false),
+                    hasMoreInstallments: String(hasMoreInstallments)
                 }
-            } else {
-                setCurrentState(PaymentFlowState.SUCCESS);
-            }
-            setJustCompletedPayment(true);
+            });
             return;
         }
 
@@ -1117,36 +1299,84 @@ const ProgramPaymentPage = () => {
 
     // Handle payment status changes
     useEffect(() => {
-        if (paymentStatus === 'successful' || paymentStatus === 'completed') {
-            setJustCompletedPayment(true);
-
-            // Déterminer le bon état de succès
-            if (programContext.hasCompletedFirstInstallment) {
-                setCurrentState(PaymentFlowState.NEXT_PAYMENT_SUCCESS);
-            } else {
-                setCurrentState(PaymentFlowState.SUCCESS);
-            }
-
-            stopStatusCheck();
-        } else if (paymentStatus === 'failed') {
-            // Déterminer le bon état d'échec
-            if (programContext.hasCompletedFirstInstallment) {
-                setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
-            } else {
-                setCurrentState(PaymentFlowState.FAILED);
-            }
-            setErrorMessage('Le paiement a échoué. Veuillez réessayer.');
-            stopStatusCheck();
-        } else if (paymentStatus === 'canceled') {
-            // Déterminer le bon état d'annulation
-            if (programContext.hasCompletedFirstInstallment) {
-                setCurrentState(PaymentFlowState.NEXT_PAYMENT_CANCELED);
-            } else {
-                setCurrentState(PaymentFlowState.CANCELED);
-            }
-            stopStatusCheck();
+        // Ne pas traiter si programContext n'est pas encore initialisé
+        if (!programContext.programId || !programContext.programName) {
+            console.log('[Payment] programContext not initialized yet, skipping payment status handling');
+            return;
         }
-    }, [paymentStatus, programContext.hasCompletedFirstInstallment]);
+        
+        // Ne pas naviguer si le paiement est trop vieux (> 5 minutes)
+        const latestPayment = programContext.latestPayment;
+        const paymentTimestamp = getLatestPaymentTimestamp(latestPayment);
+        const isOlderThan5Minutes = isOlderThanMinutes(paymentTimestamp, 5);
+        
+        // Ignorer les vieux paiements - ils sont gérés dans determineInitialState
+        if (isOlderThan5Minutes) {
+            console.log('[Payment] Ignoring old payment status change:', paymentStatus);
+            return;
+        }
+        
+        if (paymentStatus === 'successful' || paymentStatus === 'completed') {
+            stopStatusCheck();
+            
+            // Mutate data first
+            mutateUserPrograms();
+            mutateProgramAccessMap();
+            
+            // Navigate to success result page
+            const hasMoreInstallments = latestPayment?.is_installment && 
+                (latestPayment?.current_installment || 1) < (latestPayment?.total_installments || 1);
+            
+            console.log('[Payment] Navigating to success with:', {
+                programName: programContext.programName,
+                programId: programContext.programId
+            });
+            
+            router.replace({
+                pathname: '/learn/[pdId]/payment-result',
+                params: {
+                    pdId: pdId || '',
+                    result: 'success',
+                    programName: programContext.programName,
+                    programId: programContext.programId || '',
+                    isInstallment: String(latestPayment?.is_installment || false),
+                    hasMoreInstallments: String(hasMoreInstallments)
+                }
+            });
+        } else if (paymentStatus === 'failed') {
+            stopStatusCheck();
+            
+            // Navigate to failed result page
+            router.replace({
+                pathname: '/learn/[pdId]/payment-result',
+                params: {
+                    pdId: pdId || '',
+                    result: 'failed',
+                    programName: programContext.programName,
+                    programId: programContext.programId || '',
+                    isInstallment: String(programContext.hasCompletedFirstInstallment),
+                    hasMoreInstallments: 'false',
+                    errorMessage: errorMessage || 'Le paiement a échoué. Veuillez réessayer.',
+                    authorizationUrl: authorizationUrl || undefined
+                }
+            });
+        } else if (paymentStatus === 'canceled') {
+            stopStatusCheck();
+            
+            // Navigate to canceled result page
+            router.replace({
+                pathname: '/learn/[pdId]/payment-result',
+                params: {
+                    pdId: pdId || '',
+                    result: 'canceled',
+                    programName: programContext.programName,
+                    programId: programContext.programId || '',
+                    isInstallment: String(programContext.hasCompletedFirstInstallment),
+                    hasMoreInstallments: 'false'
+                }
+            });
+        }
+    }, [paymentStatus, programContext.hasCompletedFirstInstallment, programContext.latestPayment, programContext.programId, programContext.programName, errorMessage, authorizationUrl]);
 
     // Handle authorization URL
     useEffect(() => {
@@ -1225,29 +1455,16 @@ const ProgramPaymentPage = () => {
                 1
             );
 
-            if(result.payment){
-                // case of non installment payment
-                const payment = result.payment;
-                if(payment && payment.payment_reference) {
-                    setCurrentTrxReference(payment.payment_reference);
-                    setCurrentState(PaymentFlowState.VERIFYING);
-                    startStatusCheck(payment.payment_reference);
-                }else{
-                    setCurrentState(PaymentFlowState.FAILED);
-                    setErrorMessage('Impossible d\'initier le paiement. Veuillez réessayer.');
-                }
+            // Extract payment from result
+            const payment = 'payment' in result ? result.payment : (result as any);
+            if(payment && payment.payment_reference) {
+                setCurrentTrxReference(payment.payment_reference);
+                setCurrentState(PaymentFlowState.VERIFYING);
+                startStatusCheck(payment.payment_reference);
             }else{
-                // case of installment payment
-                if (result && result.payment_reference) {
-                    setCurrentTrxReference(result.payment_reference);
-                    setCurrentState(PaymentFlowState.VERIFYING);
-                    startStatusCheck(result.payment_reference);
-                } else {
-                    setCurrentState(PaymentFlowState.FAILED);
-                    setErrorMessage('Impossible d\'initier le paiement. Veuillez réessayer.');
-                }
+                setCurrentState(PaymentFlowState.FAILED);
+                setErrorMessage('Impossible d\'initier le paiement. Veuillez réessayer.');
             }
-
 
         } catch (error) {
             console.error('Payment initiation error:', error);
@@ -1283,11 +1500,12 @@ const ProgramPaymentPage = () => {
                 (programContext.installmentPayment?.current_installment || 1) + 1,
                 nextInstallationStartDate
             );
-
-            if (result && result.payment_reference) {
-                setCurrentTrxReference(result.payment_reference);
+            // Extract payment reference from result
+            const paymentRef = 'payment_reference' in result ? result.payment_reference : ('trxReference' in result ? (result as unknown as { trxReference: string }).trxReference : undefined);
+            if (paymentRef) {
+                setCurrentTrxReference(paymentRef);
                 setCurrentState(PaymentFlowState.NEXT_PAYMENT_VERIFYING);
-                startStatusCheck(result.payment_reference);
+                startStatusCheck(paymentRef);
             } else {
                 setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
                 setErrorMessage('Impossible d\'initier le paiement. Veuillez réessayer.');
@@ -1317,31 +1535,12 @@ const ProgramPaymentPage = () => {
         }
     };
 
-    const handleBackToDetails = () => {
-        setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
-        setErrorMessage(null);
-    };
-
-    const handleRetry = () => {
-        if (programContext.hasCompletedFirstInstallment) {
-            setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
-        } else {
-            setCurrentState(PaymentFlowState.PAYMENT_OPTIONS);
-        }
-        setErrorMessage(null);
-    };
 
     const handlePayNextInstallment = () => {
         setCurrentState(PaymentFlowState.NEXT_PAYMENT_OPTIONS);
     };
 
-    const handleViewDetails = () => {
-        setJustCompletedPayment(false);
-        setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
-    };
-
     const handleBack = () => {
-        setJustCompletedPayment(false);
         router.back();
     };
 
@@ -1361,6 +1560,7 @@ const ProgramPaymentPage = () => {
             case PaymentFlowState.INSTRUCTIONS:
                 return (
                     <PaymentInstructions
+                        programId={programContext.programId}
                         programName={programContext.programName}
                         hasInstallmentPayment={!!programContext.installmentPayment}
                         isLoading={loading || latestPaymentLoading}
@@ -1431,80 +1631,6 @@ const ProgramPaymentPage = () => {
                     />
                 );
 
-            case PaymentFlowState.SUCCESS:
-            case PaymentFlowState.NEXT_PAYMENT_SUCCESS:
-                const currentInstallment = programContext.latestPayment?.current_installment || 1;
-                const totalInstallments = programContext.latestPayment?.total_installments || 1;
-                const hasMoreInstallments = currentInstallment < totalInstallments;
-
-                return (
-                    <PaymentResult
-                        state="success"
-                        programName={programContext.programName}
-                        isInstallment={programContext.latestPayment?.is_installment || false}
-                        hasMoreInstallments={hasMoreInstallments}
-                        hasCompletedFirstInstallment={programContext.hasCompletedFirstInstallment}
-                        onBack={handleBack}
-                        onViewDetails={hasMoreInstallments ? handleViewDetails : undefined}
-                    />
-                );
-
-            case PaymentFlowState.FAILED:
-                return (
-                    <PaymentResult
-                        state="failed"
-                        programName={programContext.programName}
-                        isInstallment={false}
-                        hasMoreInstallments={false}
-                        hasCompletedFirstInstallment={false}
-                        errorMessage={errorMessage}
-                        authorizationUrl={authorizationUrl}
-                        onRetry={handleRetry}
-                        onBack={handleBack}
-                    />
-                );
-
-            case PaymentFlowState.NEXT_PAYMENT_FAILED:
-                return (
-                    <PaymentResult
-                        state="failed"
-                        programName={programContext.programName}
-                        isInstallment={true}
-                        hasMoreInstallments={false}
-                        hasCompletedFirstInstallment={true}
-                        errorMessage={errorMessage}
-                        authorizationUrl={authorizationUrl}
-                        onBackToDetails={handleBackToDetails}
-                        onBack={handleBack}
-                    />
-                );
-
-            case PaymentFlowState.CANCELED:
-                return (
-                    <PaymentResult
-                        state="canceled"
-                        programName={programContext.programName}
-                        isInstallment={false}
-                        hasMoreInstallments={false}
-                        hasCompletedFirstInstallment={false}
-                        onRetry={handleRetry}
-                        onBack={handleBack}
-                    />
-                );
-
-            case PaymentFlowState.NEXT_PAYMENT_CANCELED:
-                return (
-                    <PaymentResult
-                        state="canceled"
-                        programName={programContext.programName}
-                        isInstallment={true}
-                        hasMoreInstallments={false}
-                        hasCompletedFirstInstallment={true}
-                        onBackToDetails={handleBackToDetails}
-                        onBack={handleBack}
-                    />
-                );
-
             case PaymentFlowState.INSTALLMENT_DETAILS:
                 return (
                     <InstallmentDetails
@@ -1519,6 +1645,7 @@ const ProgramPaymentPage = () => {
             default:
                 return (
                     <PaymentInstructions
+                        programId={programContext.programId}
                         programName={programContext.programName}
                         hasInstallmentPayment={!!programContext.installmentPayment}
                         isLoading={false}
@@ -2374,6 +2501,95 @@ const styles = StyleSheet.create({
         fontFamily: theme.typography.fontFamily,
         fontSize: 16,
         fontWeight: '600',
+    },
+    // Payment History Styles
+    paymentHistorySection: {
+        marginTop: 24,
+        paddingTop: 24,
+        borderTopWidth: 1,
+        borderTopColor: '#E5E7EB',
+    },
+    paymentHistorySectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    paymentHistorySectionTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
+        fontWeight: '600',
+        marginLeft: 8,
+    },
+    paymentHistoryList: {
+        gap: 12,
+    },
+    paymentHistoryCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 8,
+        padding: 16,
+        marginBottom: 12,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 3,
+            },
+        }),
+    },
+    paymentHistoryCardDark: {
+        backgroundColor: '#374151',
+    },
+    paymentHistoryCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    paymentHistoryCardStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 4,
+    },
+    paymentHistoryCardStatusText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '600',
+        marginLeft: 4,
+    },
+    paymentHistoryCardAmount: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    paymentHistoryCardBody: {
+        marginTop: 12,
+        gap: 8,
+    },
+    paymentHistoryCardRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    paymentHistoryCardLabel: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        color: '#6B7280',
+        marginLeft: 8,
+    },
+    paymentHistoryCardReference: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        color: '#6B7280',
+        marginLeft: 8,
+        fontFamily: Platform.select({
+            ios: 'Courier',
+            android: 'monospace',
+        }) as any,
     },
 });
 

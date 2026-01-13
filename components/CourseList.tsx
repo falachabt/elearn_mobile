@@ -7,6 +7,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { ThemedText } from "@/components/ThemedText";
 import { theme } from "@/constants/theme";
 import { CourseItem } from "@/types/course.type";
+import { useNavigation } from "@/contexts/NavigationContext";
 
 interface CourseListProps {
     courses: CourseItem[];
@@ -29,6 +30,7 @@ const CourseList: React.FC<CourseListProps> = ({
                                                }) => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
+    const { getCoursesPath } = useNavigation();
 
     // If no courses are available, display a message
     if (!courses || courses.length === 0) {
@@ -63,6 +65,7 @@ const CourseList: React.FC<CourseListProps> = ({
                     key={`course-${courseItem.course?.id || index}-${index}`}
                     courseItem={courseItem}
                     pdId={pdId}
+                    baseRoute={getCoursesPath()}
                     isDark={isDark}
                     isEnrolled={isEnrolled}
                 />

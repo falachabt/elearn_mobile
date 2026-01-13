@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import {View, useColorScheme, StyleSheet, Dimensions, Platform} from 'react-native';
+import {View, useColorScheme, StyleSheet, Dimensions} from 'react-native';
 import Pdf from 'react-native-pdf';
 import * as ScreenCapture from 'expo-screen-capture';
 
-import {Archive} from "@/app/(app)/learn/[pdId]/anales";
 import {theme} from "@/constants/theme";
+
+// Interface minimale commune aux fichiers (anales + secondary_documents)
+export interface FileViewerFile {
+    file_url?: string;      // Pour Archive
+    download_url?: string;  // Pour SecondaryDocument
+    local_path?: string;    // Pour téléchargements locaux
+}
+
 export interface FileViewerProps {
-    file: Archive;
+    file: FileViewerFile;
     style?: object;
 }
 
@@ -37,9 +44,12 @@ export const styles = StyleSheet.create({
 
 export const FileViewer: React.FC<FileViewerProps> = ({ file }) => {
     const [numPages, setNumPages] = useState(1);
-    const source = file.local_path
-        ? { uri: `file://${file.local_path}`, cache: true }
-        : { uri: file.file_url, cache: true };
+    // Récupérer l'URL : local_path > download_url (SecondaryDocument) > file_url (Archive)
+    const fileUrl = file.local_path
+        ? `file://${file.local_path}`
+        : file.download_url || file.file_url;
+
+    const source = { uri: fileUrl, cache: true };
 
     const th = useColorScheme();
     const isDark = th === 'dark';

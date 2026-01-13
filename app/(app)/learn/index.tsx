@@ -1,9 +1,9 @@
 import {
     ActivityIndicator,
     FlatList,
-    Image,
     Pressable,
     RefreshControl,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -18,8 +18,6 @@ import { useRouter } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth'
 import { theme } from '@/constants/theme'
-import { useProgramProgress } from "@/hooks/useProgramProgress"
-import { HapticType, useHaptics } from "@/hooks/useHaptics"
 import NoProgram from "@/components/shared/catalogue/NoProgramCard"
 import ModernLearningPathCard from "@/components/shared/learn/LearningPathCard"
 import { useUser } from '@/contexts/useUserInfo'
@@ -66,7 +64,7 @@ export interface LearningPath {
     title: string
     description: string
     image: { url: string }
-    duration: any[]
+    duration: Record<string, unknown>[]
     content: {
         nodes: {
             id: string
@@ -155,7 +153,26 @@ const MyLearningPaths = () => {
             // Group by learning path to avoid duplicates and determine enrollment status
             const learningPathMap = new Map<string, LearningPath>()
 
-            learningPathsData.forEach((item: any) => {
+            learningPathsData.forEach((item: {
+                id: number
+                price: number
+                isActive: boolean
+                learningPathId: string
+                concourId: string
+                concour: Concours
+                learning_path: {
+                    id: string
+                    title: string
+                    description: string
+                    image: { url: string }
+                    duration: Record<string, unknown>[]
+                    content: { nodes: { id: string; type: 'course' | 'quiz'; data: { courseId?: number; quizId?: string } }[] }
+                    course_count: number
+                    quiz_count: number
+                    total_duration: number
+                }
+                user_program_enrollments: UserProgramEnrollment[] | null
+            }) => {
                 const learningPathId = item.learning_path.id
                 const isUserEnrolled = item.user_program_enrollments?.some(
                     (enrollment: UserProgramEnrollment) => enrollment.user_id === authUser?.id
@@ -249,7 +266,7 @@ const MyLearningPaths = () => {
 
     // Redirect to login if not authenticated
     if (!session) {
-        router.replace('/(auth)/login' as any)
+        router.replace('/(auth)/login' as Href)
         return null
     }
 
@@ -358,6 +375,7 @@ const MyLearningPaths = () => {
                         removeClippedSubviews={true}
                         maxToRenderPerBatch={8}
                         windowSize={10}
+                        showScrollIndicator={false}
                         initialNumToRender={5}
                         updateCellsBatchingPeriod={30}
                         getItemLayout={(data, index) => ({

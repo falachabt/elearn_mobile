@@ -36,7 +36,6 @@ export function AppleLogin() {
                                 provider: 'apple',
                                 token: credential.identityToken,
                             })
-                            console.log(JSON.stringify({error, user}, null, 2))
                             if (!error) {
                                 setTimeout(async () => {
                                     const {data: userData} = await supabase.auth.getUser();

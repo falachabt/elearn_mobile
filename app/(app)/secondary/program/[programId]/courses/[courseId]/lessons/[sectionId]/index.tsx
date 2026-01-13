@@ -1,31 +1,36 @@
-import { useLocalSearchParams } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import useSWR, { mutate as globalMutate } from "swr";
+import { useLocalSearchParams } from "expo-router";
 import * as ScreenCapture from "expo-screen-capture";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
 } from "react-native";
-
-import { ThemedText } from "@/components/ThemedText";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/auth";
-import { useCourseProgress } from "@/hooks/useCourseProgress";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { useSound } from "@/hooks/useSound";
-import { HapticType, useHaptics } from "@/hooks/useHaptics";
-import PreloadWebView from "@/components/shared/learn/WebViewCourrseSection";
-import { LessonContentViewer } from "@/components/shared/learn/LessonContentViewer";
+import useSWR, { mutate as globalMutate } from "swr";
 import { WebView } from "react-native-webview";
+
+import { LessonContentViewer } from "@/components/shared/learn/LessonContentViewer";
+import { ThemedText } from "@/components/ThemedText";
 import { theme } from "@/constants/theme";
-import { useUser } from "@/contexts/useUserInfo";
-import { trackEvent, Events } from "@/utils/analytics";
-import { useCustomRouter } from "@/hooks/useCustomRouter";
+import { useAuth } from "@/contexts/auth";
 import { useAppConfig } from "@/contexts/useAppConfig";
+import { useUser } from "@/contexts/useUserInfo";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { useCourseProgress } from "@/hooks/useCourseProgress";
+import { useCustomRouter } from "@/hooks/useCustomRouter";
+import { HapticType, useHaptics } from "@/hooks/useHaptics";
+import { useSound } from "@/hooks/useSound";
+import { supabase } from "@/lib/supabase";
+import { Events, trackEvent } from "@/utils/analytics";
+import { useNavigation } from "@/contexts/NavigationContext";
+
 
 interface CourseSection {
   id: number;
@@ -42,12 +47,14 @@ interface Course {
 const SecondarySectionDetail = () => {
   const router = useCustomRouter();
   const { sectionId, courseId, programId } = useLocalSearchParams();
+  const { getCoursePath, getLessonPath, getBasePath } = useNavigation();
   const { session } = useAuth();
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isWebViewLoaded, setIsWebViewLoaded] = useState(false);
-  const webViewRef = useRef(null);
+  const [showSectionList, setShowSectionList] = useState(false);
+  const webViewRef = useRef<WebView>(null);
   const { user } = useAuth();
 
   // Check if user is enrolled in this program
@@ -167,7 +174,7 @@ const SecondarySectionDetail = () => {
 //   Handle purchase flow  TOOD: later reidrect to the payment page
   const handlePurchaseFlow = () => {
     trigger(HapticType.SELECTION);
-    router.push(`/(app)/secondary/program/${programId}`);
+    router.push(getBasePath());
   };
 
   // Preload next section data
@@ -236,12 +243,12 @@ const SecondarySectionDetail = () => {
       playNextLesson();
       trigger(HapticType.LIGHT);
       router.push(
-        `/(app)/secondary/program/${programId}/courses/${courseId}/lessons/${nextSection.id}`
+        getLessonPath(String(courseId), String(nextSection.id))
       );
     } else {
       playCorrect();
       trigger(HapticType.LIGHT);
-      router.push(`/(app)/secondary/program/${programId}/courses/${courseId}`);
+      router.push(getCoursePath(String(courseId)));
     }
   }
 
@@ -250,7 +257,7 @@ const SecondarySectionDetail = () => {
       playNextLesson();
       trigger(HapticType.LIGHT);
       router.push(
-        `/(app)/secondary/program/${programId}/courses/${courseId}/lessons/${previousSection.id}`
+        getLessonPath(String(courseId), String(previousSection.id))
       );
     }
   }
@@ -429,7 +436,7 @@ const SecondarySectionDetail = () => {
           isDark && styles.backToCourseButtonDark,
         ]}
         onPress={() =>
-          router.push(`/(app)/secondary/program/${programId}/courses/${courseId}`)
+          router.push(getCoursePath(String(courseId)))
         }
       >
         <ThemedText
@@ -480,7 +487,7 @@ const SecondarySectionDetail = () => {
           onPress={() => {
             trigger(HapticType.LIGHT);
             router.push(
-              `/(app)/secondary/program/${programId}/courses/${courseId}`
+              getCoursePath(String(courseId))
             );
           }}
         >
@@ -540,7 +547,7 @@ const SecondarySectionDetail = () => {
           isDark={isDark}
           webViewUrls={webViewUrls}
           session={session}
-          webViewRef={webViewRef as React.RefObject<WebView>}
+          webViewRef={webViewRef}
           isWebViewLoaded={isWebViewLoaded}
           darkModeScript={darkModeScript}
           isListening={isListening}
@@ -565,6 +572,7 @@ const SecondarySectionDetail = () => {
           style={[styles.progressIndicator, isDark && styles.progressIndicatorDark]}
           onPress={() => {
             trigger(HapticType.LIGHT);
+            setShowSectionList(true);
           }}
         >
           <ThemedText style={[styles.progressIndicatorText, isDark && styles.progressIndicatorTextDark]}>
@@ -591,6 +599,127 @@ const SecondarySectionDetail = () => {
           />
         </Pressable>
       </View>
+
+      {/* Sections List Modal */}
+      <Modal
+        visible={showSectionList}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSectionList(false)}
+      >
+        <View style={styles.sectionListModal}>
+          <View style={[styles.modalContent, isDark && styles.modalContentDark]}>
+            <View style={[styles.modalHeader, isDark && styles.modalHeaderDark]}>
+              <ThemedText style={[styles.modalTitle, isDark && styles.modalTitleDark]}>
+                Sections du cours
+              </ThemedText>
+              <Pressable
+                style={styles.closeButton}
+                onPress={() => setShowSectionList(false)}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={isDark ? "#FFFFFF" : "#111827"}
+                />
+              </Pressable>
+            </View>
+
+            <FlatList
+              data={sections}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item, index }) => {
+                const isCurrentSection = item.id === Number(sectionId);
+                const sectionProgress = sectionsProgress?.find(
+                  (sp) => sp.sectionid === item.id
+                );
+                const isCompleted = sectionProgress?.progress === 1;
+                const isSectionLocked = !isEnrolled && index >= 1;
+
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.sectionItem,
+                      isDark && styles.sectionItemDark,
+                      isCurrentSection && styles.sectionItemActive,
+                      isCurrentSection && isDark && styles.sectionItemActiveDark,
+                      isCompleted && styles.sectionItemCompleted,
+                      isCompleted && isDark && styles.sectionItemCompletedDark,
+                      isSectionLocked && styles.sectionItemLocked,
+                      isSectionLocked && isDark && styles.sectionItemLockedDark,
+                    ]}
+                    onPress={() => {
+                      if (isSectionLocked) {
+                        handlePurchaseFlow();
+                        return;
+                      }
+                      trigger(HapticType.LIGHT);
+                      setShowSectionList(false);
+                      router.push(
+                        getLessonPath(String(courseId), String(item.id))
+                      );
+                    }}
+                    disabled={isSectionLocked}
+                  >
+                    <View
+                      style={[
+                        styles.sectionNumber,
+                        isDark && styles.sectionNumberDark,
+                        isCurrentSection && styles.sectionNumberActive,
+                        isCompleted && styles.sectionNumberCompleted,
+                        isSectionLocked && styles.sectionNumberLocked,
+                      ]}
+                    >
+                      {isSectionLocked ? (
+                        <MaterialCommunityIcons
+                          name="lock"
+                          size={12}
+                          color="#F59E0B"
+                        />
+                      ) : (
+                        <Text
+                          style={[
+                            styles.sectionNumberText,
+                            (isCurrentSection || isCompleted) &&
+                              styles.sectionNumberTextActive,
+                          ]}
+                        >
+                          {index + 1}
+                        </Text>
+                      )}
+                    </View>
+                    <ThemedText
+                      style={[
+                        styles.sectionName,
+                        isDark && styles.sectionNameDark,
+                        isCurrentSection && styles.sectionNameActive,
+                        isCurrentSection && isDark && styles.sectionNameActiveDark,
+                        isSectionLocked && styles.sectionNameLocked,
+                        isSectionLocked && isDark && styles.sectionNameLockedDark,
+                      ]}
+                    >
+                      {item.name}
+                    </ThemedText>
+                    {isCompleted && !isSectionLocked ? (
+                      <MaterialCommunityIcons
+                        name="check-circle"
+                        size={20}
+                        color={isDark ? "#10B981" : "#059669"}
+                      />
+                    ) : isSectionLocked ? (
+                      <MaterialCommunityIcons
+                        name="lock"
+                        size={16}
+                        color="#F59E0B"
+                      />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -848,6 +977,139 @@ const styles = StyleSheet.create({
   },
   backToCourseButtonTextDark: {
     color: "#9CA3AF",
+  },
+  sectionListModal: {
+    flex: 1,
+    margin: 0,
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopColor: "#E5E7EB",
+    borderWidth: 1,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+    maxHeight: "70%",
+  },
+  modalContentDark: {
+    backgroundColor: "#1F2937",
+    borderColor: "#374151",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  modalHeaderDark: {
+    borderBottomColor: "#374151",
+  },
+  modalTitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  modalTitleDark: {
+    color: "#FFFFFF",
+  },
+  closeButton: {
+    padding: 8,
+  },
+  sectionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  sectionItemDark: {
+    borderBottomColor: "#374151",
+  },
+  sectionItemActive: {
+    backgroundColor: "#F9FAFB",
+  },
+  sectionItemActiveDark: {
+    backgroundColor: "#374151",
+  },
+  sectionItemCompleted: {
+    backgroundColor: "#F0FDF4",
+  },
+  sectionItemCompletedDark: {
+    backgroundColor: "#064E3B",
+  },
+  sectionItemLocked: {
+    backgroundColor: "#FEF3C7",
+    opacity: 0.7,
+  },
+  sectionItemLockedDark: {
+    backgroundColor: "#78350F",
+    opacity: 0.8,
+  },
+  sectionNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#E5E7EB",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  sectionNumberActive: {
+    backgroundColor: "#65B741",
+  },
+  sectionNumberCompleted: {
+    backgroundColor: "#10B981",
+  },
+  sectionNumberLocked: {
+    backgroundColor: "#FEF3C7",
+  },
+  sectionNumberDark: {
+    backgroundColor: "#4B5563",
+  },
+  sectionNumberText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#4B5563",
+  },
+  sectionNumberTextActive: {
+    color: "#FFFFFF",
+  },
+  sectionName: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 16,
+    flex: 1,
+    color: "#4B5563",
+  },
+  sectionNameDark: {
+    color: "#E5E7EB",
+  },
+  sectionNameActive: {
+    color: "#111827",
+    fontWeight: "600",
+  },
+  sectionNameActiveDark: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  sectionNameLocked: {
+    color: "#92400E",
+    fontStyle: "italic",
+  },
+  sectionNameLockedDark: {
+    color: "#F59E0B",
+    fontStyle: "italic",
   },
 });
 

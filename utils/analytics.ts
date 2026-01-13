@@ -8,7 +8,6 @@ import * as amplitude from '@amplitude/analytics-react-native';
 export const trackEvent = (eventName: string, eventProperties?: Record<string, any>) => {
   try {
     amplitude.track(eventName, eventProperties);
-    console.log(`Event tracked: ${eventName}`, eventProperties);
   } catch (error) {
     console.error(`Failed to track event: ${eventName}`, error);
   }
@@ -21,7 +20,6 @@ export const trackEvent = (eventName: string, eventProperties?: Record<string, a
 export const setUserId = (userId: string) => {
   try {
     amplitude.setUserId(userId);
-    console.log(`User ID set: ${userId}`);
   } catch (error) {
     console.error(`Failed to set user ID: ${userId}`, error);
   }
@@ -34,7 +32,6 @@ export const setUserId = (userId: string) => {
 export const setUserProperties = (userProperties: Record<string, any>) => {
   try {
     amplitude.identify(new amplitude.Identify().setUserProperties(userProperties));
-    console.log('User properties set', userProperties);
   } catch (error) {
     console.error('Failed to set user properties', error);
   }

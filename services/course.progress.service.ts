@@ -60,7 +60,7 @@ export const CourseProgressService = {
       .select()
       .single();
 
-      console.log("error",error)
+    if (error) throw error;
 
     // Update course summary
     await this.updateCourseSummary(userId, courseId);
@@ -101,7 +101,6 @@ export const CourseProgressService = {
 //       }, { onConflict: ['user_id', 'course_id'].join(','), ignoreDuplicates: false })
       
 //       ;
-      // console.log("progress sumary error", error)
   }
 
 };

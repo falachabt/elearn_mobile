@@ -34,11 +34,12 @@ interface QuizCardProps {
         progress?: number;
     };
     pdId: string;
+    baseRoute: string; // Required - no fallback
     isDark?: boolean;
     index?: number;
 }
 
-const EnhancedQuizCard: React.FC<QuizCardProps> = ({ quizItem, pdId, isDark = false, index = 0 }) => {
+const EnhancedQuizCard: React.FC<QuizCardProps> = ({ quizItem, baseRoute, isDark = false, index = 0 }) => {
     const router = useRouter();
     const { trigger } = useHaptics();
 
@@ -95,7 +96,7 @@ const EnhancedQuizCard: React.FC<QuizCardProps> = ({ quizItem, pdId, isDark = fa
     // Handle quiz press
     const handleQuizPress = () => {
         trigger(HapticType.SELECTION);
-        router.push(`/(app)/learn/${pdId}/quizzes/${quiz.id}`);
+        router.push(`${baseRoute}/${quiz.id}`);
     };
 
     return (
@@ -122,7 +123,7 @@ const EnhancedQuizCard: React.FC<QuizCardProps> = ({ quizItem, pdId, isDark = fa
                                 {backgroundColor: `${categoryColor}15`}
                             ]}>
                                <MaterialCommunityIcons
-                                    name={categoryIcon as any}
+                                    name={categoryIcon}
                                     size={12}
                                     color={categoryColor}
                                     style={{ marginRight: 4 }}
@@ -153,7 +154,7 @@ const EnhancedQuizCard: React.FC<QuizCardProps> = ({ quizItem, pdId, isDark = fa
                         { backgroundColor: `${categoryColor}15` }
                     ]}>
                         <MaterialCommunityIcons
-                            name={categoryIcon as any}
+                            name={categoryIcon}
                             size={28}
                             color={categoryColor}
                         />

@@ -24,6 +24,7 @@ import {
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { Category, CourseItem } from "@/types/course.type";
+import { useUser } from "@/contexts/useUserInfo";
 
 const CourseScreen: React.FC<null> = () => {
   const router = useRouter();
@@ -31,12 +32,13 @@ const CourseScreen: React.FC<null> = () => {
   const isDark = colorScheme === "dark";
   const { programId } = useLocalSearchParams();
   const { trigger } = useHaptics();
+  const { isSecondaryProgramEnrolled } = useUser();
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const isEnrolled = false;
+  const isEnrolled = isSecondaryProgramEnrolled(String(programId));
 
   const { program, isLoading: isLoadingProgram } = useSecondaryProgram(
     String(programId)

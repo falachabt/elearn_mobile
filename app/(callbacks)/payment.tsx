@@ -62,12 +62,16 @@ export default function PaymentCallback() {
                     animation="fadeIn"
                     style={styles.successContainer}
                 >
-                    <LottieView
-                        source={require('@/assets/animations/payment-success.json')}
-                        autoPlay
-                        loop={false}
-                        style={styles.lottieAnimation}
-                    />
+                    <View style={styles.iconContainer}>
+                        <LottieView
+                            source={require('@/assets/animations/payment-success.json')}
+                            autoPlay
+                            loop={false}
+                            resizeMode="contain"
+                            speed={1}
+                            style={styles.lottieAnimation}
+                        />
+                    </View>
                     <Text style={[styles.successText, isDark && styles.successTextDark]}>
                         Paiement confirmé !
                     </Text>
@@ -117,6 +121,13 @@ fontSize: theme.typography.fontSize.medium,
         alignItems: 'center',
         justifyContent: 'center',
         padding: theme.spacing.large,
+    },
+    iconContainer: {
+        width: 200,
+        height: 200,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
     },
     lottieAnimation: {
         width: 200,

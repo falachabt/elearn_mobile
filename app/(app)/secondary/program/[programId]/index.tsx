@@ -13,14 +13,11 @@ import { ThemedText } from "@/components/ThemedText";
 import { theme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useSecondaryProgram } from "@/hooks/secondary/useSecondaryPrograms";
+import { useSecondaryProgramProgress } from "@/hooks/secondary/useSecondaryProgramProgress";
 import SecondaryProgramCard from "@/components/shared/secondary/SecondaryProgramCard";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
-
-type CardRoute =
-  | "/(app)/secondary/program/[programId]/courses"
-  | "/(app)/secondary/program/[programId]/quizzes"
-  | "/(app)/secondary/program/[programId]/exercises"
-  | "/(app)/secondary/program/[programId]/documents";
+import { useNavigation } from "@/contexts/NavigationContext";
+import { useAuth } from "@/contexts/auth";
 
 interface ActionCard {
   id: string;
@@ -43,23 +40,44 @@ const SecondaryProgramDetails = () => {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { trigger } = useHaptics();
+  const { getCoursesPath, getQuizzesPath, getExercicesPath, getDocumentsPath } = useNavigation();
+  const { user } = useAuth();
 
   const { program, isLoading, isError } = useSecondaryProgram(programId);
+  
+  // Récupérer la vraie progression
+  const { 
+    courseProgress, 
+    quizProgress, 
+    exercisesProgress, 
+    documentsProgress,
+    isLoading: isProgressLoading 
+  } = useSecondaryProgramProgress(programId, user?.id);
 
-  // Dummy data - à remplacer plus tard par les vraies données
-  const isEnrolled = true; // Simuler l'inscription
+  // Vérifier si l'utilisateur est inscrit (à améliorer avec une vraie vérification)
+  const isEnrolled = true; // Simuler l'inscription pour l'instant
+  
+  // Utiliser les vraies données de progression
   const progression = {
-    courses: { current: 8, total: program?.course_count || 0, percentage: 65 },
-    quizzes: { current: 5, total: program?.quiz_count || 0, percentage: 50 },
+    courses: { 
+      current: courseProgress.completed, 
+      total: courseProgress.total, 
+      percentage: Math.round(courseProgress.percentage) 
+    },
+    quizzes: { 
+      current: quizProgress.completed, 
+      total: quizProgress.total, 
+      percentage: Math.round(quizProgress.percentage) 
+    },
     exercises: {
-      current: 15,
-      total: program?.exercise_count || 0,
-      percentage: 75,
+      current: exercisesProgress.completed,
+      total: exercisesProgress.total,
+      percentage: Math.round(exercisesProgress.percentage),
     },
     documents: {
-      current: 3,
-      total: program?.document_count || 0,
-      percentage: 37,
+      current: documentsProgress.completed,
+      total: documentsProgress.total,
+      percentage: Math.round(documentsProgress.percentage),
     },
   };
 
@@ -82,7 +100,7 @@ const SecondaryProgramDetails = () => {
             color={isDark ? "#6EE7B7" : "#4CAF50"}
           />
         ),
-        route: `/(app)/secondary/program/${programId}/courses`,
+        route: getCoursesPath(),
         color: isDark ? "#6EE7B7" : "#4CAF50",
         rightContent: isEnrolled ? (
           <View style={styles.progressIndicator}>
@@ -113,7 +131,7 @@ const SecondaryProgramDetails = () => {
             color={isDark ? "#60A5FA" : "#2196F3"}
           />
         ),
-        route: `/(app)/secondary/program/${programId}/quizzes`,
+        route: getQuizzesPath(),
         color: isDark ? "#60A5FA" : "#2196F3",
         rightContent: isEnrolled ? (
           <View style={styles.progressIndicator}>
@@ -144,7 +162,7 @@ const SecondaryProgramDetails = () => {
             color={isDark ? "#E879F9" : "#9C27B0"}
           />
         ),
-        route: `/(app)/secondary/program/${programId}/exercices`,
+        route: getExercicesPath(),
         color: isDark ? "#E879F9" : "#9C27B0",
         rightContent: isEnrolled ? (
           <View style={styles.progressIndicator}>
@@ -175,14 +193,14 @@ const SecondaryProgramDetails = () => {
             color={isDark ? "#FBBF24" : "#FF9800"}
           />
         ),
-        route: `/(app)/secondary/program/${programId}/documents`,
+        route: getDocumentsPath(),
         color: isDark ? "#FBBF24" : "#FF9800",
         rightContent: isEnrolled ? (
           <View style={styles.progressIndicator}>
             <ThemedText
               style={[styles.progressText, isDark && styles.progressTextDark]}
             >
-              {progression.documents.current}/{program.document_count || 0}
+              {progression.documents.current}/{progression.documents.total}
             </ThemedText>
             <ThemedText
               style={[styles.progressLabel, isDark && styles.progressLabelDark]}
@@ -193,11 +211,11 @@ const SecondaryProgramDetails = () => {
         ) : undefined,
       },
     ];
-  }, [program, programId, isEnrolled, isDark, progression]);
+  }, [program, programId, isEnrolled, isDark, progression, getCoursesPath, getQuizzesPath, getExercicesPath, getDocumentsPath]);
 
   const handleCardPress = (card: ActionCard) => {
     trigger(HapticType.LIGHT);
-    router.push(card.route as CardRoute);
+    router.push(card.route);
   };
 
   if (isLoading) {

@@ -1,20 +1,16 @@
 import {
     GoogleGenerativeAI,
-    HarmCategory,
-    HarmBlockThreshold,
     GenerativeModel,
     ChatSession,
     GenerationConfig,
 } from "@google/generative-ai";
 
-const apiKey: string = process.env.GEMINI_API_KEY || "AIzaSyCQv5mGd4Kr6Csa_GPRt4DCbAWjB6oYiYs";
-
-console.log("GEMINI_API_KEY:", apiKey);
+const apiKey: string = process.env.GEMINI_API_KEY ;
 
 const genAI: GoogleGenerativeAI = new GoogleGenerativeAI(apiKey);
 
 const model: GenerativeModel = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash-lite",
+    model: "gemini-3-flash-preview",
 });
 
 const generationConfig: GenerationConfig = {

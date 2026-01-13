@@ -14,7 +14,6 @@ import {
     FlatList,
     Dimensions,
     Animated,
-    SafeAreaView,
     StatusBar,
     BackHandler,
 } from 'react-native';
