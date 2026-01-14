@@ -105,6 +105,15 @@ const NotificationManager = {
     return false;
   },
 
+  clearForPayment(paymentId: string) {
+    if (typeof window !== "undefined") {
+      const successKey = `payment_notification_${paymentId}_success`;
+      const failedKey = `payment_notification_${paymentId}_failed`;
+      sessionStorage.removeItem(successKey);
+      sessionStorage.removeItem(failedKey);
+    }
+  },
+
   clearAll() {
     if (typeof window !== "undefined") {
       Object.keys(sessionStorage).forEach((key) => {
@@ -1478,6 +1487,9 @@ const ProgramPaymentPage = () => {
       latestPayment.payment_status === "failed" ||
       latestPayment.payment_status === "canceled"
     ) {
+      // Nettoyer les notifications pour ce paiement pour permettre un nouveau paiement
+      NotificationManager.clearForPayment(latestPayment.id);
+      
       if (hasCompletedFirstInstallment) {
         setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
       } else {
