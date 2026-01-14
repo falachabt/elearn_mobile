@@ -219,35 +219,40 @@ export default function Index() {
           </View>
 
           {/* All News in Horizontal Scroll */}
-          {newsItems.length > 0 || (dbNews && dbNews.length > 0) ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.newsScrollContainer}
-            >
-              {/* Static News Items (Concours Blanc, etc.) - Render directly without NewsSection wrapper */}
-              {newsItems
-                .filter((item) => {
-                  const now = new Date();
-                  if (item.startDate && now < item.startDate) return false;
-                  if (item.endDate && now > item.endDate) return false;
-                  return true;
-                })
-                .map((item) => (
+          {(() => {
+            // Filtrer les actualités statiques par dates
+            const filteredNewsItems = newsItems.filter((item) => {
+              const now = new Date();
+              if (item.startDate && now < item.startDate) return false;
+              if (item.endDate && now > item.endDate) return false;
+              return true;
+            });
+
+            // Vérifier s'il y a des actualités à afficher
+            const hasNews = filteredNewsItems.length > 0 || (dbNews && dbNews.length > 0);
+
+            return hasNews ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.newsScrollContainer}
+              >
+                {/* Static News Items (Concours Blanc, etc.) */}
+                {filteredNewsItems.map((item) => (
                   <View key={item.id} style={styles.newsCardWrapper}>
                     <NewsCard {...item} />
                   </View>
                 ))}
 
-              {/* Dynamic News from Database */}
-              {dbNews &&
-                dbNews.map((newsItem) => (
-                  <View key={newsItem.id} style={styles.newsCardWrapper}>
-                    <NewsItem news={newsItem} userId={authUser?.id || ""} />
-                  </View>
-                ))}
-            </ScrollView>
-          ) : (
+                {/* Dynamic News from Database */}
+                {dbNews &&
+                  dbNews.map((newsItem) => (
+                    <View key={newsItem.id} style={styles.newsCardWrapper}>
+                      <NewsItem news={newsItem} userId={authUser?.id || ""} />
+                    </View>
+                  ))}
+              </ScrollView>
+            ) : (
             <View
               style={[
                 styles.emptyNewsContainer,
@@ -268,7 +273,8 @@ export default function Index() {
                 Aucune actualité disponible pour le moment
               </Text>
             </View>
-          )}
+            );
+          })()}
         </View>
 
         {/*/!* Learning Paths *!/*/}
