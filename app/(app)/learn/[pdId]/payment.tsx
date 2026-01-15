@@ -1342,7 +1342,7 @@ const ProgramPaymentPage = () => {
 
         console.log("[Payment] Learning path data:", data);
 
-        let price = pricing.REGULAR_FIRST_COURSE_PRICE;
+        let price = pricing.FIXED_PRICE;
         if (user?.id) {
           const { data: enrollments } = await supabase
             .from("user_program_enrollments")
@@ -1351,7 +1351,7 @@ const ProgramPaymentPage = () => {
 
           const enrollmentsCount = enrollments?.length || 0;
           const isFixedPriceMode = isFixedPriceModeActive(enrollmentsCount);
-          const basePrice = pricing.REGULAR_FIRST_COURSE_PRICE;
+          const basePrice = pricing.FIXED_PRICE;
           price = getDisplayPrice(
             basePrice,
             isFixedPriceMode,
