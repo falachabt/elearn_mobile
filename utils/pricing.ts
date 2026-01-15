@@ -71,41 +71,6 @@ export const usePricing = () => {
   };
 };
 
-// Legacy exports for backward compatibility (deprecated)
-export const GENEROUS_WEEK_PRICE = 5000;
-export const REGULAR_FIRST_COURSE_PRICE = 15000;
-export const ADDITIONAL_COURSE_PRICE = 15000;
-export const FIXED_PRICE = 15000;
-export const PURCHASE_VALIDITY_DAYS = 300;
-export const PRICING_PLANS = [
-  {
-    id: 'essential' as const,
-    name: 'Formule Essentielle',
-    description: 'Première formation: 9 000 FCFA + 7900 FCFA pour toutes nouvelles souscriptions à une formation.',
-    basePrice: REGULAR_FIRST_COURSE_PRICE,
-    additionalPrice: ADDITIONAL_COURSE_PRICE,
-    threshold: 1,
-    color: 'green'
-  },
-  {
-    id: 'advantage' as const,
-    name: 'Formule Avantage',
-    description: 'Pack complet de trois formations',
-    price: 24900,
-    threshold: 3,
-    color: 'orange',
-    recommended: true
-  },
-  {
-    id: 'excellence' as const,
-    name: 'Formule Excellence',
-    description: 'Formations illimitées pendant 12 mois',
-    price: 39500,
-    threshold: 5,
-    color: '#4F46E5'
-  }
-];
-
 /**
  * Determines if the fixed price mode is active based on user enrollments
  */
