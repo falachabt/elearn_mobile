@@ -140,38 +140,23 @@ export const CompetitionPaymentBottomSheet = ({
 
       if (paymentStatus === 'canceled') {
         setProcessingState('canceled');
-        // Mark as seen immediately and reload payment data
-        if (latestPayment?.id) {
-          CompetitionPaymentService.markAsSeen(latestPayment.id).then(async () => {
-            invalidateAccessCache(competitionId);
-            // Reload payment to get updated has_seen_results value
-            await getLatestPayment(competitionId);
-          });
-        }
+        // Invalidate cache but don't mark as seen yet (will be done on modal close)
+        invalidateAccessCache(competitionId);
       }
       if (paymentStatus === 'completed') {
         setProcessingState('success');
         
-        // Mark as seen immediately, invalidate cache and notify parent
-        if (latestPayment?.id) {
-          CompetitionPaymentService.markAsSeen(latestPayment.id).then(async () => {
-            invalidateAccessCache(competitionId);
-            // Reload payment to get updated has_seen_results value
-            await getLatestPayment(competitionId);
-            onPaymentSuccess?.();
-          });
-        }
+        // Invalidate cache immediately to unlock access and notify parent
+        invalidateAccessCache(competitionId);
+        // Notify parent to refresh access (will be marked as seen on modal close)
+        setTimeout(() => {
+          onPaymentSuccess?.();
+        }, 500);
       }
       if (paymentStatus === 'failed') {
         setProcessingState('failed');
-        // Mark as seen immediately and reload payment data
-        if (latestPayment?.id) {
-          CompetitionPaymentService.markAsSeen(latestPayment.id).then(async () => {
-            invalidateAccessCache(competitionId);
-            // Reload payment to get updated has_seen_results value
-            await getLatestPayment(competitionId);
-          });
-        }
+        // Invalidate cache but don't mark as seen yet (will be done on modal close)
+        invalidateAccessCache(competitionId);
       }
     }
   }, [paymentStatus, competitionId, latestPayment, invalidateAccessCache, onPaymentSuccess, getLatestPayment]);
@@ -263,13 +248,27 @@ export const CompetitionPaymentBottomSheet = ({
       await cancelPayment();
     }
 
+    // Mark as seen before closing if in a final state
+    if (['success', 'failed', 'canceled'].includes(processingState) && latestPayment?.id) {
+      await CompetitionPaymentService.markAsSeen(latestPayment.id);
+      // Reload to get updated has_seen_results
+      await getLatestPayment(competitionId);
+    }
 
     resetState();
     onClose();
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     trigger(HapticType.LIGHT);
+    
+    // Mark as seen before closing if in a final state
+    if (['success', 'failed', 'canceled'].includes(processingState) && latestPayment?.id) {
+      await CompetitionPaymentService.markAsSeen(latestPayment.id);
+      // Reload to get updated has_seen_results
+      await getLatestPayment(competitionId);
+    }
+    
     resetState();
     onClose();
   };

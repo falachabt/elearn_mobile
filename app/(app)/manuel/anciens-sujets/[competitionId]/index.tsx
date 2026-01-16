@@ -435,12 +435,7 @@ export const ArchivesList = () => {
   // Check if user has access to this competition
   useEffect(() => {
     if (competitionId && user) {
-      // Use a timeout to debounce the access check and prevent UI flickering
-      const timer = setTimeout(() => {
-        checkAccess(competitionId);
-      }, 300);
-
-      return () => clearTimeout(timer);
+      checkAccess(competitionId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [competitionId, user?.id]); // Only depend on competitionId and user.id, not the whole checkAccess function
@@ -680,7 +675,7 @@ export const ArchivesList = () => {
         isRevalidatingRef.current = false;
       }, 2000);
     }
-  }, [competitionId, user?.id]);
+  }, [competitionId, user?.id, checkAccess]); // Ajout de checkAccess dans les dépendances
 
   const renderItem = useCallback(
     ({ item }: { item: any }) => (
