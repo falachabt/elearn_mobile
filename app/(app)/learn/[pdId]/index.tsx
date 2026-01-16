@@ -73,13 +73,10 @@ const ProgramDetails = () => {
     const id = local.pdId as string;
     const {trigger} = useHaptics();
     const {user } = useAuth();
-    const { isLearningPathEnrolled, getProgramAccessStatus, mutateUserPrograms, mutateProgramAccessMap } = useUser();
+    const { isLearningPathEnrolled, getProgramAccessStatus, mutateUserPrograms } = useUser();
     const accessStatus = getProgramAccessStatus(id);
     const isEnrolled = isLearningPathEnrolled(id);
     const isExpired = accessStatus.isExpired;
-    
-    console.log('[ProgramDetails] Component render - id:', id, 'isEnrolled:', isEnrolled, 'isExpired:', isExpired);
-
 
     const router = useRouter();
     const colorScheme = useColorScheme();
@@ -141,10 +138,7 @@ const ProgramDetails = () => {
         {
             revalidateOnFocus: true,
             revalidateOnReconnect: true,
-            dedupingInterval: 1000, // Allow revalidation every second
-            onSuccess: (data) => {
-                console.log('[ProgramDetails] Program data fetched successfully:', data?.id);
-            }
+            dedupingInterval: 1000
         }
     );
 
@@ -162,9 +156,6 @@ const ProgramDetails = () => {
     // Revalidate ONLY when the screen comes into focus (not on mount to avoid double fetch)
     useFocusEffect(
         useCallback(() => {
-            console.log('[ProgramDetails] Screen focused, revalidating enrollment...');
-            console.log('[ProgramDetails] isEnrolled:', isEnrolled, 'isExpired:', isExpired);
-            
             const revalidateOnFocus = async () => {
                 // Add a small delay to ensure backend has processed any pending operations
                 await new Promise(resolve => setTimeout(resolve, 300));
@@ -174,8 +165,6 @@ const ProgramDetails = () => {
                     mutateProgram(undefined, { revalidate: true }),
                     mutateUserPrograms()
                 ]);
-                
-                console.log('[ProgramDetails] Revalidation completed');
             };
             
             revalidateOnFocus();
@@ -217,7 +206,7 @@ const ProgramDetails = () => {
                     .eq("learningPathId", id)
                     .single();
                 if (!error && data?.id) {
-                    setProgramId(data.id);
+                    setProgramId(String(data.id));
                 } else {
                     setProgramId(null);
                 }
@@ -248,14 +237,11 @@ const ProgramDetails = () => {
 
     // Update actionCards when program or progress data changes
     useEffect(() => {
-        console.log('[ProgramDetails] Updating action cards - isEnrolled:', isEnrolled, 'isExpired:', isExpired);
-        
         if (program) {
             const cards: ActionCard[] = [];
 
             // Affiche la carte shop si non inscrit ou paiement expiré
             if (!isEnrolled || isExpired) {
-                console.log('[ProgramDetails] Adding shop card - User needs to pay');
                 cards.push({
                     id: "shop",
                     title: isExpired
@@ -415,7 +401,7 @@ const ProgramDetails = () => {
                         />
                     ),
                     
-                    route: `/(app)/manuel/anciens-sujets/${program.concours_learningpaths?.concour?.id || "default-id"}`,
+                    route: `/(app)/manuel/anciens-sujets/${program.concours_learningpaths?.concours?.id || "default-id"}`,
                     color: isDark ? "#FBBF24" : "#FF9800",
 
                 },
@@ -598,15 +584,15 @@ const ProgramDetails = () => {
                         style={[styles.programTitle, isDark && styles.programTitleDark]}
                     >
                         {program?.concours_learningpaths &&
-                         program.concours_learningpaths?.concour?.school?.name ?
-                         program.concours_learningpaths.concour.school.name : ''}
+                         program.concours_learningpaths?.concours?.school?.name ?
+                         program.concours_learningpaths.concours.school.name : ''}
                     </ThemedText>
                     <ThemedText
                         numberOfLines={1}
                         style={[styles.concoursName, isDark && styles.concoursNameDark]}
                     >
                         {program?.concours_learningpaths  &&
-                         program.concours_learningpaths?.concour?.name || ''}
+                         program.concours_learningpaths?.concours?.name || ''}
 
                     </ThemedText>
                     {!isEnrolled && (

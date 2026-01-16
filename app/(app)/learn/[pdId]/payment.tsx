@@ -19,11 +19,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { theme } from "@/constants/theme";
 import { useProgramPayment } from "@/hooks/useProgramPayment";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
-import {
-  usePricing,
-  isFixedPriceModeActive,
-  getDisplayPrice,
-} from "@/utils/pricing";
+import { usePricing } from "@/utils/pricing";
 import { ThemedText } from "@/components/ThemedText";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
@@ -1368,12 +1364,10 @@ const ProgramPaymentPage = () => {
   const {
     paymentStatus,
     loading,
-    payment,
     latestPayment,
     latestPaymentLoading,
     authorizationUrl,
-    chargeError,
-    hasAccess,
+    errorMessage: hookErrorMessage,
     programId,
     initiateDirectPayment,
     cancelPayment,
@@ -1415,16 +1409,7 @@ const ProgramPaymentPage = () => {
     latestPayment: Payment | null,
     hasCompletedFirstInstallment: boolean
   ) => {
-    console.log("[Payment] determineInitialState called with:", {
-      latestPayment: latestPayment?.id,
-      has_seen_result: latestPayment?.has_seen_result,
-      payment_status: latestPayment?.payment_status,
-      is_installment: latestPayment?.is_installment,
-      hasCompletedFirstInstallment
-    });
-
     if (!latestPayment) {
-      console.log("[Payment] No latest payment, showing INSTRUCTIONS");
       setCurrentState(PaymentFlowState.INSTRUCTIONS);
       return;
     }
@@ -1436,7 +1421,6 @@ const ProgramPaymentPage = () => {
 
     // Si le paiement n'est pas en statut final (pending, initialized, processing), on continue la vérification
     if (!isFinalStatus(latestPayment.payment_status)) {
-      console.log("[Payment] Payment not in final status, showing VERIFYING");
       if (
         hasCompletedFirstInstallment &&
         latestPayment.current_installment &&
@@ -1458,7 +1442,6 @@ const ProgramPaymentPage = () => {
     // Si le résultat n'a pas encore été vu par l'utilisateur (has_seen_result = false ou null)
     // on redirige vers la page de résultat
     if (!latestPayment.has_seen_result) {
-      console.log("[Payment] Payment result not seen, redirecting to payment-result");
       const currentInstallment = latestPayment.current_installment || 1;
       const totalInstallments = latestPayment.total_installments || 1;
       const hasMoreInstallments = currentInstallment < totalInstallments;
@@ -1480,14 +1463,9 @@ const ProgramPaymentPage = () => {
     }
 
     // === Le résultat a déjà été vu (has_seen_result = true) ===
-    console.log("[Payment] Payment result already seen");
 
     // Si c'est un paiement échelonné (terminé ou non)
     if (latestPayment.is_installment) {
-        const currentInstallment = latestPayment.current_installment || 1;
-        const totalInstallments = latestPayment.total_installments || 1;
-        
-        console.log("[Payment] Installment payment detected, showing INSTALLMENT_DETAILS");
         // Afficher toujours les détails d'échelonnement pour les paiements échelonnés
         // même si tous les versements sont faits, pour que l'utilisateur puisse voir l'historique
         setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
@@ -1497,13 +1475,11 @@ const ProgramPaymentPage = () => {
     // Si c'est un paiement unique completed et pas expiré, afficher les instructions
     // (l'utilisateur peut vouloir acheter un autre programme ou voir les infos)
     if (latestPayment.payment_status === "completed" && !isAccessExpired) {
-        console.log("[Payment] Single payment completed, showing INSTRUCTIONS");
         setCurrentState(PaymentFlowState.INSTRUCTIONS);
         return;
     }
 
     // Par défaut (nouvel achat, renouvellement, ou suite d'un échec vu)
-    console.log("[Payment] Default case, showing INSTRUCTIONS");
     setCurrentState(PaymentFlowState.INSTRUCTIONS);
   };
 
@@ -1513,7 +1489,6 @@ const ProgramPaymentPage = () => {
     
     // Ne pas réinitialiser si déjà initialisé, sauf si on revient sur la page après un paiement
     if (isInitialized && currentState !== PaymentFlowState.LOADING) {
-      console.log("[Payment] Already initialized, skipping reinit");
       return;
     }
 
@@ -1548,7 +1523,7 @@ const ProgramPaymentPage = () => {
                                    latestPayment?.current_installment > 1;
 
         // Extract learning path title
-        const lpData = programData.learning_paths as any;
+        const lpData = programData.learning_paths as { title?: string } | { title?: string }[] | null;
         const programName = (Array.isArray(lpData) ? lpData[0]?.title : lpData?.title) || "Programme";
 
         const updatedContext = {
@@ -1564,7 +1539,6 @@ const ProgramPaymentPage = () => {
         setProgramContext(updatedContext);
 
         // Determine initial state based on payment history
-        console.log("[Payment] Determining initial state with has_seen_result:", latestPayment?.has_seen_result);
         determineInitialState(latestPayment ? { ...latestPayment, ['']: '' } : null, hasCompletedFirst || false);
         setIsInitialized(true);
       } catch (error) {
@@ -1581,9 +1555,6 @@ const ProgramPaymentPage = () => {
   useEffect(() => {
     // Ne pas traiter si programContext n'est pas encore initialisé
     if (!programContext.programId || !programContext.programName) {
-      console.log(
-        "[Payment] programContext not initialized yet, skipping payment status handling"
-      );
       return;
     }
 
@@ -1591,19 +1562,12 @@ const ProgramPaymentPage = () => {
     // Dans ce cas, ne pas rediriger automatiquement vers payment-result
     const latestPayment = programContext.latestPayment;
     if (latestPayment?.has_seen_result && isFinalStatus(latestPayment.payment_status)) {
-      console.log(
-        "[Payment] Payment result already seen, skipping automatic redirect:",
-        paymentStatus
-      );
       return;
     }
 
     // Ne rediriger que si le statut vient de changer (pendant une vérification active)
     // Pas si on arrive sur la page avec un paiement déjà terminé
     if (!currentTrxReference) {
-      console.log(
-        "[Payment] No active transaction reference, skipping redirect"
-      );
       return;
     }
 
@@ -1619,11 +1583,6 @@ const ProgramPaymentPage = () => {
         latestPayment?.is_installment &&
         (latestPayment?.current_installment || 1) <
           (latestPayment?.total_installments || 1);
-
-      console.log("[Payment] Navigating to success with:", {
-        programName: programContext.programName,
-        programId: programContext.programId,
-      });
 
       router.replace({
         pathname: "/learn/[pdId]/payment-result",

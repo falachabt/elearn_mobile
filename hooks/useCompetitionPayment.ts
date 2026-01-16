@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 
 import { CompetitionPaymentService, CompetitionPayment } from "@/services/competition-payment.service";
 import { NotchPayService } from "@/lib/notchpay";
+import { logger } from "@/utils/logger";
 
 export const useCompetitionPayment = () => {
   const [paymentStatus, setPaymentStatus] = useState("");
@@ -20,15 +21,15 @@ export const useCompetitionPayment = () => {
   /**
    * Check if the user has access to a competition
    */
-  const checkAccess = async (competitionId: string) => {
+  const checkAccess = async (competitionId: string, forceRefresh = false) => {
     // Don't set loading state if we have a recent cached result
     // @ts-ignore
     const cachedAccess = accessCache.current[competitionId];
     const now = Date.now();
     const cacheValidityPeriod = 60000; // 1 minute cache validity
 
-    if (cachedAccess && (now - cachedAccess.timestamp < cacheValidityPeriod)) {
-      // Use cached result if it's recent
+    if (!forceRefresh && cachedAccess && (now - cachedAccess.timestamp < cacheValidityPeriod)) {
+      // Use cached result if it's recent and not forcing refresh
       setHasAccess(cachedAccess.result);
       return cachedAccess.result;
     }
@@ -53,6 +54,14 @@ export const useCompetitionPayment = () => {
     } finally {
       setAccessLoading(false);
     }
+  };
+
+  /**
+   * Invalidate the access cache for a competition
+   */
+  const invalidateAccessCache = (competitionId: string) => {
+    // @ts-ignore
+    delete accessCache.current[competitionId];
   };
 
   /**
@@ -180,11 +189,27 @@ export const useCompetitionPayment = () => {
         payment?.id
       );
 
-      if (result?.transaction?.status === "complete") {
+      logger.log("Verified competition payment status:", result);
+
+      const transactionStatus = result?.transaction?.status;
+
+      if (transactionStatus === "complete") {
         setPaymentStatus("completed");
         // Refresh access status
         if (payment) {
           await checkAccess(payment.competition_id);
+        }
+      } else if (transactionStatus === "failed") {
+        setPaymentStatus("failed");
+        // Invalidate cache for failed payments
+        if (payment) {
+          invalidateAccessCache(payment.competition_id);
+        }
+      } else if (transactionStatus === "cancelled" || transactionStatus === "canceled") {
+        setPaymentStatus("canceled");
+        // Invalidate cache for canceled payments
+        if (payment) {
+          invalidateAccessCache(payment.competition_id);
         }
       }
 
@@ -213,6 +238,7 @@ export const useCompetitionPayment = () => {
     hasAccess,
     accessLoading,
     checkAccess,
+    invalidateAccessCache,
     getActivePayment,
     getLatestPayment,
     isFinalStatus,

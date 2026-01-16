@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -246,6 +246,7 @@ export const ArchivesList = () => {
   const isDark = scheme === "dark";
   const { user } = useAuth();
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
+  const isRevalidatingRef = useRef(false);
 
   // Competition payment hook
   const { hasAccess, accessLoading, checkAccess, paymentStatus } =
@@ -441,7 +442,8 @@ export const ArchivesList = () => {
 
       return () => clearTimeout(timer);
     }
-  }, [competitionId, user, checkAccess]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [competitionId, user?.id]); // Only depend on competitionId and user.id, not the whole checkAccess function
 
   // Handle pinning an archive
   const handlePin = useCallback(
@@ -659,6 +661,27 @@ export const ArchivesList = () => {
     });
   }, [archives, searchQuery, selectedCategory, filterType]);
 
+  const handlePaymentSuccess = useCallback(async () => {
+    if (!competitionId || !user?.id) return;
+    
+    // Prevent multiple simultaneous revalidations
+    if (isRevalidatingRef.current) return;
+    isRevalidatingRef.current = true;
+    
+    try {
+      // Revalidate all data when payment is successful
+      await checkAccess(competitionId, true); // Force refresh with true parameter
+      mutate(`/archives/competition/${competitionId}`);
+      mutate(`/pinned/${user.id}/${competitionId}`);
+      mutate(`/completed/${user.id}/${competitionId}`);
+    } finally {
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isRevalidatingRef.current = false;
+      }, 2000);
+    }
+  }, [competitionId, user?.id]);
+
   const renderItem = useCallback(
     ({ item }: { item: any }) => (
       <ArchiveCard
@@ -851,6 +874,7 @@ export const ArchivesList = () => {
           onClose={() => setShowPaymentSheet(false)}
           competitionId={competitionId}
           competitionName={competitionData?.name || "ce concours"}
+          onPaymentSuccess={handlePaymentSuccess}
         />
       )}
     </View>

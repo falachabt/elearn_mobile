@@ -20,12 +20,15 @@ import LottieView from 'lottie-react-native';
 import { theme } from '@/constants/theme';
 import { useCompetitionPayment } from '@/hooks/useCompetitionPayment';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
+import { CompetitionPaymentService } from '@/services/competition-payment.service';
+import WhatsAppContact from '@/components/WhatsappSupport';
 
 interface CompetitionPaymentBottomSheetProps {
   visible: boolean;
   onClose: () => void;
   competitionId: string;
   competitionName: string;
+  onPaymentSuccess?: () => void;
 }
 
 // Get screen dimensions for modal sizing
@@ -35,7 +38,8 @@ export const CompetitionPaymentBottomSheet = ({
   visible,
   onClose,
   competitionId,
-  competitionName
+  competitionName,
+  onPaymentSuccess
 }: CompetitionPaymentBottomSheetProps) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const verificationMessages = [
@@ -65,7 +69,9 @@ export const CompetitionPaymentBottomSheet = ({
     isFinalStatus,
     initiateDirectPayment,
     cancelPayment,
-    verifyPaymentStatus
+    verifyPaymentStatus,
+    checkAccess,
+    invalidateAccessCache
   } = useCompetitionPayment();
 
 
@@ -96,7 +102,11 @@ export const CompetitionPaymentBottomSheet = ({
               // Pre-fill phone number from existing payment
               setPhoneNumber(payment.phone_number);
             }
-            // If payment is in a final status, show existing payment state
+            // If payment is in a final status but already seen, show idle form
+            else if (payment.has_seen_results) {
+              setProcessingState('idle');
+            }
+            // If payment is in a final status and not seen, show existing payment state
             else {
               setProcessingState('existing_payment');
               setCurrentTrxReference(payment.payment_reference);
@@ -104,6 +114,10 @@ export const CompetitionPaymentBottomSheet = ({
               // If payment is completed, also set success state
               if (payment.payment_status === 'completed') {
                 setProcessingState('success');
+              } else if (payment.payment_status === 'failed') {
+                setProcessingState('failed');
+              } else if (payment.payment_status === 'canceled') {
+                setProcessingState('canceled');
               }
             }
           }
@@ -126,15 +140,41 @@ export const CompetitionPaymentBottomSheet = ({
 
       if (paymentStatus === 'canceled') {
         setProcessingState('canceled');
+        // Mark as seen immediately and reload payment data
+        if (latestPayment?.id) {
+          CompetitionPaymentService.markAsSeen(latestPayment.id).then(async () => {
+            invalidateAccessCache(competitionId);
+            // Reload payment to get updated has_seen_results value
+            await getLatestPayment(competitionId);
+          });
+        }
       }
       if (paymentStatus === 'completed') {
         setProcessingState('success');
+        
+        // Mark as seen immediately, invalidate cache and notify parent
+        if (latestPayment?.id) {
+          CompetitionPaymentService.markAsSeen(latestPayment.id).then(async () => {
+            invalidateAccessCache(competitionId);
+            // Reload payment to get updated has_seen_results value
+            await getLatestPayment(competitionId);
+            onPaymentSuccess?.();
+          });
+        }
       }
       if (paymentStatus === 'failed') {
         setProcessingState('failed');
+        // Mark as seen immediately and reload payment data
+        if (latestPayment?.id) {
+          CompetitionPaymentService.markAsSeen(latestPayment.id).then(async () => {
+            invalidateAccessCache(competitionId);
+            // Reload payment to get updated has_seen_results value
+            await getLatestPayment(competitionId);
+          });
+        }
       }
     }
-  }, [paymentStatus]);
+  }, [paymentStatus, competitionId, latestPayment, invalidateAccessCache, onPaymentSuccess, getLatestPayment]);
 
   // Clean up interval on unmount
   useEffect(() => {
@@ -438,6 +478,11 @@ export const CompetitionPaymentBottomSheet = ({
                     Paiement sécurisé via MTN ou Orange Money
                   </Text>
                 </View>
+
+                <WhatsAppContact 
+                  message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${competitionName}`}
+                  style={{ marginTop: 16, marginHorizontal: 0 }}
+                />
               </View>
             </KeyboardAvoidingView>
           </ScrollView>
@@ -462,6 +507,11 @@ export const CompetitionPaymentBottomSheet = ({
             <Text style={[styles.statusDescription, isDark && styles.statusDescriptionDark]}>
               Nous initialisons votre paiement. Veuillez patienter.
             </Text>
+            
+            <WhatsAppContact 
+              message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${competitionName}`}
+              style={{ marginTop: 24 }}
+            />
           </View>
         );
 
@@ -503,6 +553,11 @@ export const CompetitionPaymentBottomSheet = ({
             >
               <Text style={styles.cancelButtonText}>Annuler le paiement</Text>
             </TouchableOpacity>
+            
+            <WhatsAppContact 
+              message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${competitionName}`}
+              style={{ marginTop: 16, width: '100%' }}
+            />
           </View>
         );
 
@@ -532,6 +587,11 @@ export const CompetitionPaymentBottomSheet = ({
             >
               <Text style={styles.doneButtonText}>Accéder aux sujets</Text>
             </TouchableOpacity>
+            
+            <WhatsAppContact 
+              message={`Bonjour, j'ai besoin d'aide concernant mon accès à ${competitionName}`}
+              style={{ marginTop: 16, width: '100%' }}
+            />
           </View>
         );
 
@@ -569,6 +629,11 @@ export const CompetitionPaymentBottomSheet = ({
             >
               <Text style={styles.cancelButtonText}>Fermer</Text>
             </TouchableOpacity>
+            
+            <WhatsAppContact 
+              message={`Bonjour, mon paiement pour ${competitionName} a échoué. J'ai besoin d'aide.`}
+              style={{ marginTop: 16, width: '100%' }}
+            />
           </View>
         );
 
@@ -602,6 +667,11 @@ export const CompetitionPaymentBottomSheet = ({
             >
               <Text style={styles.cancelButtonText}>Fermer</Text>
             </TouchableOpacity>
+            
+            <WhatsAppContact 
+              message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${competitionName}`}
+              style={{ marginTop: 16, width: '100%' }}
+            />
           </View>
         );
     }

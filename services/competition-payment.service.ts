@@ -13,11 +13,27 @@ export interface CompetitionPayment {
   payment_provider: string;
   phone_number: string;
   promo_code_id?: string;
+  has_seen_results?: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export const CompetitionPaymentService = {
+  // Mark the payment result as seen by the user
+  async markAsSeen(paymentId: string): Promise<void> {
+    const { error } = await supabase
+      .from('user_competition_payments')
+      .update({
+        has_seen_results: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', paymentId);
+
+    if (error) {
+      console.error('Error marking competition payment as seen:', error);
+    }
+  },
+
   async createPayment(
     competitionId: string,
     phoneNumber: string,

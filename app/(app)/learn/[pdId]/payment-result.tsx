@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ScrollView, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import LottieView from 'lottie-react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -22,7 +23,6 @@ const PaymentResultPage = () => {
 
     const result = params.result as ResultType;
     const programName = params.programName as string;
-    const programId = params.programId as string;
     const pdId = params.pdId as string;
     const paymentId = params.paymentId as string;
     const isInstallment = params.isInstallment === 'true';
@@ -37,13 +37,11 @@ const PaymentResultPage = () => {
             }
             
             if (result === 'success') {
-                console.log('[PaymentResult] Mutating user data after success');
                 // Force immediate revalidation
                 await Promise.all([
                     mutateUserPrograms(),
                     mutateProgramAccessMap()
                 ]);
-                console.log('[PaymentResult] Mutations completed');
             }
         };
 
@@ -98,7 +96,6 @@ const PaymentResultPage = () => {
     const handleViewDetails = async () => {
         if (result === 'success') {
             setIsActivatingAccess(true);
-            console.log('[PaymentResult] Starting access activation check...');
             
             // Vérification active de l'accès avec boucle de polling
             let attempts = 0;
@@ -106,7 +103,6 @@ const PaymentResultPage = () => {
             
             while (attempts < maxAttempts) {
                 attempts++;
-                console.log(`[PaymentResult] Verification attempt ${attempts}/${maxAttempts}`);
                 
                 // Mise à jour du message de progression
                 if (attempts <= 3) {
@@ -127,10 +123,8 @@ const PaymentResultPage = () => {
                 
                 // Vérifie si l'utilisateur est bien inscrit
                 const enrolled = isLearningPathEnrolled(pdId);
-                console.log(`[PaymentResult] Enrollment check: ${enrolled}`);
                 
                 if (enrolled) {
-                    console.log('[PaymentResult] Access confirmed! Redirecting...');
                     setActivationMessage('Accès confirmé ! Redirection...');
                     await new Promise(resolve => setTimeout(resolve, 500));
                     break;
@@ -141,11 +135,9 @@ const PaymentResultPage = () => {
             }
             
             setIsActivatingAccess(false);
-            console.log('[PaymentResult] Access activation complete, navigating to program');
         }
         
         // Navigate to program details
-        console.log('[PaymentResult] Navigating to program:', pdId);
         router.replace(`/(app)/learn/${pdId}`);
     };
 

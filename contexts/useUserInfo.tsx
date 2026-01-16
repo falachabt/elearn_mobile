@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/contexts/auth";
 import { useAppConfig } from "@/contexts/useAppConfig";
 import { ProgramPaymentService } from "@/services/program-payment.service";
+import { logger } from "@/utils/logger";
 
 interface UserStreak {
   id: string;
@@ -217,11 +218,9 @@ const fetchUserPrograms = async (userId: string) => {
     .eq("user_id", userId);
 
   if (error) {
-    console.error('[UserContext] Error fetching user programs:', error);
+    logger.error('[UserContext] Error fetching user programs:', error);
     return [];
   }
-
-  console.log('[UserContext] User programs raw data fetched:', data?.length || 0, 'enrollments');
 
   // Correction : on retourne un tableau d'objets { ...learningPath, concours_learningpaths }
   const learningPaths = data
@@ -301,7 +300,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       revalidateOnReconnect: true,
       dedupingInterval: 1000, // Allow revalidation every second
       onSuccess: (data) => {
-        console.log('[UserContext] User programs fetched:', data?.length || 0, 'programs');
+        logger.log('[UserContext] User programs fetched:', data?.length || 0, 'programs');
       }
     }
   );
@@ -342,7 +341,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       revalidateOnReconnect: true,
       dedupingInterval: 1000, // Allow revalidation every second
       onSuccess: (data) => {
-        console.log('[UserContext] Program access map updated:', Object.keys(data || {}).length, 'programs');
+        logger.log('[UserContext] Program access map updated:', Object.keys(data || {}).length, 'programs');
       }
     }
   );
@@ -365,14 +364,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   // Nouvelle version de isLearningPathEnrolled
   const isLearningPathEnrolled = (learningPathId: string) => {
-    console.log('[UserContext] Checking enrollment for learningPathId:', learningPathId);
-    console.log('[UserContext] Available userPrograms:', userPrograms?.map(p => ({ id: p.id, title: p.title })));
+    logger.log('[UserContext] Checking enrollment for learningPathId:', learningPathId);
+    logger.log('[UserContext] Available userPrograms:', userPrograms?.map(p => ({ id: p.id, title: p.title })));
     
     const userProgram = userPrograms?.find(
       (program) => program.id === learningPathId
     );
     
-    console.log('[UserContext] Found userProgram:', userProgram ? 'YES' : 'NO');
+    logger.log('[UserContext] Found userProgram:', userProgram ? 'YES' : 'NO');
     
     if (!userProgram) {
       if (!isGenerousWeekActive()) return false;
@@ -401,13 +400,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     // Si programAccessMap n'a pas encore été chargé ou ne contient pas ce programme
     // mais que le programme existe dans userPrograms, on considère l'utilisateur comme inscrit
     if (!programAccessMap || !programId || !(programId in programAccessMap)) {
-      console.log('[UserContext] Program found in userPrograms but not in accessMap yet - returning TRUE');
+      logger.log('[UserContext] Program found in userPrograms but not in accessMap yet - returning TRUE');
       return true; // Le programme existe dans les inscriptions, donc l'utilisateur est inscrit
     }
     
     // Sinon, on vérifie le statut d'accès (expiration)
     const status = getProgramAccessStatus(learningPathId);
-    console.log('[UserContext] Program access status:', status);
     return status.hasAccess;
   };
 
@@ -538,7 +536,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           },
           async () => {
             if (authUser.id) {
-              console.log('[UserContext] Realtime: user_program_enrollments changed, mutating...');
+              logger.log('[UserContext] Realtime: user_program_enrollments changed, mutating...');
               mutateUserPrograms();
               mutateProgramAccessMap();
             }
