@@ -139,7 +139,7 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
         plans: {
           essential: {
             name: 'Formule Essentielle',
-            description: 'Première formation: 9 000 FCFA + 7900 FCFA pour toutes nouvelles souscriptions à une formation.',
+            description: 'Première formation: 9 000 FCFA + 7900 FCFA pour toute nouvelle souscription à une formation.',
             base_price: 15000,
             additional_price: 15000,
             threshold: 1,
