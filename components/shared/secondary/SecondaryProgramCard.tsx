@@ -49,8 +49,8 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
     user?.id
   );
 
-  // Placeholder pour la date avant l'examen
-  const daysBeforeExam = 42; // À remplacer par la vraie valeur plus tard
+  // TODO: Intégrer la vraie valeur "jours avant l'examen" à partir des données
+  // du programme ou du planning utilisateur lorsque ces informations seront disponibles.
   // Utiliser la vraie progression
   const progress = isLoading ? 0 : totalProgress;
 
