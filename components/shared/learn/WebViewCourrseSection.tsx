@@ -1,55 +1,21 @@
-import React, { useRef } from 'react';
+import React, { forwardRef } from 'react';
 import { WebView } from 'react-native-webview';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 interface PreloadWebViewProps {
-    uri: string;
-    accessToken: string | undefined;
+    url: string;
     isDark: boolean;
+    onMessage?: (event: { nativeEvent: { data: string } }) => void;
+    injectedJavaScript?: string;
+    onLoadProgress?: (progress: { nativeEvent: { progress: number } }) => void;
 }
 
-/**
- * A completely isolated and hidden WebView for preloading content
- */
-const PreloadWebView = ({ uri, accessToken, isDark }: PreloadWebViewProps) => {
-    const webViewRef = useRef(null);
-
-    // Generate the injected JavaScript for dark mode
-    const getInjectedScript = () => `(function() {
-    function applyDarkMode() {
-      if (${isDark}) {
-        const container = document.querySelector('.bn-container');
-        if (container) {
-          container.classList.add('dark');
-          container.setAttribute('data-color-scheme', 'dark');
-          document.documentElement.style.setProperty('--bn-colors-editor-text', '#FFFFFF');
-          document.documentElement.style.setProperty('--bn-colors-editor-background', '#111827');
-          document.documentElement.style.setProperty('--bn-colors-menu-text', '#F3F4F6');
-          document.documentElement.style.setProperty('--bn-colors-menu-background', '#1F2937');
-          document.documentElement.style.setProperty('--bn-colors-editor-border', '#374151');
-        }
-      }
-    }
-
-    // Apply dark mode on load
-    if (document.readyState === 'complete') {
-      applyDarkMode();
-    } else {
-      document.addEventListener('DOMContentLoaded', applyDarkMode);
-    }
-  })();`;
-
-    return (
-        <View style={styles.container}>
+const PreloadWebView = forwardRef<WebView, PreloadWebViewProps>(
+    ({ url, onMessage, injectedJavaScript, onLoadProgress }, ref) => {
+        return (
             <WebView
-                ref={webViewRef}
-                source={{
-                    uri,
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                        "color-scheme": isDark ? "dark" : "light",
-                    },
-                }}
+                ref={ref}
+                source={{ uri: url }}
                 originWhitelist={["*"]}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
@@ -58,42 +24,24 @@ const PreloadWebView = ({ uri, accessToken, isDark }: PreloadWebViewProps) => {
                 thirdPartyCookiesEnabled={true}
                 sharedCookiesEnabled={true}
                 onShouldStartLoadWithRequest={() => true}
-                startInLoadingState={false} // Important: don't show loading state
-                // renderLoading={() => null}
-                injectedJavaScript={getInjectedScript()}
-                // Simplify script - we just need it to load and cache
+                startInLoadingState={true}
+                injectedJavaScript={injectedJavaScript}
+                onMessage={onMessage}
+                onLoadProgress={onLoadProgress}
                 style={styles.webview}
-                // Force no interaction with the webview
-                pointerEvents="none"
-                // Prevent scroll events from propagating to parent
-                scrollEnabled={false}
-                bounces={false}
+                scrollEnabled={true}
+                bounces={true}
                 showsHorizontalScrollIndicator={false}
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={true}
             />
-        </View>
-    );
-};
+        );
+    }
+);
 
 const styles = StyleSheet.create({
-    container: {
-        position: 'absolute',
-        width: 1,
-        height: 1,
-        opacity: 0,
-        overflow: 'hidden',
-        // Position it out of view at the bottom of the screen
-        bottom: -10,
-        left: 0,
-        // Ensure it doesn't affect layout
-        zIndex: -1000,
-    },
     webview: {
-        width: 1,
-        height: 1,
-        opacity: 0,
-        // Disable all user interaction
-        pointerEvents: 'none',
+        flex: 1,
+        backgroundColor: 'transparent',
     }
 });
 

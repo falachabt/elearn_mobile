@@ -14,11 +14,44 @@ interface WebViewConfig {
   exercise_url: string;
 }
 
+interface PricingConfig {
+  generous_week_price: number;
+  regular_first_course_price: number;
+  additional_course_price: number;
+  fixed_price: number;
+  purchase_validity_days: number;
+  plans: {
+    essential: {
+      name: string;
+      description: string;
+      base_price: number;
+      additional_price: number;
+      threshold: number;
+      color: string;
+    };
+    advantage: {
+      name: string;
+      description: string;
+      price: number;
+      threshold: number;
+      color: string;
+      recommended: boolean;
+    };
+    excellence: {
+      name: string;
+      description: string;
+      price: number;
+      threshold: number;
+      color: string;
+    };
+  };
+}
+
 interface AppConfigData {
   generous_week?: GenerousWeekConfig;
   webview?: WebViewConfig;
   api_base_url?: string;
-  // Add other app config properties as needed
+  pricing?: PricingConfig;
 }
 
 interface AppConfig {
@@ -33,6 +66,7 @@ type AppConfigContextType = {
   isGenerousWeekActive: () => boolean;
   getWebViewUrls: () => WebViewConfig | null;
   getApiBaseUrl: () => string | null;
+  getPricingConfig: () => PricingConfig;
   mutateAppConfig: () => Promise<AppConfig | null | undefined>;
 };
 
@@ -93,6 +127,45 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     return appConfig.data.api_base_url;
   };
 
+  const getPricingConfig = (): PricingConfig => {
+    if (!appConfig?.data?.pricing) {
+      // Valeurs par défaut si pas de config
+      return {
+        generous_week_price: 5000,
+        regular_first_course_price: 15000,
+        additional_course_price: 15000,
+        fixed_price: 15000,
+        purchase_validity_days: 300,
+        plans: {
+          essential: {
+            name: 'Formule Essentielle',
+            description: 'Première formation: 9 000 FCFA + 7900 FCFA pour toute nouvelle souscription à une formation.',
+            base_price: 15000,
+            additional_price: 15000,
+            threshold: 1,
+            color: 'green'
+          },
+          advantage: {
+            name: 'Formule Avantage',
+            description: 'Pack complet de trois formations',
+            price: 24900,
+            threshold: 3,
+            color: 'orange',
+            recommended: true
+          },
+          excellence: {
+            name: 'Formule Excellence',
+            description: 'Formations illimitées pendant 12 mois',
+            price: 39500,
+            threshold: 5,
+            color: '#4F46E5'
+          }
+        }
+      };
+    }
+    return appConfig.data.pricing;
+  };
+
   useEffect(() => {
     setIsLoading(appConfig === undefined);
   }, [appConfig]);
@@ -123,6 +196,7 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     isGenerousWeekActive,
     getWebViewUrls,
     getApiBaseUrl,
+    getPricingConfig,
     mutateAppConfig,
   };
 

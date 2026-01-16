@@ -30,6 +30,7 @@ import QuizResultsDisplay from "@/components/shared/learn/quiz/QuizResultDisplay
 import BlockNoteContent from "@/components/shared/BlockNoteContent";
 import ExerciseInstructionsDrawer from "@/components/shared/learn/quiz/ExerciseInstructionsDrawer";
 import MathLiveTextRenderer from "@/components/shared/learn/quiz/MathLiveTextRender";
+import { useNavigation } from "@/contexts/NavigationContext";
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -575,7 +576,8 @@ const QuizContent = () => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const router = useRouter();
-    const {quizId, pdId} = useLocalSearchParams();
+    const { quizId, pdId } = useLocalSearchParams();
+    const { getQuizzesPath, getQuizAttemptPath } = useNavigation();
     const {currentQuestion, isCompleted, isNewlyCompleted, results} = useQuizContext();
     const [showResult, setShowResult] = useState(false);
     const [quizResults, setQuizResults] = useState<any>(null);
@@ -613,12 +615,12 @@ const QuizContent = () => {
             if (error) throw error;
 
             // Navigate to the quiz play page with new attempt ID
-            router.push(`/(app)/learn/${pdId}/quizzes/${quizId}/${attempt.id}`);
+            router.push(getQuizAttemptPath(String(quizId), attempt.id));
         } catch (error) {
             console.error("Error creating quiz attempt:", error);
             Alert.alert("Error", "Failed to create new quiz attempt. Please try again.");
         }
-    }, [quizId, pdId, user, router]);
+    }, [quizId, user, router, getQuizAttemptPath]);
 
     const handleFinish = useCallback((data: any) => {
         setQuizResults(data);
@@ -636,8 +638,8 @@ const QuizContent = () => {
 
     const handleContinue = useCallback(async () => {
         setShowResult(false);
-        router.replace(`/(app)/learn/${pdId}/quizzes`);
-    }, [pdId, router]);
+        router.replace(getQuizzesPath());
+    }, [router, getQuizzesPath]);
 
     if (!currentQuestion) {
         return (

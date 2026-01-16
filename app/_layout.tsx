@@ -1,24 +1,27 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
     DarkTheme,
     DefaultTheme,
     ThemeProvider,
 } from "@react-navigation/native";
-import {useFonts} from "expo-font";
-import {Stack} from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import {StatusBar} from "expo-status-bar";
-import React, {useEffect} from "react";
-import "react-native-reanimated";
-import {View, Text, StyleSheet, Platform} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {SafeAreaView} from "react-native-safe-area-context";
-import * as Notifications from "expo-notifications";
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
 import Head from "expo-router/head";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect } from "react";
+import { Platform, Text, View } from "react-native";
+import "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import {useColorScheme} from "@/hooks/useColorScheme";
-import {Provider} from "@/providers";
-import {theme} from "@/constants/theme";
+
+
 import ScreenTracker from "@/components/shared/ScreenTracker";
+import { theme } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { Provider } from "@/providers";
+
+
 
 // Define app expiration date - March 16, 2025 (one week after March 9, 2025)
 const EXPIRATION_DATE = new Date('2025-04-10T00:00:00Z');
@@ -90,10 +93,11 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
+
     const [loaded] = useFonts({
-        Outfit: require("../assets/fonts/Outfit-Regular.ttf"),
-        PlusJakartaSans: require("../assets/fonts/PlusJakartaSans-Regular.ttf"),
-        SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+        'Outfit': require('../assets/fonts/Outfit-Regular.ttf'), // eslint-disable-line
+        'PlusJakartaSans': require('../assets/fonts/PlusJakartaSans-Regular.ttf'), // eslint-disable-line
+        'SpaceMono': require('../assets/fonts/SpaceMono-Regular.ttf'), // eslint-disable-line
     });
 
     useEffect(() => {
@@ -105,7 +109,6 @@ export default function RootLayout() {
     if (!loaded) {
         return null;
     }
-
 
     // Check if app has expired
     const isAppExpired = new Date() > EXPIRATION_DATE;

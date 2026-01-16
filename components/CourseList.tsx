@@ -5,40 +5,9 @@ import CourseRowItem from "./shared/CourseRowItem";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { ThemedText } from "@/components/ThemedText";
-import {theme} from "@/constants/theme";
-
-// Define proper TypeScript interfaces for our data
-interface Category {
-    id?: number;
-    name: string;
-    icon?: string;
-}
-
-interface CourseContent {
-    id: number;
-    name: string;
-    order: number;
-}
-
-interface CourseVideo {
-    id: number;
-}
-
-interface Course {
-    id: number;
-    name: string;
-    category?: Category;
-    courses_content?: CourseContent[];
-    course_videos?: CourseVideo[];
-    goals?: string[];
-}
-
-interface CourseItem {
-    id?: number;
-    lpId?: string;
-    course: Course;
-    order_index?: number;
-}
+import { theme } from "@/constants/theme";
+import { CourseItem } from "@/types/course.type";
+import { useNavigation } from "@/contexts/NavigationContext";
 
 interface CourseListProps {
     courses: CourseItem[];
@@ -56,12 +25,12 @@ interface CourseListProps {
 const CourseList: React.FC<CourseListProps> = ({
                                                    courses,
                                                    pdId,
-                                                   onCoursePress,
                                                    emptyMessage = "Aucun cours disponible",
                                                    isEnrolled = false
                                                }) => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
+    const { getCoursesPath } = useNavigation();
 
     // If no courses are available, display a message
     if (!courses || courses.length === 0) {
@@ -75,12 +44,12 @@ const CourseList: React.FC<CourseListProps> = ({
     // Sort courses by order_index if available
     const sortedCourses = [...courses].sort((a, b) => {
         // If both courses have order_index, sort by order_index
-        if (a.order_index !== undefined && b.order_index !== undefined) {
+        if (a.order_index !== undefined && a.order_index !== null && b.order_index !== undefined && b.order_index !== null) {
             return a.order_index - b.order_index;
         }
         // If only one course has order_index, prioritize it
-        if (a.order_index !== undefined) return -1;
-        if (b.order_index !== undefined) return 1;
+        if (a.order_index !== undefined && a.order_index !== null) return -1;
+        if (b.order_index !== undefined && b.order_index !== null) return 1;
         // If neither has order_index, maintain original order
         return 0;
     });
@@ -93,9 +62,10 @@ const CourseList: React.FC<CourseListProps> = ({
         >
             {sortedCourses.map((courseItem, index) => (
                 <CourseRowItem
-                    key={`course-${courseItem.course.id}-${index}`}
+                    key={`course-${courseItem.course?.id || index}-${index}`}
                     courseItem={courseItem}
                     pdId={pdId}
+                    baseRoute={getCoursesPath()}
                     isDark={isDark}
                     isEnrolled={isEnrolled}
                 />

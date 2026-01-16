@@ -26,6 +26,8 @@ import EnhancedQuizRowItem from '@/components/shared/learn/quiz/QuizRowItem';
 import EnhancedQuizCategoryFilter from '@/components/shared/learn/quiz/QuizCategoryFilter';
 import {useUser} from "@/contexts/useUserInfo";
 import {useCustomRouter} from "@/hooks/useCustomRouter";
+import { useQuizPins, useQuizAttempts } from '@/hooks/useQuizData';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 // ==========================
 // Types
@@ -243,6 +245,7 @@ const ErrorState = ({onRetry, isDark}) => {
 const EnhancedQuizScreen = () => {
     const router = useCustomRouter();
     const {pdId} = useLocalSearchParams();
+    const { getQuizzesPath } = useNavigation();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list'); // Add view mode toggle
@@ -301,44 +304,19 @@ const EnhancedQuizScreen = () => {
             if (error) throw error;
             if (!data || data.length === 0) return [];
 
-            const quizIds = data.map((quiz) => quiz.quizId);
-
-            // Fetch pinned status for all quizzes
-            const {data: quiz_pinned, error: pinnedError} = await supabase
-                .from("quiz_pin")
-                .select("*")
-                .in("quiz_id", quizIds)
-                .eq("user_id", user?.id);
-
-            if (pinnedError) throw pinnedError;
-
-            // Add pinned status to quiz data
-            return data.map((quiz) => {
-                const isPinned = quiz_pinned?.find((pinned) => pinned.quiz_id === quiz.quizId);
-                return {
-                    ...quiz,
-                    isPinned: !!isPinned
-                };
-            }) as QuizItem[];
+            return data as QuizItem[];
         }
     );
 
-    // Fetch quiz attempts to calculate progress
-    const {data: attempts} = useSWR(
-        pdId && quizzes ? `quiz-attempts-${pdId}-${user?.id}` : null,
-        async () => {
-            const quizIds = quizzes?.map(q => q.quizId);
-            const {data, error} = await supabase
-                .from("quiz_attempts")
-                .select("*, quiz_id, score")
-                .in("quiz_id", quizIds || [])
-                .eq("user_id", user?.id)
-                .eq("status", "completed");
-
-            if (error) throw error;
-            return data || [];
-        }
+    // Get quiz IDs for fetching pins and attempts
+    const quizIds = useMemo(
+        () => quizzes?.map((quiz) => quiz.quizId).filter((id): id is number => Boolean(id)) || [],
+        [quizzes]
     );
+
+    // Use shared hooks for pins and attempts
+    const { pinnedMap } = useQuizPins(quizIds.map(String));
+    const { bestScoreMap } = useQuizAttempts(quizIds.map(String), "completed");
 
     // Fade in content when data loads
     useEffect(() => {
@@ -352,24 +330,21 @@ const EnhancedQuizScreen = () => {
         }
     }, [programLoading, quizzesLoading]);
 
-    // Calculate progress for each quiz
+    // Calculate progress for each quiz using bestScoreMap from hook
     const quizzesWithProgress = useMemo(() => {
-        if (!quizzes || !attempts) return quizzes || [];
+        if (!quizzes) return [];
 
         return quizzes.map(quizItem => {
-            const quizAttempts = attempts.filter(a => a.quiz_id === quizItem.quizId);
-
-            // Calculate highest score as progress
-            const highestScore = quizAttempts.length > 0
-                ? Math.max(...quizAttempts.map(a => a.score || 0))
-                : 0;
+            const isPinned = pinnedMap.has(String(quizItem.quizId));
+            const progress = bestScoreMap.get(String(quizItem.quizId)) || 0;
 
             return {
                 ...quizItem,
-                progress: highestScore
+                isPinned,
+                progress
             };
         });
-    }, [quizzes, attempts]);
+    }, [quizzes, pinnedMap, bestScoreMap]);
 
     // Extract unique categories from quizzes
     const categories = useMemo(() => {
@@ -689,6 +664,7 @@ const EnhancedQuizScreen = () => {
                             <EnhancedQuizRowItem
                                 quizItem={item}
                                 pdId={String(pdId)}
+                                baseRoute={getQuizzesPath()}
                                 isDark={isDark}
                                 index={index}
                             />
@@ -705,6 +681,7 @@ const EnhancedQuizScreen = () => {
                             <EnhancedQuizCard
                                 quizItem={item}
                                 pdId={String(pdId)}
+                                baseRoute={getQuizzesPath()}
                                 isDark={isDark}
                                 index={index}
                             />

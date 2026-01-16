@@ -35,7 +35,6 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
     }
     
     if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
       return undefined;
     }
 
@@ -52,8 +51,6 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
         projectId,
       })).data;
       
-      console.log('Push token:', token);
-      
       // Store the token in the user's metadata
       if (token && userId) {
         await updateUserPushToken(userId, token);
@@ -61,8 +58,6 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
     } catch (e) {
       console.error('Error getting push token:', e);
     }
-  } else {
-    console.log('Must use physical device for Push Notifications');
   }
 
   return token;
@@ -102,8 +97,6 @@ export async function updateUserPushToken(userId: string, token: string): Promis
 
     if (updateError) {
       console.error('Error updating user metadata:', updateError);
-    } else {
-      console.log('Successfully stored push token in user metadata');
     }
   } catch (error) {
     console.error('Error in updateUserPushToken:', error);

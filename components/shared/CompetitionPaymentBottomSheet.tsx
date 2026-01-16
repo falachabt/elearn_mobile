@@ -446,12 +446,16 @@ export const CompetitionPaymentBottomSheet = ({
       case 'processing':
         return (
           <View style={styles.statusContainer}>
-            <LottieView
-              source={require('@/assets/animations/payment-loading.json')}
-              autoPlay
-              loop
-              style={styles.lottieAnimation}
-            />
+            <View style={styles.iconContainer}>
+              <LottieView
+                source={require('@/assets/animations/payment-loading.json')}
+                autoPlay
+                loop
+                resizeMode="contain"
+                speed={1}
+                style={styles.lottieAnimation}
+              />
+            </View>
             <Text style={[styles.statusTitle, isDark && styles.statusTitleDark]}>
               Traitement en cours...
             </Text>
@@ -466,12 +470,16 @@ export const CompetitionPaymentBottomSheet = ({
 
         return (
             <View style={styles.statusContainer}>
-              <LottieView
-                  source={require('@/assets/animations/payment-loading.json')}
-                  autoPlay
-                  loop
-                  style={styles.lottieAnimation}
-              />
+              <View style={styles.iconContainer}>
+                <LottieView
+                    source={require('@/assets/animations/payment-loading.json')}
+                    autoPlay
+                    loop
+                    resizeMode="contain"
+                    speed={1}
+                    style={styles.lottieAnimation}
+                />
+              </View>
               <Text style={[styles.statusTitle, isDark && styles.statusTitleDark]}>
                 Vérification du paiement...
               </Text>
@@ -501,12 +509,16 @@ export const CompetitionPaymentBottomSheet = ({
       case 'success':
         return (
           <View style={styles.statusContainer}>
-            <LottieView
-              source={require('@/assets/animations/payment-success.json')}
-              autoPlay
-              loop={false}
-              style={styles.lottieAnimation}
-            />
+            <View style={styles.iconContainer}>
+              <LottieView
+                source={require('@/assets/animations/payment-success.json')}
+                autoPlay
+                loop={false}
+                resizeMode="contain"
+                speed={1}
+                style={styles.lottieAnimation}
+              />
+            </View>
             <Text style={[styles.statusTitle, isDark && styles.statusTitleDark]}>
               Paiement réussi !
             </Text>
@@ -526,12 +538,16 @@ export const CompetitionPaymentBottomSheet = ({
       case 'failed':
         return (
           <View style={styles.statusContainer}>
-            <LottieView
-              source={require('@/assets/animations/payment-failed.json')}
-              autoPlay
-              loop={false}
-              style={styles.lottieAnimation}
-            />
+            <View style={styles.iconContainer}>
+              <LottieView
+                source={require('@/assets/animations/payment-failed.json')}
+                autoPlay
+                loop={false}
+                resizeMode="contain"
+                speed={1}
+                style={styles.lottieAnimation}
+              />
+            </View>
             <Text style={[styles.statusTitle, isDark && styles.statusTitleDark]}>
               Paiement échoué
             </Text>
@@ -811,10 +827,17 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 300,
   },
-  lottieAnimation: {
-    width: 100,
-    height: 100,
+  iconContainer: {
+    width: 200,
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
     marginBottom: 24,
+  },
+  lottieAnimation: {
+    width: 200,
+    height: 200,
   },
   statusTitle: {
     fontFamily: theme.typography.fontFamily,

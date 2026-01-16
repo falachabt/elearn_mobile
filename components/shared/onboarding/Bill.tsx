@@ -618,6 +618,8 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
                     source={require("@/assets/animations/payment-loading.json")}
                     autoPlay
                     loop
+                    resizeMode="contain"
+                    speed={1}
                     style={[styles.lottieAnimation, { width: rs(200), height: rs(200) }]}
                 />
                 <Text style={[styles.statusTitle, isDark && styles.statusTitleDark]}>
@@ -734,6 +736,8 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
                     source={require("@/assets/animations/loading.json")}
                     autoPlay
                     loop
+                    resizeMode="contain"
+                    speed={1}
                     style={[styles.lottieAnimation, { width: rs(200), height: rs(200) }]}
                 />
                 <Text style={[styles.statusText, isDark && styles.statusTextDark]}>
@@ -765,6 +769,7 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
                     autoPlay
                     speed={3}
                     loop
+                    resizeMode="contain"
                     style={[styles.lottieAnimation, { width: rs(200), height: rs(200) }]}
                 />
                 <Text style={[styles.statusTitle, isDark && styles.statusTitleDark]}>
@@ -847,6 +852,8 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
                     source={require("@/assets/animations/payment-success.json")}
                     autoPlay
                     loop={false}
+                    resizeMode="contain"
+                    speed={1}
                     style={[styles.lottieAnimation, { width: rs(200), height: rs(200) }]}
                 />
                 <Text style={styles.successText}>Paiement réussi !</Text>
@@ -871,6 +878,8 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
                     source={require("@/assets/animations/payment-failed.json")}
                     autoPlay
                     loop={false}
+                    resizeMode="contain"
+                    speed={1}
                     style={[styles.lottieAnimation, { width: rs(200), height: rs(200) }]}
                 />
                 <Text style={[styles.failedText, isDark && styles.failedTextDark]}>

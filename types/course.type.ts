@@ -1,11 +1,10 @@
 // Type definitions for course-related components
 
+import { SecondaryProgramCourse } from "./secondary.type";
+import { Database } from "./supabase";
+
 // Category type
-export interface Category {
-    id?: number;
-    name: string;
-    icon?: string;
-}
+export type Category = Database["public"]["Tables"]["courses_categories"]["Row"];
 
 // Course content type
 export interface CourseContent {
@@ -30,34 +29,29 @@ export interface Course {
 }
 
 // Course item type (used in CourseGrid and CourseCard)
-export interface CourseItem {
+export interface PrepaCourseItem {
     id?: number;
     lpId?: string;
     course: Course;
     order_index?: number;
 }
 
+export type CourseItem = PrepaCourseItem | SecondaryProgramCourse
+
 // Category group type (used in CourseGrid)
 export interface CategoryGroup {
     name: string;
-    icon?: string;
+    icon?: string | null;
     courses: CourseItem[];
 }
 
-// Props for CourseGridByCategory component
-export interface CourseGridByCategoryProps {
-    courses: CourseItem[];
-    pdId: string;
-    selectedCategory: string;
-    onCoursePress?: (courseItem: CourseItem) => void;
-    isEnrolled?: boolean;
+// Type guard functions
+export function isPrepaCourseItem(courseItem: CourseItem): courseItem is PrepaCourseItem {
+    return 'lpId' in courseItem || typeof (courseItem as PrepaCourseItem).id === 'number';
 }
 
-// Props for CourseCard component
-export interface CourseCardProps {
-    courseItem: CourseItem;
-    pdId: string;
-    index?: number;
-    onPress?: () => void;
-    isEnrolled?: boolean;
+export function isSecondaryCourseItem(courseItem: CourseItem): courseItem is SecondaryProgramCourse {
+    return typeof (courseItem as SecondaryProgramCourse).id === 'string';
 }
+
+

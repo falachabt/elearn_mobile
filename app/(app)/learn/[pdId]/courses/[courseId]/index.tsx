@@ -64,7 +64,7 @@ const CourseDetail = () => {
     const router = useCustomRouter();
     const {courseId, pdId} = useLocalSearchParams();
     const [selectedView, setSelectedView] = useState<ViewType>("content");
-    const {sectionsProgress} = useCourseProgress(Number(courseId));
+    const {sectionsProgress, refreshProgress} = useCourseProgress(Number(courseId));
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const {user} = useAuth();
@@ -76,6 +76,11 @@ const CourseDetail = () => {
 
     // Set preview mode based on enrollment status
     const [isPreviewMode, setIsPreviewMode] = useState<boolean>(!isEnrolled);
+
+    // Refresh progress when navigating to this page
+    useEffect(() => {
+        refreshProgress();
+    }, [courseId]);
 
     // Update preview mode when enrollment status changes
     useEffect(() => {

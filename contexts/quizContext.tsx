@@ -8,6 +8,7 @@ import {useQuizQuestions, useQuizAttempt, Attempt} from '@/hooks/useQuiz';
 import {QuizAttempt, QuizOption, QuizProgress, QuizQuestion, QuizResults} from '@/types/quiz.type';
 import {QuizService} from '@/services/quiz.service';
 import {Quiz} from "@/types/type";
+import { useNavigation } from '@/contexts/NavigationContext';
 
 
 type QuizAction =
@@ -215,7 +216,11 @@ export function QuizProvider({
     attemptId: string;
 }) {
     const params = useLocalSearchParams();
-    const {pdId} = useGlobalSearchParams();
+    const globalParams = useGlobalSearchParams();
+    const navigation = useNavigation();
+    // Support both pdId (learn) and programId (secondary)
+    const programId = String(globalParams.pdId || globalParams.programId || '');
+    const pdId = programId; // Keep pdId as alias for backward compatibility
     const quizId = String(params.quizId);
     const [state, dispatch] = useReducer(quizReducer, initialState);
     const {questions, isLoading: questionsLoading} = useQuizQuestions(quizId);
@@ -333,10 +338,8 @@ export function QuizProvider({
         // Allow navigation through questions when completed
         if (isCompleted) {
             if (state.currentQuestionIndex == totalQuestions - 1) {
-                // router.reload()
-                router.replace(`/(app)/learn/${pdId}/quizzes/${quizId}`);
+                router.replace(navigation.getQuizPath(String(quizId)) as any);
             } else {
-
                 dispatch({type: 'NEXT_QUESTION'});
             }
             return;

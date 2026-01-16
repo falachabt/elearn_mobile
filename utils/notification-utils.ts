@@ -23,8 +23,6 @@ export const checkAndUpdateNotifications = async () => {
             return false;
         }
 
-        console.log('Updating notifications...');
-
         // Load user settings
         const settingsJson = await AsyncStorage.getItem(STORAGE_KEY_SETTINGS);
         if (!settingsJson) {
@@ -164,8 +162,6 @@ const updateReminderNotifications = async (reminderTime: Date, reminderDays: { [
             },
         });
     }
-
-    console.log('Notifications updated with fresh messages');
 };
 
 /**

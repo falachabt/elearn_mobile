@@ -1,0 +1,297 @@
+import useSWR from 'swr';
+
+import { supabase } from '@/lib/supabase';
+
+interface ProgressData {
+  completed: number;
+  total: number;
+  percentage: number;
+}
+
+export interface SecondaryProgramProgress {
+  courseProgress: ProgressData;
+  quizProgress: ProgressData;
+  exercisesProgress: ProgressData;
+  documentsProgress: ProgressData;
+  totalProgress: number;
+  isLoading: boolean;
+  error: Error | null;
+}
+
+const capPercentage = (value: number): number => {
+  return Math.min(Math.max(0, value), 100);
+};
+
+// Function to chunk arrays into smaller groups
+const chunkArray = <T,>(array: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
+
+const fetchSecondaryProgramProgress = async (programId: string, userId: string) => {
+  try {
+    // 1. Récupérer le programme avec ses compteurs
+    const { data: program, error: programError } = await supabase
+      .from('secondary_programs')
+      .select('id, course_count, quiz_count, exercise_count, document_count')
+      .eq('id', programId)
+      .single();
+
+    if (programError) {
+      console.error('Error fetching program:', programError);
+      throw programError;
+    }
+
+    if (!program) {
+      throw new Error('Program not found');
+    }
+
+    // 2. Récupérer les IDs des cours via la table de jonction
+    const { data: programCourses, error: coursesLinkError } = await supabase
+      .from('secondary_program_courses')
+      .select('course_id')
+      .eq('program_id', programId);
+
+    if (coursesLinkError) {
+      console.error('Error fetching program courses:', coursesLinkError);
+    }
+
+    const courseIds = programCourses?.map(pc => pc.course_id).filter(id => id != null) || [];
+
+    // 3. Récupérer les IDs des quiz via la table de jonction
+    const { data: programQuizzes, error: quizzesLinkError } = await supabase
+      .from('secondary_program_quizzes')
+      .select('quiz_id')
+      .eq('program_id', programId);
+
+    if (quizzesLinkError) {
+      console.error('Error fetching program quizzes:', quizzesLinkError);
+    }
+
+    const quizIds = programQuizzes?.map(pq => pq.quiz_id).filter(id => id != null) || [];
+
+    // 4. Récupérer les IDs des exercices via la table de jonction
+    const { data: programExercises, error: exercisesLinkError } = await supabase
+      .from('secondary_program_exercises')
+      .select('exercise_id')
+      .eq('program_id', programId);
+
+    if (exercisesLinkError) {
+      console.error('Error fetching program exercises:', exercisesLinkError);
+    }
+
+    const exerciseIds = programExercises?.map(pe => pe.exercise_id).filter(id => id != null) || [];
+
+    // 5. Récupérer TOUS les documents du programme
+    // Récupérer d'abord tous les folders du programme
+    const { data: folders, error: foldersError } = await supabase
+      .from('secondary_document_folders')
+      .select('id')
+      .eq('program_id', programId);
+
+    if (foldersError) {
+      console.error('Error fetching document folders:', foldersError);
+    }
+
+    const folderIds = folders?.map(f => f.id) || [];
+
+    // Récupérer les IDs des documents via la table de jonction
+    const { data: programDocLinks, error: docLinksError } = await supabase
+      .from('secondary_program_documents')
+      .select('document_id')
+      .eq('program_id', programId)
+      .eq('is_active', true);
+
+    if (docLinksError) {
+      console.error('Error fetching program document links:', docLinksError);
+    }
+
+    const rootDocIds = programDocLinks?.map(d => d.document_id).filter(id => id != null) || [];
+
+    // Récupérer tous les documents (dans folders + à la racine)
+    const allDocumentIds = new Set<string>();
+
+    // Documents dans les folders
+    if (folderIds.length > 0) {
+      const { data: folderDocs, error: folderDocsError } = await supabase
+        .from('secondary_documents')
+        .select('id')
+        .in('folder_id', folderIds)
+        .eq('is_correction', false);
+
+      if (folderDocsError) {
+        console.error('Error fetching folder documents:', folderDocsError);
+      } else if (folderDocs) {
+        folderDocs.forEach(doc => allDocumentIds.add(doc.id));
+      }
+    }
+
+    // Documents à la racine
+    if (rootDocIds.length > 0) {
+      const { data: rootDocs, error: rootDocsError } = await supabase
+        .from('secondary_documents')
+        .select('id')
+        .in('id', rootDocIds)
+        .is('folder_id', null)
+        .eq('is_correction', false);
+
+      if (rootDocsError) {
+        console.error('Error fetching root documents:', rootDocsError);
+      } else if (rootDocs) {
+        rootDocs.forEach(doc => allDocumentIds.add(doc.id));
+      }
+    }
+
+    const documentIds = Array.from(allDocumentIds);
+
+    // 6. Récupérer la progression des cours (table partagée avec Learn)
+    const { data: courseProgressData, error: coursesError } = await supabase
+      .from('course_progress_summary')
+      .select('course_id, progress_percentage')
+      .eq('user_id', userId)
+      .in('course_id', courseIds.length > 0 ? courseIds.map(id => Number(id)) : []);
+
+    if (coursesError) {
+      console.error('Error fetching course progress:', coursesError);
+    }
+
+    // Compter les cours complétés (progression >= 100%)
+    const completedCourses = courseProgressData?.filter(
+      course => course.progress_percentage >= 100
+    ) || [];
+
+    // 7. Récupérer les quiz complétés (table partagée avec Learn)
+    const { data: completedQuizzes, error: quizzesError } = await supabase
+      .from('quiz_attempts')
+      .select('quiz_id')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .gte('score', 70)
+      .in('quiz_id', quizIds.length > 0 ? quizIds : []);
+
+    if (quizzesError) {
+      console.error('Error fetching completed quizzes:', quizzesError);
+    }
+
+    // Dédupliquer les quiz_id (un utilisateur peut avoir plusieurs tentatives réussies du même quiz)
+    const uniqueCompletedQuizIds = [...new Set(completedQuizzes?.map(q => q.quiz_id) || [])];
+
+    // 8. Récupérer les exercices complétés avec chunking (table partagée avec Learn)
+    let completedExercises: { exercice_id: string }[] = [];
+    if (exerciseIds.length > 0) {
+      const exerciseChunks = chunkArray(exerciseIds, 100);
+      const exercisePromises = exerciseChunks.map(chunk =>
+        supabase
+          .from('exercices_complete')
+          .select('exercice_id')
+          .eq('user_id', userId)
+          .eq('is_completed', true)
+          .in('exercice_id', chunk)
+      );
+
+      const exerciseResults = await Promise.all(exercisePromises);
+      completedExercises = exerciseResults
+        .filter(result => !result.error)
+        .flatMap(result => result.data || []);
+    }
+
+    // Dédupliquer les exercice_id (même logique que pour les quiz)
+    const uniqueCompletedExerciseIds = [...new Set(completedExercises.map(e => e.exercice_id))];
+
+    // 9. Documents consultés/complétés
+    const { data: completedDocuments, error: documentsError } = await supabase
+      .from('secondary_documents_complete')
+      .select('document_id, is_completed')
+      .eq('user_id', userId)
+      .in('document_id', documentIds.length > 0 ? documentIds : []);
+
+    if (documentsError) {
+      console.error('Error fetching completed documents:', documentsError);
+    }
+
+    // Filtrer uniquement les documents marqués comme complétés
+    const completedDocumentIds = completedDocuments?.filter(d => d.is_completed) || [];
+
+    // Calculer les progressions
+    const courseTotal = courseIds.length;
+    const courseCompleted = completedCourses?.length || 0;
+    const coursePercentage = courseTotal > 0 ? capPercentage((courseCompleted / courseTotal) * 100) : 0;
+
+    const quizTotal = quizIds.length;
+    const quizCompleted = uniqueCompletedQuizIds.length;
+    const quizPercentage = quizTotal > 0 ? capPercentage((quizCompleted / quizTotal) * 100) : 0;
+
+    const exerciseTotal = exerciseIds.length;
+    const exerciseCompleted = uniqueCompletedExerciseIds.length;
+    const exercisePercentage = exerciseTotal > 0 ? capPercentage((exerciseCompleted / exerciseTotal) * 100) : 0;
+
+    const documentTotal = documentIds.length;
+    const documentCompleted = completedDocumentIds.length;
+    const documentPercentage = documentTotal > 0 ? capPercentage((documentCompleted / documentTotal) * 100) : 0;
+
+    // Progression totale
+    const totalItems = courseTotal + quizTotal + exerciseTotal + documentTotal;
+    const totalCompleted = courseCompleted + quizCompleted + exerciseCompleted + documentCompleted;
+    const totalProgress = totalItems > 0 ? capPercentage((totalCompleted / totalItems) * 100) : 0;
+
+    const result = {
+      courseProgress: {
+        completed: courseCompleted,
+        total: courseTotal,
+        percentage: coursePercentage,
+      },
+      quizProgress: {
+        completed: quizCompleted,
+        total: quizTotal,
+        percentage: quizPercentage,
+      },
+      exercisesProgress: {
+        completed: exerciseCompleted,
+        total: exerciseTotal,
+        percentage: exercisePercentage,
+      },
+      documentsProgress: {
+        completed: documentCompleted,
+        total: documentTotal,
+        percentage: documentPercentage,
+      },
+      totalProgress,
+    };
+
+    return result;
+  } catch (error) {
+    console.error('Error in fetchSecondaryProgramProgress:', error);
+    throw error;
+  }
+};
+
+export const useSecondaryProgramProgress = (
+  programId: string | undefined,
+  userId: string | undefined
+): SecondaryProgramProgress => {
+  const shouldFetch = !!programId && !!userId;
+
+  const { data, error, isLoading } = useSWR(
+    shouldFetch ? ['secondary-program-progress', programId, userId] : null,
+    () => fetchSecondaryProgramProgress(programId!, userId!),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 60000, // 1 minute
+      keepPreviousData: false, // Ne pas garder les anciennes données
+    }
+  );
+
+  return {
+    courseProgress: data?.courseProgress || { completed: 0, total: 0, percentage: 0 },
+    quizProgress: data?.quizProgress || { completed: 0, total: 0, percentage: 0 },
+    exercisesProgress: data?.exercisesProgress || { completed: 0, total: 0, percentage: 0 },
+    documentsProgress: data?.documentsProgress || { completed: 0, total: 0, percentage: 0 },
+    totalProgress: data?.totalProgress || 0,
+    isLoading,
+    error: error || null,
+  };
+};

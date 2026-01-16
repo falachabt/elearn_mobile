@@ -1,25 +1,24 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance } from "axios";
 
 import {
   NotchPayInitializeParams,
-  NotchPayTransaction,
   NotchPayResponse,
   NotchPayChargeResponse,
   NotchPayDirectChargeParams,
-  NotchPayChannel
-} from '@/types/notchpay.types';
+  NotchPayChannel,
+} from "@/types/notchpay.types";
 
 export class NotchPayService {
   private client: AxiosInstance;
 
-  constructor(publicKey: string = "pk.qoIGxn6D2TV5WNAXk0kfeIe8aT8Jo99I7em5QD9axKbjshtLBJ2nsXJ6Y79mYJtCxjC6fJ3qi4AHQzNwkAGHrToq7LHoctOf9na5v0cKAJA8WUyUK4YvcHmqBoyZg" , private secretKey?: string) {
+  constructor( publicKey: string = "pk.qoIGxn6D2TV5WNAXk0kfeIe8aT8Jo99I7em5QD9axKbjshtLBJ2nsXJ6Y79mYJtCxjC6fJ3qi4AHQzNwkAGHrToq7LHoctOf9na5v0cKAJA8WUyUK4YvcHmqBoyZg",private secretKey?: string ) {
     // constructor(publicKey: string = "pk_test.3ZRJxkqwFn1TOsrsK2kQP5qvEvsajLI6Amxxbd96oplZ1QGRZfNKAM7uGVNUiH4WGtOg7FX6jXtXicqSWKpluXYmxLIlsnpfpha9WwfBUpA1KKa8WfmmUZeTX6567" , private secretKey?: string) {
     this.client = axios.create({
-      baseURL: 'https://api.notchpay.co',
+      baseURL: "https://api.notchpay.co",
       headers: {
         Authorization: publicKey,
-        'Content-Type': 'application/json'
-      }
+        "Content-Type": "application/json",
+      },
     });
   }
 
@@ -36,37 +35,33 @@ export class NotchPayService {
     error?: string;
   }> {
     try {
-      const startInit = performance.now();
       // 1. Initialize payment
       const initResponse = await this.initializePayment(params);
-      const endInit = performance.now();
 
       // 2. Process direct charge if transaction reference exists
       if (initResponse.transaction?.reference) {
         try {
-          const startCharge = performance.now();
           const chargeResponse = await this.chargeMobileMoney(
-              initResponse.transaction.reference,
-              params.phone || '',
-              params.channel || "cm.mobile"
+            initResponse.transaction.reference,
+            params.phone || "",
+            params.channel || "cm.mobile"
           );
-          const endCharge = performance.now();
 
           return {
             initResponse,
-            chargeResponse
+            chargeResponse,
           };
-       } catch (chargeError: any) {
+        } catch (chargeError: Error | unknown) {
           // If charging fails, return initialization response with error
           return {
             initResponse,
-            error: (chargeError as Error).message || "Failed to charge mobile money"
+            error:
+              (chargeError as Error).message || "Failed to charge mobile money",
           };
         }
       }
 
-      throw new Error('Failed to get transaction reference');
-
+      throw new Error("Failed to get transaction reference");
     } catch (error) {
       this.handleError(error);
     }
@@ -75,19 +70,24 @@ export class NotchPayService {
   /**
    * Initialize payment only
    */
-  async initializePayment(params: NotchPayInitializeParams): Promise<NotchPayResponse> {
+  async initializePayment(
+    params: NotchPayInitializeParams
+  ): Promise<NotchPayResponse> {
     try {
       // Add callback URL if not provided - this should match your app's scheme in app.json
       // const callbackUrl = 'http://192.168.1.168:3000/paiement_webhook/callback';
-      const callbackUrl = 'https://elearn.ezadrive.com/api/paiement_webhook/callback';
+      const callbackUrl =
+        "https://elearn.ezadrive.com/api/paiement_webhook/callback";
 
       const updatedParams = {
         ...params,
-        callback: params.callback || callbackUrl
+        callback: params.callback || callbackUrl,
       };
 
-      const response = await this.client.post<NotchPayResponse>('/payments', updatedParams);
-      // console.log(response.data);
+      const response = await this.client.post<NotchPayResponse>(
+        "/payments",
+        updatedParams
+      );
       return response.data;
     } catch (error) {
       this.handleError(error);
@@ -110,27 +110,18 @@ export class NotchPayService {
    * Process direct charge
    */
   private async chargeMobileMoney(
-      reference: string,
-      phone: string,
-      channel: NotchPayChannel
-
-
-
-
-
-
-
-
-
+    reference: string,
+    phone: string,
+    channel: NotchPayChannel
   ): Promise<NotchPayChargeResponse> {
     try {
       // throw "try to use for now only the webpage"
 
       const response = await this.client.put(`/payments/${reference}`, {
         channel: channel || "cm.mobile",
-        data : {
-        phone : "237" + phone
-        }
+        data: {
+          phone: "237" + phone,
+        },
       });
 
       return response.data;
@@ -156,28 +147,32 @@ export class NotchPayService {
    */
   async createRefund(transactionRef: string, amount?: number) {
     if (!this.secretKey) {
-      throw new Error('Secret key required for refunds');
+      throw new Error("Secret key required for refunds");
     }
 
     try {
-      const response = await this.client.post('/refunds', {
-        payment: transactionRef,
-        amount
-      }, {
-        headers: {
-          'X-Auth': this.secretKey
+      const response = await this.client.post(
+        "/refunds",
+        {
+          payment: transactionRef,
+          amount,
+        },
+        {
+          headers: {
+            "X-Auth": this.secretKey,
+          },
         }
-      });
+      );
       return response.data;
     } catch (error) {
       this.handleError(error);
     }
   }
 
-  private handleError(error: any): never {
+  private handleError(error: unknown): never {
     if (axios.isAxiosError(error)) {
       console.error(error, error.message);
-      throw new Error(error.response?.data?.message || 'NotchPay API error');
+      throw new Error(error.response?.data?.message || "NotchPay API error");
     }
     throw error;
   }

@@ -202,7 +202,6 @@ const ExercisePage = () => {
         try {
             await supabase
                 .from("exercices_complete")
-                // @ts-expect-error
                 .upsert(
                     {
                         user_id: user?.id,
@@ -227,7 +226,6 @@ const ExercisePage = () => {
         try {
             await supabase
                 .from("exercices_pin")
-                // @ts-expect-error
                 .upsert(
                     {
                         user_id: user?.id,

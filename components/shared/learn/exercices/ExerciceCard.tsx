@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import {
     StyleSheet,
@@ -6,10 +7,10 @@ import {
     View,
     useColorScheme,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+import { CATEGORY_ICONS } from "@/components/shared/learn/CategoryFilter";
+import { getCategoryTheme } from "@/constants/categoryThemes";
 import { theme } from "@/constants/theme";
-import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/components/shared/learn/CategoryFilter";
 
 // Match this interface with the actual data structure from the API
 interface ExerciseCardProps {
@@ -49,11 +50,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     // Get category name or default if not available
     const categoryName = exercise.course?.courses_categories?.name || "default";
 
-    // Get category color or default to primary color
-    const categoryColor = CATEGORY_COLORS[categoryName] || theme.color.primary[500];
+    // Utiliser le générateur de thème pour obtenir la couleur de la catégorie
+    const categoryTheme = getCategoryTheme(categoryName);
+    const categoryColor = categoryTheme.cardBg;
 
     // Get category icon or default to book-education
-    const categoryIcon = CATEGORY_ICONS[categoryName] || "book-education";
+    const categoryIcon = CATEGORY_ICONS[categoryName] || categoryTheme.icon;
 
     // Calculate background color for category tag based on theme
     const getCategoryTagBackground = () => {
@@ -90,7 +92,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     ]}
                 >
                     <MaterialCommunityIcons
-                        // @ts-ignore - we know this could potentially have an invalid icon name, but it's handled
+                        // @ts-expect-error - Icon name from theme might not match exact type
                         name={categoryIcon}
                         size={14}
                         color={categoryColor}

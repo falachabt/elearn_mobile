@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { CourseProgressService } from "@/services/course.progress.service";
 import { supabase } from "@/lib/supabase";
-import {courseProgressKeys} from "@/constants/swr-path";
+import {courseProgressKeys, programProgressKeys} from "@/constants/swr-path";
 
 interface CourseProgress {
   total_sections: number;
@@ -39,12 +39,22 @@ export const useCourseProgress = (courseId: number) => {
     const { data: progress, error: progressError, mutate: mutateCourseProgress } =
         useSWR<CourseProgress | null>(
             user?.id ? courseProgressKeys.summary(user.id, courseId) : null,
-            () => fetcher(user!.id, courseId)
+            () => fetcher(user!.id, courseId),
+            {
+                revalidateOnFocus: true,
+                revalidateOnReconnect: true,
+                refreshInterval: 0,
+            }
         );
 
     const { data: sectionsProgress, error: sectionsProgressError, mutate: mutateSectionProgress } = useSWR<SectionProgress[] | null>(
         user?.id ? courseProgressKeys.sections(user.id, courseId) : null,
-            () => fetchSectionsProgress(user!.id, courseId)
+            () => fetchSectionsProgress(user!.id, courseId),
+            {
+                revalidateOnFocus: true,
+                revalidateOnReconnect: true,
+                refreshInterval: 0,
+            }
     );
 
 
@@ -59,12 +69,32 @@ export const useCourseProgress = (courseId: number) => {
   const markSectionComplete = async (sectionId: number) => {
     if (!user?.id) return;
 
-    await CourseProgressService.markSectionAsComplete(
-      user.id,
-      courseId,
-      sectionId
-    );
-      courseProgressKeys.mutateAllForCourse(user.id, courseId);
+    try {
+      await CourseProgressService.markSectionAsComplete(
+        user.id,
+        courseId,
+        sectionId
+      );
+      
+      // Forcer le refetch de tous les caches avec revalidate = true
+      await mutateSectionProgress();
+      await mutateCourseProgress();
+      
+      // Muter tous les caches liés à ce cours avec refetch
+      await mutate(courseProgressKeys.summary(user.id, courseId), undefined, true);
+      await mutate(courseProgressKeys.sections(user.id, courseId), undefined, true);
+      
+      // Muter aussi les caches des listes de cours avec refetch
+      await mutate(`secondary-course-${courseId}`, undefined, { revalidate: true });
+      await mutate(`secondary-course-sections-${courseId}`, undefined, { revalidate: true });
+      await mutate(`course-${courseId}`, undefined, { revalidate: true });
+      await mutate(`course-section-${courseId}`, undefined, { revalidate: true });
+      
+      // Muter les progressions au niveau du programme
+      programProgressKeys.mutateAll();
+    } catch (error) {
+      console.error('Error marking section complete:', error);
+    }
   };
 
   useEffect(() => {

@@ -62,12 +62,16 @@ export default function PaymentFailedCallback() {
                     animation="fadeIn"
                     style={styles.failedContainer}
                 >
-                    <LottieView
-                        source={require('@/assets/animations/payment-failed.json')}
-                        autoPlay
-                        loop={false}
-                        style={styles.lottieAnimation}
-                    />
+                    <View style={styles.iconContainer}>
+                        <LottieView
+                            source={require('@/assets/animations/payment-failed.json')}
+                            autoPlay
+                            loop={false}
+                            resizeMode="contain"
+                            speed={1}
+                            style={styles.lottieAnimation}
+                        />
+                    </View>
                     <Text style={[styles.failedText, isDark && styles.failedTextDark]}>
                         Paiement non complété
                     </Text>
@@ -120,6 +124,13 @@ fontSize: theme.typography.fontSize.medium,
         alignItems: 'center',
         justifyContent: 'center',
         padding: theme.spacing.large,
+    },
+    iconContainer: {
+        width: 200,
+        height: 200,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
     },
     lottieAnimation: {
         width: 200,
