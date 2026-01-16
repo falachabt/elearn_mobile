@@ -49,11 +49,11 @@ type UserContextType = {
   mutateLastCourse: () => void;
   mutateTodayXp: () => void;
   mutateTodayExercises: () => void;
-  mutateUserPrograms: () => void;
+  mutateUserPrograms: () => Promise<LearningPaths[] | undefined>;
   isLearningPathEnrolled: (learningPathId: string) => boolean;
   isSecondaryProgramEnrolled: (programId: string) => boolean;
   getProgramAccessStatus: (learningPathId: string) => ProgramAccessStatus;
-  mutateProgramAccessMap: () => void;
+  mutateProgramAccessMap: () => Promise<ProgramAccessMap | undefined>;
 };
 
 type ProgramAccessStatus = {
@@ -199,17 +199,29 @@ const fetchUserPrograms = async (userId: string) => {
         id,
         learningPathId,
         learning_paths (
-          *,
-          course_learningpath (
-            courses (*)
-          )
+          id,
+          title,
+          description,
+          image,
+          duration,
+          course_count,
+          quiz_count,
+          total_duration,
+          status,
+          end_at,
+          groups
         )
       )
     `
     )
     .eq("user_id", userId);
 
-  if (error) return [];
+  if (error) {
+    console.error('[UserContext] Error fetching user programs:', error);
+    return [];
+  }
+
+  console.log('[UserContext] User programs raw data fetched:', data?.length || 0, 'enrollments');
 
   // Correction : on retourne un tableau d'objets { ...learningPath, concours_learningpaths }
   const learningPaths = data
@@ -281,8 +293,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const { data: userPrograms, mutate: mutateUserPrograms } = useSWR<
     LearningPaths[]
-  >(authUser?.id ? `userProgramsEnrollments-${authUser.id}` : null, () =>
-    fetchUserPrograms(authUser!.id)
+  >(
+    authUser?.id ? `userProgramsEnrollments-${authUser.id}` : null, 
+    () => fetchUserPrograms(authUser!.id),
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 1000, // Allow revalidation every second
+      onSuccess: (data) => {
+        console.log('[UserContext] User programs fetched:', data?.length || 0, 'programs');
+      }
+    }
   );
 
   // Récupère tous les programIds de l'utilisateur
@@ -316,7 +337,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
       return accessMap;
     },
-    { revalidateOnFocus: true, dedupingInterval: 60000 }
+    { 
+      revalidateOnFocus: true, 
+      revalidateOnReconnect: true,
+      dedupingInterval: 1000, // Allow revalidation every second
+      onSuccess: (data) => {
+        console.log('[UserContext] Program access map updated:', Object.keys(data || {}).length, 'programs');
+      }
+    }
   );
 
   // Nouvelle fonction utilitaire pour obtenir le statut d'accès d'un programme
@@ -337,9 +365,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   // Nouvelle version de isLearningPathEnrolled
   const isLearningPathEnrolled = (learningPathId: string) => {
+    console.log('[UserContext] Checking enrollment for learningPathId:', learningPathId);
+    console.log('[UserContext] Available userPrograms:', userPrograms?.map(p => ({ id: p.id, title: p.title })));
+    
     const userProgram = userPrograms?.find(
       (program) => program.id === learningPathId
     );
+    
+    console.log('[UserContext] Found userProgram:', userProgram ? 'YES' : 'NO');
+    
     if (!userProgram) {
       if (!isGenerousWeekActive()) return false;
       if (
@@ -359,7 +393,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
       return false;
     }
+    
+    // CORRECTION: Si le programme est trouvé dans userPrograms, il est inscrit
+    // On vérifie le status d'accès (expiration) seulement s'il est disponible dans le map
+    const programId = userProgram?.concours_learningpaths?.id;
+    
+    // Si programAccessMap n'a pas encore été chargé ou ne contient pas ce programme
+    // mais que le programme existe dans userPrograms, on considère l'utilisateur comme inscrit
+    if (!programAccessMap || !programId || !(programId in programAccessMap)) {
+      console.log('[UserContext] Program found in userPrograms but not in accessMap yet - returning TRUE');
+      return true; // Le programme existe dans les inscriptions, donc l'utilisateur est inscrit
+    }
+    
+    // Sinon, on vérifie le statut d'accès (expiration)
     const status = getProgramAccessStatus(learningPathId);
+    console.log('[UserContext] Program access status:', status);
     return status.hasAccess;
   };
 
@@ -490,7 +538,26 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           },
           async () => {
             if (authUser.id) {
+              console.log('[UserContext] Realtime: user_program_enrollments changed, mutating...');
               mutateUserPrograms();
+              mutateProgramAccessMap();
+            }
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "user_program_payments",
+            filter: `user_id=eq.${authUser.id}`,
+          },
+          async () => {
+            if (authUser.id) {
+              console.log('[UserContext] Realtime: user_program_payments changed, mutating...');
+              // Mutate both enrollments and access map when payment changes
+              mutateUserPrograms();
+              mutateProgramAccessMap();
             }
           }
         )
@@ -508,6 +575,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     mutateTodayExercises,
     mutateTodayTime,
     mutateUserPrograms,
+    mutateProgramAccessMap,
   ]);
 
   const value: UserContextType = {

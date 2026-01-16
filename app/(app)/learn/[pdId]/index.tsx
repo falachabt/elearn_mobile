@@ -1,7 +1,7 @@
 import {Image, Platform, Pressable, ScrollView, StyleSheet, View} from "react-native";
 import React, {useEffect, useState, useCallback} from "react";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useLocalSearchParams, useRouter} from "expo-router";
+import {useLocalSearchParams, useRouter, useFocusEffect} from "expo-router";
 import useSWR from 'swr';
 
 import {ThemedText} from "@/components/ThemedText";
@@ -73,10 +73,12 @@ const ProgramDetails = () => {
     const id = local.pdId as string;
     const {trigger} = useHaptics();
     const {user } = useAuth();
-    const { isLearningPathEnrolled, getProgramAccessStatus } = useUser();
+    const { isLearningPathEnrolled, getProgramAccessStatus, mutateUserPrograms, mutateProgramAccessMap } = useUser();
     const accessStatus = getProgramAccessStatus(id);
     const isEnrolled = isLearningPathEnrolled(id);
     const isExpired = accessStatus.isExpired;
+    
+    console.log('[ProgramDetails] Component render - id:', id, 'isEnrolled:', isEnrolled, 'isExpired:', isExpired);
 
 
     const router = useRouter();
@@ -133,12 +135,20 @@ const ProgramDetails = () => {
     };
 
     // Always fetch program data
-    const {data: program, error: programError, isLoading: programLoading} = useSWR<ProgramData>(
+    const {data: program, error: programError, isLoading: programLoading, mutate: mutateProgram} = useSWR<ProgramData>(
         id ? `program-${id}` : null,
-        () => fetchProgramData(id)
+        () => fetchProgramData(id),
+        {
+            revalidateOnFocus: true,
+            revalidateOnReconnect: true,
+            dedupingInterval: 1000, // Allow revalidation every second
+            onSuccess: (data) => {
+                console.log('[ProgramDetails] Program data fetched successfully:', data?.id);
+            }
+        }
     );
 
-    // Only fetch progress data if enrolled
+    // Always call the hook but with proper values - don't pass empty strings
     const {
         courseProgress,
         quizProgress,
@@ -147,24 +157,47 @@ const ProgramDetails = () => {
         totalProgress,
         isLoading: progressLoading,
         error: progressError
-    } = useProgramProgress(isEnrolled ? id : "", isEnrolled ? (user?.id || "") : "");
+    } = useProgramProgress(id || "", user?.id || "");
     
+    // Revalidate ONLY when the screen comes into focus (not on mount to avoid double fetch)
+    useFocusEffect(
+        useCallback(() => {
+            console.log('[ProgramDetails] Screen focused, revalidating enrollment...');
+            console.log('[ProgramDetails] isEnrolled:', isEnrolled, 'isExpired:', isExpired);
+            
+            const revalidateOnFocus = async () => {
+                // Add a small delay to ensure backend has processed any pending operations
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Force revalidation - mutateUserPrograms will automatically trigger isEnrolled update
+                await Promise.all([
+                    mutateProgram(undefined, { revalidate: true }),
+                    mutateUserPrograms()
+                ]);
+                
+                console.log('[ProgramDetails] Revalidation completed');
+            };
+            
+            revalidateOnFocus();
+        }, [mutateProgram, mutateUserPrograms])
+    );
+
     // LOG: Suivi des états d'erreur
     useEffect(() => {
         if (programError) {
             console.error("[ProgramDetails] Erreur détectée lors du chargement du PROGRAMME:", programError);
         }
-        if (progressError) {
-            // C'est le log qui nous intéresse le plus pour notre problème !
+        if (progressError && isEnrolled) {
+            // Only log progress errors if user is enrolled
             console.error("[ProgramDetails] Erreur détectée lors du chargement de la PROGRESSION:", progressError);
             console.error("[ProgramDetails] Progress error details:", progressError);
         }
-    }, [programError, progressError]);
+    }, [programError, progressError, isEnrolled]);
 
-    // Combine loading and error states
+    // Combine loading and error states - only consider progress error if enrolled
     const hasError = programError || (isEnrolled && progressError);
 
-    // Combine loading states
+    // Combine loading states - only wait for progress if enrolled
     const isLoading = programLoading || (isEnrolled && progressLoading);
 
     // Prepare action cards
@@ -215,11 +248,14 @@ const ProgramDetails = () => {
 
     // Update actionCards when program or progress data changes
     useEffect(() => {
+        console.log('[ProgramDetails] Updating action cards - isEnrolled:', isEnrolled, 'isExpired:', isExpired);
+        
         if (program) {
             const cards: ActionCard[] = [];
 
             // Affiche la carte shop si non inscrit ou paiement expiré
             if (!isEnrolled || isExpired) {
+                console.log('[ProgramDetails] Adding shop card - User needs to pay');
                 cards.push({
                     id: "shop",
                     title: isExpired

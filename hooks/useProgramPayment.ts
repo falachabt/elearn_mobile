@@ -308,6 +308,15 @@ export const useProgramPayment = (pdId: string | undefined) => {
         // The actual opening of the URL will be handled in the component
     };
 
+    /**
+     * Mark a payment result as seen by the user
+     */
+    const markAsSeen = async (paymentId: string) => {
+        await ProgramPaymentService.markAsSeen(paymentId);
+        // Revalidate the latest payment to update the has_seen_result field
+        await mutateLatestPayment();
+    };
+
     return {
         paymentStatus,
         loading,
@@ -330,6 +339,7 @@ export const useProgramPayment = (pdId: string | undefined) => {
         cancelPayment,
         verifyPaymentStatus,
         openAuthorizationUrl,
+        markAsSeen,
         // Expose mutation functions for direct use in components
         mutateLatestPayment,
         mutateActivePayment,

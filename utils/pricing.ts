@@ -21,54 +21,189 @@ export type PricingPlan = {
 };
 
 export type NextFormula = {
+
   formula: PricingPlan;
+
   itemsNeeded: number;
+
 };
 
+
+
 /**
- * Hook to get pricing configuration from app config
+
+ * Default validity period in days for purchased programs.
+
+ * Used as a fallback when dynamic config is not available (e.g. in services).
+
  */
+
+export const PURCHASE_VALIDITY_DAYS = 300;
+
+
+
+/**
+
+ * Hook to get pricing configuration from app config
+
+ */
+
 export const usePricing = () => {
-  const { getPricingConfig } = useAppConfig();
+
+  const { getPricingConfig, isLoading } = useAppConfig();
+
   const config = getPricingConfig();
 
-  const PRICING_PLANS: PricingPlan[] = [
-    {
-      id: 'essential',
-      name: config.plans.essential.name,
-      description: config.plans.essential.description,
-      basePrice: config.plans.essential.base_price,
-      additionalPrice: config.plans.essential.additional_price,
-      threshold: config.plans.essential.threshold,
-      color: config.plans.essential.color
-    },
-    {
-      id: 'advantage',
-      name: config.plans.advantage.name,
-      description: config.plans.advantage.description,
-      price: config.plans.advantage.price,
-      threshold: config.plans.advantage.threshold,
-      color: config.plans.advantage.color,
-      recommended: config.plans.advantage.recommended
-    },
-    {
-      id: 'excellence',
-      name: config.plans.excellence.name,
-      description: config.plans.excellence.description,
-      price: config.plans.excellence.price,
-      threshold: config.plans.excellence.threshold,
-      color: config.plans.excellence.color
+
+
+  // Valeurs par défaut si la configuration n'est pas encore chargée
+
+  const DEFAULT_CONFIG = {
+
+    generous_week_price: 10000,
+
+    regular_first_course_price: 15000,
+
+    additional_course_price: 5000,
+
+    fixed_price: 10000,
+
+    purchase_validity_days: PURCHASE_VALIDITY_DAYS,
+
+    plans: {
+
+      essential: {
+
+        name: 'Essential',
+
+        description: 'Pour débuter',
+
+        base_price: 15000,
+
+        additional_price: 5000,
+
+        threshold: 1,
+
+        color: '#3B82F6'
+
+      },
+
+      advantage: {
+
+        name: 'Avantage',
+
+        description: 'Le plus populaire',
+
+        price: 25000,
+
+        threshold: 3,
+
+        color: '#10B981',
+
+        recommended: true
+
+      },
+
+      excellence: {
+
+        name: 'Excellence',
+
+        description: 'Le meilleur rapport',
+
+        price: 40000,
+
+        threshold: 5,
+
+        color: '#8B5CF6'
+
+      }
+
     }
+
+  };
+
+
+
+  const effectiveConfig = config || DEFAULT_CONFIG;
+
+
+
+  const PRICING_PLANS: PricingPlan[] = [
+
+    {
+
+      id: 'essential',
+
+      name: effectiveConfig.plans.essential.name,
+
+      description: effectiveConfig.plans.essential.description,
+
+      basePrice: effectiveConfig.plans.essential.base_price,
+
+      additionalPrice: effectiveConfig.plans.essential.additional_price,
+
+      threshold: effectiveConfig.plans.essential.threshold,
+
+      color: effectiveConfig.plans.essential.color
+
+    },
+
+    {
+
+      id: 'advantage',
+
+      name: effectiveConfig.plans.advantage.name,
+
+      description: effectiveConfig.plans.advantage.description,
+
+      price: effectiveConfig.plans.advantage.price,
+
+      threshold: effectiveConfig.plans.advantage.threshold,
+
+      color: effectiveConfig.plans.advantage.color,
+
+      recommended: effectiveConfig.plans.advantage.recommended
+
+    },
+
+    {
+
+      id: 'excellence',
+
+      name: effectiveConfig.plans.excellence.name,
+
+      description: effectiveConfig.plans.excellence.description,
+
+      price: effectiveConfig.plans.excellence.price,
+
+      threshold: effectiveConfig.plans.excellence.threshold,
+
+      color: effectiveConfig.plans.excellence.color
+
+    }
+
   ];
 
+
+
   return {
-    GENEROUS_WEEK_PRICE: config.generous_week_price,
-    REGULAR_FIRST_COURSE_PRICE: config.regular_first_course_price,
-    ADDITIONAL_COURSE_PRICE: config.additional_course_price,
-    FIXED_PRICE: config.fixed_price,
-    PURCHASE_VALIDITY_DAYS: config.purchase_validity_days,
+
+    GENEROUS_WEEK_PRICE: effectiveConfig.generous_week_price,
+
+    REGULAR_FIRST_COURSE_PRICE: effectiveConfig.regular_first_course_price,
+
+    ADDITIONAL_COURSE_PRICE: effectiveConfig.additional_course_price,
+
+    FIXED_PRICE: effectiveConfig.fixed_price,
+
+    PURCHASE_VALIDITY_DAYS: effectiveConfig.purchase_validity_days ?? PURCHASE_VALIDITY_DAYS,
+
     PRICING_PLANS,
+
+    isLoading,
+
   };
+
 };
 
 /**

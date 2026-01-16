@@ -35,7 +35,13 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
     const isEnrolled = path.enrollmentId || false
     const isGenerousWeek = path.isGenerousWeek || false;
     const {user} = useAuth();
-    const {totalProgress} = isEnrolled ? useProgramProgress(path.id, user?.id || "") : {totalProgress: 0};
+    
+    // Always call the hook - never conditionally
+    const {totalProgress: hookProgress} = useProgramProgress(path.id, user?.id || "");
+    
+    // Use progress only if enrolled
+    const totalProgress = isEnrolled ? hookProgress : 0;
+    
     const {trigger} = useHaptics();
     const router = useRouter();
 

@@ -53,6 +53,7 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
   // du programme ou du planning utilisateur lorsque ces informations seront disponibles.
   // Utiliser la vraie progression
   const progress = isLoading ? 0 : totalProgress;
+  const daysBeforeExam = 45; // TODO: Replace with actual exam date calculation
 
   const handlePress = () => {
     if (onPress) onPress();

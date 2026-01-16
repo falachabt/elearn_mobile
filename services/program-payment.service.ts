@@ -23,9 +23,25 @@ export interface ProgramPayment {
   authorizationUrl?: string;
   total_amount?: number;
   parent_payment_id?: string;
+  has_seen_result?: boolean;
 }
 
 export const ProgramPaymentService = {
+  // Mark the payment result as seen by the user
+  async markAsSeen(paymentId: string): Promise<void> {
+    const { error } = await supabase
+      .from('user_program_payments')
+      .update({
+        has_seen_result: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', paymentId);
+
+    if (error) {
+      console.error('Error marking payment as seen:', error);
+    }
+  },
+
   // Calculate installment amount based on total price and number of installments
   calculateInstallmentAmount(totalAmount: number, totalInstallments: number, currentInstallment: number = 1): number {
     // Ensure we have valid numbers to avoid NaN

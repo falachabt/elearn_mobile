@@ -10,10 +10,10 @@ import {
     useColorScheme,
     View
 } from 'react-native'
-import React, { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import useSWR from 'swr'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
+import { useRouter, useFocusEffect } from 'expo-router'
 
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth'
@@ -87,7 +87,7 @@ export interface LearningPath {
 
 const MyLearningPaths = () => {
     const { session, user: authUser } = useAuth()
-    const { user } = useUser()
+    const { user, mutateUserPrograms, mutateProgramAccessMap } = useUser()
     const router = useRouter()
     const colorScheme = useColorScheme()
     const isDarkMode = colorScheme === 'dark'
@@ -99,6 +99,8 @@ const MyLearningPaths = () => {
     const { data, error, isLoading, mutate } = useSWR(
         authUser ? 'all-learning-paths-with-enrollment' : null,
         async () => {
+            console.log('[MyLearningPaths] Fetching learning paths for user:', authUser?.id);
+            
             // Single optimized query using LEFT JOIN to get all learning paths with enrollment status
             const { data: learningPathsData, error: lpError } = await supabase
                 .from('concours_learningpaths')
@@ -140,6 +142,7 @@ const MyLearningPaths = () => {
                     )
                 `)
                 .eq('isActive', true)
+                .or(`user_id.eq.${authUser?.id},user_id.is.null`, { foreignTable: 'user_program_enrollments' })
 
             if (lpError) {
                 console.error("Learning paths fetch error:", lpError)
@@ -251,8 +254,37 @@ const MyLearningPaths = () => {
 
                 return 0
             })
+        },
+        {
+            revalidateOnFocus: true,
+            revalidateOnReconnect: true,
+            dedupingInterval: 1000, // Allow revalidation every second
+            refreshInterval: 0, // Disable auto-refresh, rely on manual triggers
+            onSuccess: (data) => {
+                console.log('[MyLearningPaths] Data fetched successfully. Total paths:', data?.length);
+                console.log('[MyLearningPaths] Enrolled paths:', data?.filter(p => p.isEnrolled).length);
+            }
         }
     )
+
+    // Force revalidation on mount and when returning from payment
+    useEffect(() => {
+        console.log('[MyLearningPaths] Component mounted, forcing revalidation...');
+        // Force revalidation of both the list and user context
+        mutate();
+        mutateUserPrograms();
+        mutateProgramAccessMap();
+    }, []);
+
+    // Also revalidate when the screen comes into focus (e.g., after payment)
+    useFocusEffect(
+        useCallback(() => {
+            console.log('[MyLearningPaths] Screen focused, revalidating...');
+            mutate();
+            mutateUserPrograms();
+            mutateProgramAccessMap();
+        }, [mutate, mutateUserPrograms, mutateProgramAccessMap])
+    );
 
     // Memoize filtered data to prevent unnecessary re-renders
     const filteredData = useMemo(() => {

@@ -20,6 +20,7 @@ import {ChatProvider} from "@/contexts/chatBotContext";
 import {UpdatesProvider} from "@/contexts/UpdatesContext";
 import UpdatesManager from "@/components/shared/UpdatesManager";
 import {NavigationProvider} from "@/contexts/NavigationContext";
+import {useRouteRevalidation} from "@/hooks/useRouteRevalidation";
 
 
 // Array of motivational messages to show when user tries to exit
@@ -309,6 +310,14 @@ const BackHandlerManager = React.memo(({ children }: { children: React.ReactNode
     return <>{children}</>;
 });
 
+// Composant qui déclenche la revalidation SWR lors des changements de route
+// Placé après l'initialisation de l'auth pour éviter les conflits
+// Mode conservateur par défaut : se fie à revalidateOnFocus de SWR
+const RouteRevalidationManager = React.memo(({ children }: { children: React.ReactNode }) => {
+    useRouteRevalidation({ enabled: true, aggressive: false });
+    return <>{children}</>;
+});
+
 export function Provider({children}: { children: React.ReactNode }) {
     const {quizId, attempId} = useLocalSearchParams();
 
@@ -335,15 +344,37 @@ export function Provider({children}: { children: React.ReactNode }) {
                 // Don't automatically refresh data
                 refreshInterval: 0,
 
-                // Throttle focus revalidations
-                focusThrottleInterval: 5000, // 5 seconds
+                // Réduire le throttle pour une meilleure réactivité
+                focusThrottleInterval: 2000, // 2 secondes (au lieu de 5)
 
                 initFocus(callback) {
-                    // Skip on web/SSR
-                    if (typeof window === 'undefined' || Platform.OS === 'web') {
-                        return () => {}; // Return empty cleanup function
+                    // Sur web, on utilise les événements de visibilité de la page
+                    if (typeof window !== 'undefined' && Platform.OS === 'web') {
+                        const onVisibilityChange = () => {
+                            if (document.visibilityState === 'visible') {
+                                callback();
+                            }
+                        };
+                        
+                        const onFocus = () => {
+                            callback();
+                        };
+
+                        document.addEventListener('visibilitychange', onVisibilityChange);
+                        window.addEventListener('focus', onFocus);
+
+                        return () => {
+                            document.removeEventListener('visibilitychange', onVisibilityChange);
+                            window.removeEventListener('focus', onFocus);
+                        };
                     }
 
+                    // Skip on SSR
+                    if (typeof window === 'undefined') {
+                        return () => {};
+                    }
+
+                    // Sur native, on utilise AppState
                     let appState = AppState.currentState;
 
                     const onAppStateChange = (nextAppState: AppStateStatus) => {
@@ -382,9 +413,11 @@ export function Provider({children}: { children: React.ReactNode }) {
                                                 <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
                                                     <UserActivityTracker/>
                                                     <UpdatesManager/>
-                                                    <BackHandlerManager>
-                                                        {children}
-                                                    </BackHandlerManager>
+                                                    <RouteRevalidationManager>
+                                                        <BackHandlerManager>
+                                                            {children}
+                                                        </BackHandlerManager>
+                                                    </RouteRevalidationManager>
                                                 </QuizProvider>
                                             </ChatProvider>
                                         </UpdatesProvider>

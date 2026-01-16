@@ -60,6 +60,7 @@ export interface Payment {
   amount: number;
   payment_status: string;
   payment_reference: string | null;
+  payment_date?: string | null;
   created_at: string | null;
   updated_at?: string | null;
   expiry_date?: string | null;
@@ -69,6 +70,8 @@ export interface Payment {
   next_payment_due_date?: string | null;
   total_amount?: number | null;
   promo_code_id?: string | null;
+  parent_payment_id?: string | null;
+  has_seen_result?: boolean | null;
   [key: string]: unknown;
 }
 
@@ -150,6 +153,20 @@ async function getProgramIdFromPdId(
   // Convert id to string if it's a number
   const id = typeof data.id === "number" ? String(data.id) : data.id;
   return typeof id === "string" ? id : null;
+}
+
+// Helper function to get the latest payment timestamp
+function getLatestPaymentTimestamp(payment: Payment | null): Date | null {
+  if (!payment) return null;
+  return payment.updated_at ? new Date(payment.updated_at) : payment.created_at ? new Date(payment.created_at) : null;
+}
+
+// Helper function to check if a timestamp is older than X minutes
+function isOlderThanMinutes(timestamp: Date | null, minutes: number): boolean {
+  if (!timestamp) return true;
+  const now = new Date();
+  const diff = now.getTime() - timestamp.getTime();
+  return diff > minutes * 60 * 1000;
 }
 
 // PaymentInstructions Component
@@ -1004,6 +1021,38 @@ const InstallmentDetails: React.FC<InstallmentDetailsProps> = ({
   onPayNext,
   onBack,
 }) => {
+  const [allInstallments, setAllInstallments] = useState<Payment[]>([]);
+  const [loadingInstallments, setLoadingInstallments] = useState(false);
+
+  // Charger tous les paiements liés à ce plan échelonné
+  useEffect(() => {
+    const fetchAllInstallments = async () => {
+      if (!installmentPayment?.id) return;
+
+      setLoadingInstallments(true);
+      try {
+        // Récupérer le paiement parent et tous ses enfants
+        const parentId = installmentPayment.parent_payment_id || installmentPayment.id;
+        
+        const { data, error } = await supabase
+          .from("user_program_payments")
+          .select("*")
+          .or(`id.eq.${parentId},parent_payment_id.eq.${parentId}`)
+          .order("current_installment", { ascending: true });
+
+        if (!error && data) {
+          setAllInstallments(data as Payment[]);
+        }
+      } catch (error) {
+        console.error("Error fetching installments:", error);
+      } finally {
+        setLoadingInstallments(false);
+      }
+    };
+
+    fetchAllInstallments();
+  }, [installmentPayment?.id]);
+
   if (!installmentPayment) {
     return (
       <View style={styles.noInstallmentContainer}>
@@ -1168,44 +1217,130 @@ const InstallmentDetails: React.FC<InstallmentDetailsProps> = ({
         ]}
       >
         <ThemedText style={styles.paymentHistoryTitle}>
-          Historique des paiements
+          Toutes les échéances ({currentInstallment}/{totalInstallments} payées)
         </ThemedText>
-        {Array.from({ length: currentInstallment }).map((_, index) => {
-          const installmentNumber = index + 1;
-          const paymentDate = new Date();
-          paymentDate.setMonth(
-            paymentDate.getMonth() - (currentInstallment - installmentNumber)
-          );
+        
+        {loadingInstallments ? (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color={isDark ? "#6EE7B7" : "#4CAF50"} />
+          </View>
+        ) : (
+          Array.from({ length: totalInstallments }).map((_, index) => {
+            const installmentNumber = index + 1;
+            const isPaid = installmentNumber <= currentInstallment;
+            const isCurrent = installmentNumber === currentInstallment + 1;
+            
+            // Trouver le paiement correspondant dans allInstallments
+            const matchingPayment = allInstallments.find(
+              p => p.current_installment === installmentNumber
+            );
+            
+            const paymentDate = matchingPayment?.payment_date 
+              ? new Date(matchingPayment.payment_date)
+              : null;
+            
+            const dueDate = isCurrent && nextPaymentDueDate
+              ? nextPaymentDueDate
+              : null;
+            
+            const isOverdue = dueDate && dueDate < new Date();
+            
+            const getStatusColor = () => {
+              if (isPaid && matchingPayment?.payment_status === 'completed') return isDark ? "#6EE7B7" : "#4CAF50";
+              if (isPaid && matchingPayment?.payment_status === 'failed') return "#EF4444";
+              if (isOverdue) return "#F59E0B";
+              if (isCurrent) return "#60A5FA";
+              return isDark ? "#4B5563" : "#9CA3AF";
+            };
+            
+            const getStatusIcon = () => {
+              if (isPaid && matchingPayment?.payment_status === 'completed') return "check-circle";
+              if (isPaid && matchingPayment?.payment_status === 'failed') return "close-circle";
+              if (isOverdue) return "alert-circle";
+              if (isCurrent) return "clock-outline";
+              return "circle-outline";
+            };
+            
+            const getStatusLabel = () => {
+              if (isPaid && matchingPayment?.payment_status === 'completed') return "Payé";
+              if (isPaid && matchingPayment?.payment_status === 'failed') return "Échoué";
+              if (isOverdue) return "En retard";
+              if (isCurrent) return "À payer";
+              return "À venir";
+            };
 
-          return (
-            <View key={index} style={styles.paymentHistoryItem}>
-              <View style={styles.paymentHistoryItemLeft}>
-                <View style={styles.paymentHistoryItemIcon}>
-                  <MaterialCommunityIcons
-                    name="check-circle"
-                    size={24}
-                    color={isDark ? "#6EE7B7" : "#4CAF50"}
-                  />
+            return (
+              <View 
+                key={index} 
+                style={[
+                  styles.paymentHistoryItem,
+                  !isPaid && styles.paymentHistoryItemFuture
+                ]}
+              >
+                <View style={styles.paymentHistoryItemLeft}>
+                  <View style={styles.paymentHistoryItemIcon}>
+                    <MaterialCommunityIcons
+                      name={getStatusIcon()}
+                      size={24}
+                      color={getStatusColor()}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={styles.paymentHistoryItemTitle}>
+                      Échéance {installmentNumber}/{totalInstallments}
+                    </ThemedText>
+                    {paymentDate ? (
+                      <ThemedText style={styles.paymentHistoryItemDate}>
+                        Payé le {paymentDate.toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </ThemedText>
+                    ) : dueDate ? (
+                      <ThemedText style={[
+                        styles.paymentHistoryItemDate,
+                        isOverdue && { color: "#F59E0B" }
+                      ]}>
+                        {isOverdue ? "En retard - " : ""}Échéance le {dueDate.toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </ThemedText>
+                    ) : (
+                      <ThemedText style={[
+                        styles.paymentHistoryItemDate,
+                        { color: isDark ? "#6B7280" : "#9CA3AF" }
+                      ]}>
+                        {getStatusLabel()}
+                      </ThemedText>
+                    )}
+                    {matchingPayment?.payment_reference && (
+                      <ThemedText 
+                        style={[styles.paymentHistoryItemDate, { fontSize: 11, marginTop: 2 }]}
+                        numberOfLines={1}
+                      >
+                        Réf: {matchingPayment.payment_reference}
+                      </ThemedText>
+                    )}
+                  </View>
                 </View>
-                <View>
-                  <ThemedText style={styles.paymentHistoryItemTitle}>
-                    Versement {installmentNumber}
+                <View style={{ alignItems: 'flex-end' }}>
+                  <ThemedText style={styles.paymentHistoryItemAmount}>
+                    {installmentAmount} FCFA
                   </ThemedText>
-                  <ThemedText style={styles.paymentHistoryItemDate}>
-                    {paymentDate.toLocaleDateString("fr-FR", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
+                  <ThemedText style={[
+                    styles.paymentHistoryItemDate,
+                    { color: getStatusColor(), fontWeight: '600', fontSize: 11 }
+                  ]}>
+                    {getStatusLabel()}
                   </ThemedText>
                 </View>
               </View>
-              <ThemedText style={styles.paymentHistoryItemAmount}>
-                {installmentAmount} FCFA
-              </ThemedText>
-            </View>
-          );
-        })}
+            );
+          })
+        )}
       </View>
 
       <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -1229,6 +1364,23 @@ const ProgramPaymentPage = () => {
   // Get pricing configuration
   const pricing = usePricing();
 
+  // Use the program payment hook
+  const {
+    paymentStatus,
+    loading,
+    payment,
+    latestPayment,
+    latestPaymentLoading,
+    authorizationUrl,
+    chargeError,
+    hasAccess,
+    programId,
+    initiateDirectPayment,
+    cancelPayment,
+    verifyPaymentStatus,
+    isFinalStatus,
+  } = useProgramPayment(pdId);
+
   // Main state management
   const [currentState, setCurrentState] = useState<PaymentFlowState>(
     PaymentFlowState.LOADING
@@ -1237,7 +1389,7 @@ const ProgramPaymentPage = () => {
   const [programContext, setProgramContext] = useState<PaymentContextData>({
     programId: null,
     programName: "",
-    programPrice: pricing.FIXED_PRICE,
+    programPrice: pricing.FIXED_PRICE || 0,
     user: null,
     hasCompletedFirstInstallment: false,
     latestPayment: null,
@@ -1258,214 +1410,33 @@ const ProgramPaymentPage = () => {
   ]);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
 
-  // Helper: get a reasonable timestamp for the latest payment
-  const getLatestPaymentTimestamp = (payment: Payment | null): number | null => {
-    if (!payment) return null;
-    const raw =
-      payment.updated_at ||
-      payment.completed_at ||
-      payment.created_at ||
-      payment.createdAt ||
-      payment.timestamp;
-    if (!raw || typeof raw !== 'string') return null;
-    const d = new Date(raw);
-    return isNaN(d.getTime()) ? null : d.getTime();
-  };
-
-  // Helper: check if a timestamp is older than N minutes
-  const isOlderThanMinutes = (ts: number | null, minutes: number): boolean => {
-    if (!ts) return false;
-    return Date.now() - ts > minutes * 60 * 1000;
-  };
-
-  const {
-    paymentStatus,
-    loading,
-    latestPaymentLoading,
-    authorizationUrl,
-    getLatestPayment,
-    getAllPayments,
-    isFinalStatus,
-    initiateDirectPayment,
-    cancelPayment,
-    verifyPaymentStatus,
-  } = useProgramPayment(pdId);
-
-  // Initialize component data
-  useEffect(() => {
-    // Ne pas réinitialiser si déjà initialisé ou si un paiement est en cours
-    if (
-      isInitialized ||
-      currentState === PaymentFlowState.PROCESSING ||
-      currentState === PaymentFlowState.VERIFYING ||
-      currentState === PaymentFlowState.NEXT_PAYMENT_PROCESSING ||
-      currentState === PaymentFlowState.NEXT_PAYMENT_VERIFYING
-    ) {
-      return;
-    }
-
-    const initializePaymentPage = async () => {
-      try {
-        setCurrentState(PaymentFlowState.LOADING);
-
-        console.log("[Payment] Initializing with pdId:", pdId);
-        const programId = await getProgramIdFromPdId(pdId);
-        console.log("[Payment] Got programId:", programId);
-
-        if (!programId) {
-          throw new Error(`Program not found for pdId: ${pdId}`);
-        }
-
-        const { data, error } = await supabase
-          .from("learning_paths")
-          .select(
-            `
-                        id,
-                        title,
-                        concours_learningpaths(
-                          id,
-                          price,
-                          concour:concours(
-                            id,
-                            name
-                          )
-                        )
-                      `
-          )
-          .eq("id", pdId!)
-          .single();
-
-        if (error) {
-          console.error("[Payment] Error fetching learning path:", error);
-          throw error;
-        }
-
-        console.log("[Payment] Learning path data:", data);
-
-        let price = pricing.FIXED_PRICE;
-        if (user?.id) {
-          const { data: enrollments } = await supabase
-            .from("user_program_enrollments")
-            .select("id")
-            .eq("user_id", user.id);
-
-          const enrollmentsCount = enrollments?.length || 0;
-          const isFixedPriceMode = isFixedPriceModeActive(enrollmentsCount);
-          const basePrice = pricing.FIXED_PRICE;
-          price = getDisplayPrice(
-            basePrice,
-            isFixedPriceMode,
-            false,
-            pricing.GENEROUS_WEEK_PRICE,
-            pricing.FIXED_PRICE
-          );
-        }
-
-        const latestPayment = await getLatestPayment(programId);
-        const allPayments = await getAllPayments(programId);
-
-        const hasCompletedFirstInstallment =
-          (latestPayment?.is_installment &&
-            allPayments?.some(
-              (payment) =>
-                payment.is_installment &&
-                payment.current_installment === 1 &&
-                payment.payment_status === "completed"
-            )) ||
-          false;
-        const installmentPayment = latestPayment?.is_installment
-          ? latestPayment
-          : null;
-
-        setProgramContext({
-          programId,
-          programName: data.title || "ce programme",
-          programPrice: price,
-          user,
-          hasCompletedFirstInstallment,
-          latestPayment: latestPayment as Payment | null,
-          installmentPayment: installmentPayment as Payment | null,
-        });
-
-        determineInitialState(latestPayment as Payment | null, hasCompletedFirstInstallment);
-        setIsInitialized(true); // Marquer comme initialisé
-      } catch (error) {
-        console.error("Error initializing payment page:", error);
-        setCurrentState(PaymentFlowState.FAILED);
-        setErrorMessage(
-          "Erreur lors du chargement des informations de paiement"
-        );
-      }
-    };
-
-    initializePaymentPage();
-  }, [pdId, user?.id, isInitialized, currentState]);
-
   // Determine the initial state based on payment history
   const determineInitialState = (
     latestPayment: Payment | null,
     hasCompletedFirstInstallment: boolean
   ) => {
+    console.log("[Payment] determineInitialState called with:", {
+      latestPayment: latestPayment?.id,
+      has_seen_result: latestPayment?.has_seen_result,
+      payment_status: latestPayment?.payment_status,
+      is_installment: latestPayment?.is_installment,
+      hasCompletedFirstInstallment
+    });
+
     if (!latestPayment) {
+      console.log("[Payment] No latest payment, showing INSTRUCTIONS");
       setCurrentState(PaymentFlowState.INSTRUCTIONS);
       return;
     }
-
-    // Vérifier l'âge du dernier paiement
-    const paymentTimestamp = getLatestPaymentTimestamp(latestPayment);
-    const isOlderThan5Minutes = isOlderThanMinutes(paymentTimestamp, 5);
 
     // Vérifier localement si l'accès est expiré
     const isAccessExpired =
       latestPayment.expiry_date &&
       new Date(latestPayment.expiry_date) < new Date();
 
-    // Si le paiement date de plus de 5 minutes
-    if (isOlderThan5Minutes) {
-      // Si c'est un paiement échelonné (installment), afficher les détails de l'installation
-      if (latestPayment.is_installment) {
-        setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
-        return;
-      }
-
-      // Sinon, si accès expiré, afficher les instructions pour renouveler
-      if (isAccessExpired) {
-        setCurrentState(PaymentFlowState.INSTRUCTIONS);
-        return;
-      }
-
-      // Si paiement complété et pas expiré, retourner en arrière
-      if (latestPayment.payment_status === "completed") {
-        router.back();
-        return;
-      }
-
-      // Sinon afficher les instructions
-      setCurrentState(PaymentFlowState.INSTRUCTIONS);
-      return;
-    }
-
-    // === Paiement récent (< 5 minutes) - Logique normale ===
-
-    // Si l'accès a expiré
-    if (isAccessExpired) {
-      if (hasCompletedFirstInstallment) {
-        const currentInstallment = latestPayment.current_installment || 1;
-        const totalInstallments = latestPayment.total_installments || 1;
-
-        if (currentInstallment < totalInstallments) {
-          setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
-        } else {
-          router.back();
-        }
-      } else {
-        setCurrentState(PaymentFlowState.INSTRUCTIONS);
-      }
-      return;
-    }
-
-    // Si le paiement n'est pas en statut final, continuer la vérification
+    // Si le paiement n'est pas en statut final (pending, initialized, processing), on continue la vérification
     if (!isFinalStatus(latestPayment.payment_status)) {
+      console.log("[Payment] Payment not in final status, showing VERIFYING");
       if (
         hasCompletedFirstInstallment &&
         latestPayment.current_installment &&
@@ -1482,45 +1453,12 @@ const ProgramPaymentPage = () => {
       return;
     }
 
-    // Si le dernier paiement a échoué/annulé
-    if (
-      latestPayment.payment_status === "failed" ||
-      latestPayment.payment_status === "canceled"
-    ) {
-      // Nettoyer les notifications pour ce paiement pour permettre un nouveau paiement
-      NotificationManager.clearForPayment(latestPayment.id);
-      
-      if (hasCompletedFirstInstallment) {
-        setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
-      } else {
-        setCurrentState(PaymentFlowState.INSTRUCTIONS);
-      }
-      return;
-    }
+    // === Paiement terminé (Completed, Failed, Canceled) ===
 
-    // Si le dernier paiement est réussi (et récent < 5 minutes)
-    if (latestPayment.payment_status === "completed") {
-      // Ne pas montrer la notification de succès si elle a déjà été vue
-      if (NotificationManager.hasBeenViewed(latestPayment.id, "success")) {
-        if (hasCompletedFirstInstallment) {
-          const currentInstallment = latestPayment.current_installment || 1;
-          const totalInstallments = latestPayment.total_installments || 1;
-
-          if (currentInstallment < totalInstallments) {
-            setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
-          } else {
-            router.back();
-          }
-        } else {
-          router.back();
-        }
-        return;
-      }
-
-      // Marquer comme vu et naviguer vers le résultat
-      NotificationManager.markAsViewed(latestPayment.id, "success");
-
-      // Paiement récent réussi, naviguer vers payment-result
+    // Si le résultat n'a pas encore été vu par l'utilisateur (has_seen_result = false ou null)
+    // on redirige vers la page de résultat
+    if (!latestPayment.has_seen_result) {
+      console.log("[Payment] Payment result not seen, redirecting to payment-result");
       const currentInstallment = latestPayment.current_installment || 1;
       const totalInstallments = latestPayment.total_installments || 1;
       const hasMoreInstallments = currentInstallment < totalInstallments;
@@ -1529,18 +1467,115 @@ const ProgramPaymentPage = () => {
         pathname: "/learn/[pdId]/payment-result",
         params: {
           pdId: pdId || "",
-          result: "success",
+          result: latestPayment.payment_status === 'completed' ? 'success' : latestPayment.payment_status,
           programName: programContext.programName,
           programId: programContext.programId || "",
+          paymentId: latestPayment.id,
           isInstallment: String(latestPayment.is_installment || false),
           hasMoreInstallments: String(hasMoreInstallments),
+          errorMessage: latestPayment.payment_status === 'failed' ? "Le paiement a échoué." : undefined,
         },
       });
       return;
     }
 
+    // === Le résultat a déjà été vu (has_seen_result = true) ===
+    console.log("[Payment] Payment result already seen");
+
+    // Si c'est un paiement échelonné (terminé ou non)
+    if (latestPayment.is_installment) {
+        const currentInstallment = latestPayment.current_installment || 1;
+        const totalInstallments = latestPayment.total_installments || 1;
+        
+        console.log("[Payment] Installment payment detected, showing INSTALLMENT_DETAILS");
+        // Afficher toujours les détails d'échelonnement pour les paiements échelonnés
+        // même si tous les versements sont faits, pour que l'utilisateur puisse voir l'historique
+        setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
+        return;
+    }
+
+    // Si c'est un paiement unique completed et pas expiré, afficher les instructions
+    // (l'utilisateur peut vouloir acheter un autre programme ou voir les infos)
+    if (latestPayment.payment_status === "completed" && !isAccessExpired) {
+        console.log("[Payment] Single payment completed, showing INSTRUCTIONS");
+        setCurrentState(PaymentFlowState.INSTRUCTIONS);
+        return;
+    }
+
+    // Par défaut (nouvel achat, renouvellement, ou suite d'un échec vu)
+    console.log("[Payment] Default case, showing INSTRUCTIONS");
     setCurrentState(PaymentFlowState.INSTRUCTIONS);
   };
+
+  // Initialize programContext with data from the hook
+  useEffect(() => {
+    if (!pdId || !programId || latestPaymentLoading) return;
+    
+    // Ne pas réinitialiser si déjà initialisé, sauf si on revient sur la page après un paiement
+    if (isInitialized && currentState !== PaymentFlowState.LOADING) {
+      console.log("[Payment] Already initialized, skipping reinit");
+      return;
+    }
+
+    // Fetch program details with learning path info
+    const initializeProgramContext = async () => {
+      try {
+        const { data: programData, error } = await supabase
+          .from("concours_learningpaths")
+          .select("id, price, learningPathId, learning_paths(title)")
+          .eq("learningPathId", pdId)
+          .single();
+
+        if (error || !programData) {
+          console.error("[Payment] Error fetching program data:", error);
+          // Use defaults if fetch fails
+          setProgramContext(prev => ({
+            ...prev,
+            programId: programId || null,
+            programName: "Programme",
+            programPrice: pricing.FIXED_PRICE || 0,
+            user,
+            latestPayment: latestPayment ? { ...latestPayment, ['']: '' } : null,
+          }));
+          setCurrentState(PaymentFlowState.INSTRUCTIONS);
+          setIsInitialized(true);
+          return;
+        }
+
+        // Check if user has completed first installment
+        const hasCompletedFirst = latestPayment?.is_installment && 
+                                   latestPayment?.current_installment && 
+                                   latestPayment?.current_installment > 1;
+
+        // Extract learning path title
+        const lpData = programData.learning_paths as any;
+        const programName = (Array.isArray(lpData) ? lpData[0]?.title : lpData?.title) || "Programme";
+
+        const updatedContext = {
+          programId: String(programData.id),
+          programName,
+          programPrice: pricing.FIXED_PRICE || 0,
+          user,
+          hasCompletedFirstInstallment: hasCompletedFirst || false,
+          latestPayment: latestPayment ? { ...latestPayment, ['']: '' } : null,
+          installmentPayment: latestPayment?.is_installment ? { ...latestPayment, ['']: '' } : null,
+        };
+
+        setProgramContext(updatedContext);
+
+        // Determine initial state based on payment history
+        console.log("[Payment] Determining initial state with has_seen_result:", latestPayment?.has_seen_result);
+        determineInitialState(latestPayment ? { ...latestPayment, ['']: '' } : null, hasCompletedFirst || false);
+        setIsInitialized(true);
+      } catch (error) {
+        console.error("[Payment] Error initializing program context:", error);
+        setCurrentState(PaymentFlowState.INSTRUCTIONS);
+        setIsInitialized(true);
+      }
+    };
+
+    initializeProgramContext();
+  }, [pdId, programId, latestPaymentLoading, pricing.FIXED_PRICE]);
 
   // Handle payment status changes
   useEffect(() => {
@@ -1552,16 +1587,22 @@ const ProgramPaymentPage = () => {
       return;
     }
 
-    // Ne pas naviguer si le paiement est trop vieux (> 5 minutes)
+    // Vérifier si le résultat a déjà été vu (has_seen_result = true)
+    // Dans ce cas, ne pas rediriger automatiquement vers payment-result
     const latestPayment = programContext.latestPayment;
-    const paymentTimestamp = getLatestPaymentTimestamp(latestPayment);
-    const isOlderThan5Minutes = isOlderThanMinutes(paymentTimestamp, 5);
-
-    // Ignorer les vieux paiements - ils sont gérés dans determineInitialState
-    if (isOlderThan5Minutes) {
+    if (latestPayment?.has_seen_result && isFinalStatus(latestPayment.payment_status)) {
       console.log(
-        "[Payment] Ignoring old payment status change:",
+        "[Payment] Payment result already seen, skipping automatic redirect:",
         paymentStatus
+      );
+      return;
+    }
+
+    // Ne rediriger que si le statut vient de changer (pendant une vérification active)
+    // Pas si on arrive sur la page avec un paiement déjà terminé
+    if (!currentTrxReference) {
+      console.log(
+        "[Payment] No active transaction reference, skipping redirect"
       );
       return;
     }
@@ -1591,6 +1632,7 @@ const ProgramPaymentPage = () => {
           result: "success",
           programName: programContext.programName,
           programId: programContext.programId || "",
+          paymentId: latestPayment?.id || "",
           isInstallment: String(latestPayment?.is_installment || false),
           hasMoreInstallments: String(hasMoreInstallments),
         },
@@ -1637,6 +1679,7 @@ const ProgramPaymentPage = () => {
     programContext.programName,
     errorMessage,
     authorizationUrl,
+    currentTrxReference,
   ]);
 
   // Handle authorization URL
@@ -2746,6 +2789,9 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     color: "#6B7280",
+  },
+  paymentHistoryItemFuture: {
+    opacity: 0.6,
   },
   paymentHistoryItemAmount: {
     fontFamily: theme.typography.fontFamily,

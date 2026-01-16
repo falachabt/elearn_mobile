@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import useSWR from 'swr';
 
 import { supabase } from '@/lib/supabase';
+import { AppConfigError } from '@/components/shared/AppConfigError';
 
 // Define types for app_config data
 interface GenerousWeekConfig {
@@ -63,10 +64,11 @@ interface AppConfig {
 type AppConfigContextType = {
   appConfig: AppConfig | null;
   isLoading: boolean;
+  error: Error | null;
   isGenerousWeekActive: () => boolean;
   getWebViewUrls: () => WebViewConfig | null;
   getApiBaseUrl: () => string | null;
-  getPricingConfig: () => PricingConfig;
+  getPricingConfig: () => PricingConfig | null;
   mutateAppConfig: () => Promise<AppConfig | null | undefined>;
 };
 
@@ -89,13 +91,22 @@ const fetchAppConfig = async () => {
 
 export function AppConfigProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const { data: appConfig, mutate: mutateAppConfig } = useSWR<AppConfig | null>(
+  const { data: appConfig, error: swrError, mutate: mutateAppConfig } = useSWR<AppConfig | null>(
     'app_config',
     fetchAppConfig,
     {
       refreshInterval: 60000, // Refresh every minute
       revalidateOnFocus: true,
+      onError: (err) => {
+        console.error('[AppConfig] Error fetching config:', err);
+        setError(err);
+      },
+      onSuccess: (data) => {
+        console.log('[AppConfig] Config loaded successfully:', data ? 'Data available' : 'No data');
+        setError(null);
+      },
     }
   );
 
@@ -111,7 +122,11 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getWebViewUrls = () => {
-    if (!appConfig?.data?.webview) {
+    // Vérifier si webview existe et contient les URLs
+    if (!appConfig?.data?.webview || 
+        !appConfig.data.webview.course_url || 
+        !appConfig.data.webview.exercise_url) {
+        console.warn('[AppConfig] WebView URLs not configured, using defaults');
         return {
             course_url: "https://elearn.ezadrive.com/fr/webview/courseContent",
             exercise_url: "https://elearn.ezadrive.com/fr/webview/exercices"
@@ -121,54 +136,27 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getApiBaseUrl = () => {
-    if (!appConfig?.data?.api_base_url) {
+    if (!appConfig?.data?.api_base_url || appConfig.data.api_base_url.trim() === '') {
+        console.warn('[AppConfig] API base URL not configured, using default');
         return "https://elearn.ezadrive.com";
     }
     return appConfig.data.api_base_url;
   };
 
-  const getPricingConfig = (): PricingConfig => {
-    if (!appConfig?.data?.pricing) {
-      // Valeurs par défaut si pas de config
-      return {
-        generous_week_price: 5000,
-        regular_first_course_price: 15000,
-        additional_course_price: 15000,
-        fixed_price: 15000,
-        purchase_validity_days: 300,
-        plans: {
-          essential: {
-            name: 'Formule Essentielle',
-            description: 'Première formation: 9 000 FCFA + 7900 FCFA pour toute nouvelle souscription à une formation.',
-            base_price: 15000,
-            additional_price: 15000,
-            threshold: 1,
-            color: 'green'
-          },
-          advantage: {
-            name: 'Formule Avantage',
-            description: 'Pack complet de trois formations',
-            price: 24900,
-            threshold: 3,
-            color: 'orange',
-            recommended: true
-          },
-          excellence: {
-            name: 'Formule Excellence',
-            description: 'Formations illimitées pendant 12 mois',
-            price: 39500,
-            threshold: 5,
-            color: '#4F46E5'
-          }
-        }
-      };
+  const getPricingConfig = (): PricingConfig | null => {
+    if (!appConfig?.data?.pricing || Object.keys(appConfig.data.pricing).length === 0) {
+      console.warn('[AppConfig] Pricing configuration not yet loaded or not found in database');
+      return null;
     }
     return appConfig.data.pricing;
   };
 
   useEffect(() => {
     setIsLoading(appConfig === undefined);
-  }, [appConfig]);
+    if (swrError) {
+      setError(swrError);
+    }
+  }, [appConfig, swrError]);
 
   useEffect(() => {
     // Subscribe to changes in the app_config table
@@ -193,12 +181,23 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
   const value: AppConfigContextType = {
     appConfig: appConfig ?? null,
     isLoading,
+    error,
     isGenerousWeekActive,
     getWebViewUrls,
     getApiBaseUrl,
     getPricingConfig,
     mutateAppConfig,
   };
+
+  // Si erreur critique de configuration, afficher un écran d'erreur
+  if (error && !isLoading) {
+    return (
+      <AppConfigError 
+        error={error} 
+        onRetry={() => mutateAppConfig()} 
+      />
+    );
+  }
 
   return <AppConfigContext.Provider value={value}>{children}</AppConfigContext.Provider>;
 }

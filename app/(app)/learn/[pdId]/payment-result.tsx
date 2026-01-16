@@ -1,11 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ScrollView, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import WhatsAppContact from '@/components/WhatsappSupport';
+import { useUser } from '@/contexts/useUserInfo';
+import { ProgramPaymentService } from '@/services/program-payment.service';
 
 type ResultType = 'success' | 'failed' | 'canceled';
 
@@ -14,14 +16,39 @@ const PaymentResultPage = () => {
     const router = useRouter();
     const scheme = useColorScheme();
     const isDark = scheme === 'dark';
+    const { mutateUserPrograms, mutateProgramAccessMap, isLearningPathEnrolled } = useUser();
+    const [isActivatingAccess, setIsActivatingAccess] = useState(false);
+    const [activationMessage, setActivationMessage] = useState('Activation de vos accès en cours...');
 
     const result = params.result as ResultType;
     const programName = params.programName as string;
     const programId = params.programId as string;
     const pdId = params.pdId as string;
+    const paymentId = params.paymentId as string;
     const isInstallment = params.isInstallment === 'true';
     const hasMoreInstallments = params.hasMoreInstallments === 'true';
     const errorMessage = params.errorMessage as string | undefined;
+
+    // Mutate data on mount if success and mark as seen
+    useEffect(() => {
+        const handleMount = async () => {
+            if (paymentId) {
+                await ProgramPaymentService.markAsSeen(paymentId);
+            }
+            
+            if (result === 'success') {
+                console.log('[PaymentResult] Mutating user data after success');
+                // Force immediate revalidation
+                await Promise.all([
+                    mutateUserPrograms(),
+                    mutateProgramAccessMap()
+                ]);
+                console.log('[PaymentResult] Mutations completed');
+            }
+        };
+
+        handleMount();
+    }, [result, paymentId, mutateUserPrograms, mutateProgramAccessMap]);
 
     const getResultConfig = () => {
         switch (result) {
@@ -68,14 +95,63 @@ const PaymentResultPage = () => {
         router.back();
     };
 
-    const handleViewDetails = () => {
-        // Navigate to program details or payment history
-        router.push(`/learn/${pdId}` as any);
+    const handleViewDetails = async () => {
+        if (result === 'success') {
+            setIsActivatingAccess(true);
+            console.log('[PaymentResult] Starting access activation check...');
+            
+            // Vérification active de l'accès avec boucle de polling
+            let attempts = 0;
+            const maxAttempts = 20; // 20 tentatives max (10 secondes)
+            
+            while (attempts < maxAttempts) {
+                attempts++;
+                console.log(`[PaymentResult] Verification attempt ${attempts}/${maxAttempts}`);
+                
+                // Mise à jour du message de progression
+                if (attempts <= 3) {
+                    setActivationMessage('Activation de vos accès en cours...');
+                } else if (attempts <= 8) {
+                    setActivationMessage('Vérification de votre inscription...');
+                } else if (attempts <= 15) {
+                    setActivationMessage('Finalisation, encore quelques secondes...');
+                } else {
+                    setActivationMessage('Dernière vérification...');
+                }
+                
+                // Force revalidation
+                await Promise.all([
+                    mutateUserPrograms(),
+                    mutateProgramAccessMap()
+                ]);
+                
+                // Vérifie si l'utilisateur est bien inscrit
+                const enrolled = isLearningPathEnrolled(pdId);
+                console.log(`[PaymentResult] Enrollment check: ${enrolled}`);
+                
+                if (enrolled) {
+                    console.log('[PaymentResult] Access confirmed! Redirecting...');
+                    setActivationMessage('Accès confirmé ! Redirection...');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    break;
+                }
+                
+                // Attendre 500ms avant la prochaine tentative
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            setIsActivatingAccess(false);
+            console.log('[PaymentResult] Access activation complete, navigating to program');
+        }
+        
+        // Navigate to program details
+        console.log('[PaymentResult] Navigating to program:', pdId);
+        router.replace(`/(app)/learn/${pdId}`);
     };
 
     const handleRetry = () => {
         // Go back to payment page
-        router.replace(`/learn/${pdId}/payment` as any);
+        router.replace(`/(app)/learn/${pdId}/payment`);
     };
 
     return (
@@ -97,7 +173,7 @@ const PaymentResultPage = () => {
                         />
                     ) : (
                         <MaterialCommunityIcons
-                            name={config.icon as any}
+                            name={config.icon as keyof typeof MaterialCommunityIcons.glyphMap}
                             size={120}
                             color={config.iconColor}
                         />
@@ -125,14 +201,41 @@ const PaymentResultPage = () => {
                     {result === 'success' ? (
                         <>
                             <TouchableOpacity
-                                style={[styles.primaryButton, { backgroundColor: '#4CAF50' }]}
+                                style={[
+                                    styles.primaryButton, 
+                                    { backgroundColor: '#4CAF50' },
+                                    isActivatingAccess && styles.buttonDisabled
+                                ]}
                                 onPress={handleViewDetails}
+                                disabled={isActivatingAccess}
                             >
-                                <MaterialCommunityIcons name="eye" size={20} color="#FFFFFF" />
-                                <Text style={styles.primaryButtonText}>Voir le programme</Text>
+                                {isActivatingAccess ? (
+                                    <>
+                                        <ActivityIndicator color="#FFFFFF" size="small" />
+                                        <Text style={styles.primaryButtonText}>Activation en cours...</Text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <MaterialCommunityIcons name="eye" size={20} color="#FFFFFF" />
+                                        <Text style={styles.primaryButtonText}>Voir le programme</Text>
+                                    </>
+                                )}
                             </TouchableOpacity>
 
-                            {isInstallment && hasMoreInstallments && (
+                            {isActivatingAccess && (
+                                <View style={[styles.activationStatusCard, isDark && styles.activationStatusCardDark]}>
+                                    <MaterialCommunityIcons
+                                        name="clock-outline"
+                                        size={20}
+                                        color={isDark ? '#60A5FA' : '#2196F3'}
+                                    />
+                                    <ThemedText style={styles.activationStatusText}>
+                                        {activationMessage}
+                                    </ThemedText>
+                                </View>
+                            )}
+
+                            {isInstallment && hasMoreInstallments && !isActivatingAccess && (
                                 <TouchableOpacity
                                     style={[styles.secondaryButton, isDark && styles.secondaryButtonDark]}
                                     onPress={handleBackToProgram}
@@ -263,6 +366,26 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         borderRadius: 12,
         gap: 8,
+    },
+    buttonDisabled: {
+        opacity: 0.7,
+    },
+    activationStatusCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#E0F2FE',
+        padding: 16,
+        borderRadius: 12,
+        gap: 12,
+        marginTop: 8,
+    },
+    activationStatusCardDark: {
+        backgroundColor: '#1E3A5F',
+    },
+    activationStatusText: {
+        fontSize: 14,
+        fontWeight: '500',
+        flex: 1,
     },
     primaryButtonText: {
         color: '#FFFFFF',
