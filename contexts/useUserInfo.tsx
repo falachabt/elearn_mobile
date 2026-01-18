@@ -330,7 +330,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       ?.map((p) => p?.concours_learningpaths?.id)
       .filter((id): id is string => !!id) || [];
 
-  // Mapping d'accès aux programmes via SWR
+  // Mapping d'accès aux programmes via SWR - Optimisé avec enrollments
   const { data: programAccessMap, mutate: mutateProgramAccessMap } = useSWR<
     Record<string, ProgramAccessStatus>
   >(
@@ -339,42 +339,44 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       logger.log('[UserContext] Fetching access status for', programIds.length, 'programs in parallel...');
       const startTime = Date.now();
       
-      // ✨ PARALLÉLISATION : Tous les appels en même temps au lieu d'en série
-      const paymentPromises = programIds.map(async (programId) => {
-        if (!programId) return null;
+      if (!userId) {
+        return {};
+      }
+      
+      // ✨ OPTIMISATION: Récupérer tous les enrollments en une seule requête
+      // Maintenant que user_program_enrollments contient expiry_date, on n'a plus besoin
+      // de faire N requêtes pour les paiements
+      const { data: enrollments, error } = await supabase
+        .from('user_program_enrollments')
+        .select('program_id, expiry_date')
+        .eq('user_id', userId)
+        .in('program_id', programIds.map(id => parseInt(id, 10)));
+      
+      if (error) {
+        logger.error('[UserContext] Error fetching enrollments:', error);
+        return {};
+      }
+      
+      // Construire le map d'accès
+      const accessMap: Record<string, ProgramAccessStatus> = {};
+      const now = new Date();
+      
+      programIds.forEach(programId => {
+        const enrollment = enrollments?.find(e => e.program_id === parseInt(programId, 10));
         
-        try {
-          const payment = await ProgramPaymentService.getLatestPayment(programId);
-          if (!payment) {
-            return { programId, status: { hasAccess: false, isExpired: false } };
-          }
-          
-          const now = new Date();
-          const expiryDate = new Date(payment.expiry_date);
+        if (!enrollment) {
+          // Pas d'enrollment = pas d'accès
+          accessMap[programId] = { hasAccess: false, isExpired: false };
+        } else {
+          // Vérifier si l'enrollment est expiré
+          const expiryDate = new Date(enrollment.expiry_date);
           const isExpired = now > expiryDate;
           
-          return {
-            programId,
-            status: {
-              hasAccess: !isExpired,
-              isExpired,
-              expiryDate: payment.expiry_date,
-            }
+          accessMap[programId] = {
+            hasAccess: !isExpired,
+            isExpired,
+            expiryDate: enrollment.expiry_date,
           };
-        } catch (error) {
-          logger.error('[UserContext] Error fetching payment for program', programId, error);
-          return { programId, status: { hasAccess: false, isExpired: false } };
-        }
-      });
-      
-      // Attendre tous les appels en parallèle
-      const results = await Promise.all(paymentPromises);
-      
-      // Construire le map
-      const accessMap: Record<string, ProgramAccessStatus> = {};
-      results.forEach(result => {
-        if (result) {
-          accessMap[result.programId] = result.status;
         }
       });
       
