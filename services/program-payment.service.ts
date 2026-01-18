@@ -809,40 +809,87 @@ export const ProgramPaymentService = {
               }
 
               // Only create enrollment for the first installment
-              // Note: The DB trigger also creates enrollment, so we use ON CONFLICT to avoid duplicates
+              // Use upsert to handle conflicts by keeping the greater expiry_date
               if (payment.current_installment === 1) {
-                // Create enrollment record with expiry_date
+                // Fetch existing enrollment to compare expiry dates
+                const { data: existingEnrollment } = await supabase
+                  .from('user_program_enrollments')
+                  .select('expiry_date')
+                  .eq('user_id', payment.user_id)
+                  .eq('program_id', payment.program_id)
+                  .single();
+
+                // Determine the expiry date to use (keep the greater one)
+                let expiryDateToUse = payment.expiry_date;
+                if (existingEnrollment?.expiry_date) {
+                  const existingDate = new Date(existingEnrollment.expiry_date);
+                  const newDate = new Date(payment.expiry_date);
+                  expiryDateToUse = existingDate > newDate 
+                    ? existingEnrollment.expiry_date 
+                    : payment.expiry_date;
+                }
+
+                // Create or update enrollment record with the greater expiry_date
                 const { error: enrollmentError } = await supabase
                   .from('user_program_enrollments')
-                  .insert({
-                    user_id: payment.user_id,
-                    program_id: payment.program_id,
-                    expiry_date: payment.expiry_date
-                  })
+                  .upsert(
+                    {
+                      user_id: payment.user_id,
+                      program_id: payment.program_id,
+                      expiry_date: expiryDateToUse
+                    },
+                    {
+                      onConflict: 'user_id,program_id',
+                      ignoreDuplicates: false
+                    }
+                  )
                   .select()
                   .single();
 
-                if (enrollmentError && enrollmentError.code !== '23505') {
-                  // Ignore duplicate key errors (23505), log others
-                  logger.error("Error creating enrollment:", enrollmentError);
+                if (enrollmentError) {
+                  logger.error("Error creating/updating enrollment:", enrollmentError);
                 }
               }
             } else {
-              // For one-time payments, create enrollment record with expiry_date
-              // Note: The DB trigger also creates enrollment, so we use ON CONFLICT to avoid duplicates
+              // For one-time payments, create or update enrollment record with expiry_date
+              // Use upsert to handle conflicts by keeping the greater expiry_date
+              
+              // Fetch existing enrollment to compare expiry dates
+              const { data: existingEnrollment } = await supabase
+                .from('user_program_enrollments')
+                .select('expiry_date')
+                .eq('user_id', payment.user_id)
+                .eq('program_id', payment.program_id)
+                .single();
+
+              // Determine the expiry date to use (keep the greater one)
+              let expiryDateToUse = payment.expiry_date;
+              if (existingEnrollment?.expiry_date) {
+                const existingDate = new Date(existingEnrollment.expiry_date);
+                const newDate = new Date(payment.expiry_date);
+                expiryDateToUse = existingDate > newDate 
+                  ? existingEnrollment.expiry_date 
+                  : payment.expiry_date;
+              }
+
               const { error: enrollmentError } = await supabase
                 .from('user_program_enrollments')
-                .insert({
-                  user_id: payment.user_id,
-                  program_id: payment.program_id,
-                  expiry_date: payment.expiry_date
-                })
+                .upsert(
+                  {
+                    user_id: payment.user_id,
+                    program_id: payment.program_id,
+                    expiry_date: expiryDateToUse
+                  },
+                  {
+                    onConflict: 'user_id,program_id',
+                    ignoreDuplicates: false
+                  }
+                )
                 .select()
                 .single();
 
-              if (enrollmentError && enrollmentError.code !== '23505') {
-                // Ignore duplicate key errors (23505), log others
-                logger.error("Error creating enrollment:", enrollmentError);
+              if (enrollmentError) {
+                logger.error("Error creating/updating enrollment:", enrollmentError);
               }
             }
           }

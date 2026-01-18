@@ -336,12 +336,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const { data: programAccessMap, mutate: mutateProgramAccessMap } = useSWR<
     Record<string, ProgramAccessStatus>
   >(
-    userId ? `program-access-map-${userId}` : null,
+    authUser?.id ? `program-access-map-${authUser.id}` : null,
     async () => {
       logger.log('[UserContext] Fetching ALL user enrollments for access map...');
       const startTime = Date.now();
       
-      if (!userId) {
+      if (!authUser?.id) {
         return {};
       }
       
@@ -351,7 +351,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const { data: enrollments, error } = await supabase
         .from('user_program_enrollments')
         .select('program_id, expiry_date')
-        .eq('user_id', userId);
+        .eq('user_id', authUser.id);
       
       if (error) {
         logger.error('[UserContext] Error fetching enrollments:', error);
