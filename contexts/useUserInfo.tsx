@@ -361,12 +361,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const accessMap: Record<string, ProgramAccessStatus> = {};
       const now = new Date();
       
+      logger.log(`[UserContext] Building access map for programIds:`, programIds);
+      logger.log(`[UserContext] Found ${enrollments?.length || 0} enrollments`);
+      
       programIds.forEach(programId => {
         const enrollment = enrollments?.find(e => e.program_id === parseInt(programId, 10));
         
         if (!enrollment) {
           // Pas d'enrollment = pas d'accès
           accessMap[programId] = { hasAccess: false, isExpired: false };
+          logger.log(`[UserContext] No enrollment for program ${programId}`);
         } else {
           // Vérifier si l'enrollment est expiré
           const expiryDate = new Date(enrollment.expiry_date);
@@ -377,11 +381,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             isExpired,
             expiryDate: enrollment.expiry_date,
           };
+          logger.log(`[UserContext] Program ${programId}: hasAccess=${!isExpired}, isExpired=${isExpired}, expiry=${enrollment.expiry_date}`);
         }
       });
       
       const duration = Date.now() - startTime;
       logger.log(`[UserContext] Program access map loaded in ${duration}ms:`, Object.keys(accessMap).length, 'programs');
+      logger.log(`[UserContext] Access map keys:`, Object.keys(accessMap));
       
       return accessMap;
     },
@@ -400,12 +406,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       (program) => program.id === learningPathId
     );
     const programId = userProgram?.concours_learningpaths?.id;
+    
+    logger.log(`[UserContext] getProgramAccessStatus - learningPathId: ${learningPathId}, programId: ${programId}, hasMap: ${!!programAccessMap}`);
+    
     if (!programId || !programAccessMap) {
+      logger.log(`[UserContext] getProgramAccessStatus - returning false (no programId or map)`);
       return { hasAccess: false, isExpired: false };
     }
-    return (
-      programAccessMap[programId] || { hasAccess: false, isExpired: false }
-    );
+    
+    const status = programAccessMap[programId] || { hasAccess: false, isExpired: false };
+    logger.log(`[UserContext] getProgramAccessStatus - programId ${programId} status:`, status);
+    
+    return status;
   }, [userPrograms, programAccessMap]);
 
   // Nouvelle version de isLearningPathEnrolled - mémorisée pour éviter re-renders en boucle
