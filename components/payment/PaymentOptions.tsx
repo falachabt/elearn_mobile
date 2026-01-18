@@ -14,10 +14,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { theme } from "@/constants/theme";
 import { ThemedText } from "@/components/ThemedText";
-import { supabase } from "@/lib/supabase";
 import WhatsAppContact from "@/components/WhatsappSupport";
 import { PromoCode } from "@/types/payment.types";
 import { logger } from "@/utils/logger";
+import { PromoCodeService } from "@/services/promo-code.service";
+import { supabase } from "@/lib/supabase";
 
 interface PaymentOptionsProps {
   programName: string;
@@ -69,19 +70,9 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
     try {
       const { data: user } = await supabase.auth.getUser();
       if (user?.user?.id) {
-        const { data: existingPromoUsage, error: usageError } = await supabase
-          .from("payments")
-          .select("id")
-          .eq("user_id", user.user.id)
-          .eq("status", "completed")
-          .not("promo_code_id", "is", null)
-          .limit(1);
-
-        if (
-          !usageError &&
-          existingPromoUsage &&
-          existingPromoUsage.length > 0
-        ) {
+        const hasUsedPromo = await PromoCodeService.checkPromoCodeUsage(user.user.id);
+        
+        if (hasUsedPromo) {
           setPromoCodeStatus("invalid");
           setPromoCodeDetails(null);
           setPromoCodeError(
@@ -91,39 +82,22 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
         }
       }
 
-      const { data, error } = await supabase
-        .from("influencers")
-        .select(
-          "id, name, promo_code, discount_percentage, valid_until, status"
-        )
-        .eq("promo_code", promoCode)
-        .eq("status", "active")
-        .single();
+      const influencerPromo = await PromoCodeService.validateInfluencerPromoCode(promoCode);
 
-      if (error || !data) {
+      if (!influencerPromo) {
         setPromoCodeStatus("invalid");
         setPromoCodeDetails(null);
         setPromoCodeError("Code promo invalide ou expiré");
         return;
       }
 
-      const now = new Date();
-      const validUntil = data.valid_until ? new Date(data.valid_until) : null;
-
-      if (validUntil && validUntil < now) {
-        setPromoCodeStatus("invalid");
-        setPromoCodeDetails(null);
-        setPromoCodeError("Ce code promo a expiré");
-        return;
-      }
-
       setPromoCodeStatus("valid");
       setPromoCodeError(null);
       setPromoCodeDetails({
-        id: data.id,
-        code: data.promo_code,
-        discount_percentage: data.discount_percentage,
-        is_active: data.status === "active",
+        id: influencerPromo.id,
+        code: PromoCodeService.formatPromoCode(promoCode),
+        discount_percentage: influencerPromo.discount_percentage,
+        is_active: true,
         created_at: "",
         updated_at: "",
       });

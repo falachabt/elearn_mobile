@@ -76,7 +76,7 @@ export const PAYMENT_STATUS_CONFIG: Record<
     label: 'En cours',
   },
   expired: {
-    color: theme.color.neutral[500] || '#6B7280',
+    color: theme.color.gray[500],
     icon: 'time-outline',
     label: 'Expiré',
   },

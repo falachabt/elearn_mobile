@@ -565,7 +565,7 @@ export const ProgramPaymentService = {
       .select('*')
       .eq('user_id', user.id)
       .eq('program_id', numericProgramId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false});
 
     if (error) {
       console.error('Error getting all program payments:', error);
@@ -573,6 +573,71 @@ export const ProgramPaymentService = {
     }
 
     return data || [];
+  },
+
+  async getPaymentHistory(programId: string | number): Promise<ProgramPayment[]> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return [];
+
+    const numericProgramId = typeof programId === "string" ? parseInt(programId, 10) : programId;
+
+    if (isNaN(numericProgramId)) {
+      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('program_id', numericProgramId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error getting payment history:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  async getAllInstallmentsForPlan(paymentId: string): Promise<ProgramPayment[]> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user || !paymentId) return [];
+
+    try {
+      // Récupérer le paiement pour trouver le parent_id
+      const { data: payment, error: paymentError } = await supabase
+        .from('user_program_payments')
+        .select('*')
+        .eq('id', paymentId)
+        .single();
+
+      if (paymentError || !payment) {
+        console.error('Error fetching payment:', paymentError);
+        return [];
+      }
+
+      // Déterminer le parentId
+      const parentId = payment.parent_payment_id || payment.id;
+
+      // Récupérer tous les paiements liés (parent + enfants)
+      const { data, error } = await supabase
+        .from('user_program_payments')
+        .select('*')
+        .or(`id.eq.${parentId},parent_payment_id.eq.${parentId}`)
+        .order('current_installment', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching all installments:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getAllInstallmentsForPlan:', error);
+      return [];
+    }
   },
 
   // Check if a payment status is final (completed or canceled)

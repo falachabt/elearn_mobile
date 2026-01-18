@@ -11,10 +11,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { theme } from "@/constants/theme";
 import { ThemedText } from "@/components/ThemedText";
-import { supabase } from "@/lib/supabase";
 import WhatsAppContact from "@/components/WhatsappSupport";
 import { ProgramPayment } from "@/types/payment.types";
 import { logger } from "@/utils/logger";
+import { ProgramPaymentService } from "@/services/program-payment.service";
 
 interface PaymentInstructionsProps {
   programName: string;
@@ -43,15 +43,8 @@ export const PaymentInstructions: FC<PaymentInstructionsProps> = ({
 
       setLoadingPayments(true);
       try {
-        const { data, error } = await supabase
-          .from("user_program_payments")
-          .select("*")
-          .eq("program_id", typeof programId === "string" ? parseInt(programId, 10) : programId)
-          .order("created_at", { ascending: false });
-
-        if (!error && data) {
-          setAllPayments(data as ProgramPayment[]);
-        }
+        const data = await ProgramPaymentService.getPaymentHistory(programId);
+        setAllPayments(data);
       } catch (error) {
         logger.error("Error fetching payments:", error);
       } finally {

@@ -21,7 +21,7 @@ export const PromoCodeService = {
       const { data, error } = await supabase
         .from('promo_codes')
         .select('*')
-        .eq('code', code.trim().toUpperCase())
+        .eq('code', PromoCodeService.formatPromoCode(code))
         .eq('is_active', true)
         .single();
 
@@ -37,6 +37,73 @@ export const PromoCodeService = {
       return data as PromoCode;
     } catch (error) {
       logger.error('Error in validatePromoCode:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Check if user has already used a promo code
+   */
+  async checkPromoCodeUsage(userId: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'completed')
+        .not('promo_code_id', 'is', null)
+        .limit(1);
+
+      if (error) {
+        logger.error('Error checking promo code usage:', error);
+        return false;
+      }
+
+      return data && data.length > 0;
+    } catch (error) {
+      logger.error('Error in checkPromoCodeUsage:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Validate influencer promo code (for backward compatibility)
+   */
+  async validateInfluencerPromoCode(code: string): Promise<{
+    id: string;
+    discount_percentage: number;
+    name?: string;
+  } | null> {
+    if (!code || code.trim().length === 0) {
+      return null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('influencers')
+        .select('id, name, promo_code, discount_percentage, valid_until, status')
+        .eq('promo_code', code)
+        .eq('status', 'active')
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      const now = new Date();
+      const validUntil = data.valid_until ? new Date(data.valid_until) : null;
+
+      if (validUntil && validUntil < now) {
+        return null;
+      }
+
+      return {
+        id: data.id,
+        discount_percentage: data.discount_percentage,
+        name: data.name,
+      };
+    } catch (error) {
+      logger.error('Error validating influencer promo code:', error);
       return null;
     }
   },

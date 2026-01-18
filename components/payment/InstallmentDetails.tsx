@@ -12,10 +12,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { theme } from "@/constants/theme";
 import { ThemedText } from "@/components/ThemedText";
-import { supabase } from "@/lib/supabase";
 import WhatsAppContact from "@/components/WhatsappSupport";
 import { ProgramPayment } from "@/types/payment.types";
 import { logger } from "@/utils/logger";
+import { ProgramPaymentService } from "@/services/program-payment.service";
 
 interface InstallmentDetailsProps {
   installmentPayment: ProgramPayment | null;
@@ -42,18 +42,8 @@ export const InstallmentDetails: FC<InstallmentDetailsProps> = ({
 
       setLoadingInstallments(true);
       try {
-        // Récupérer le paiement parent et tous ses enfants
-        const parentId = installmentPayment.parent_payment_id || installmentPayment.id;
-        
-        const { data, error } = await supabase
-          .from("user_program_payments")
-          .select("*")
-          .or(`id.eq.${parentId},parent_payment_id.eq.${parentId}`)
-          .order("current_installment", { ascending: true });
-
-        if (!error && data) {
-          setAllInstallments(data as ProgramPayment[]);
-        }
+        const data = await ProgramPaymentService.getAllInstallmentsForPlan(installmentPayment.id);
+        setAllInstallments(data);
       } catch (error) {
         logger.error("Error fetching installments:", error);
       } finally {
