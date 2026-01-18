@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { NotchPayService } from '@/lib/notchpay';
 import { PURCHASE_VALIDITY_DAYS } from '@/utils/pricing';
+import { logger } from '@/utils/logger';
 
 export interface ProgramPayment {
   id: string;
@@ -38,12 +39,12 @@ export const ProgramPaymentService = {
       .eq('id', paymentId);
 
     if (error) {
-      console.error('Error marking payment as seen:', error);
+      logger.error('Error marking payment as seen:', error);
     }
   },
 
   // Calculate installment amount based on total price and number of installments
-  calculateInstallmentAmount(totalAmount: number, totalInstallments: number, currentInstallment: number = 1): number {
+  calculateInstallmentAmount(totalAmount: number, totalInstallments: number): number {
     // Ensure we have valid numbers to avoid NaN
     if (!totalAmount || isNaN(totalAmount) || !totalInstallments || isNaN(totalInstallments) || totalInstallments <= 0) {
       return 0;
@@ -84,7 +85,7 @@ export const ProgramPaymentService = {
       });
 
       if (!result.initResponse.transaction?.reference) {
-        console.error("Payment initialization failed: No transaction reference");
+        logger.error("Payment initialization failed: No transaction reference");
         throw new Error("Payment initialization failed");
       }
 
@@ -99,9 +100,8 @@ export const ProgramPaymentService = {
         totalInstallments,
         currentInstallment, // currentInstallment
         totalAmount,
-          null,
+        null,
         nextInstallmentDate
-
       );
 
       // If direct charge was successful or needs fallback
@@ -115,13 +115,13 @@ export const ProgramPaymentService = {
           needsFallback: result.needsFallback,
           authorizationUrl: result.initResponse.authorization_url,
           trxReference: result.initResponse.transaction.reference
-        } as any;
+        } as ProgramPayment & { needsFallback?: boolean; authorizationUrl?: string; trxReference?: string };
       }
 
-      console.error("Installment plan creation failed: No chargeResponse or needsFallback");
+      logger.error("Installment plan creation failed: No chargeResponse or needsFallback");
       throw new Error("Installment plan creation failed");
     } catch (error) {
-      console.error("Error in createInstallmentPlan:", error);
+      logger.error("Error in createInstallmentPlan:", error);
       throw error;
     }
   },
@@ -133,7 +133,7 @@ export const ProgramPaymentService = {
 
     const numericProgramId = parseInt(programId, 10);
     if (isNaN(numericProgramId)) {
-      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       return [];
     }
 
@@ -148,7 +148,7 @@ export const ProgramPaymentService = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error getting pending installments:', error);
+      logger.error('Error getting pending installments:', error);
       return [];
     }
 
@@ -168,7 +168,7 @@ export const ProgramPaymentService = {
       .single();
 
     if (parentError || !parentPayment) {
-      console.error('Error getting parent payment:', parentError);
+      logger.error('Error getting parent payment:', parentError);
       throw new Error('Parent payment not found');
     }
 
@@ -224,7 +224,7 @@ export const ProgramPaymentService = {
         needsFallback: result.needsFallback,
         authorizationUrl: result.initResponse.authorization_url,
         trxReference: result.initResponse.transaction.reference
-      } as any;
+      } as ProgramPayment & { needsFallback?: boolean; authorizationUrl?: string; trxReference?: string };
     }
 
     throw new Error("Next installment payment failed");
@@ -240,7 +240,7 @@ export const ProgramPaymentService = {
       .single();
 
     if (error || !payment || !payment.parent_payment_id) {
-      console.error('Error getting payment:', error);
+      logger.error('Error getting payment:', error);
       return;
     }
 
@@ -255,7 +255,7 @@ export const ProgramPaymentService = {
       .eq('id', payment.parent_payment_id);
 
     if (updateError) {
-      console.error('Error updating parent payment:', updateError);
+      logger.error('Error updating parent payment:', updateError);
     }
   },
 
@@ -336,7 +336,7 @@ export const ProgramPaymentService = {
       .single();
 
     if (error) {
-      console.error('Error creating program payment:', error);
+      logger.error('Error creating program payment:', error);
       throw new Error(error.message);
     }
 
@@ -353,7 +353,7 @@ export const ProgramPaymentService = {
       .eq('id', paymentId);
 
     if (error) {
-      console.error('Error updating program payment status:', error);
+      logger.error('Error updating program payment status:', error);
       throw new Error(error.message);
     }
   },
@@ -362,7 +362,7 @@ export const ProgramPaymentService = {
     return supabase
       .channel('program_payments')
       .on(
-        'postgres_changes' as any,
+        'postgres_changes',
         {
           event: '*',
           schema: 'public',
@@ -376,80 +376,92 @@ export const ProgramPaymentService = {
 
   async checkProgramAccess(programId: string): Promise<boolean> {
     const user = (await supabase.auth.getUser()).data.user;
-    if (!user) return false;
-
+    if (!user) {
+      logger.warn('[checkProgramAccess] No authenticated user');
+      return false;
+    }
 
     // Convert programId to a number if it's a string
     const numericProgramId = parseInt(programId, 10);
 
     if (isNaN(numericProgramId)) {
-      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`[checkProgramAccess] Invalid program ID: ${programId}. Expected a numeric ID.`);
       return false;
     }
 
     // Check if user is enrolled in the program
     const { data: enrollmentData, error: enrollmentError } = await supabase
       .from('user_program_enrollments')
-      .select('id')
+      .select('id, expiry_date')
       .eq('user_id', user.id)
       .eq('program_id', numericProgramId)
       .limit(1);
 
     if (enrollmentError) {
-      console.error('Error checking program enrollment:', enrollmentError);
+      logger.error('[checkProgramAccess] Error checking program enrollment:', enrollmentError);
       return false;
     }
 
-    // If user is enrolled, check if they have a valid payment
-    if (enrollmentData && enrollmentData.length > 0) {
-      // Get the latest payment for this program
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('user_program_payments')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('program_id', numericProgramId)
-        .eq('payment_status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(1);
+    // If user is not enrolled, no access
+    if (!enrollmentData || enrollmentData.length === 0) {
+      logger.info(`[checkProgramAccess] User not enrolled in program ${programId}`);
+      return false;
+    }
 
-      if (paymentError) {
-        console.error('Error checking program payment:', paymentError);
-        return false;
-      }
-
-      // If no payment found, user doesn't have access
-      if (!paymentData || paymentData.length === 0) {
-        return false;
-      }
-
-      const payment = paymentData[0];
-
-      // Check if payment is expired
+    // User is enrolled - check if enrollment is expired
+    const enrollment = enrollmentData[0];
+    if (enrollment.expiry_date) {
       const now = new Date();
-      const expiryDate = new Date(payment.expiry_date);
+      const expiryDate = new Date(enrollment.expiry_date);
       if (now > expiryDate) {
+        logger.info(`[checkProgramAccess] Enrollment expired for program ${programId}`);
         return false;
       }
+    }
 
-      // For installment payments, check if next payment is overdue
-      if (payment.is_installment && payment.next_payment_due_date) {
-        const nextPaymentDueDate = new Date(payment.next_payment_due_date);
+    // Get the latest payment for this program to check for installment status
+    const { data: paymentData, error: paymentError } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('program_id', numericProgramId)
+      .eq('payment_status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-        // If next payment is overdue by more than 2 days, restrict access
-        const gracePeriod = 2; // 2 days grace period
-        const gracePeriodDate = new Date(nextPaymentDueDate);
-        gracePeriodDate.setDate(gracePeriodDate.getDate() + gracePeriod);
+    if (paymentError) {
+      logger.error('[checkProgramAccess] Error checking program payment:', paymentError);
+      return false;
+    }
 
-        if (now > gracePeriodDate && payment.current_installment < payment.total_installments) {
-          return false;
-        }
-      }
-
-      // If we got here, user has valid access
+    // If no payment found but user is enrolled, still give access
+    // This handles the case where enrollment was created by trigger
+    if (!paymentData || paymentData.length === 0) {
+      logger.info(`[checkProgramAccess] No payment found but user is enrolled in program ${programId}, granting access`);
       return true;
     }
 
-    return false;
+    const payment = paymentData[0];
+
+    // For installment payments, check if next payment is overdue
+    if (payment.is_installment && payment.next_payment_due_date) {
+      const nextPaymentDueDate = new Date(payment.next_payment_due_date);
+      const now = new Date();
+
+      // If next payment is overdue by more than 2 days, restrict access
+      const gracePeriod = 2; // 2 days grace period
+      const gracePeriodDate = new Date(nextPaymentDueDate);
+      gracePeriodDate.setDate(gracePeriodDate.getDate() + gracePeriod);
+
+      if (now > gracePeriodDate && payment.current_installment < payment.total_installments) {
+        logger.info(`[checkProgramAccess] Installment payment overdue for program ${programId}`);
+        return false;
+      }
+    }
+
+    // If we got here, user has valid access
+    logger.info(`[checkProgramAccess] Access granted for program ${programId}`);
+    return true;
   },
 
   async getActivePayment(programId: string): Promise<ProgramPayment | null> {
@@ -460,7 +472,7 @@ export const ProgramPaymentService = {
     const numericProgramId = parseInt(programId, 10);
 
     if (isNaN(numericProgramId)) {
-      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       return null;
     }
 
@@ -480,7 +492,7 @@ export const ProgramPaymentService = {
         // No active payment found
         return null;
       }
-      console.error('Error getting active program payment:', error);
+      logger.error('Error getting active program payment:', error);
       throw new Error(error.message);
     }
 
@@ -498,7 +510,7 @@ export const ProgramPaymentService = {
     const numericProgramId = parseInt(programId, 10);
 
     if (isNaN(numericProgramId)) {
-      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       return null;
     }
 
@@ -516,7 +528,7 @@ export const ProgramPaymentService = {
         // No payment found
         return null;
       }
-      console.error('Error getting latest program payment:', error);
+      logger.error('Error getting latest program payment:', error);
       throw new Error(error.message);
     }
 
@@ -537,10 +549,10 @@ export const ProgramPaymentService = {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        console.log('No payment found for reference:', paymentReference);
+        logger.info('No payment found for reference:', paymentReference);
         return null;
       }
-      console.error('Error getting payment by reference:', error);
+      logger.error('Error getting payment by reference:', error);
       return null;
     }
 
@@ -556,7 +568,7 @@ export const ProgramPaymentService = {
     const numericProgramId = parseInt(programId, 10);
 
     if (isNaN(numericProgramId)) {
-      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       return [];
     }
 
@@ -568,11 +580,76 @@ export const ProgramPaymentService = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error getting all program payments:', error);
+      logger.error('Error getting all program payments:', error);
       return [];
     }
 
     return data || [];
+  },
+
+  async getPaymentHistory(programId: string | number): Promise<ProgramPayment[]> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return [];
+
+    const numericProgramId = typeof programId === "string" ? parseInt(programId, 10) : programId;
+
+    if (isNaN(numericProgramId)) {
+      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('program_id', numericProgramId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error('Error getting payment history:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  async getAllInstallmentsForPlan(paymentId: string): Promise<ProgramPayment[]> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user || !paymentId) return [];
+
+    try {
+      // Récupérer le paiement pour trouver le parent_id
+      const { data: payment, error: paymentError } = await supabase
+        .from('user_program_payments')
+        .select('*')
+        .eq('id', paymentId)
+        .single();
+
+      if (paymentError || !payment) {
+        logger.error('Error fetching payment:', paymentError);
+        return [];
+      }
+
+      // Déterminer le parentId
+      const parentId = payment.parent_payment_id || payment.id;
+
+      // Récupérer tous les paiements liés (parent + enfants)
+      const { data, error } = await supabase
+        .from('user_program_payments')
+        .select('*')
+        .or(`id.eq.${parentId},parent_payment_id.eq.${parentId}`)
+        .order('current_installment', { ascending: true });
+
+      if (error) {
+        logger.error('Error fetching all installments:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      logger.error('Error in getAllInstallmentsForPlan:', error);
+      return [];
+    }
   },
 
   // Check if a payment status is final (completed or canceled)
@@ -595,7 +672,7 @@ export const ProgramPaymentService = {
       const numericProgramId = parseInt(programId, 10);
 
       if (isNaN(numericProgramId)) {
-        console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+        logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
         throw new Error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       }
 
@@ -608,14 +685,13 @@ export const ProgramPaymentService = {
           amount * totalInstallments, // Pass the total amount, not just the first installment
           totalInstallments,
           promoCodeId,
-            currentInstallment,
-            nextInstallmentDate
+          currentInstallment,
+          nextInstallmentDate
         );
       }
 
       // Otherwise, proceed with a regular one-time payment
       const notchpay = new NotchPayService();
-      const network = phoneNumber.startsWith('655') ? 'orange' : 'mtn';
 
       const result = await notchpay.initiateDirectCharge({
         phone: phoneNumber,
@@ -660,8 +736,6 @@ export const ProgramPaymentService = {
           false // Not an installment payment
         );
 
-
-
         await this.setStatus(payment.id, 'initialized');
 
         return {
@@ -674,9 +748,9 @@ export const ProgramPaymentService = {
       throw new Error("Payment initialization failed");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error("Error in direct program payment:", error.message);
+        logger.error("Error in direct program payment:", error.message);
       } else {
-        console.error("Error in direct program payment:", error);
+        logger.error("Error in direct program payment:", error);
       }
       throw error;
     }
@@ -710,7 +784,7 @@ export const ProgramPaymentService = {
             .single();
 
           if (error) {
-            console.error("Error fetching payment details:", error);
+            logger.error("Error fetching payment details:", error);
           } else {
             // If this is an installment payment, update the parent payment
             if (payment.is_installment) {
@@ -735,30 +809,87 @@ export const ProgramPaymentService = {
               }
 
               // Only create enrollment for the first installment
+              // Use upsert to handle conflicts by keeping the greater expiry_date
               if (payment.current_installment === 1) {
-                // Create enrollment record
+                // Fetch existing enrollment to compare expiry dates
+                const { data: existingEnrollment } = await supabase
+                  .from('user_program_enrollments')
+                  .select('expiry_date')
+                  .eq('user_id', payment.user_id)
+                  .eq('program_id', payment.program_id)
+                  .single();
+
+                // Determine the expiry date to use (keep the greater one)
+                let expiryDateToUse = payment.expiry_date;
+                if (existingEnrollment?.expiry_date) {
+                  const existingDate = new Date(existingEnrollment.expiry_date);
+                  const newDate = new Date(payment.expiry_date);
+                  expiryDateToUse = existingDate > newDate 
+                    ? existingEnrollment.expiry_date 
+                    : payment.expiry_date;
+                }
+
+                // Create or update enrollment record with the greater expiry_date
                 const { error: enrollmentError } = await supabase
                   .from('user_program_enrollments')
-                  .insert({
-                    user_id: payment.user_id,
-                    program_id: payment.program_id
-                  });
+                  .upsert(
+                    {
+                      user_id: payment.user_id,
+                      program_id: payment.program_id,
+                      expiry_date: expiryDateToUse
+                    },
+                    {
+                      onConflict: 'user_id,program_id',
+                      ignoreDuplicates: false
+                    }
+                  )
+                  .select()
+                  .single();
 
                 if (enrollmentError) {
-                  console.error("Error creating enrollment:", enrollmentError);
+                  logger.error("Error creating/updating enrollment:", enrollmentError);
                 }
               }
             } else {
-              // For one-time payments, create enrollment record
+              // For one-time payments, create or update enrollment record with expiry_date
+              // Use upsert to handle conflicts by keeping the greater expiry_date
+              
+              // Fetch existing enrollment to compare expiry dates
+              const { data: existingEnrollment } = await supabase
+                .from('user_program_enrollments')
+                .select('expiry_date')
+                .eq('user_id', payment.user_id)
+                .eq('program_id', payment.program_id)
+                .single();
+
+              // Determine the expiry date to use (keep the greater one)
+              let expiryDateToUse = payment.expiry_date;
+              if (existingEnrollment?.expiry_date) {
+                const existingDate = new Date(existingEnrollment.expiry_date);
+                const newDate = new Date(payment.expiry_date);
+                expiryDateToUse = existingDate > newDate 
+                  ? existingEnrollment.expiry_date 
+                  : payment.expiry_date;
+              }
+
               const { error: enrollmentError } = await supabase
                 .from('user_program_enrollments')
-                .insert({
-                  user_id: payment.user_id,
-                  program_id: payment.program_id
-                });
+                .upsert(
+                  {
+                    user_id: payment.user_id,
+                    program_id: payment.program_id,
+                    expiry_date: expiryDateToUse
+                  },
+                  {
+                    onConflict: 'user_id,program_id',
+                    ignoreDuplicates: false
+                  }
+                )
+                .select()
+                .single();
 
               if (enrollmentError) {
-                console.error("Error creating enrollment:", enrollmentError);
+                logger.error("Error creating/updating enrollment:", enrollmentError);
               }
             }
           }
@@ -767,11 +898,11 @@ export const ProgramPaymentService = {
 
       return result;
     } catch (error) {
-      console.error("Error verifying program payment status:", error);
+      logger.error("Error verifying program payment status:", error);
     }
   },
 
-  async cancelPayment(paymentId: string, reference: string) {
+  async cancelPayment(paymentId: string) {
     try {
       // First, check the current status of the payment
       const { data: payment, error: fetchError } = await supabase
@@ -781,7 +912,7 @@ export const ProgramPaymentService = {
         .single();
 
       if (fetchError) {
-        console.error("Error fetching payment status:", fetchError);
+        logger.error("Error fetching payment status:", fetchError);
         throw fetchError;
       }
 
@@ -798,11 +929,11 @@ export const ProgramPaymentService = {
         // Uncomment if you want to cancel in NotchPay
         // const notchpay = new NotchPayService();
         // await notchpay.cancelPayment(reference);
-      } catch (e) {
+      } catch {
         // Silently ignore NotchPay cancellation errors
       }
     } catch (error) {
-      console.error("Error cancelling program payment:", error);
+      logger.error("Error cancelling program payment:", error);
       throw error;
     }
   }

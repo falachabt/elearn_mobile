@@ -2,17 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ScrollView, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
 import LottieView from 'lottie-react-native';
+
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import WhatsAppContact from '@/components/WhatsappSupport';
 import { useUser } from '@/contexts/useUserInfo';
 import { ProgramPaymentService } from '@/services/program-payment.service';
+import { logger } from '@/utils/logger';
+import { theme } from '@/constants/theme';
+import { getStatusColor } from '@/constants/payment.constants';
+import { ProgramPayment } from '@/types/payment.types';
 
 type ResultType = 'success' | 'failed' | 'canceled';
 
-const PaymentResultPage = () => {
+export default function PaymentResultPage() {
     const params = useLocalSearchParams();
     const router = useRouter();
     const scheme = useColorScheme();
@@ -20,7 +24,7 @@ const PaymentResultPage = () => {
     const { mutateUserPrograms, mutateProgramAccessMap, isLearningPathEnrolled, getProgramAccessStatus } = useUser();
     const [isActivatingAccess, setIsActivatingAccess] = useState(false);
     const [activationMessage, setActivationMessage] = useState('Activation de vos accès en cours...');
-    const [payment, setPayment] = useState<any>(null);
+    const [payment, setPayment] = useState<ProgramPayment | null>(null);
     const [isLoadingPayment, setIsLoadingPayment] = useState(true);
 
     const result = params.result as ResultType;
@@ -45,7 +49,7 @@ const PaymentResultPage = () => {
                     await ProgramPaymentService.markAsSeen(paymentData.id);
                 }
             } catch (error) {
-                console.error('Error loading payment:', error);
+                logger.error('Error loading payment:', error);
             } finally {
                 setIsLoadingPayment(false);
             }
@@ -75,7 +79,7 @@ const PaymentResultPage = () => {
                         ? 'Votre versement a été effectué avec succès. N\'oubliez pas de payer les prochaines échéances.'
                         : 'Votre paiement a été effectué avec succès. Vous pouvez maintenant accéder au programme.',
                     icon: 'check-circle',
-                    iconColor: '#4CAF50',
+                    iconColor: getStatusColor('completed'),
                     lottieSource: require('@/assets/animations/payment-success.json'),
                 };
             case 'failed':
@@ -83,7 +87,7 @@ const PaymentResultPage = () => {
                     title: 'Paiement échoué',
                     message: errorMessage || 'Le paiement a échoué. Veuillez réessayer.',
                     icon: 'close-circle',
-                    iconColor: '#EF4444',
+                    iconColor: getStatusColor('failed'),
                     lottieSource: require('@/assets/animations/payment-failed.json'),
                 };
             case 'canceled':
@@ -91,7 +95,7 @@ const PaymentResultPage = () => {
                     title: 'Paiement annulé',
                     message: 'Vous avez annulé le paiement. Vous pouvez réessayer quand vous le souhaitez.',
                     icon: 'cancel',
-                    iconColor: '#F59E0B',
+                    iconColor: getStatusColor('canceled'),
                     lottieSource: require('@/assets/animations/payment-canceled.json'),
                 };
             default:
@@ -99,7 +103,7 @@ const PaymentResultPage = () => {
                     title: 'Statut inconnu',
                     message: 'Un problème est survenu.',
                     icon: 'help-circle',
-                    iconColor: '#6B7280',
+                    iconColor: theme.color.gray[500],
                     lottieSource: null,
                 };
         }
@@ -149,9 +153,9 @@ const PaymentResultPage = () => {
                 
                 // Vérifie si l'utilisateur est bien inscrit ET a un accès valide
                 const enrolled = isLearningPathEnrolled(pdId);
-                const accessStatus = getProgramAccessStatus(pdId);
+                const accessStatus = await getProgramAccessStatus(pdId);
                 
-                console.log(`[PaymentResult] Attempt ${attempts}/${maxAttempts} - Enrolled: ${enrolled}, HasAccess: ${accessStatus.hasAccess}`);
+                logger.log(`[PaymentResult] Attempt ${attempts}/${maxAttempts} - Enrolled: ${enrolled}, HasAccess: ${accessStatus.hasAccess}`);
                 
                 // Succès si inscrit ET accès confirmé (pas expiré)
                 if (enrolled && accessStatus.hasAccess) {
@@ -173,8 +177,9 @@ const PaymentResultPage = () => {
     };
 
     const handleRetry = () => {
-        // Go back to payment page
-        router.replace(`/(app)/learn/${pdId}/payment`);
+        // Go back to payment page with timestamp to force fresh state
+        // This prevents the redirect loop issue
+        router.replace(`/(app)/learn/${pdId}/payment?retry=${Date.now()}`);
     };
 
     return (
@@ -214,7 +219,7 @@ const PaymentResultPage = () => {
                     <MaterialCommunityIcons
                         name="book-open-variant"
                         size={24}
-                        color={isDark ? '#9CA3AF' : '#6B7280'}
+                        color={isDark ? theme.color.gray[400] : theme.color.light.text.tertiary}
                     />
                     <ThemedText style={styles.programName}>{programName}</ThemedText>
                 </View>
@@ -226,7 +231,7 @@ const PaymentResultPage = () => {
                             <TouchableOpacity
                                 style={[
                                     styles.primaryButton, 
-                                    { backgroundColor: '#4CAF50' },
+                                    { backgroundColor: getStatusColor('completed') },
                                     isActivatingAccess && styles.buttonDisabled
                                 ]}
                                 onPress={handleViewDetails}
@@ -234,12 +239,12 @@ const PaymentResultPage = () => {
                             >
                                 {isActivatingAccess ? (
                                     <>
-                                        <ActivityIndicator color="#FFFFFF" size="small" />
+                                        <ActivityIndicator color={theme.color.light.text.primary} size="small" />
                                         <Text style={styles.primaryButtonText}>Activation en cours...</Text>
                                     </>
                                 ) : (
                                     <>
-                                        <MaterialCommunityIcons name="eye" size={20} color="#FFFFFF" />
+                                        <MaterialCommunityIcons name="eye" size={20} color={theme.color.light.text.primary} />
                                         <Text style={styles.primaryButtonText}>Voir le programme</Text>
                                     </>
                                 )}
@@ -250,7 +255,7 @@ const PaymentResultPage = () => {
                                     <MaterialCommunityIcons
                                         name="clock-outline"
                                         size={20}
-                                        color={isDark ? '#60A5FA' : '#2196F3'}
+                                        color={isDark ? theme.color.info[400] : theme.color.info[500]}
                                     />
                                     <ThemedText style={styles.activationStatusText}>
                                         {activationMessage}
@@ -266,7 +271,7 @@ const PaymentResultPage = () => {
                                     <MaterialCommunityIcons 
                                         name="information" 
                                         size={20} 
-                                        color={isDark ? '#9CA3AF' : '#6B7280'} 
+                                        color={isDark ? theme.color.gray[400] : theme.color.light.text.tertiary} 
                                     />
                                     <ThemedText style={styles.secondaryButtonText}>
                                         Voir les échéances
@@ -277,10 +282,10 @@ const PaymentResultPage = () => {
                     ) : (
                         <>
                             <TouchableOpacity
-                                style={[styles.primaryButton, { backgroundColor: isDark ? '#6EE7B7' : '#4CAF50' }]}
+                                style={[styles.primaryButton, { backgroundColor: getStatusColor('completed') }]}
                                 onPress={handleRetry}
                             >
-                                <MaterialCommunityIcons name="refresh" size={20} color="#FFFFFF" />
+                                <MaterialCommunityIcons name="refresh" size={20} color={theme.color.light.text.primary} />
                                 <Text style={styles.primaryButtonText}>Réessayer</Text>
                             </TouchableOpacity>
 
@@ -291,7 +296,7 @@ const PaymentResultPage = () => {
                                 <MaterialCommunityIcons 
                                     name="arrow-left" 
                                     size={20} 
-                                    color={isDark ? '#9CA3AF' : '#6B7280'} 
+                                    color={isDark ? theme.color.gray[400] : theme.color.light.text.tertiary} 
                                 />
                                 <ThemedText style={styles.secondaryButtonText}>Retour</ThemedText>
                             </TouchableOpacity>
@@ -311,7 +316,7 @@ const PaymentResultPage = () => {
                         <MaterialCommunityIcons
                             name="alert-circle"
                             size={20}
-                            color={isDark ? '#F87171' : '#EF4444'}
+                            color={getStatusColor('failed')}
                         />
                         <ThemedText style={styles.helpText}>
                             Si le problème persiste, contactez-nous via WhatsApp ci-dessus.
@@ -321,7 +326,7 @@ const PaymentResultPage = () => {
             </ScrollView>
         </ThemedView>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {
@@ -354,7 +359,7 @@ const styles = StyleSheet.create({
     message: {
         fontSize: 16,
         textAlign: 'center',
-        color: '#6B7280',
+        color: theme.color.light.text.tertiary,
         marginBottom: 32,
         paddingHorizontal: 16,
         lineHeight: 24,
@@ -362,14 +367,14 @@ const styles = StyleSheet.create({
     programCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F3F4F6',
+        backgroundColor: theme.color.light.background.tertiary,
         padding: 16,
         borderRadius: 12,
         marginBottom: 32,
         width: '100%',
     },
     programCardDark: {
-        backgroundColor: '#374151',
+        backgroundColor: theme.color.dark.background.tertiary,
     },
     programName: {
         fontSize: 14,
@@ -396,14 +401,14 @@ const styles = StyleSheet.create({
     activationStatusCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#E0F2FE',
+        backgroundColor: theme.color.info[100],
         padding: 16,
         borderRadius: 12,
         gap: 12,
         marginTop: 8,
     },
     activationStatusCardDark: {
-        backgroundColor: '#1E3A5F',
+        backgroundColor: theme.color.dark.background.tertiary,
     },
     activationStatusText: {
         fontSize: 14,
@@ -411,7 +416,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     primaryButtonText: {
-        color: '#FFFFFF',
+        color: theme.color.light.text.primary,
         fontSize: 16,
         fontWeight: '600',
     },
@@ -422,11 +427,11 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 24,
         borderRadius: 12,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: theme.color.light.background.tertiary,
         gap: 8,
     },
     secondaryButtonDark: {
-        backgroundColor: '#374151',
+        backgroundColor: theme.color.dark.background.tertiary,
     },
     secondaryButtonText: {
         fontSize: 16,
@@ -435,19 +440,17 @@ const styles = StyleSheet.create({
     helpSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FEF3C7',
+        backgroundColor: 'rgba(251, 191, 36, 0.12)',
         padding: 16,
         borderRadius: 12,
         marginTop: 24,
         gap: 12,
     },
     helpSectionDark: {
-        backgroundColor: '#78350F',
+        backgroundColor: theme.color.dark.background.tertiary,
     },
     helpText: {
         fontSize: 14,
         flex: 1,
     },
 });
-
-export default PaymentResultPage;

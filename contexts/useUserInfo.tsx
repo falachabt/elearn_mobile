@@ -53,7 +53,7 @@ type UserContextType = {
   mutateUserPrograms: () => Promise<LearningPaths[] | undefined>;
   isLearningPathEnrolled: (learningPathId: string) => boolean;
   isSecondaryProgramEnrolled: (programId: string) => boolean;
-  getProgramAccessStatus: (learningPathId: string) => ProgramAccessStatus;
+  getProgramAccessStatus: (learningPathId: string) => Promise<ProgramAccessStatus>;
   mutateProgramAccessMap: () => Promise<ProgramAccessMap | undefined>;
 };
 
@@ -330,56 +330,56 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       ?.map((p) => p?.concours_learningpaths?.id)
       .filter((id): id is string => !!id) || [];
 
-  // Mapping d'accès aux programmes via SWR
+  // Mapping d'accès aux programmes via SWR - Optimisé avec enrollments
+  // ✨ IMPORTANT: Indépendant de programIds pour éviter les race conditions
+  // Charge TOUS les enrollments de l'utilisateur, pas seulement ceux dans programIds
   const { data: programAccessMap, mutate: mutateProgramAccessMap } = useSWR<
     Record<string, ProgramAccessStatus>
   >(
-    programIds.length > 0 ? `program-access-map-${programIds.join(",")}` : null,
+    authUser?.id ? `program-access-map-${authUser.id}` : null,
     async () => {
-      logger.log('[UserContext] Fetching access status for', programIds.length, 'programs in parallel...');
+      logger.log('[UserContext] Fetching ALL user enrollments for access map...');
       const startTime = Date.now();
       
-      // ✨ PARALLÉLISATION : Tous les appels en même temps au lieu d'en série
-      const paymentPromises = programIds.map(async (programId) => {
-        if (!programId) return null;
-        
-        try {
-          const payment = await ProgramPaymentService.getLatestPayment(programId);
-          if (!payment) {
-            return { programId, status: { hasAccess: false, isExpired: false } };
-          }
-          
-          const now = new Date();
-          const expiryDate = new Date(payment.expiry_date);
-          const isExpired = now > expiryDate;
-          
-          return {
-            programId,
-            status: {
-              hasAccess: !isExpired,
-              isExpired,
-              expiryDate: payment.expiry_date,
-            }
-          };
-        } catch (error) {
-          logger.error('[UserContext] Error fetching payment for program', programId, error);
-          return { programId, status: { hasAccess: false, isExpired: false } };
-        }
-      });
+      if (!authUser?.id) {
+        return {};
+      }
       
-      // Attendre tous les appels en parallèle
-      const results = await Promise.all(paymentPromises);
+      // ✨ OPTIMISATION: Récupérer TOUS les enrollments de l'utilisateur en une seule requête
+      // Ne plus filtrer par programIds pour éviter les race conditions quand un nouvel
+      // enrollment est créé mais que userPrograms n'a pas encore été mis à jour
+      const { data: enrollments, error } = await supabase
+        .from('user_program_enrollments')
+        .select('program_id, expiry_date')
+        .eq('user_id', authUser.id);
       
-      // Construire le map
+      if (error) {
+        logger.error('[UserContext] Error fetching enrollments:', error);
+        return {};
+      }
+      
+      // Construire le map d'accès pour TOUS les enrollments trouvés
       const accessMap: Record<string, ProgramAccessStatus> = {};
-      results.forEach(result => {
-        if (result) {
-          accessMap[result.programId] = result.status;
-        }
+      const now = new Date();
+      
+      logger.log(`[UserContext] Found ${enrollments?.length || 0} total enrollments`);
+      
+      enrollments?.forEach(enrollment => {
+        const programId = enrollment.program_id.toString();
+        const expiryDate = new Date(enrollment.expiry_date);
+        const isExpired = now > expiryDate;
+        
+        accessMap[programId] = {
+          hasAccess: !isExpired,
+          isExpired,
+          expiryDate: enrollment.expiry_date,
+        };
+        logger.log(`[UserContext] Program ${programId}: hasAccess=${!isExpired}, isExpired=${isExpired}, expiry=${enrollment.expiry_date}`);
       });
       
       const duration = Date.now() - startTime;
       logger.log(`[UserContext] Program access map loaded in ${duration}ms:`, Object.keys(accessMap).length, 'programs');
+      logger.log(`[UserContext] Access map keys:`, Object.keys(accessMap));
       
       return accessMap;
     },
@@ -391,19 +391,72 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Nouvelle fonction utilitaire pour obtenir le statut d'accès d'un programme - mémorisée
-  const getProgramAccessStatus = useCallback((
+  // Synchronous version for component-level usage (returns cached result only)
+  const getProgramAccessStatusSync = useCallback((
     learningPathId: string
   ): ProgramAccessStatus => {
     const userProgram = userPrograms?.find(
       (program) => program.id === learningPathId
     );
     const programId = userProgram?.concours_learningpaths?.id;
-    if (!programId || !programAccessMap) {
+    
+    if (!programAccessMap || !programId) {
       return { hasAccess: false, isExpired: false };
     }
-    return (
-      programAccessMap[programId] || { hasAccess: false, isExpired: false }
+    
+    return programAccessMap[programId] || { hasAccess: false, isExpired: false };
+  }, [userPrograms, programAccessMap]);
+
+  // Async version with DB fallback for programId lookup (for payment flows)
+  const getProgramAccessStatus = useCallback(async (
+    learningPathId: string
+  ): Promise<ProgramAccessStatus> => {
+    let programId: string | undefined;
+    
+    // Try to get programId from userPrograms first (fast path)
+    const userProgram = userPrograms?.find(
+      (program) => program.id === learningPathId
     );
+    programId = userProgram?.concours_learningpaths?.id;
+    
+    // If not found in userPrograms, query database directly (fallback for race condition)
+    if (!programId) {
+      logger.log(`[UserContext] getProgramAccessStatus - programId not in userPrograms, querying DB directly for learningPathId: ${learningPathId}`);
+      
+      try {
+        const { data, error } = await supabase
+          .from('learning_paths')
+          .select('concours_id')
+          .eq('id', learningPathId)
+          .single();
+        
+        if (!error && data) {
+          programId = data.concours_id?.toString();
+          logger.log(`[UserContext] getProgramAccessStatus - found programId from DB: ${programId}`);
+        } else {
+          logger.error(`[UserContext] getProgramAccessStatus - DB query error:`, error);
+        }
+      } catch (err) {
+        logger.error(`[UserContext] getProgramAccessStatus - exception:`, err);
+      }
+    }
+    
+    logger.log(`[UserContext] getProgramAccessStatus - learningPathId: ${learningPathId}, programId: ${programId}, hasMap: ${!!programAccessMap}`);
+    
+    if (!programAccessMap) {
+      logger.log(`[UserContext] getProgramAccessStatus - no access map yet`);
+      return { hasAccess: false, isExpired: false };
+    }
+    
+    if (!programId) {
+      logger.log(`[UserContext] getProgramAccessStatus - no programId found`);
+      return { hasAccess: false, isExpired: false };
+    }
+    
+    const status = programAccessMap[programId] || { hasAccess: false, isExpired: false };
+    logger.log(`[UserContext] getProgramAccessStatus - programId ${programId} status:`, status);
+    
+    return status;
   }, [userPrograms, programAccessMap]);
 
   // Nouvelle version de isLearningPathEnrolled - mémorisée pour éviter re-renders en boucle
