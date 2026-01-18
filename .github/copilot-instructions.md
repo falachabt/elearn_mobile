@@ -277,6 +277,65 @@ class CourseCard extends React.Component {
 }
 ```
 
+### Composants courts et maintenables
+**LIMITER** la taille des composants. Un composant ne devrait pas dépasser 200-300 lignes.
+
+```typescript
+// ✅ BON - Composant découpé en sous-composants
+const CourseDetails = ({ course }: { course: Course }) => {
+    return (
+        <View>
+            <CourseHeader course={course} />
+            <CourseContent sections={course.sections} />
+            <CourseActions courseId={course.id} />
+        </View>
+    );
+};
+
+const CourseHeader: FC<{ course: Course }> = ({ course }) => {
+    return (
+        <View>
+            <Text>{course.title}</Text>
+            <Text>{course.description}</Text>
+        </View>
+    );
+};
+
+// ❌ MAUVAIS - Tout dans un seul composant de 500+ lignes
+const CourseDetails = ({ course }: { course: Course }) => {
+    return (
+        <View>
+            {/* 500 lignes de code ici... */}
+        </View>
+    );
+};
+```
+
+### Principe de responsabilité unique
+Chaque composant doit avoir **une seule responsabilité**.
+
+```typescript
+// ✅ BON - Séparation des responsabilités
+const UserProfile = () => {
+    const { user } = useAuth();
+    const { courses } = useUserCourses(user.id);
+    
+    return (
+        <View>
+            <UserAvatar user={user} />
+            <UserStats courses={courses} />
+            <CourseList courses={courses} />
+        </View>
+    );
+};
+
+// ❌ MAUVAIS - Trop de responsabilités
+const UserProfile = () => {
+    // Gestion auth + fetch data + render + logique métier
+    // 400 lignes de code...
+};
+```
+
 ### Règles des Hooks
 - Pas d'appels conditionnels de hooks
 - Hooks au début du composant
@@ -355,17 +414,31 @@ const MyComponent = () => {
 
 Avant de soumettre du code, vérifier:
 
+### Types et Données
 - [ ] Types importés depuis `@/types/supabase` (pas de nouveaux types dupliqués)
 - [ ] Hooks SWR utilisés pour data fetching (pas de useState + useEffect)
 - [ ] Clés SWR de `@/constants/swr-path.ts`
-- [ ] Logger `@/utils/logger` (pas de console.log)
+
+### Style et Thème
 - [ ] Thème de `@/constants/theme.ts` (pas de couleurs en dur)
 - [ ] Support dark mode avec `useThemeColor` ou `useColorScheme`
+
+### Logging et Storage
+- [ ] Logger `@/utils/logger` (pas de console.log)
 - [ ] Clés storage de `@/constants/storage-keys.ts`
+
+### Architecture
 - [ ] Services dans `@/services/` pour logique complexe
 - [ ] Composants fonctionnels avec TypeScript
 - [ ] Props typées avec interfaces
 - [ ] Hooks correctement utilisés (pas de conditions)
+
+### Maintenabilité
+- [ ] Composant < 300 lignes (sinon découper)
+- [ ] Une seule responsabilité par composant
+- [ ] Pas de code dupliqué (DRY principle)
+- [ ] Logique complexe extraite dans hooks/services
+- [ ] Composants réutilisables dans `/components/shared` ou `/components/ui`
 
 ---
 
@@ -386,6 +459,87 @@ Avant de soumettre du code, vérifier:
 ---
 
 ## 🚀 Bonnes Pratiques Supplémentaires
+
+### Code Maintenable et Réutilisable
+
+#### Extraire la logique complexe
+```typescript
+// ✅ BON - Logique extraite dans un hook custom
+const useEnrollmentLogic = (courseId: string) => {
+    const { user } = useAuth();
+    const [isEnrolling, setIsEnrolling] = useState(false);
+    
+    const enroll = async () => {
+        setIsEnrolling(true);
+        try {
+            await CourseService.enrollUser(user.id, courseId);
+            triggerHaptic(HapticType.SUCCESS);
+        } catch (error) {
+            logger.error('Enrollment failed:', error);
+        } finally {
+            setIsEnrolling(false);
+        }
+    };
+    
+    return { enroll, isEnrolling };
+};
+
+// Dans le composant
+const EnrollButton = ({ courseId }) => {
+    const { enroll, isEnrolling } = useEnrollmentLogic(courseId);
+    return <Button onPress={enroll} loading={isEnrolling}>S'inscrire</Button>;
+};
+
+// ❌ MAUVAIS - Toute la logique dans le composant
+const EnrollButton = ({ courseId }) => {
+    // 50 lignes de logique métier ici...
+};
+```
+
+#### Composants réutilisables dans `/components/shared` ou `/components/ui`
+```typescript
+// ✅ BON - Composant réutilisable générique
+// components/shared/Card.tsx
+export const Card: FC<CardProps> = ({ children, style }) => {
+    const backgroundColor = useThemeColor({}, 'background');
+    return <View style={[styles.card, { backgroundColor }, style]}>{children}</View>;
+};
+
+// Utilisation
+<Card>
+    <CourseInfo course={course} />
+</Card>
+
+// ❌ MAUVAIS - Dupliquer le même composant partout
+const CourseCard = () => <View style={styles.card}>...</View>;
+const QuizCard = () => <View style={styles.card}>...</View>;
+const ProfileCard = () => <View style={styles.card}>...</View>;
+```
+
+#### Éviter la duplication de code (DRY - Don't Repeat Yourself)
+```typescript
+// ✅ BON - Fonction utilitaire réutilisable
+// utils/date.ts
+export const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('fr-FR');
+};
+
+// ❌ MAUVAIS - Même logique répétée partout
+const Component1 = () => {
+    const formatted = new Date(date).toLocaleDateString('fr-FR');
+};
+const Component2 = () => {
+    const formatted = new Date(date).toLocaleDateString('fr-FR');
+};
+```
+
+#### Limites de taille recommandées
+- **Composant**: Max 200-300 lignes
+- **Hook**: Max 100-150 lignes
+- **Service**: Max 200-300 lignes par fichier
+- **Fonction**: Max 50 lignes
+
+Si dépassé → **Découper en sous-composants/fonctions**
 
 ### Performance
 - Utiliser `React.memo` pour les composants lourds
