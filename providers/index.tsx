@@ -325,7 +325,8 @@ export function Provider({children}: { children: React.ReactNode }) {
     useEffect(() => {
         // Initialize Amplitude with the API key
         amplitude.init('7487f52aac24f10f8ffd12ff25f4f48a', undefined, {
-            serverZone: 'EU'  // ← OBLIGATOIRE
+            serverZone: 'EU',  // ← OBLIGATOIRE
+            disableCookies: Platform.OS !== 'web',  // Cookies uniquement sur web, désactivés sur mobile
         });
     }, []);
 
