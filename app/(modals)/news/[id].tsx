@@ -10,7 +10,9 @@ import {
   Platform,
   TouchableOpacity,
   Modal,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -56,20 +58,22 @@ export default function NewsDetailsScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, isDark && styles.containerDark, styles.centered]}>
+      <SafeAreaView style={[styles.container, isDark && styles.containerDark, styles.centered]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         <ActivityIndicator size="large" color={theme.color.primary[500]} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!news) {
     return (
-      <View style={[styles.container, isDark && styles.containerDark, styles.centered]}>
+      <SafeAreaView style={[styles.container, isDark && styles.containerDark, styles.centered]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         <MaterialCommunityIcons name="alert-circle" size={48} color={isDark ? '#666' : '#CCC'} />
         <Text style={[styles.errorText, isDark && styles.errorTextDark]}>
           Actualité introuvable
         </Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -132,7 +136,8 @@ export default function NewsDetailsScreen() {
   };
 
   return (
-    <View style={[styles.container, isDark && styles.containerDark]}>
+    <SafeAreaView style={[styles.container, isDark && styles.containerDark]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View style={[styles.headerBar, isDark && styles.headerBarDark]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={isDark ? '#FFFFFF' : '#000000'} />
@@ -213,7 +218,7 @@ export default function NewsDetailsScreen() {
           />
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -230,8 +235,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
