@@ -30,7 +30,7 @@ export const PaymentProcessing: FC<PaymentProcessingProps> = ({
       <View style={styles.processingContainer}>
         <ActivityIndicator
           size="large"
-          color={isDark ? theme.color.success[300] : theme.color.success[500]}
+          color={isDark ? theme.color.primary[300] : theme.color.primary[500]}
         />
         <ThemedText style={styles.processingText}>
           Initialisation du paiement...
@@ -107,13 +107,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderWidth: 1,
-    borderColor: theme.color.error[500],
+    borderColor: theme.color.error,
     borderRadius: 8,
   },
   cancelButtonText: {
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
-    color: theme.color.error[500],
+    color: theme.color.error,
     fontWeight: "500",
   },
   verifyingContainer: {

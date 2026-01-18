@@ -161,7 +161,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
               name={!isInstallment ? "radiobox-marked" : "radiobox-blank"}
               size={24}
               color={
-                !isInstallment ? (isDark ? theme.color.success[300] : theme.color.success[500]) : theme.color.gray[400]
+                !isInstallment ? (isDark ? theme.color.primary[300] : theme.color.primary[500]) : theme.color.gray[400]
               }
             />
             <View style={styles.paymentTypeTextContainer}>
@@ -185,7 +185,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
               name={isInstallment ? "radiobox-marked" : "radiobox-blank"}
               size={24}
               color={
-                isInstallment ? (isDark ? theme.color.success[300] : theme.color.success[500]) : theme.color.gray[400]
+                isInstallment ? (isDark ? theme.color.primary[300] : theme.color.primary[500]) : theme.color.gray[400]
               }
             />
             <View style={styles.paymentTypeTextContainer}>
@@ -299,7 +299,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
               <MaterialCommunityIcons
                 name="tag-check"
                 size={20}
-                color={isDark ? theme.color.success[300] : theme.color.success[500]}
+                color={isDark ? theme.color.primary[300] : theme.color.primary[500]}
               />
               <ThemedText style={styles.promoCodeValidText}>
                 Code promo valide: {promoCodeDetails.discount_percentage}% de
@@ -325,7 +325,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
               styles.paymentMethodButton,
               isDark && { backgroundColor: theme.color.dark.background.secondary, borderColor: theme.color.gray[600] },
               {
-                backgroundColor: isDark ? theme.color.success[600] : theme.color.success[500],
+                backgroundColor: isDark ? theme.color.primary[600] : theme.color.primary[500],
                 opacity: isLoading || !phoneNumber.trim() ? 0.5 : 1,
               },
             ]}
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 18,
     fontWeight: "600",
-    color: theme.color.success[500],
+    color: theme.color.primary[500],
   },
   paymentTypeContainer: {
     backgroundColor: "#FFFFFF",
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   installmentButtonSelected: {
-    borderColor: theme.color.success[500],
+    borderColor: theme.color.primary[500],
     backgroundColor: "rgba(76, 175, 80, 0.1)",
   },
   installmentButtonText: {
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     color: theme.color.gray[600],
   },
   installmentButtonTextSelected: {
-    color: theme.color.success[500],
+    color: theme.color.primary[500],
   },
   inputContainer: {
     marginBottom: 16,
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.warning[500],
   },
   validButton: {
-    backgroundColor: theme.color.success[500],
+    backgroundColor: theme.color.primary[500],
   },
   invalidButton: {
     backgroundColor: theme.color.error[500],
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   promoCodeValidText: {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
-    color: theme.color.success[500],
+    color: theme.color.primary[500],
     marginLeft: 8,
   },
   promoCodeErrorText: {

@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   continueButton: {
-    backgroundColor: theme.color.success[500],
+    backgroundColor: theme.color.primary[500],
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,

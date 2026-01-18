@@ -12,7 +12,6 @@ import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/contexts/useUserInfo";
 import { logger } from "@/utils/logger";
-
 import {
   PaymentInstructions,
   PaymentOptions,
@@ -20,11 +19,8 @@ import {
   PaymentProcessing,
   InstallmentDetails,
 } from "@/components/payment";
-
 import { PaymentFlowState, ProgramPayment, PromoCodeDetails, PaymentContextData } from "@/types/payment.types";
 import { MESSAGE_ROTATION_INTERVAL } from "@/constants/payment.constants";
-import { ProgramUtilsService } from "@/services/program-utils.service";
-import { NotificationService } from "@/services/notification.service";
 
 const ProgramPaymentPage = () => {
   const local = useLocalSearchParams();
