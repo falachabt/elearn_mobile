@@ -331,58 +331,50 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       .filter((id): id is string => !!id) || [];
 
   // Mapping d'accès aux programmes via SWR - Optimisé avec enrollments
+  // ✨ IMPORTANT: Indépendant de programIds pour éviter les race conditions
+  // Charge TOUS les enrollments de l'utilisateur, pas seulement ceux dans programIds
   const { data: programAccessMap, mutate: mutateProgramAccessMap } = useSWR<
     Record<string, ProgramAccessStatus>
   >(
-    programIds.length > 0 ? `program-access-map-${programIds.join(",")}` : null,
+    userId ? `program-access-map-${userId}` : null,
     async () => {
-      logger.log('[UserContext] Fetching access status for', programIds.length, 'programs in parallel...');
+      logger.log('[UserContext] Fetching ALL user enrollments for access map...');
       const startTime = Date.now();
       
       if (!userId) {
         return {};
       }
       
-      // ✨ OPTIMISATION: Récupérer tous les enrollments en une seule requête
-      // Maintenant que user_program_enrollments contient expiry_date, on n'a plus besoin
-      // de faire N requêtes pour les paiements
+      // ✨ OPTIMISATION: Récupérer TOUS les enrollments de l'utilisateur en une seule requête
+      // Ne plus filtrer par programIds pour éviter les race conditions quand un nouvel
+      // enrollment est créé mais que userPrograms n'a pas encore été mis à jour
       const { data: enrollments, error } = await supabase
         .from('user_program_enrollments')
         .select('program_id, expiry_date')
-        .eq('user_id', userId)
-        .in('program_id', programIds.map(id => parseInt(id, 10)));
+        .eq('user_id', userId);
       
       if (error) {
         logger.error('[UserContext] Error fetching enrollments:', error);
         return {};
       }
       
-      // Construire le map d'accès
+      // Construire le map d'accès pour TOUS les enrollments trouvés
       const accessMap: Record<string, ProgramAccessStatus> = {};
       const now = new Date();
       
-      logger.log(`[UserContext] Building access map for programIds:`, programIds);
-      logger.log(`[UserContext] Found ${enrollments?.length || 0} enrollments`);
+      logger.log(`[UserContext] Found ${enrollments?.length || 0} total enrollments`);
       
-      programIds.forEach(programId => {
-        const enrollment = enrollments?.find(e => e.program_id === parseInt(programId, 10));
+      enrollments?.forEach(enrollment => {
+        const programId = enrollment.program_id.toString();
+        const expiryDate = new Date(enrollment.expiry_date);
+        const isExpired = now > expiryDate;
         
-        if (!enrollment) {
-          // Pas d'enrollment = pas d'accès
-          accessMap[programId] = { hasAccess: false, isExpired: false };
-          logger.log(`[UserContext] No enrollment for program ${programId}`);
-        } else {
-          // Vérifier si l'enrollment est expiré
-          const expiryDate = new Date(enrollment.expiry_date);
-          const isExpired = now > expiryDate;
-          
-          accessMap[programId] = {
-            hasAccess: !isExpired,
-            isExpired,
-            expiryDate: enrollment.expiry_date,
-          };
-          logger.log(`[UserContext] Program ${programId}: hasAccess=${!isExpired}, isExpired=${isExpired}, expiry=${enrollment.expiry_date}`);
-        }
+        accessMap[programId] = {
+          hasAccess: !isExpired,
+          isExpired,
+          expiryDate: enrollment.expiry_date,
+        };
+        logger.log(`[UserContext] Program ${programId}: hasAccess=${!isExpired}, isExpired=${isExpired}, expiry=${enrollment.expiry_date}`);
       });
       
       const duration = Date.now() - startTime;
