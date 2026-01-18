@@ -205,15 +205,29 @@ const ProgramPaymentPage = () => {
       return;
     }
     
-    // Only navigate if we have a matching payment reference
-    if (!latestPayment?.payment_reference) {
-      logger.log('[Payment] No payment reference in latestPayment, skipping navigation');
-      return;
+    // Check if we should navigate based on payment reference
+    // For final statuses (completed, failed, canceled), we can navigate even if latestPayment is not yet loaded
+    const isFinalStatus = paymentStatus === "successful" || paymentStatus === "completed" || 
+                          paymentStatus === "failed" || paymentStatus === "canceled";
+    
+    if (!isFinalStatus) {
+      // For non-final statuses, we need latestPayment to match
+      if (!latestPayment?.payment_reference) {
+        logger.log('[Payment] No payment reference in latestPayment (non-final status), skipping navigation');
+        return;
+      }
+      if (latestPayment.payment_reference !== currentTrxReference) {
+        logger.log('[Payment] Payment reference mismatch:', latestPayment.payment_reference, 'vs', currentTrxReference);
+        return;
+      }
+    } else {
+      // For final statuses, check if latestPayment exists and matches, or just use currentTrxReference
+      if (latestPayment?.payment_reference && latestPayment.payment_reference !== currentTrxReference) {
+        logger.log('[Payment] Payment reference mismatch (final status):', latestPayment.payment_reference, 'vs', currentTrxReference);
+        return;
+      }
     }
-    if (latestPayment.payment_reference !== currentTrxReference) {
-      logger.log('[Payment] Payment reference mismatch:', latestPayment.payment_reference, 'vs', currentTrxReference);
-      return;
-    }
+    
     if (latestPayment?.has_seen_result === true) {
       logger.log('[Payment] Payment already seen, skipping navigation');
       return;
