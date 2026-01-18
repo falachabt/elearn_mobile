@@ -376,80 +376,92 @@ export const ProgramPaymentService = {
 
   async checkProgramAccess(programId: string): Promise<boolean> {
     const user = (await supabase.auth.getUser()).data.user;
-    if (!user) return false;
-
+    if (!user) {
+      logger.warn('[checkProgramAccess] No authenticated user');
+      return false;
+    }
 
     // Convert programId to a number if it's a string
     const numericProgramId = parseInt(programId, 10);
 
     if (isNaN(numericProgramId)) {
-      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`[checkProgramAccess] Invalid program ID: ${programId}. Expected a numeric ID.`);
       return false;
     }
 
     // Check if user is enrolled in the program
     const { data: enrollmentData, error: enrollmentError } = await supabase
       .from('user_program_enrollments')
-      .select('id')
+      .select('id, expiry_date')
       .eq('user_id', user.id)
       .eq('program_id', numericProgramId)
       .limit(1);
 
     if (enrollmentError) {
-      logger.error('Error checking program enrollment:', enrollmentError);
+      logger.error('[checkProgramAccess] Error checking program enrollment:', enrollmentError);
       return false;
     }
 
-    // If user is enrolled, check if they have a valid payment
-    if (enrollmentData && enrollmentData.length > 0) {
-      // Get the latest payment for this program
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('user_program_payments')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('program_id', numericProgramId)
-        .eq('payment_status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(1);
+    // If user is not enrolled, no access
+    if (!enrollmentData || enrollmentData.length === 0) {
+      logger.info(`[checkProgramAccess] User not enrolled in program ${programId}`);
+      return false;
+    }
 
-      if (paymentError) {
-        logger.error('Error checking program payment:', paymentError);
-        return false;
-      }
-
-      // If no payment found, user doesn't have access
-      if (!paymentData || paymentData.length === 0) {
-        return false;
-      }
-
-      const payment = paymentData[0];
-
-      // Check if payment is expired
+    // User is enrolled - check if enrollment is expired
+    const enrollment = enrollmentData[0];
+    if (enrollment.expiry_date) {
       const now = new Date();
-      const expiryDate = new Date(payment.expiry_date);
+      const expiryDate = new Date(enrollment.expiry_date);
       if (now > expiryDate) {
+        logger.info(`[checkProgramAccess] Enrollment expired for program ${programId}`);
         return false;
       }
+    }
 
-      // For installment payments, check if next payment is overdue
-      if (payment.is_installment && payment.next_payment_due_date) {
-        const nextPaymentDueDate = new Date(payment.next_payment_due_date);
+    // Get the latest payment for this program to check for installment status
+    const { data: paymentData, error: paymentError } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('program_id', numericProgramId)
+      .eq('payment_status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-        // If next payment is overdue by more than 2 days, restrict access
-        const gracePeriod = 2; // 2 days grace period
-        const gracePeriodDate = new Date(nextPaymentDueDate);
-        gracePeriodDate.setDate(gracePeriodDate.getDate() + gracePeriod);
+    if (paymentError) {
+      logger.error('[checkProgramAccess] Error checking program payment:', paymentError);
+      return false;
+    }
 
-        if (now > gracePeriodDate && payment.current_installment < payment.total_installments) {
-          return false;
-        }
-      }
-
-      // If we got here, user has valid access
+    // If no payment found but user is enrolled, still give access
+    // This handles the case where enrollment was created by trigger
+    if (!paymentData || paymentData.length === 0) {
+      logger.info(`[checkProgramAccess] No payment found but user is enrolled in program ${programId}, granting access`);
       return true;
     }
 
-    return false;
+    const payment = paymentData[0];
+
+    // For installment payments, check if next payment is overdue
+    if (payment.is_installment && payment.next_payment_due_date) {
+      const nextPaymentDueDate = new Date(payment.next_payment_due_date);
+      const now = new Date();
+
+      // If next payment is overdue by more than 2 days, restrict access
+      const gracePeriod = 2; // 2 days grace period
+      const gracePeriodDate = new Date(nextPaymentDueDate);
+      gracePeriodDate.setDate(gracePeriodDate.getDate() + gracePeriod);
+
+      if (now > gracePeriodDate && payment.current_installment < payment.total_installments) {
+        logger.info(`[checkProgramAccess] Installment payment overdue for program ${programId}`);
+        return false;
+      }
+    }
+
+    // If we got here, user has valid access
+    logger.info(`[checkProgramAccess] Access granted for program ${programId}`);
+    return true;
   },
 
   async getActivePayment(programId: string): Promise<ProgramPayment | null> {
