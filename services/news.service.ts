@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/utils/logger';
 import type {
   News,
   GetActiveNewsParams,
@@ -50,13 +51,13 @@ export const getActiveNews = async (params: GetActiveNewsParams): Promise<News[]
     const { data, error } = await query;
 
     if (error) {
-      console.error('[News Service] Error fetching active news:', error);
+      logger.error('[News Service] Error fetching active news:', error);
       throw error;
     }
 
     return data || [];
   } catch (error) {
-    console.error('[News Service] Exception in getActiveNews:', error);
+    logger.error('[News Service] Exception in getActiveNews:', error);
     throw error;
   }
 };
@@ -73,13 +74,13 @@ export const getNewsById = async (newsId: string): Promise<News | null> => {
       .single();
 
     if (error) {
-      console.error('[News Service] Error fetching news by ID:', error);
+      logger.error('[News Service] Error fetching news by ID:', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('[News Service] Exception in getNewsById:', error);
+    logger.error('[News Service] Exception in getNewsById:', error);
     return null;
   }
 };
@@ -91,6 +92,25 @@ export const recordNewsView = async (params: RecordNewsViewParams): Promise<void
   const { newsId, userId, sessionId, deviceInfo } = params;
 
   try {
+    // Vérifier si l'utilisateur a déjà vu cette news
+    const { data: existingViews, error: checkError } = await supabase
+      .from('news_views')
+      .select('id')
+      .eq('news_id', newsId)
+      .eq('user_id', userId)
+      .limit(1);
+
+    if (checkError) {
+      logger.error('[News Service] Error checking existing view:', checkError);
+      return;
+    }
+
+    // Si une vue existe déjà, ne pas enregistrer à nouveau
+    if (existingViews && existingViews.length > 0) {
+      logger.log('[News Service] User has already viewed this news, skipping view recording');
+      return;
+    }
+
     // Insérer la vue directement
     const { error: insertError } = await supabase
       .from('news_views')
@@ -103,7 +123,7 @@ export const recordNewsView = async (params: RecordNewsViewParams): Promise<void
       });
 
     if (insertError) {
-      console.error('[News Service] Error inserting news view:', insertError);
+      logger.error('[News Service] Error inserting news view:', insertError);
       return;
     }
 
@@ -122,7 +142,7 @@ export const recordNewsView = async (params: RecordNewsViewParams): Promise<void
         .eq('id', newsId);
     }
   } catch (error) {
-    console.error('[News Service] Exception in recordNewsView:', error);
+    logger.error('[News Service] Exception in recordNewsView:', error);
     // Ne pas throw pour ne pas bloquer l'UI
   }
 };
@@ -148,7 +168,7 @@ export const recordNewsInteraction = async (
       });
 
     if (insertError) {
-      console.error('[News Service] Error inserting news interaction:', insertError);
+      logger.error('[News Service] Error inserting news interaction:', insertError);
       return;
     }
 
@@ -173,7 +193,7 @@ export const recordNewsInteraction = async (
       }
     }
   } catch (error) {
-    console.error('[News Service] Exception in recordNewsInteraction:', error);
+    logger.error('[News Service] Exception in recordNewsInteraction:', error);
     // Ne pas throw pour ne pas bloquer l'UI
   }
 };
@@ -188,13 +208,13 @@ export const getNewsStatistics = async (newsId: string): Promise<NewsStatistics 
     });
 
     if (error) {
-      console.error('[News Service] Error fetching news statistics:', error);
+      logger.error('[News Service] Error fetching news statistics:', error);
       throw error;
     }
 
     return data?.[0] || null;
   } catch (error) {
-    console.error('[News Service] Exception in getNewsStatistics:', error);
+    logger.error('[News Service] Exception in getNewsStatistics:', error);
     return null;
   }
 };
