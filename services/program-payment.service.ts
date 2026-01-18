@@ -565,7 +565,7 @@ export const ProgramPaymentService = {
       .select('*')
       .eq('user_id', user.id)
       .eq('program_id', numericProgramId)
-      .order('created_at', { ascending: false});
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error getting all program payments:', error);

@@ -1,4 +1,4 @@
-import React, { useState, FC } from "react";
+import React, { useState, useEffect, FC } from "react";
 import {
   View,
   Text,
@@ -50,6 +50,16 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
   const [promoCodeError, setPromoCodeError] = useState<string | null>(null);
   const [isInstallment, setIsInstallment] = useState(false);
   const [totalInstallments, setTotalInstallments] = useState(4);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Get current user ID once on mount
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data } = await supabase.auth.getUser();
+      setCurrentUserId(data.user?.id || null);
+    };
+    getUserId();
+  }, []);
 
   const displayAmount = () => {
     if (isInstallment) {
@@ -68,9 +78,8 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
 
     setPromoCodeStatus("verifying");
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (user?.user?.id) {
-        const hasUsedPromo = await PromoCodeService.checkPromoCodeUsage(user.user.id);
+      if (currentUserId) {
+        const hasUsedPromo = await PromoCodeService.checkPromoCodeUsage(currentUserId);
         
         if (hasUsedPromo) {
           setPromoCodeStatus("invalid");
