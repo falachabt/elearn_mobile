@@ -802,12 +802,13 @@ export const ProgramPaymentService = {
 
               // Only create enrollment for the first installment
               if (payment.current_installment === 1) {
-                // Create enrollment record
+                // Create enrollment record with expiry_date
                 const { error: enrollmentError } = await supabase
                   .from('user_program_enrollments')
                   .insert({
                     user_id: payment.user_id,
-                    program_id: payment.program_id
+                    program_id: payment.program_id,
+                    expiry_date: payment.expiry_date
                   });
 
                 if (enrollmentError) {
@@ -815,12 +816,13 @@ export const ProgramPaymentService = {
                 }
               }
             } else {
-              // For one-time payments, create enrollment record
+              // For one-time payments, create enrollment record with expiry_date
               const { error: enrollmentError } = await supabase
                 .from('user_program_enrollments')
                 .insert({
                   user_id: payment.user_id,
-                  program_id: payment.program_id
+                  program_id: payment.program_id,
+                  expiry_date: payment.expiry_date
                 });
 
               if (enrollmentError) {

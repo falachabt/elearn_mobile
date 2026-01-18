@@ -188,14 +188,41 @@ const ProgramPaymentPage = () => {
     const isVerifying = currentState === PaymentFlowState.VERIFYING || 
                         currentState === PaymentFlowState.NEXT_PAYMENT_VERIFYING;
     
-    if (!isVerifying || !programContext.programId || !programContext.programName) return;
-    if (shouldIgnoreOldStatus || !currentTrxReference) return;
-    if (!latestPayment?.payment_reference || latestPayment.payment_reference !== currentTrxReference) return;
-    if (latestPayment?.has_seen_result === true) return;
+    if (!isVerifying) {
+      logger.log('[Payment] Not verifying, skipping navigation check');
+      return;
+    }
+    if (!programContext.programId || !programContext.programName) {
+      logger.log('[Payment] Missing program context, skipping navigation');
+      return;
+    }
+    if (shouldIgnoreOldStatus) {
+      logger.log('[Payment] Ignoring old status, skipping navigation');
+      return;
+    }
+    if (!currentTrxReference) {
+      logger.log('[Payment] No current transaction reference, skipping navigation');
+      return;
+    }
     
-    logger.log('[Payment] Processing status:', paymentStatus);
+    // Only navigate if we have a matching payment reference
+    if (!latestPayment?.payment_reference) {
+      logger.log('[Payment] No payment reference in latestPayment, skipping navigation');
+      return;
+    }
+    if (latestPayment.payment_reference !== currentTrxReference) {
+      logger.log('[Payment] Payment reference mismatch:', latestPayment.payment_reference, 'vs', currentTrxReference);
+      return;
+    }
+    if (latestPayment?.has_seen_result === true) {
+      logger.log('[Payment] Payment already seen, skipping navigation');
+      return;
+    }
+    
+    logger.log('[Payment] All checks passed, processing status:', paymentStatus);
 
     if (paymentStatus === "successful" || paymentStatus === "completed") {
+      logger.log('[Payment] Navigating to success page');
       stopStatusCheck();
       router.replace({
         pathname: "/learn/[pdId]/payment-result",
@@ -234,7 +261,7 @@ const ProgramPaymentPage = () => {
         },
       });
     }
-  }, [paymentStatus, programContext, errorMessage, authorizationUrl, currentTrxReference, currentState, shouldIgnoreOldStatus]);
+  }, [paymentStatus, programContext, errorMessage, authorizationUrl, currentTrxReference, currentState, shouldIgnoreOldStatus, latestPayment, pdId, router]);
 
   // Handle authorization URL
   useEffect(() => {
