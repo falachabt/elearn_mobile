@@ -20,7 +20,7 @@ import {ChatProvider} from "@/contexts/chatBotContext";
 import {UpdatesProvider} from "@/contexts/UpdatesContext";
 import UpdatesManager from "@/components/shared/UpdatesManager";
 import {NavigationProvider} from "@/contexts/NavigationContext";
-import {useRouteRevalidation} from "@/hooks/useRouteRevalidation";
+// import {useRouteRevalidation} from "@/hooks/useRouteRevalidation";
 
 
 // Array of motivational messages to show when user tries to exit
@@ -313,10 +313,10 @@ const BackHandlerManager = React.memo(({ children }: { children: React.ReactNode
 // Composant qui déclenche la revalidation SWR lors des changements de route
 // Placé après l'initialisation de l'auth pour éviter les conflits
 // Mode conservateur par défaut : se fie à revalidateOnFocus de SWR
-const RouteRevalidationManager = React.memo(({ children }: { children: React.ReactNode }) => {
-    useRouteRevalidation({ enabled: true, aggressive: false });
-    return <>{children}</>;
-});
+// const RouteRevalidationManager = React.memo(({ children }: { children: React.ReactNode }) => {
+//     useRouteRevalidation({ enabled: true, aggressive: false });
+//     return <>{children}</>;
+// });
 
 export function Provider({children}: { children: React.ReactNode }) {
     const {quizId, attempId} = useLocalSearchParams();
@@ -413,11 +413,11 @@ export function Provider({children}: { children: React.ReactNode }) {
                                                 <QuizProvider quizId={String(quizId)} attemptId={String(attempId)}>
                                                     <UserActivityTracker/>
                                                     <UpdatesManager/>
-                                                    <RouteRevalidationManager>
+                                                    {/* <RouteRevalidationManager> */}
                                                         <BackHandlerManager>
                                                             {children}
                                                         </BackHandlerManager>
-                                                    </RouteRevalidationManager>
+                                                    {/* </RouteRevalidationManager> */}
                                                 </QuizProvider>
                                             </ChatProvider>
                                         </UpdatesProvider>

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'expo-router';
-import { useSWRConfig } from 'swr';
+import { mutate } from 'swr';
 
 interface RouteRevalidationOptions {
   enabled?: boolean;
@@ -13,10 +13,9 @@ interface RouteRevalidationOptions {
  */
 export function useRouteRevalidation(options?: RouteRevalidationOptions) {
   const pathname = usePathname();
-  const { mutate, cache } = useSWRConfig();
   const previousPathRef = useRef<string | null>(null);
   const lastRevalidationRef = useRef<number>(0);
-  const enabled = options?.enabled ?? true;
+  const enabled = options?.enabled ?? false;
   const aggressive = options?.aggressive ?? false; // Par défaut, mode conservateur
 
   useEffect(() => {
@@ -66,7 +65,7 @@ export function useRouteRevalidation(options?: RouteRevalidationOptions) {
 
       previousPathRef.current = pathname;
     }
-  }, [pathname, mutate, cache, enabled, aggressive]);
+  }, [pathname, enabled, aggressive]);
 }
 
 /**
@@ -75,7 +74,6 @@ export function useRouteRevalidation(options?: RouteRevalidationOptions) {
  */
 export function usePageFocusRevalidation(swrKey: string | string[] | null | undefined) {
   const pathname = usePathname();
-  const { mutate } = useSWRConfig();
   const isFirstRenderRef = useRef(true);
   const previousPathRef = useRef<string>(pathname);
 
@@ -94,5 +92,5 @@ export function usePageFocusRevalidation(swrKey: string | string[] | null | unde
     }
 
     previousPathRef.current = pathname;
-  }, [pathname, swrKey, mutate]);
+  }, [pathname, swrKey]);
 }

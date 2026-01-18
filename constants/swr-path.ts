@@ -188,7 +188,12 @@ export const programPaymentKeys = {
     mutateAllPaymentsArray: (programId: string) => swrMutate(['program-payment', 'all', programId]),
 
     // Batch mutation helpers
-    mutateAllForProgram: (programId: string) => {
+    mutateAllForProgram: (programId: string | null | undefined) => {
+        if (!programId) {
+            console.warn('[SWR] mutateAllForProgram called with invalid programId:', programId);
+            return;
+        }
+        
         swrMutate(`program-payment-${programId}`);
         swrMutate(`program-payment-access-${programId}`);
         swrMutate(`program-payment-latest-${programId}`);

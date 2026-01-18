@@ -74,9 +74,9 @@ export const useProgramPayment = (pdId: string | undefined) => {
             return payment;
         },
         {
-            revalidateOnFocus: true,
-            revalidateOnReconnect: true,
-            dedupingInterval: 10000, // 10 seconds
+            revalidateOnFocus: false, // Désactiver pour éviter boucles infinies
+            revalidateOnReconnect: false,
+            dedupingInterval: 3000, // 3 secondes pour permettre polling pendant vérification
         }
     );
 
@@ -180,7 +180,9 @@ export const useProgramPayment = (pdId: string | undefined) => {
                     setPaymentStatus(status);
 
                     // Mutate all relevant SWR caches when payment status changes
-                    programPaymentKeys.mutateAllForProgram(programId);
+                    if (programId) {
+                        programPaymentKeys.mutateAllForProgram(programId);
+                    }
 
                     // Mutate program context by refreshing all payment-related data
                     await mutateLatestPayment();
@@ -262,8 +264,10 @@ export const useProgramPayment = (pdId: string | undefined) => {
                 if (displayStatus === "complete") {
                     displayStatus = "completed";
 
-                    // mutate the program_data
-                    programKeys.mutateProgram(String(pdId))
+                    // mutate the program_data (only if pdId is valid)
+                    if (pdId) {
+                        programKeys.mutateProgram(String(pdId));
+                    }
                 }
 
                 // Update the payment status in the UI
@@ -283,8 +287,10 @@ export const useProgramPayment = (pdId: string | undefined) => {
                             await checkAccess(payment.program_id);
                         }
 
-                        // Mutate all relevant SWR caches
-                        programPaymentKeys.mutateAllForProgram(payment.program_id);
+                        // Mutate all relevant SWR caches (only if program_id is valid)
+                        if (payment.program_id) {
+                            programPaymentKeys.mutateAllForProgram(payment.program_id);
+                        }
 
                         // Mutate program context by refreshing all payment-related data
                         await mutateActivePayment();

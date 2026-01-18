@@ -8,6 +8,10 @@ import React, {
 } from "react";
 import * as Notifications from "expo-notifications";
 
+import { logger } from "@/utils/logger";
+
+
+
 // import { Subscription } from "expo-modules-core";
 import {registerForPushNotificationsAsync} from "@/components/TestNotifications";
 
@@ -42,6 +46,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     const [notification, setNotification] =
         useState<Notifications.Notification | null>(null);
     const [error, setError] = useState<Error | null>(null);
+
+
+    logger.log(expoPushToken)
 
     const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
     const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);

@@ -15,11 +15,12 @@ import useSWR, { mutate } from "swr";
 
 import { theme } from "@/constants/theme";
 import { useFileDownload } from "@/hooks/useFileDownload";
-import { ArchiveCard } from "@/components/ArchiveCard";
+import { ArchiveCard, Archive } from "@/components/ArchiveCard";
 import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { supabase } from "@/lib/supabase";
 import { useCompetitionPayment } from "@/hooks/useCompetitionPayment";
+import { useArchiveData } from "@/hooks/useArchiveData";
 import CompetitionPaymentBottomSheet from "@/components/shared/CompetitionPaymentBottomSheet";
 
 // PaymentOverlay Component
@@ -71,7 +72,7 @@ const PaymentOverlay = ({
 
 // Reuse the Archive interface from the anales section
 export interface Archive {
-  id: string;
+  id: number;
   name: string;
   file_url: string;
   session: string;
@@ -83,8 +84,8 @@ export interface Archive {
     id: string;
     name: string;
     description: string;
-  };
-  concour_id?: number;
+  } | null;
+  concour_id?: number | null;
 }
 
 interface CompetitionData {
@@ -92,14 +93,7 @@ interface CompetitionData {
   name: string;
 }
 
-interface PinnedStatus {
-  archive_id: string;
-  is_pinned: boolean;
-}
 
-interface CompletedStatus {
-  archive_id: string;
-}
 
 type FilterType = "all" | "pinned" | "completed" | "incomplete";
 
@@ -157,79 +151,15 @@ const fetchArchivesData = async (url: string): Promise<Archive[]> => {
 
   // Transform to ensure it matches the Archive type
   return data.map((item) => ({
-    id: item.id,
+    id: Number(item.id),
     name: item.name || "",
     file_url: item.file_url || "",
     session: item.session || "",
     is_pinned: false, // Will be set by combining with pinned data
-    file_type: item.file_type || "other",
+    file_type: (item.file_url && item.file_url.toLowerCase().endsWith('.pdf')) ? "pdf" : "other",
     concour_id: item.concour_id,
     courses_categories: item.courses_categories,
   }));
-};
-
-// Fetcher for pinned status
-const fetchPinnedData = async (url: string): Promise<PinnedStatus[]> => {
-  if (!url) throw new Error("No URL provided");
-
-  const parts = url.split("/");
-  const userId = parts[parts.length - 2];
-  const competitionId = parts[parts.length - 1];
-
-  if (!userId || !competitionId)
-    throw new Error("Missing userId or competitionId");
-
-  // First get all archives for this competition to filter pinned data
-  const { data: archivesData, error: archivesError } = await supabase
-    .from("concours_archives")
-    .select("id")
-    .eq("concour_id", competitionId);
-
-  if (archivesError) throw archivesError;
-  if (!archivesData || archivesData.length === 0) return [];
-
-  const archiveIds = archivesData.map((archive) => archive.id);
-
-  const { data, error } = await supabase
-    .from("user_pinned_archive")
-    .select("archive_id, is_pinned")
-    .in("archive_id", archiveIds)
-    .eq("user_id", userId);
-
-  if (error) throw error;
-  return data || [];
-};
-
-// Fetcher for completed status
-const fetchCompletedData = async (url: string): Promise<CompletedStatus[]> => {
-  if (!url) throw new Error("No URL provided");
-
-  const parts = url.split("/");
-  const userId = parts[parts.length - 2];
-  const competitionId = parts[parts.length - 1];
-
-  if (!userId || !competitionId)
-    throw new Error("Missing userId or competitionId");
-
-  // First get all archives for this competition to filter completed data
-  const { data: archivesData, error: archivesError } = await supabase
-    .from("concours_archives")
-    .select("id")
-    .eq("concour_id", competitionId);
-
-  if (archivesError) throw archivesError;
-  if (!archivesData || archivesData.length === 0) return [];
-
-  const archiveIds = archivesData.map((archive) => archive.id);
-
-  const { data, error } = await supabase
-    .from("user_completed_archives")
-    .select("archive_id")
-    .in("archive_id", archiveIds)
-    .eq("user_id", userId);
-
-  if (error) throw error;
-  return data || [];
 };
 
 export const ArchivesList = () => {
@@ -249,8 +179,16 @@ export const ArchivesList = () => {
   const isRevalidatingRef = useRef(false);
 
   // Competition payment hook
-  const { hasAccess, accessLoading, checkAccess, paymentStatus } =
+  const { hasAccess, accessLoading, checkAccess } =
     useCompetitionPayment();
+
+  // Use shared archive data hook
+  const {
+    pinnedData,
+    completedData,
+    togglePin,
+    toggleCompleted,
+  } = useArchiveData(competitionId);
 
   // SWR hooks for data fetching
   const { data: competitionData, error: competitionError } =
@@ -272,30 +210,6 @@ export const ArchivesList = () => {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       dedupingInterval: 3600000, // Cache for 1 hour
-      focusThrottleInterval: 5000, // Throttle focus events
-    }
-  );
-
-  const { data: pinnedData } = useSWR<PinnedStatus[]>(
-    competitionId && user?.id ? `/pinned/${user.id}/${competitionId}` : null,
-    fetchPinnedData,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 60000, // Cache for 1 minute
-      focusThrottleInterval: 5000, // Throttle focus events
-    }
-  );
-
-  const { data: completedData, error: completedError } = useSWR<
-    CompletedStatus[]
-  >(
-    competitionId && user?.id ? `/completed/${user.id}/${competitionId}` : null,
-    fetchCompletedData,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 60000, // Cache for 1 minute
       focusThrottleInterval: 5000, // Throttle focus events
     }
   );
@@ -361,7 +275,7 @@ export const ArchivesList = () => {
   );
 
   const renderFilterButton = useCallback(
-    ({ item }: { item: any }) => (
+    ({ item }: { item: { id: string; icon: string; label: string } }) => (
       <TouchableOpacity
         style={[
           styles.filterButton,
@@ -437,155 +351,30 @@ export const ArchivesList = () => {
     if (competitionId && user) {
       checkAccess(competitionId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [competitionId, user?.id]); // Only depend on competitionId and user.id, not the whole checkAccess function
+  }, [competitionId, user, checkAccess]);
 
   // Handle pinning an archive
   const handlePin = useCallback(
-    async (archiveId: string) => {
-      try {
-        trigger(HapticType.LIGHT);
-
-        const archive = archives.find((a) => a.id === archiveId);
-        if (!archive) return;
-
-        // Optimistically update the UI
-        const newPinnedStatus = !archive.is_pinned;
-        mutate(
-          `/pinned/${user?.id}/${competitionId}`,
-          (currentData: PinnedStatus[] = []) => {
-            const updatedData = [...currentData];
-            const existingIndex = updatedData.findIndex(
-              (item) => item.archive_id === archiveId
-            );
-
-            if (existingIndex >= 0) {
-              updatedData[existingIndex].is_pinned = newPinnedStatus;
-            } else {
-              updatedData.push({ archive_id: archiveId, is_pinned: true });
-            }
-
-            return updatedData;
-          },
-          false
-        );
-
-        const { data: existingPin, error: fetchError } = await supabase
-          .from("user_pinned_archive")
-          .select("archive_id, is_pinned")
-          .eq("archive_id", archiveId)
-          .eq("user_id", user!.id)
-          .single();
-
-        if (fetchError && fetchError.code !== "PGRST116") throw fetchError;
-
-        let error;
-        if (existingPin) {
-          const { error: updateError } = await supabase
-            .from("user_pinned_archive")
-            .update({ is_pinned: !existingPin.is_pinned })
-            .eq("archive_id", archiveId)
-            .eq("user_id", user!.id);
-          error = updateError;
-        } else {
-          const { error: insertError } = await supabase
-            .from("user_pinned_archive")
-            .insert({
-              archive_id: archiveId,
-              is_pinned: true,
-              user_id: user?.id,
-            });
-          error = insertError;
-        }
-
-        if (error) throw error;
-
-        // Revalidate to ensure server state
-        mutate(`/pinned/${user?.id}/${competitionId}`);
-      } catch (error) {
-        console.error("Error updating pin status:", error);
-        // Revert optimistic update on error
-        mutate(`/pinned/${user?.id}/${competitionId}`);
-      }
+    async (archiveId: number) => {
+      trigger(HapticType.LIGHT);
+      const archive = archives.find((a) => a.id === archiveId);
+      if (!archive) return;
+      
+      await togglePin(archiveId, archive.is_pinned);
     },
-    [trigger, archives, user?.id, competitionId]
+    [trigger, archives, togglePin]
   );
 
   // Handle toggling completion status
   const handleToggleComplete = useCallback(
-    async (archiveId: string) => {
-      try {
-        trigger(HapticType.SUCCESS);
-
-        const archive = archives.find((a) => a.id === archiveId);
-        if (!archive) return;
-
-        const isCurrentlyCompleted = archive.is_completed;
-
-        // Optimistically update the UI
-        mutate(
-          `/completed/${user?.id}/${competitionId}`,
-          (currentData: CompletedStatus[] = []) => {
-            if (isCurrentlyCompleted) {
-              return currentData.filter(
-                (item) => item.archive_id !== archiveId
-              );
-            } else {
-              return [...currentData, { archive_id: archiveId }];
-            }
-          },
-          false
-        );
-
-        if (isCurrentlyCompleted) {
-          // Remove completion status
-          const { error } = await supabase
-            .from("user_completed_archives")
-            .delete()
-            .eq("user_id", user!.id)
-            .eq("archive_id", archiveId);
-
-          if (error) throw error;
-        } else {
-          // Check if record already exists to avoid constraint error
-          const { data: existingRecord } = await supabase
-            .from("user_completed_archives")
-            .select("id")
-            .eq("user_id", user!.id)
-            .eq("archive_id", archiveId);
-
-          if (existingRecord && existingRecord.length > 0) {
-            // Already exists, just update the timestamp
-            const { error } = await supabase
-              .from("user_completed_archives")
-              .update({ completed_at: new Date().toISOString() })
-              .eq("user_id", user?.id)
-              .eq("archive_id", archiveId);
-
-            if (error) throw error;
-          } else {
-            // Mark as completed
-            const { error } = await supabase
-              .from("user_completed_archives")
-              .insert({
-                user_id: user?.id,
-                archive_id: archiveId,
-                completed_at: new Date().toISOString(),
-              });
-
-            if (error) throw error;
-          }
-        }
-
-        // Revalidate to ensure server state
-        mutate(`/completed/${user?.id}/${competitionId}`);
-      } catch (error) {
-        console.error("Error updating completion status:", error);
-        // Revert optimistic update on error
-        mutate(`/completed/${user?.id}/${competitionId}`);
-      }
+    async (archiveId: number) => {
+      trigger(HapticType.SUCCESS);
+      const archive = archives.find((a) => a.id === archiveId);
+      if (!archive) return;
+      
+      await toggleCompleted(archiveId, archive.is_completed || false);
     },
-    [trigger, archives, user?.id, competitionId]
+    [trigger, archives, toggleCompleted]
   );
 
   // Handle downloading an archive
@@ -678,7 +467,7 @@ export const ArchivesList = () => {
   }, [competitionId, user?.id, checkAccess]); // Ajout de checkAccess dans les dépendances
 
   const renderItem = useCallback(
-    ({ item }: { item: any }) => (
+    ({ item }: { item: Archive }) => (
       <ArchiveCard
         item={item}
         isDark={isDark}
@@ -699,7 +488,7 @@ export const ArchivesList = () => {
     ]
   );
 
-  const keyExtractor = useCallback((item: Archive) => item.id, []);
+  const keyExtractor = useCallback((item: Archive) => item.id.toString(), []);
   // Determine if we should show loading (only for initial load)
   const isInitialLoading = !archivesData && !archivesError;
 

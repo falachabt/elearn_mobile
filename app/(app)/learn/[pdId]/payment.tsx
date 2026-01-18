@@ -830,6 +830,12 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
             {isLoading && <ActivityIndicator size="small" color="#FFFFFF" />}
           </TouchableOpacity>
         </View>
+
+        {/* WhatsApp Support */}
+        <WhatsAppContact
+          message={`Bonjour, j'ai besoin d'aide pour effectuer un paiement pour ${programName}`}
+          style={{ marginTop: 16, marginBottom: 16 }}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -929,6 +935,12 @@ const NextPaymentOptions: React.FC<NextPaymentOptionsProps> = ({
             {isLoading && <ActivityIndicator size="small" color="#FFFFFF" />}
           </TouchableOpacity>
         </View>
+
+        {/* WhatsApp Support */}
+        <WhatsAppContact
+          message={`Bonjour, j'ai besoin d'aide pour payer mon versement ${currentInstallment + 1}/${totalInstallments} pour ${programName}`}
+          style={{ marginTop: 16, marginBottom: 16 }}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -961,6 +973,12 @@ const PaymentProcessing: React.FC<PaymentProcessingProps> = ({
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
           <Text style={styles.cancelButtonText}>Annuler</Text>
         </TouchableOpacity>
+        
+        {/* WhatsApp Support */}
+        <WhatsAppContact
+          message={`Bonjour, j'ai besoin d'aide concernant mon paiement en cours d'initialisation`}
+          style={{ marginTop: 24 }}
+        />
       </View>
     );
   }
@@ -995,6 +1013,12 @@ const PaymentProcessing: React.FC<PaymentProcessingProps> = ({
       <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
         <Text style={styles.cancelButtonText}>Annuler</Text>
       </TouchableOpacity>
+      
+      {/* WhatsApp Support */}
+      <WhatsAppContact
+        message={`Bonjour, j'ai besoin d'aide concernant la vérification de mon paiement`}
+        style={{ marginTop: 24 }}
+      />
     </View>
   );
 };
@@ -1281,7 +1305,7 @@ const InstallmentDetails: React.FC<InstallmentDetailsProps> = ({
                       color={getStatusColor()}
                     />
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, flexShrink: 1, marginRight: 8 }}>
                     <ThemedText style={styles.paymentHistoryItemTitle}>
                       Échéance {installmentNumber}/{totalInstallments}
                     </ThemedText>
@@ -1322,14 +1346,17 @@ const InstallmentDetails: React.FC<InstallmentDetailsProps> = ({
                     )}
                   </View>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <ThemedText style={styles.paymentHistoryItemAmount}>
+                <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
+                  <ThemedText style={styles.paymentHistoryItemAmount} numberOfLines={1}>
                     {installmentAmount} FCFA
                   </ThemedText>
-                  <ThemedText style={[
-                    styles.paymentHistoryItemDate,
-                    { color: getStatusColor(), fontWeight: '600', fontSize: 11 }
-                  ]}>
+                  <ThemedText 
+                    style={[
+                      styles.paymentHistoryItemDate,
+                      { color: getStatusColor(), fontWeight: '600', fontSize: 11 }
+                    ]}
+                    numberOfLines={1}
+                  >
                     {getStatusLabel()}
                   </ThemedText>
                 </View>
@@ -1338,6 +1365,12 @@ const InstallmentDetails: React.FC<InstallmentDetailsProps> = ({
           })
         )}
       </View>
+
+      {/* WhatsApp Support */}
+      <WhatsAppContact
+        message={`Bonjour, j'ai besoin d'aide concernant mon plan de paiement échelonné pour ${programName}`}
+        style={{ marginTop: 16, marginBottom: 16 }}
+      />
 
       <TouchableOpacity style={styles.backButton} onPress={onBack}>
         <Text style={styles.backButtonText}>Retourner au programme</Text>
@@ -1373,6 +1406,7 @@ const ProgramPaymentPage = () => {
     cancelPayment,
     verifyPaymentStatus,
     isFinalStatus,
+    mutateLatestPayment,
   } = useProgramPayment(pdId);
 
   // Main state management
@@ -1398,6 +1432,13 @@ const ProgramPaymentPage = () => {
     typeof setInterval
   > | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
+  // Si latestPayment existe et a déjà été vu (has_seen_result = true),
+  // on ignore automatiquement ce vieux paiement pour permettre un nouveau paiement
+  const [shouldIgnoreOldStatus, setShouldIgnoreOldStatus] = useState(
+    latestPayment?.has_seen_result === true
+  );
+  
   const [verificationMessages] = useState([
     "En attente de validation sur votre téléphone...",
     "Une fois validé, la vérification peut prendre jusqu'à 5 minutes...",
@@ -1419,17 +1460,25 @@ const ProgramPaymentPage = () => {
       latestPayment.expiry_date &&
       new Date(latestPayment.expiry_date) < new Date();
 
-    // Si le paiement n'est pas en statut final (pending, initialized, processing), on continue la vérification
+    // === LOGIQUE BOTTOM SHEET ===
+    
+    // 1. Si le paiement a déjà été vu (has_seen_result = true), démarrer fresh
+    if (latestPayment.has_seen_result === true) {
+      console.log('[Payment] Payment already seen, starting fresh (idle state)');
+      setCurrentState(PaymentFlowState.INSTRUCTIONS);
+      return;
+    }
+
+    // 2. Si le paiement n'est pas en statut final, continuer la vérification
     if (!isFinalStatus(latestPayment.payment_status)) {
-      if (
-        hasCompletedFirstInstallment &&
-        latestPayment.current_installment &&
-        latestPayment.current_installment > 1
-      ) {
+      console.log('[Payment] Non-final payment status, setting up verification');
+      
+      if (hasCompletedFirstInstallment && latestPayment.is_installment) {
         setCurrentState(PaymentFlowState.NEXT_PAYMENT_VERIFYING);
       } else {
         setCurrentState(PaymentFlowState.VERIFYING);
       }
+      
       if (latestPayment.payment_reference) {
         setCurrentTrxReference(latestPayment.payment_reference);
         startStatusCheck(latestPayment.payment_reference);
@@ -1437,50 +1486,20 @@ const ProgramPaymentPage = () => {
       return;
     }
 
-    // === Paiement terminé (Completed, Failed, Canceled) ===
-
-    // Si le résultat n'a pas encore été vu par l'utilisateur (has_seen_result = false ou null)
-    // on redirige vers la page de résultat
-    if (!latestPayment.has_seen_result) {
-      const currentInstallment = latestPayment.current_installment || 1;
-      const totalInstallments = latestPayment.total_installments || 1;
-      const hasMoreInstallments = currentInstallment < totalInstallments;
-
-      router.replace({
-        pathname: "/learn/[pdId]/payment-result",
-        params: {
-          pdId: pdId || "",
-          result: latestPayment.payment_status === 'completed' ? 'success' : latestPayment.payment_status,
-          programName: programContext.programName,
-          programId: programContext.programId || "",
-          paymentId: latestPayment.id,
-          isInstallment: String(latestPayment.is_installment || false),
-          hasMoreInstallments: String(hasMoreInstallments),
-          errorMessage: latestPayment.payment_status === 'failed' ? "Le paiement a échoué." : undefined,
-        },
-      });
-      return;
-    }
-
-    // === Le résultat a déjà été vu (has_seen_result = true) ===
-
-    // Si c'est un paiement échelonné (terminé ou non)
-    if (latestPayment.is_installment) {
-        // Afficher toujours les détails d'échelonnement pour les paiements échelonnés
-        // même si tous les versements sont faits, pour que l'utilisateur puisse voir l'historique
-        setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
-        return;
-    }
-
-    // Si c'est un paiement unique completed et pas expiré, afficher les instructions
-    // (l'utilisateur peut vouloir acheter un autre programme ou voir les infos)
-    if (latestPayment.payment_status === "completed" && !isAccessExpired) {
-        setCurrentState(PaymentFlowState.INSTRUCTIONS);
-        return;
-    }
-
-    // Par défaut (nouvel achat, renouvellement, ou suite d'un échec vu)
-    setCurrentState(PaymentFlowState.INSTRUCTIONS);
+    // 3. Si le paiement est en statut final ET pas encore vu, montrer le résultat
+    console.log('[Payment] Final payment status not seen, redirecting to result page');
+    
+    router.replace({
+      pathname: "/learn/[pdId]/payment-result",
+      params: {
+        pdId: pdId || "",
+        result: latestPayment.payment_status === 'completed' ? 'success' : 
+                latestPayment.payment_status === 'failed' ? 'failed' : 'canceled',
+        programName: programContext.programName,
+        programId: programContext.programId || "",
+        paymentReference: latestPayment.payment_reference,
+      },
+    });
   };
 
   // Initialize programContext with data from the hook
@@ -1553,37 +1572,56 @@ const ProgramPaymentPage = () => {
 
   // Handle payment status changes
   useEffect(() => {
+    console.log('[Payment] useEffect triggered - Status:', paymentStatus, 'State:', currentState, 'TrxRef:', currentTrxReference);
+    
+    // CRITICAL: Only process status changes when we are ACTIVELY verifying a payment
+    // This prevents old payment statuses from interfering
+    const isVerifying = currentState === PaymentFlowState.VERIFYING || 
+                        currentState === PaymentFlowState.NEXT_PAYMENT_VERIFYING;
+    
+    if (!isVerifying) {
+      console.log('[Payment] Not verifying, ignoring status change');
+      return;
+    }
+
     // Ne pas traiter si programContext n'est pas encore initialisé
     if (!programContext.programId || !programContext.programName) {
+      console.log('[Payment] Program context not initialized yet');
       return;
     }
 
-    // Vérifier si le résultat a déjà été vu (has_seen_result = true)
-    // Dans ce cas, ne pas rediriger automatiquement vers payment-result
-    const latestPayment = programContext.latestPayment;
-    if (latestPayment?.has_seen_result && isFinalStatus(latestPayment.payment_status)) {
+    // Ignore all status changes if we explicitly marked to ignore old statuses
+    if (shouldIgnoreOldStatus) {
+      console.log('[Payment] shouldIgnoreOldStatus is true, ignoring');
       return;
     }
 
-    // Ne rediriger que si le statut vient de changer (pendant une vérification active)
-    // Pas si on arrive sur la page avec un paiement déjà terminé
+    // CRITICAL: Only accept status changes if the payment matches our current transaction
     if (!currentTrxReference) {
+      console.log('[Payment] No currentTrxReference, ignoring');
       return;
     }
+    
+    // CRITICAL: latestPayment MUST have our payment_reference - prevents processing old statuses
+    if (!latestPayment?.payment_reference || latestPayment.payment_reference !== currentTrxReference) {
+      console.log('[Payment] Payment reference mismatch. Current:', currentTrxReference, 'Latest:', latestPayment?.payment_reference);
+      return;
+    }
+
+    // Don't change state if payment has already been seen
+    if (latestPayment?.has_seen_result === true) {
+      console.log('[Payment] Payment already seen, ignoring');
+      return;
+    }
+    
+    console.log('[Payment] All checks passed. Processing status:', paymentStatus);
 
     if (paymentStatus === "successful" || paymentStatus === "completed") {
       stopStatusCheck();
+      
+      console.log('[Payment] Payment successful, navigating with reference:', currentTrxReference);
 
-      // Mutate data first
-      mutateUserPrograms();
-      mutateProgramAccessMap();
-
-      // Navigate to success result page
-      const hasMoreInstallments =
-        latestPayment?.is_installment &&
-        (latestPayment?.current_installment || 1) <
-          (latestPayment?.total_installments || 1);
-
+      // Navigate with payment reference - payment-result will fetch by reference
       router.replace({
         pathname: "/learn/[pdId]/payment-result",
         params: {
@@ -1591,15 +1629,15 @@ const ProgramPaymentPage = () => {
           result: "success",
           programName: programContext.programName,
           programId: programContext.programId || "",
-          paymentId: latestPayment?.id || "",
-          isInstallment: String(latestPayment?.is_installment || false),
-          hasMoreInstallments: String(hasMoreInstallments),
+          paymentReference: currentTrxReference,
         },
       });
     } else if (paymentStatus === "failed") {
       stopStatusCheck();
+      
+      console.log('[Payment] Payment failed, navigating with reference:', currentTrxReference);
 
-      // Navigate to failed result page
+      // Navigate with payment reference - payment-result will fetch the actual payment
       router.replace({
         pathname: "/learn/[pdId]/payment-result",
         params: {
@@ -1607,17 +1645,17 @@ const ProgramPaymentPage = () => {
           result: "failed",
           programName: programContext.programName,
           programId: programContext.programId || "",
-          isInstallment: String(programContext.hasCompletedFirstInstallment),
-          hasMoreInstallments: "false",
-          errorMessage:
-            errorMessage || "Le paiement a échoué. Veuillez réessayer.",
+          paymentReference: currentTrxReference,
+          errorMessage: errorMessage || "Le paiement a échoué. Veuillez réessayer.",
           authorizationUrl: authorizationUrl || undefined,
         },
       });
     } else if (paymentStatus === "canceled") {
       stopStatusCheck();
+      
+      console.log('[Payment] Payment canceled, navigating with reference:', currentTrxReference);
 
-      // Navigate to canceled result page
+      // Navigate with payment reference - payment-result will fetch the actual payment
       router.replace({
         pathname: "/learn/[pdId]/payment-result",
         params: {
@@ -1625,8 +1663,7 @@ const ProgramPaymentPage = () => {
           result: "canceled",
           programName: programContext.programName,
           programId: programContext.programId || "",
-          isInstallment: String(programContext.hasCompletedFirstInstallment),
-          hasMoreInstallments: "false",
+          paymentReference: currentTrxReference,
         },
       });
     }
@@ -1639,6 +1676,8 @@ const ProgramPaymentPage = () => {
     errorMessage,
     authorizationUrl,
     currentTrxReference,
+    currentState,
+    shouldIgnoreOldStatus,
   ]);
 
   // Handle authorization URL
@@ -1734,6 +1773,8 @@ const ProgramPaymentPage = () => {
       // Extract payment from result
       const payment = "payment" in result ? result.payment : result;
       if (payment && payment.payment_reference) {
+        // CRITICAL: Reset flag to accept new status updates for THIS payment
+        setShouldIgnoreOldStatus(false);
         setCurrentTrxReference(payment.payment_reference);
         setCurrentState(PaymentFlowState.VERIFYING);
         startStatusCheck(payment.payment_reference);
@@ -1793,6 +1834,8 @@ const ProgramPaymentPage = () => {
           ? (result as unknown as { trxReference: string }).trxReference
           : undefined;
       if (paymentRef) {
+        // CRITICAL: Reset flag to accept new status updates for THIS payment
+        setShouldIgnoreOldStatus(false);
         setCurrentTrxReference(paymentRef);
         setCurrentState(PaymentFlowState.NEXT_PAYMENT_VERIFYING);
         startStatusCheck(paymentRef);
@@ -1816,8 +1859,14 @@ const ProgramPaymentPage = () => {
   const handleCancelPayment = async () => {
     if (currentTrxReference) {
       try {
+        // CRITICAL: Mark to ignore status updates from the cancelled payment
+        setShouldIgnoreOldStatus(true);
+        
         await cancelPayment();
         stopStatusCheck();
+        
+        // Clear the reference after cancellation
+        setCurrentTrxReference(null);
 
         // Retourner au bon état selon le contexte
         if (programContext.hasCompletedFirstInstallment) {
@@ -2735,6 +2784,8 @@ const styles = StyleSheet.create({
   paymentHistoryItemLeft: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+    marginRight: 12,
   },
   paymentHistoryItemIcon: {
     marginRight: 12,

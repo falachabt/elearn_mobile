@@ -1,6 +1,6 @@
 // hooks/useFileDownload.ts
 import { useState, useCallback } from 'react';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { Archive } from '@/app/(app)/learn/[pdId]/anales';
 

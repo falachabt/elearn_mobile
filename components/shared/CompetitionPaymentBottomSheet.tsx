@@ -11,7 +11,8 @@ import {
   Platform,
   ScrollView,
   KeyboardAvoidingView,
-  Dimensions
+  Dimensions,
+  Keyboard
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Modal from 'react-native-modal';
@@ -53,6 +54,8 @@ export const CompetitionPaymentBottomSheet = ({
   const [isStatusCheckActive, setIsStatusCheckActive] = useState(false);
   const [statusCheckInterval, setStatusCheckInterval] = useState<NodeJS.Timeout | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [shouldIgnoreOldStatus, setShouldIgnoreOldStatus] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
@@ -93,8 +96,16 @@ export const CompetitionPaymentBottomSheet = ({
           const payment = await getLatestPayment(competitionId);
 
           if (payment) {
+            // If payment result has already been seen, start fresh
+            if (payment.has_seen_results === true) {
+              setProcessingState('idle');
+              // Pre-fill phone number from previous payment for convenience
+              if (payment.phone_number) {
+                setPhoneNumber(payment.phone_number);
+              }
+            }
             // If payment is not in a final status, set up for verification
-            if (!isFinalStatus(payment.payment_status)) {
+            else if (!isFinalStatus(payment.payment_status)) {
               setProcessingState('verifying');
               setCurrentTrxReference(payment.payment_reference);
               setIsStatusCheckActive(true);
@@ -102,16 +113,11 @@ export const CompetitionPaymentBottomSheet = ({
               // Pre-fill phone number from existing payment
               setPhoneNumber(payment.phone_number);
             }
-            // If payment is in a final status but already seen, show idle form
-            else if (payment.has_seen_results) {
-              setProcessingState('idle');
-            }
-            // If payment is in a final status and not seen, show existing payment state
+            // If payment is in a final status and not yet seen, show the result
             else {
-              setProcessingState('existing_payment');
               setCurrentTrxReference(payment.payment_reference);
 
-              // If payment is completed, also set success state
+              // Show the appropriate final state
               if (payment.payment_status === 'completed') {
                 setProcessingState('success');
               } else if (payment.payment_status === 'failed') {
@@ -135,31 +141,54 @@ export const CompetitionPaymentBottomSheet = ({
 
   // Handle payment status changes
   useEffect(() => {
+    // CRITICAL: Only process status changes when we are ACTIVELY verifying a payment
+    // This prevents old payment statuses from interfering
+    if (processingState !== 'verifying') {
+      return;
+    }
+
+    // Ignore all status changes if we explicitly marked to ignore old statuses
+    if (shouldIgnoreOldStatus) {
+      return;
+    }
+
+    // CRITICAL: Only accept status changes if the payment matches our current transaction
+    if (!currentTrxReference) {
+      return;
+    }
+    
+    // CRITICAL: latestPayment MUST have our payment_reference - this prevents processing old statuses
+    // before the first payment reload completes
+    if (!latestPayment?.payment_reference || latestPayment.payment_reference !== currentTrxReference) {
+      return;
+    }
+
+    // Don't change state if payment has already been seen
+    if (latestPayment?.has_seen_results === true) {
+      return;
+    }
+
     if (['completed', 'canceled', 'failed'].includes(paymentStatus)) {
       setIsStatusCheckActive(false);
 
       if (paymentStatus === 'canceled') {
         setProcessingState('canceled');
-        // Invalidate cache but don't mark as seen yet (will be done on modal close)
         invalidateAccessCache(competitionId);
       }
       if (paymentStatus === 'completed') {
         setProcessingState('success');
         
-        // Invalidate cache immediately to unlock access and notify parent
         invalidateAccessCache(competitionId);
-        // Notify parent to refresh access (will be marked as seen on modal close)
         setTimeout(() => {
           onPaymentSuccess?.();
         }, 500);
       }
       if (paymentStatus === 'failed') {
         setProcessingState('failed');
-        // Invalidate cache but don't mark as seen yet (will be done on modal close)
         invalidateAccessCache(competitionId);
       }
     }
-  }, [paymentStatus, competitionId, latestPayment, invalidateAccessCache, onPaymentSuccess, getLatestPayment]);
+  }, [paymentStatus, competitionId, processingState, shouldIgnoreOldStatus, currentTrxReference, latestPayment?.payment_reference, latestPayment?.has_seen_results, invalidateAccessCache, onPaymentSuccess, getLatestPayment]);
 
   // Clean up interval on unmount
   useEffect(() => {
@@ -181,7 +210,7 @@ export const CompetitionPaymentBottomSheet = ({
         }
       }, 5000); // Check every 5 seconds
 
-      setStatusCheckInterval(interval);
+      setStatusCheckInterval(interval as any);
 
       return () => {
         clearInterval(interval);
@@ -192,6 +221,28 @@ export const CompetitionPaymentBottomSheet = ({
       setIsStatusCheckActive(false);
     }
   }, [currentTrxReference, isStatusCheckActive, paymentStatus, processingState]);
+
+  // Handle keyboard events
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
 
   const handleInitiatePayment = async () => {
     if (!phoneNumber) {
@@ -223,6 +274,10 @@ export const CompetitionPaymentBottomSheet = ({
         setProcessingState('verifying');
         setCurrentTrxReference(result.trxReference);
         setIsStatusCheckActive(true);
+        // New payment created, allow status changes for this payment
+        setShouldIgnoreOldStatus(false);
+        // Reload payment to get the newly created one
+        await getLatestPayment(competitionId);
 
         // Open the authorization URL if needed
         if (Platform.OS !== 'web') {
@@ -233,6 +288,10 @@ export const CompetitionPaymentBottomSheet = ({
         setProcessingState('verifying');
         setCurrentTrxReference(result.trxReference);
         setIsStatusCheckActive(true);
+        // New payment created, allow status changes for this payment
+        setShouldIgnoreOldStatus(false);
+        // Reload payment to get the newly created one
+        await getLatestPayment(competitionId);
       }
     } catch (error) {
       console.error('Payment initiation error:', error);
@@ -280,6 +339,7 @@ export const CompetitionPaymentBottomSheet = ({
     setCurrentTrxReference(null);
     setIsStatusCheckActive(false);
     setErrorMessage(null);
+    setShouldIgnoreOldStatus(false);
 
     if (statusCheckInterval) {
       clearInterval(statusCheckInterval);
@@ -306,13 +366,38 @@ export const CompetitionPaymentBottomSheet = ({
 
   // Function to start a new payment (after cancelling existing one if needed)
   const handleStartNewPayment = async () => {
-    // If there's an existing payment that's not in a final status, cancel it first
-    if (latestPayment && !isFinalStatus(latestPayment.payment_status)) {
-      await cancelPayment();
-    }
+    try {
+      // Block ALL old status changes
+      setShouldIgnoreOldStatus(true);
+      
+      // STOP any active status checking FIRST
+      setIsStatusCheckActive(false);
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+        setStatusCheckInterval(null);
+      }
 
-    // Reset to idle state to show payment form
-    setProcessingState('idle');
+      // Mark current payment as seen before starting a new one
+      if (latestPayment?.id) {
+        await CompetitionPaymentService.markAsSeen(latestPayment.id);
+      }
+
+      // Don't cancel - just mark as seen and reset UI
+      // Cancelling would trigger DB changes and cause unwanted status updates
+
+      // Reset state IMMEDIATELY to show fresh form
+      setProcessingState('idle');
+      setErrorMessage(null);
+      setCurrentTrxReference(null);
+      
+      // Don't reload payment here - it will be reloaded when user initiates new payment
+    } catch (error) {
+      console.error('[PaymentSheet] Error starting new payment:', error);
+      // Even on error, show fresh form
+      setProcessingState('idle');
+      setErrorMessage(null);
+      setCurrentTrxReference(null);
+    }
   };
 
   const renderContent = () => {
@@ -416,74 +501,72 @@ export const CompetitionPaymentBottomSheet = ({
 
       case 'idle':
         return (
-          <ScrollView style={styles.scrollView}>
+          <ScrollView 
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled={true}
+          >
+            <View style={styles.formContainer}>
+              <Text style={[styles.title, isDark && styles.titleDark]}>
+                Accéder aux sujets de {competitionName}
+              </Text>
 
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={styles.container}
-            >
+              <Text style={[styles.description, isDark && styles.descriptionDark]}>
+                Payez 2000 FCFA pour accéder à tous les sujets de ce concours
+              </Text>
 
-              <View style={styles.formContainer}>
-                <Text style={[styles.title, isDark && styles.titleDark]}>
-                  Accéder aux sujets de {competitionName}
+              <View style={styles.inputContainer}>
+                <Text style={[styles.inputLabel, isDark && styles.inputLabelDark]}>
+                  Numéro de téléphone (MTN ou Orange)
                 </Text>
-
-                <Text style={[styles.description, isDark && styles.descriptionDark]}>
-                  Payez 2000 FCFA pour accéder à tous les sujets de ce concours
-                </Text>
-
-                <View style={styles.inputContainer}>
-                  <Text style={[styles.inputLabel, isDark && styles.inputLabelDark]}>
-                    Numéro de téléphone (MTN ou Orange)
-                  </Text>
-                  <TextInput
-                    style={[styles.input, isDark && styles.inputDark]}
-                    placeholder="Ex: 650123456"
-                    placeholderTextColor={isDark ? theme.color.gray[500] : theme.color.gray[400]}
-                    keyboardType="phone-pad"
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                  />
-                </View>
-
-
-
-                {errorMessage && (
-                  <Text style={styles.errorText}>{errorMessage}</Text>
-                )}
-
-                <TouchableOpacity
-                  style={styles.payButton}
-                  onPress={handleInitiatePayment}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <>
-                      <MaterialCommunityIcons name="cash" size={20} color="#FFFFFF" />
-                      <Text style={styles.payButtonText}>Payer maintenant</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.securePaymentContainer}>
-                  <MaterialCommunityIcons
-                    name="shield-check"
-                    size={16}
-                    color={isDark ? theme.color.gray[400] : theme.color.gray[600]}
-                  />
-                  <Text style={[styles.securePaymentText, isDark && styles.securePaymentTextDark]}>
-                    Paiement sécurisé via MTN ou Orange Money
-                  </Text>
-                </View>
-
-                <WhatsAppContact 
-                  message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${competitionName}`}
-                  style={{ marginTop: 16, marginHorizontal: 0 }}
+                <TextInput
+                  style={[styles.input, isDark && styles.inputDark]}
+                  placeholder="Ex: 650123456"
+                  placeholderTextColor={isDark ? theme.color.gray[500] : theme.color.gray[400]}
+                  keyboardType="phone-pad"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
                 />
               </View>
-            </KeyboardAvoidingView>
+
+
+
+              {errorMessage && (
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              )}
+
+              <TouchableOpacity
+                style={styles.payButton}
+                onPress={handleInitiatePayment}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="cash" size={20} color="#FFFFFF" />
+                    <Text style={styles.payButtonText}>Payer maintenant</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.securePaymentContainer}>
+                <MaterialCommunityIcons
+                  name="shield-check"
+                  size={16}
+                  color={isDark ? theme.color.gray[400] : theme.color.gray[600]}
+                />
+                <Text style={[styles.securePaymentText, isDark && styles.securePaymentTextDark]}>
+                  Paiement sécurisé via MTN ou Orange Money
+                </Text>
+              </View>
+
+              <WhatsAppContact 
+                message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${competitionName}`}
+                style={{ marginTop: 16, marginHorizontal: 0 }}
+              />
+            </View>
           </ScrollView>
         );
 
@@ -616,7 +699,7 @@ export const CompetitionPaymentBottomSheet = ({
 
             <TouchableOpacity
               style={styles.retryButton}
-              onPress={() => setProcessingState('idle')}
+              onPress={handleStartNewPayment}
             >
               <MaterialCommunityIcons name="refresh" size={20} color="#FFFFFF" />
               <Text style={styles.retryButtonText}>Réessayer</Text>
@@ -639,12 +722,16 @@ export const CompetitionPaymentBottomSheet = ({
       case 'canceled':
         return (
           <View style={styles.statusContainer}>
-            <LottieView
-              source={require('@/assets/animations/payment-canceled.json')}
-              autoPlay
-              loop={false}
-              style={styles.lottieAnimation}
-            />
+            <View style={styles.iconContainer}>
+              <LottieView
+                source={require('@/assets/animations/payment-canceled.json')}
+                autoPlay
+                loop={false}
+                resizeMode="contain"
+                speed={1}
+                style={styles.lottieAnimation}
+              />
+            </View>
             <Text style={[styles.statusTitle, isDark && styles.statusTitleDark]}>
               Paiement annulé
             </Text>
@@ -654,7 +741,7 @@ export const CompetitionPaymentBottomSheet = ({
 
             <TouchableOpacity
               style={styles.retryButton}
-              onPress={() => setProcessingState('idle')}
+              onPress={handleStartNewPayment}
             >
               <MaterialCommunityIcons name="refresh" size={20} color="#FFFFFF" />
               <Text style={styles.retryButtonText}>Réessayer</Text>
@@ -699,7 +786,11 @@ export const CompetitionPaymentBottomSheet = ({
           hasBackdrop={true}
       >
 
-      <View style={[styles.modalContent, isDark && styles.modalContentDark]}>
+      <View style={[
+        styles.modalContent, 
+        isDark && styles.modalContentDark,
+        keyboardHeight > 0 && { marginBottom: keyboardHeight }
+      ]}>
 
         <View style={[styles.modalHandle, isDark && styles.modalHandleDark]} />
         {renderContent()}
@@ -719,6 +810,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     marginBottom: 12,
+        paddingBottom: 20,
+
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: theme.color.gray[100],
@@ -777,7 +870,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 20,
-    height : height * 0.5,
+    minHeight: height * 0.5,
+    maxHeight: height * 0.85,
   },
   modalContentDark: {
     backgroundColor: theme.color.dark.background.secondary,

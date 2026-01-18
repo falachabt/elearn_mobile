@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import useSWR from "swr";
 
 import { supabase } from "@/lib/supabase";
@@ -192,63 +192,82 @@ const calculateTodayExercises = async (userId: string) => {
 };
 
 const fetchUserPrograms = async (userId: string) => {
-  const { data, error } = await supabase
+  // Première requête : récupérer uniquement les program_id (avec duplications potentielles)
+  const { data: enrollments, error: enrollError } = await supabase
     .from("user_program_enrollments")
-    .select(
-      `
-      concours_learningpaths (
-        id,
-        learningPathId,
-        learning_paths (
-          id,
-          title,
-          description,
-          image,
-          duration,
-          course_count,
-          quiz_count,
-          total_duration,
-          status,
-          end_at,
-          groups
-        )
-      )
-    `
-    )
+    .select("program_id")
     .eq("user_id", userId);
+  
+  logger.log('[UserContext] fetchUserPrograms - Raw enrollments from DB:', enrollments?.length || 0);
 
-  if (error) {
-    logger.error('[UserContext] Error fetching user programs:', error);
+  if (enrollError) {
+    logger.error('[UserContext] Error fetching user enrollments:', enrollError);
     return [];
   }
 
-  // Correction : on retourne un tableau d'objets { ...learningPath, concours_learningpaths }
-  const learningPaths = data
-    ?.map((enrollment) => {
-      const concoursLearningPath = enrollment.concours_learningpaths;
-      const learningPath = concoursLearningPath?.learning_paths;
-      // On fusionne les propriétés pour garder la référence au concours_learningpaths
-      if (learningPath && typeof learningPath === "object") {
-        // Si learningPath est un tableau, on mappe chaque élément
-        if (Array.isArray(learningPath)) {
-          return learningPath.map((lp) => ({
-            ...lp,
-            concours_learningpaths: concoursLearningPath,
-          }));
-        } else {
-          // Sinon, on retourne l'objet fusionné
-          return [
-            {
-              ...learningPath,
-              concours_learningpaths: concoursLearningPath,
-            },
-          ];
-        }
-      }
-      return [];
-    })
-    .flat();
+  // Déduplication côté client pour obtenir les program_ids uniques
+  const allProgramIds = enrollments?.map(e => e.program_id).filter(Boolean) || [];
+  const uniqueProgramIds = [...new Set(allProgramIds)];
+  
+  if (allProgramIds.length !== uniqueProgramIds.length) {
+    logger.warn('[UserContext] ⚠️ DUPLICATIONS DETECTED:', allProgramIds.length, 'enrollments but only', uniqueProgramIds.length, 'unique program IDs');
+    logger.warn('[UserContext] 🔧 Consider cleaning duplicates in user_program_enrollments table');
+  }
+  
+  if (uniqueProgramIds.length === 0) {
+    logger.log('[UserContext] No programs found for user');
+    return [];
+  }
 
+  // Deuxième requête : récupérer les détails des programmes uniques
+  const { data, error } = await supabase
+    .from("concours_learningpaths")
+    .select(
+      `
+      id,
+      learningPathId,
+      learning_paths!inner (
+        id,
+        title,
+        description,
+        image,
+        duration,
+        course_count,
+        quiz_count,
+        total_duration,
+        status,
+        end_at,
+        groups
+      )
+    `
+    )
+    .in("id", uniqueProgramIds);
+
+  if (error) {
+    logger.error('[UserContext] Error fetching program details:', error);
+    return [];
+  }
+
+  // Transformer les données
+  const learningPaths = data
+    ?.map((concoursLearningPath) => {
+      const learningPath = concoursLearningPath.learning_paths;
+      
+      if (learningPath && typeof learningPath === "object" && !Array.isArray(learningPath)) {
+        return {
+          ...learningPath,
+          concours_learningpaths: {
+            id: concoursLearningPath.id,
+            learningPathId: concoursLearningPath.learningPathId,
+          },
+        };
+      }
+      return null;
+    })
+    .filter((lp): lp is LearningPaths => lp !== null);
+  
+  logger.log('[UserContext] fetchUserPrograms - Enrollments:', enrollments?.length, 'Unique programs loaded:', learningPaths?.length || 0);
+  
   return learningPaths || [];
 };
 
@@ -317,37 +336,62 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   >(
     programIds.length > 0 ? `program-access-map-${programIds.join(",")}` : null,
     async () => {
-      const accessMap: Record<string, ProgramAccessStatus> = {};
-      for (const programId of programIds) {
-        if (!programId) continue;
-        const payment = await ProgramPaymentService.getLatestPayment(programId);
-        if (!payment) {
-          accessMap[programId] = { hasAccess: false, isExpired: false };
-        } else {
+      logger.log('[UserContext] Fetching access status for', programIds.length, 'programs in parallel...');
+      const startTime = Date.now();
+      
+      // ✨ PARALLÉLISATION : Tous les appels en même temps au lieu d'en série
+      const paymentPromises = programIds.map(async (programId) => {
+        if (!programId) return null;
+        
+        try {
+          const payment = await ProgramPaymentService.getLatestPayment(programId);
+          if (!payment) {
+            return { programId, status: { hasAccess: false, isExpired: false } };
+          }
+          
           const now = new Date();
           const expiryDate = new Date(payment.expiry_date);
           const isExpired = now > expiryDate;
-          accessMap[programId] = {
-            hasAccess: !isExpired,
-            isExpired,
-            expiryDate: payment.expiry_date,
+          
+          return {
+            programId,
+            status: {
+              hasAccess: !isExpired,
+              isExpired,
+              expiryDate: payment.expiry_date,
+            }
           };
+        } catch (error) {
+          logger.error('[UserContext] Error fetching payment for program', programId, error);
+          return { programId, status: { hasAccess: false, isExpired: false } };
         }
-      }
+      });
+      
+      // Attendre tous les appels en parallèle
+      const results = await Promise.all(paymentPromises);
+      
+      // Construire le map
+      const accessMap: Record<string, ProgramAccessStatus> = {};
+      results.forEach(result => {
+        if (result) {
+          accessMap[result.programId] = result.status;
+        }
+      });
+      
+      const duration = Date.now() - startTime;
+      logger.log(`[UserContext] Program access map loaded in ${duration}ms:`, Object.keys(accessMap).length, 'programs');
+      
       return accessMap;
     },
     { 
-      revalidateOnFocus: true, 
-      revalidateOnReconnect: true,
-      dedupingInterval: 1000, // Allow revalidation every second
-      onSuccess: (data) => {
-        logger.log('[UserContext] Program access map updated:', Object.keys(data || {}).length, 'programs');
-      }
+      revalidateOnFocus: false, // CRITICAL: Désactiver pour éviter boucles infinies
+      revalidateOnReconnect: false,
+      dedupingInterval: 5000, // Augmenté à 5s pour réduire les appels
     }
   );
 
-  // Nouvelle fonction utilitaire pour obtenir le statut d'accès d'un programme
-  const getProgramAccessStatus = (
+  // Nouvelle fonction utilitaire pour obtenir le statut d'accès d'un programme - mémorisée
+  const getProgramAccessStatus = useCallback((
     learningPathId: string
   ): ProgramAccessStatus => {
     const userProgram = userPrograms?.find(
@@ -360,18 +404,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return (
       programAccessMap[programId] || { hasAccess: false, isExpired: false }
     );
-  };
+  }, [userPrograms, programAccessMap]);
 
-  // Nouvelle version de isLearningPathEnrolled
-  const isLearningPathEnrolled = (learningPathId: string) => {
-    logger.log('[UserContext] Checking enrollment for learningPathId:', learningPathId);
-    logger.log('[UserContext] Available userPrograms:', userPrograms?.map(p => ({ id: p.id, title: p.title })));
-    
+  // Nouvelle version de isLearningPathEnrolled - mémorisée pour éviter re-renders en boucle
+  const isLearningPathEnrolled = useCallback((learningPathId: string) => {
     const userProgram = userPrograms?.find(
       (program) => program.id === learningPathId
     );
     
-    logger.log('[UserContext] Found userProgram:', userProgram ? 'YES' : 'NO');
+    // Log seulement si programme trouvé (réduit le spam)
+    if (userProgram) {
+      logger.log('[UserContext] ✓ Program enrolled:', learningPathId);
+    }
     
     if (!userProgram) {
       if (!isGenerousWeekActive()) return false;
@@ -400,19 +444,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     // Si programAccessMap n'a pas encore été chargé ou ne contient pas ce programme
     // mais que le programme existe dans userPrograms, on considère l'utilisateur comme inscrit
     if (!programAccessMap || !programId || !(programId in programAccessMap)) {
-      logger.log('[UserContext] Program found in userPrograms but not in accessMap yet - returning TRUE');
       return true; // Le programme existe dans les inscriptions, donc l'utilisateur est inscrit
     }
     
     // Sinon, on vérifie le statut d'accès (expiration)
     const status = getProgramAccessStatus(learningPathId);
     return status.hasAccess;
-  };
+  }, [userPrograms, programAccessMap, generousWeekLearningPathId, user?.metadata?.generousWeek]);
 
-  // Check if user is enrolled in a secondary program
-  const isSecondaryProgramEnrolled = (programId: string) => {
+  // Check if user is enrolled in a secondary program - mémorisée
+  const isSecondaryProgramEnrolled = useCallback((programId: string) => {
     return programId == programId; // user do not pay for secondary courses for now 
-  };
+  }, []);
 
   useEffect(() => {
     setIsLoading(
@@ -423,6 +466,26 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         !userPrograms
     );
   }, [user, lastCourse, toDayXp, toDayExo, userPrograms]);
+
+  // Store mutate functions in refs to avoid recreating subscriptions
+  const mutateUserRef = useRef(mutateUser);
+  const mutateLastCourseRef = useRef(mutateLastCourse);
+  const mutateTodayXpRef = useRef(mutateTodayXp);
+  const mutateTodayExercisesRef = useRef(mutateTodayExercises);
+  const mutateTodayTimeRef = useRef(mutateTodayTime);
+  const mutateUserProgramsRef = useRef(mutateUserPrograms);
+  const mutateProgramAccessMapRef = useRef(mutateProgramAccessMap);
+
+  // Update refs when functions change
+  useEffect(() => {
+    mutateUserRef.current = mutateUser;
+    mutateLastCourseRef.current = mutateLastCourse;
+    mutateTodayXpRef.current = mutateTodayXp;
+    mutateTodayExercisesRef.current = mutateTodayExercises;
+    mutateTodayTimeRef.current = mutateTodayTime;
+    mutateUserProgramsRef.current = mutateUserPrograms;
+    mutateProgramAccessMapRef.current = mutateProgramAccessMap;
+  }, [mutateUser, mutateLastCourse, mutateTodayXp, mutateTodayExercises, mutateTodayTime, mutateUserPrograms, mutateProgramAccessMap]);
 
   useEffect(() => {
     let subscription: ReturnType<typeof supabase.channel>;
@@ -438,7 +501,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             table: "accounts",
             filter: `id=eq.${authUser.id}`,
           },
-          () => mutateUser()
+          () => mutateUserRef.current()
         )
         .on(
           "postgres_changes",
@@ -448,7 +511,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             table: "user_xp",
             filter: `userid=eq.${authUser.id}`,
           },
-          () => mutateUser()
+          () => mutateUserRef.current()
         )
         .on(
           "postgres_changes",
@@ -458,7 +521,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             table: "user_activity",
             filter: `user_id=eq.${authUser.id}`,
           },
-          () => mutateTodayTime()
+          () => mutateTodayTimeRef.current()
         )
         .on(
           "postgres_changes",
@@ -468,7 +531,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             table: "user_streaks",
             filter: `user_id=eq.${authUser.id}`,
           },
-          () => mutateUser()
+          () => mutateUserRef.current()
         )
         .on(
           "postgres_changes",
@@ -480,7 +543,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           },
           async () => {
             if (authUser.id) {
-              mutateTodayExercises();
+              mutateTodayExercisesRef.current();
             }
           }
         )
@@ -494,7 +557,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           },
           async () => {
             if (authUser.id) {
-              mutateLastCourse();
+              mutateLastCourseRef.current();
             }
           }
         )
@@ -508,7 +571,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           },
           async () => {
             if (authUser.id) {
-              mutateLastCourse();
+              mutateLastCourseRef.current();
             }
           }
         )
@@ -522,7 +585,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           },
           async () => {
             if (authUser.id) {
-              mutateTodayXp();
+              mutateTodayXpRef.current();
             }
           }
         )
@@ -537,8 +600,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           async () => {
             if (authUser.id) {
               logger.log('[UserContext] Realtime: user_program_enrollments changed, mutating...');
-              mutateUserPrograms();
-              mutateProgramAccessMap();
+              mutateUserProgramsRef.current();
+              mutateProgramAccessMapRef.current();
             }
           }
         )
@@ -554,8 +617,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (authUser.id) {
               console.log('[UserContext] Realtime: user_program_payments changed, mutating...');
               // Mutate both enrollments and access map when payment changes
-              mutateUserPrograms();
-              mutateProgramAccessMap();
+              mutateUserProgramsRef.current();
+              mutateProgramAccessMapRef.current();
             }
           }
         )
@@ -565,16 +628,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [
-    authUser?.id,
-    mutateUser,
-    mutateLastCourse,
-    mutateTodayXp,
-    mutateTodayExercises,
-    mutateTodayTime,
-    mutateUserPrograms,
-    mutateProgramAccessMap,
-  ]);
+  }, [authUser?.id]);
 
   const value: UserContextType = {
     user: user ?? null,

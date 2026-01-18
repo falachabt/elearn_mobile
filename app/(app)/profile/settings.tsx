@@ -27,7 +27,6 @@ import {registerForPushNotificationsAsync} from "@/components/TestNotifications"
 import {useColorScheme} from '@/hooks/useColorScheme';
 import reminderMessages from "@/constants/reminderMessages";
 import { IconNames } from '@/constants/iconNames';
-import { ReminderDays, AppSettings } from '@/types/settings.type';
 import SettingsItem from '@/components/settings/SettingsItem';
 import ReminderModal from '@/components/settings/ReminderModal';
 

@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import {Pressable, StyleSheet, Text} from 'react-native';
 import {MaterialCommunityIcons} from "@expo/vector-icons";

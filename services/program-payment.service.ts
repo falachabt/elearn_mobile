@@ -523,6 +523,30 @@ export const ProgramPaymentService = {
     return data;
   },
 
+  async getPaymentByReference(paymentReference: string): Promise<ProgramPayment | null> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return null;
+    if (!paymentReference) return null;
+
+    const { data, error } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('payment_reference', paymentReference)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log('No payment found for reference:', paymentReference);
+        return null;
+      }
+      console.error('Error getting payment by reference:', error);
+      return null;
+    }
+
+    return data;
+  },
+
 
   async getAllPayments(programId: string): Promise<ProgramPayment[]> {
     const user = (await supabase.auth.getUser()).data.user;

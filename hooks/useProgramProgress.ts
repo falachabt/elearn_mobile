@@ -452,9 +452,9 @@ export const useProgramProgress = (
       }
     },
     {
-      revalidateOnFocus: true,
+      revalidateOnFocus: false, // Désactivé pour éviter les revalidations trop fréquentes
       revalidateOnReconnect: true,
-      refreshInterval: 10000, // Refresh every 10 seconds
+      dedupingInterval: 30000, // Empêche les requêtes en double pendant 30s
     }
   );
 

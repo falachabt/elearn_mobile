@@ -724,6 +724,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFFFFF",
         left: Platform.OS !== "web" ? "-10%" : 0,
         width: Platform.OS !== "web" ? "120%" : "100%",
+        paddingBottom: 20,
         marginBottom: 20,
         marginTop: 20,
     },

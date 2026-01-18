@@ -17,36 +17,54 @@ const PaymentResultPage = () => {
     const router = useRouter();
     const scheme = useColorScheme();
     const isDark = scheme === 'dark';
-    const { mutateUserPrograms, mutateProgramAccessMap, isLearningPathEnrolled } = useUser();
+    const { mutateUserPrograms, mutateProgramAccessMap, isLearningPathEnrolled, getProgramAccessStatus } = useUser();
     const [isActivatingAccess, setIsActivatingAccess] = useState(false);
     const [activationMessage, setActivationMessage] = useState('Activation de vos accès en cours...');
+    const [payment, setPayment] = useState<any>(null);
+    const [isLoadingPayment, setIsLoadingPayment] = useState(true);
 
     const result = params.result as ResultType;
     const programName = params.programName as string;
     const pdId = params.pdId as string;
-    const paymentId = params.paymentId as string;
-    const isInstallment = params.isInstallment === 'true';
-    const hasMoreInstallments = params.hasMoreInstallments === 'true';
+    const paymentReference = params.paymentReference as string;
     const errorMessage = params.errorMessage as string | undefined;
 
-    // Mutate data on mount if success and mark as seen
+    // Fetch payment by reference on mount
     useEffect(() => {
-        const handleMount = async () => {
-            if (paymentId) {
-                await ProgramPaymentService.markAsSeen(paymentId);
+        const loadPayment = async () => {
+            if (!paymentReference) {
+                setIsLoadingPayment(false);
+                return;
             }
-            
-            if (result === 'success') {
-                // Force immediate revalidation
-                await Promise.all([
-                    mutateUserPrograms(),
-                    mutateProgramAccessMap()
-                ]);
+
+            try {
+                const paymentData = await ProgramPaymentService.getPaymentByReference(paymentReference);
+                setPayment(paymentData);
+                
+                if (paymentData?.id) {
+                    await ProgramPaymentService.markAsSeen(paymentData.id);
+                }
+            } catch (error) {
+                console.error('Error loading payment:', error);
+            } finally {
+                setIsLoadingPayment(false);
             }
         };
 
-        handleMount();
-    }, [result, paymentId, mutateUserPrograms, mutateProgramAccessMap]);
+        loadPayment();
+    }, [paymentReference]);
+
+    // Mutate data on mount if success
+    useEffect(() => {
+        if (result === 'success' && !isLoadingPayment) {
+            mutateUserPrograms();
+            mutateProgramAccessMap();
+        }
+    }, [result, isLoadingPayment, mutateUserPrograms, mutateProgramAccessMap]);
+
+    const isInstallment = payment?.is_installment || false;
+    const hasMoreInstallments = payment?.is_installment && 
+        (payment?.current_installment || 1) < (payment?.total_installments || 1);
 
     const getResultConfig = () => {
         switch (result) {
@@ -99,46 +117,59 @@ const PaymentResultPage = () => {
             
             // Vérification active de l'accès avec boucle de polling
             let attempts = 0;
-            const maxAttempts = 20; // 20 tentatives max (10 secondes)
+            const maxAttempts = 12; // 12 tentatives max (12 secondes avec 1s de délai)
             
             while (attempts < maxAttempts) {
                 attempts++;
                 
                 // Mise à jour du message de progression
-                if (attempts <= 3) {
+                if (attempts <= 2) {
                     setActivationMessage('Activation de vos accès en cours...');
-                } else if (attempts <= 8) {
+                } else if (attempts <= 6) {
                     setActivationMessage('Vérification de votre inscription...');
-                } else if (attempts <= 15) {
+                } else if (attempts <= 10) {
                     setActivationMessage('Finalisation, encore quelques secondes...');
                 } else {
                     setActivationMessage('Dernière vérification...');
                 }
                 
-                // Force revalidation
+                // Attendre un peu au début pour laisser le trigger DB s'exécuter
+                if (attempts === 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                }
+                
+                // Force revalidation avec option pour bypasser le cache
                 await Promise.all([
-                    mutateUserPrograms(),
-                    mutateProgramAccessMap()
+                    mutateUserPrograms(undefined, { revalidate: true }),
+                    mutateProgramAccessMap(undefined, { revalidate: true })
                 ]);
                 
-                // Vérifie si l'utilisateur est bien inscrit
-                const enrolled = isLearningPathEnrolled(pdId);
+                // Petit délai pour laisser SWR mettre à jour les données
+                await new Promise(resolve => setTimeout(resolve, 300));
                 
-                if (enrolled) {
+                // Vérifie si l'utilisateur est bien inscrit ET a un accès valide
+                const enrolled = isLearningPathEnrolled(pdId);
+                const accessStatus = getProgramAccessStatus(pdId);
+                
+                console.log(`[PaymentResult] Attempt ${attempts}/${maxAttempts} - Enrolled: ${enrolled}, HasAccess: ${accessStatus.hasAccess}`);
+                
+                // Succès si inscrit ET accès confirmé (pas expiré)
+                if (enrolled && accessStatus.hasAccess) {
                     setActivationMessage('Accès confirmé ! Redirection...');
                     await new Promise(resolve => setTimeout(resolve, 500));
                     break;
                 }
                 
-                // Attendre 500ms avant la prochaine tentative
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Attendre 2 secondes avant la prochaine tentative
+                // Laisse plus de temps au trigger DB + propagation données
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
             
             setIsActivatingAccess(false);
         }
         
-        // Navigate to program details
-        router.replace(`/(app)/learn/${pdId}`);
+        // Navigate to program details with flag to force revalidation
+        router.replace(`/(app)/learn/${pdId}?fromPayment=success&timestamp=${Date.now()}`);
     };
 
     const handleRetry = () => {
