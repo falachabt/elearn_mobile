@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ScrollView, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
 import LottieView from 'lottie-react-native';
+
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import WhatsAppContact from '@/components/WhatsappSupport';
@@ -16,7 +16,7 @@ import { ProgramPayment } from '@/types/payment.types';
 
 type ResultType = 'success' | 'failed' | 'canceled';
 
-const PaymentResultPage = () => {
+export default function PaymentResultPage() {
     const params = useLocalSearchParams();
     const router = useRouter();
     const scheme = useColorScheme();
@@ -325,7 +325,7 @@ const PaymentResultPage = () => {
             </ScrollView>
         </ThemedView>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     helpSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.12)',
+        backgroundColor: 'rgba(251, 191, 36, 0.12)',
         padding: 16,
         borderRadius: 12,
         marginTop: 24,
@@ -453,5 +453,3 @@ const styles = StyleSheet.create({
         flex: 1,
     },
 });
-
-export default PaymentResultPage;

@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 
+import { logger } from "@/utils/logger";
 import {
   NotchPayInitializeParams,
   NotchPayResponse,
@@ -33,6 +34,7 @@ export class NotchPayService {
     initResponse: NotchPayResponse;
     chargeResponse?: NotchPayChargeResponse;
     error?: string;
+    needsFallback?: boolean;
   }> {
     try {
       // 1. Initialize payment
@@ -50,13 +52,14 @@ export class NotchPayService {
           return {
             initResponse,
             chargeResponse,
+            needsFallback: false
           };
         } catch (chargeError: Error | unknown) {
           // If charging fails, return initialization response with error
           return {
             initResponse,
-            error:
-              (chargeError as Error).message || "Failed to charge mobile money",
+            error: (chargeError as Error).message || "Failed to charge mobile money",
+            needsFallback: true
           };
         }
       }

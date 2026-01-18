@@ -44,7 +44,7 @@ export const ProgramPaymentService = {
   },
 
   // Calculate installment amount based on total price and number of installments
-  calculateInstallmentAmount(totalAmount: number, totalInstallments: number, currentInstallment: number = 1): number {
+  calculateInstallmentAmount(totalAmount: number, totalInstallments: number): number {
     // Ensure we have valid numbers to avoid NaN
     if (!totalAmount || isNaN(totalAmount) || !totalInstallments || isNaN(totalInstallments) || totalInstallments <= 0) {
       return 0;
@@ -100,9 +100,8 @@ export const ProgramPaymentService = {
         totalInstallments,
         currentInstallment, // currentInstallment
         totalAmount,
-          null,
+        null,
         nextInstallmentDate
-
       );
 
       // If direct charge was successful or needs fallback
@@ -116,7 +115,7 @@ export const ProgramPaymentService = {
           needsFallback: result.needsFallback,
           authorizationUrl: result.initResponse.authorization_url,
           trxReference: result.initResponse.transaction.reference
-        } as any;
+        } as ProgramPayment & { needsFallback?: boolean; authorizationUrl?: string; trxReference?: string };
       }
 
       logger.error("Installment plan creation failed: No chargeResponse or needsFallback");
@@ -225,7 +224,7 @@ export const ProgramPaymentService = {
         needsFallback: result.needsFallback,
         authorizationUrl: result.initResponse.authorization_url,
         trxReference: result.initResponse.transaction.reference
-      } as any;
+      } as ProgramPayment & { needsFallback?: boolean; authorizationUrl?: string; trxReference?: string };
     }
 
     throw new Error("Next installment payment failed");
@@ -363,7 +362,7 @@ export const ProgramPaymentService = {
     return supabase
       .channel('program_payments')
       .on(
-        'postgres_changes' as any,
+        'postgres_changes',
         {
           event: '*',
           schema: 'public',
@@ -674,14 +673,13 @@ export const ProgramPaymentService = {
           amount * totalInstallments, // Pass the total amount, not just the first installment
           totalInstallments,
           promoCodeId,
-            currentInstallment,
-            nextInstallmentDate
+          currentInstallment,
+          nextInstallmentDate
         );
       }
 
       // Otherwise, proceed with a regular one-time payment
       const notchpay = new NotchPayService();
-      const network = phoneNumber.startsWith('655') ? 'orange' : 'mtn';
 
       const result = await notchpay.initiateDirectCharge({
         phone: phoneNumber,
@@ -725,8 +723,6 @@ export const ProgramPaymentService = {
           promoCodeId,
           false // Not an installment payment
         );
-
-
 
         await this.setStatus(payment.id, 'initialized');
 
@@ -839,7 +835,7 @@ export const ProgramPaymentService = {
     }
   },
 
-  async cancelPayment(paymentId: string, reference: string) {
+  async cancelPayment(paymentId: string) {
     try {
       // First, check the current status of the payment
       const { data: payment, error: fetchError } = await supabase
@@ -866,7 +862,7 @@ export const ProgramPaymentService = {
         // Uncomment if you want to cancel in NotchPay
         // const notchpay = new NotchPayService();
         // await notchpay.cancelPayment(reference);
-      } catch (e) {
+      } catch {
         // Silently ignore NotchPay cancellation errors
       }
     } catch (error) {
