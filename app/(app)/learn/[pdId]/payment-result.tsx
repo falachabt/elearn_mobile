@@ -153,7 +153,7 @@ export default function PaymentResultPage() {
                 
                 // Vérifie si l'utilisateur est bien inscrit ET a un accès valide
                 const enrolled = isLearningPathEnrolled(pdId);
-                const accessStatus = getProgramAccessStatus(pdId);
+                const accessStatus = await getProgramAccessStatus(pdId);
                 
                 logger.log(`[PaymentResult] Attempt ${attempts}/${maxAttempts} - Enrolled: ${enrolled}, HasAccess: ${accessStatus.hasAccess}`);
                 

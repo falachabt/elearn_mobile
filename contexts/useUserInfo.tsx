@@ -53,7 +53,7 @@ type UserContextType = {
   mutateUserPrograms: () => Promise<LearningPaths[] | undefined>;
   isLearningPathEnrolled: (learningPathId: string) => boolean;
   isSecondaryProgramEnrolled: (programId: string) => boolean;
-  getProgramAccessStatus: (learningPathId: string) => ProgramAccessStatus;
+  getProgramAccessStatus: (learningPathId: string) => Promise<ProgramAccessStatus>;
   mutateProgramAccessMap: () => Promise<ProgramAccessMap | undefined>;
 };
 
@@ -391,7 +391,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Nouvelle fonction utilitaire pour obtenir le statut d'accès d'un programme - mémorisée
-  const getProgramAccessStatus = useCallback((
+  // Synchronous version for component-level usage (returns cached result only)
+  const getProgramAccessStatusSync = useCallback((
     learningPathId: string
   ): ProgramAccessStatus => {
     const userProgram = userPrograms?.find(
@@ -399,10 +400,56 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     );
     const programId = userProgram?.concours_learningpaths?.id;
     
+    if (!programAccessMap || !programId) {
+      return { hasAccess: false, isExpired: false };
+    }
+    
+    return programAccessMap[programId] || { hasAccess: false, isExpired: false };
+  }, [userPrograms, programAccessMap]);
+
+  // Async version with DB fallback for programId lookup (for payment flows)
+  const getProgramAccessStatus = useCallback(async (
+    learningPathId: string
+  ): Promise<ProgramAccessStatus> => {
+    let programId: string | undefined;
+    
+    // Try to get programId from userPrograms first (fast path)
+    const userProgram = userPrograms?.find(
+      (program) => program.id === learningPathId
+    );
+    programId = userProgram?.concours_learningpaths?.id;
+    
+    // If not found in userPrograms, query database directly (fallback for race condition)
+    if (!programId) {
+      logger.log(`[UserContext] getProgramAccessStatus - programId not in userPrograms, querying DB directly for learningPathId: ${learningPathId}`);
+      
+      try {
+        const { data, error } = await supabase
+          .from('learning_paths')
+          .select('concours_id')
+          .eq('id', learningPathId)
+          .single();
+        
+        if (!error && data) {
+          programId = data.concours_id?.toString();
+          logger.log(`[UserContext] getProgramAccessStatus - found programId from DB: ${programId}`);
+        } else {
+          logger.error(`[UserContext] getProgramAccessStatus - DB query error:`, error);
+        }
+      } catch (err) {
+        logger.error(`[UserContext] getProgramAccessStatus - exception:`, err);
+      }
+    }
+    
     logger.log(`[UserContext] getProgramAccessStatus - learningPathId: ${learningPathId}, programId: ${programId}, hasMap: ${!!programAccessMap}`);
     
-    if (!programId || !programAccessMap) {
-      logger.log(`[UserContext] getProgramAccessStatus - returning false (no programId or map)`);
+    if (!programAccessMap) {
+      logger.log(`[UserContext] getProgramAccessStatus - no access map yet`);
+      return { hasAccess: false, isExpired: false };
+    }
+    
+    if (!programId) {
+      logger.log(`[UserContext] getProgramAccessStatus - no programId found`);
       return { hasAccess: false, isExpired: false };
     }
     

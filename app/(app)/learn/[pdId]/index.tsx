@@ -83,8 +83,24 @@ const ProgramDetails = () => {
   const { user } = useAuth();
   const { isLearningPathEnrolled, getProgramAccessStatus, mutateUserPrograms, mutateProgramAccessMap } =
     useUser();
-  const accessStatus = getProgramAccessStatus(id);
+  
+  // Use a state to hold the access status since getProgramAccessStatus is now async
+  const [accessStatus, setAccessStatus] = useState<{ hasAccess: boolean; isExpired: boolean }>({ 
+    hasAccess: false, 
+    isExpired: false 
+  });
+  
   const isEnrolled = isLearningPathEnrolled(id);
+
+  // Fetch access status asynchronously
+  useEffect(() => {
+    const fetchAccessStatus = async () => {
+      const status = await getProgramAccessStatus(id);
+      setAccessStatus(status);
+    };
+    fetchAccessStatus();
+  }, [id, getProgramAccessStatus]);
+  
   const isExpired = accessStatus.isExpired;
 
   const router = useRouter();
