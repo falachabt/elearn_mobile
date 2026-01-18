@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     helpSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.color.warning + '20',
+        backgroundColor: isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.12)',
         padding: 16,
         borderRadius: 12,
         marginTop: 24,

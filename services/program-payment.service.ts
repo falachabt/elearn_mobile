@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { NotchPayService } from '@/lib/notchpay';
 import { PURCHASE_VALIDITY_DAYS } from '@/utils/pricing';
+import { logger } from '@/utils/logger';
 
 export interface ProgramPayment {
   id: string;
@@ -38,7 +39,7 @@ export const ProgramPaymentService = {
       .eq('id', paymentId);
 
     if (error) {
-      console.error('Error marking payment as seen:', error);
+      logger.error('Error marking payment as seen:', error);
     }
   },
 
@@ -84,7 +85,7 @@ export const ProgramPaymentService = {
       });
 
       if (!result.initResponse.transaction?.reference) {
-        console.error("Payment initialization failed: No transaction reference");
+        logger.error("Payment initialization failed: No transaction reference");
         throw new Error("Payment initialization failed");
       }
 
@@ -118,10 +119,10 @@ export const ProgramPaymentService = {
         } as any;
       }
 
-      console.error("Installment plan creation failed: No chargeResponse or needsFallback");
+      logger.error("Installment plan creation failed: No chargeResponse or needsFallback");
       throw new Error("Installment plan creation failed");
     } catch (error) {
-      console.error("Error in createInstallmentPlan:", error);
+      logger.error("Error in createInstallmentPlan:", error);
       throw error;
     }
   },
@@ -133,7 +134,7 @@ export const ProgramPaymentService = {
 
     const numericProgramId = parseInt(programId, 10);
     if (isNaN(numericProgramId)) {
-      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       return [];
     }
 
@@ -148,7 +149,7 @@ export const ProgramPaymentService = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error getting pending installments:', error);
+      logger.error('Error getting pending installments:', error);
       return [];
     }
 
@@ -168,7 +169,7 @@ export const ProgramPaymentService = {
       .single();
 
     if (parentError || !parentPayment) {
-      console.error('Error getting parent payment:', parentError);
+      logger.error('Error getting parent payment:', parentError);
       throw new Error('Parent payment not found');
     }
 
@@ -240,7 +241,7 @@ export const ProgramPaymentService = {
       .single();
 
     if (error || !payment || !payment.parent_payment_id) {
-      console.error('Error getting payment:', error);
+      logger.error('Error getting payment:', error);
       return;
     }
 
@@ -255,7 +256,7 @@ export const ProgramPaymentService = {
       .eq('id', payment.parent_payment_id);
 
     if (updateError) {
-      console.error('Error updating parent payment:', updateError);
+      logger.error('Error updating parent payment:', updateError);
     }
   },
 
@@ -336,7 +337,7 @@ export const ProgramPaymentService = {
       .single();
 
     if (error) {
-      console.error('Error creating program payment:', error);
+      logger.error('Error creating program payment:', error);
       throw new Error(error.message);
     }
 
@@ -353,7 +354,7 @@ export const ProgramPaymentService = {
       .eq('id', paymentId);
 
     if (error) {
-      console.error('Error updating program payment status:', error);
+      logger.error('Error updating program payment status:', error);
       throw new Error(error.message);
     }
   },
@@ -383,7 +384,7 @@ export const ProgramPaymentService = {
     const numericProgramId = parseInt(programId, 10);
 
     if (isNaN(numericProgramId)) {
-      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       return false;
     }
 
@@ -396,7 +397,7 @@ export const ProgramPaymentService = {
       .limit(1);
 
     if (enrollmentError) {
-      console.error('Error checking program enrollment:', enrollmentError);
+      logger.error('Error checking program enrollment:', enrollmentError);
       return false;
     }
 
@@ -413,7 +414,7 @@ export const ProgramPaymentService = {
         .limit(1);
 
       if (paymentError) {
-        console.error('Error checking program payment:', paymentError);
+        logger.error('Error checking program payment:', paymentError);
         return false;
       }
 
@@ -460,7 +461,7 @@ export const ProgramPaymentService = {
     const numericProgramId = parseInt(programId, 10);
 
     if (isNaN(numericProgramId)) {
-      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       return null;
     }
 
@@ -480,7 +481,7 @@ export const ProgramPaymentService = {
         // No active payment found
         return null;
       }
-      console.error('Error getting active program payment:', error);
+      logger.error('Error getting active program payment:', error);
       throw new Error(error.message);
     }
 
@@ -498,7 +499,7 @@ export const ProgramPaymentService = {
     const numericProgramId = parseInt(programId, 10);
 
     if (isNaN(numericProgramId)) {
-      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       return null;
     }
 
@@ -516,7 +517,7 @@ export const ProgramPaymentService = {
         // No payment found
         return null;
       }
-      console.error('Error getting latest program payment:', error);
+      logger.error('Error getting latest program payment:', error);
       throw new Error(error.message);
     }
 
@@ -537,10 +538,10 @@ export const ProgramPaymentService = {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        console.log('No payment found for reference:', paymentReference);
+        logger.info('No payment found for reference:', paymentReference);
         return null;
       }
-      console.error('Error getting payment by reference:', error);
+      logger.error('Error getting payment by reference:', error);
       return null;
     }
 
@@ -556,7 +557,7 @@ export const ProgramPaymentService = {
     const numericProgramId = parseInt(programId, 10);
 
     if (isNaN(numericProgramId)) {
-      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       return [];
     }
 
@@ -568,7 +569,7 @@ export const ProgramPaymentService = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error getting all program payments:', error);
+      logger.error('Error getting all program payments:', error);
       return [];
     }
 
@@ -582,7 +583,7 @@ export const ProgramPaymentService = {
     const numericProgramId = typeof programId === "string" ? parseInt(programId, 10) : programId;
 
     if (isNaN(numericProgramId)) {
-      console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+      logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       return [];
     }
 
@@ -594,7 +595,7 @@ export const ProgramPaymentService = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error getting payment history:', error);
+      logger.error('Error getting payment history:', error);
       return [];
     }
 
@@ -614,7 +615,7 @@ export const ProgramPaymentService = {
         .single();
 
       if (paymentError || !payment) {
-        console.error('Error fetching payment:', paymentError);
+        logger.error('Error fetching payment:', paymentError);
         return [];
       }
 
@@ -629,13 +630,13 @@ export const ProgramPaymentService = {
         .order('current_installment', { ascending: true });
 
       if (error) {
-        console.error('Error fetching all installments:', error);
+        logger.error('Error fetching all installments:', error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in getAllInstallmentsForPlan:', error);
+      logger.error('Error in getAllInstallmentsForPlan:', error);
       return [];
     }
   },
@@ -660,7 +661,7 @@ export const ProgramPaymentService = {
       const numericProgramId = parseInt(programId, 10);
 
       if (isNaN(numericProgramId)) {
-        console.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
+        logger.error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
         throw new Error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
       }
 
@@ -739,9 +740,9 @@ export const ProgramPaymentService = {
       throw new Error("Payment initialization failed");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error("Error in direct program payment:", error.message);
+        logger.error("Error in direct program payment:", error.message);
       } else {
-        console.error("Error in direct program payment:", error);
+        logger.error("Error in direct program payment:", error);
       }
       throw error;
     }
@@ -775,7 +776,7 @@ export const ProgramPaymentService = {
             .single();
 
           if (error) {
-            console.error("Error fetching payment details:", error);
+            logger.error("Error fetching payment details:", error);
           } else {
             // If this is an installment payment, update the parent payment
             if (payment.is_installment) {
@@ -810,7 +811,7 @@ export const ProgramPaymentService = {
                   });
 
                 if (enrollmentError) {
-                  console.error("Error creating enrollment:", enrollmentError);
+                  logger.error("Error creating enrollment:", enrollmentError);
                 }
               }
             } else {
@@ -823,7 +824,7 @@ export const ProgramPaymentService = {
                 });
 
               if (enrollmentError) {
-                console.error("Error creating enrollment:", enrollmentError);
+                logger.error("Error creating enrollment:", enrollmentError);
               }
             }
           }
@@ -832,7 +833,7 @@ export const ProgramPaymentService = {
 
       return result;
     } catch (error) {
-      console.error("Error verifying program payment status:", error);
+      logger.error("Error verifying program payment status:", error);
     }
   },
 
@@ -846,7 +847,7 @@ export const ProgramPaymentService = {
         .single();
 
       if (fetchError) {
-        console.error("Error fetching payment status:", fetchError);
+        logger.error("Error fetching payment status:", fetchError);
         throw fetchError;
       }
 
@@ -867,7 +868,7 @@ export const ProgramPaymentService = {
         // Silently ignore NotchPay cancellation errors
       }
     } catch (error) {
-      console.error("Error cancelling program payment:", error);
+      logger.error("Error cancelling program payment:", error);
       throw error;
     }
   }
