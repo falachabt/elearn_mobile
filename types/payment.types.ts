@@ -1,13 +1,31 @@
 /**
  * Payment Types for Program Payments
- * Uses database schema from user_program_payments table
+ * Based on user_program_payments table schema
  */
 
-import { Database } from '@/types/supabase';
-
-// Base types from database
-export type ProgramPaymentRow = Database['public']['Tables']['user_program_payments']['Row'];
-export type ProgramPaymentInsert = Database['public']['Tables']['user_program_payments']['Insert'];
+// Base payment record structure from database
+export interface ProgramPaymentRow {
+  id: string;
+  user_id: string;
+  program_id: number;
+  amount: number;
+  payment_date: string;
+  expiry_date: string;
+  payment_reference: string;
+  payment_status: string;
+  payment_provider: string;
+  phone_number: string;
+  promo_code_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  is_installment?: boolean | null;
+  total_installments?: number | null;
+  current_installment?: number | null;
+  next_payment_due_date?: string | null;
+  total_amount?: number | null;
+  parent_payment_id?: string | null;
+  has_seen_result?: boolean | null;
+}
 
 // Payment flow states
 export enum PaymentFlowState {
