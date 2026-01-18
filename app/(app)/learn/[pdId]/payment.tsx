@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/contexts/useUserInfo";
 import { logger } from "@/utils/logger";
+import { ProgramPaymentService } from "@/services/program-payment.service";
 import {
   PaymentInstructions,
   PaymentOptions,
@@ -75,6 +76,15 @@ const ProgramPaymentPage = () => {
 
   // Determine initial state based on payment history
   const determineInitialState = (latestPayment: ProgramPayment | null, hasCompletedFirstInstallment: boolean) => {
+    // Check if user is retrying after a failed/canceled payment
+    const isRetry = local.retry !== undefined;
+    
+    if (isRetry) {
+      logger.log('[Payment] Retry parameter detected, starting fresh payment flow');
+      setCurrentState(PaymentFlowState.INSTRUCTIONS);
+      return;
+    }
+    
     if (!latestPayment) {
       setCurrentState(PaymentFlowState.INSTRUCTIONS);
       return;
@@ -106,6 +116,13 @@ const ProgramPaymentPage = () => {
 
     // If payment is final AND not seen, show result
     logger.log('[Payment] Final payment status not seen, redirecting to result page');
+    
+    // Mark as seen immediately to prevent redirect loops
+    if (latestPayment.id) {
+      ProgramPaymentService.markAsSeen(latestPayment.id).catch(err => 
+        logger.error('[Payment] Error marking payment as seen:', err)
+      );
+    }
     
     router.replace({
       pathname: "/learn/[pdId]/payment-result",

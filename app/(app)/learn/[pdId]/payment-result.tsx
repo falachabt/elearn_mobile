@@ -177,8 +177,9 @@ export default function PaymentResultPage() {
     };
 
     const handleRetry = () => {
-        // Go back to payment page
-        router.replace(`/(app)/learn/${pdId}/payment`);
+        // Go back to payment page with timestamp to force fresh state
+        // This prevents the redirect loop issue
+        router.replace(`/(app)/learn/${pdId}/payment?retry=${Date.now()}`);
     };
 
     return (
