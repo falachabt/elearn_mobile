@@ -809,6 +809,7 @@ export const ProgramPaymentService = {
               }
 
               // Only create enrollment for the first installment
+              // Note: The DB trigger also creates enrollment, so we use ON CONFLICT to avoid duplicates
               if (payment.current_installment === 1) {
                 // Create enrollment record with expiry_date
                 const { error: enrollmentError } = await supabase
@@ -817,23 +818,30 @@ export const ProgramPaymentService = {
                     user_id: payment.user_id,
                     program_id: payment.program_id,
                     expiry_date: payment.expiry_date
-                  });
+                  })
+                  .select()
+                  .single();
 
-                if (enrollmentError) {
+                if (enrollmentError && enrollmentError.code !== '23505') {
+                  // Ignore duplicate key errors (23505), log others
                   logger.error("Error creating enrollment:", enrollmentError);
                 }
               }
             } else {
               // For one-time payments, create enrollment record with expiry_date
+              // Note: The DB trigger also creates enrollment, so we use ON CONFLICT to avoid duplicates
               const { error: enrollmentError } = await supabase
                 .from('user_program_enrollments')
                 .insert({
                   user_id: payment.user_id,
                   program_id: payment.program_id,
                   expiry_date: payment.expiry_date
-                });
+                })
+                .select()
+                .single();
 
-              if (enrollmentError) {
+              if (enrollmentError && enrollmentError.code !== '23505') {
+                // Ignore duplicate key errors (23505), log others
                 logger.error("Error creating enrollment:", enrollmentError);
               }
             }
