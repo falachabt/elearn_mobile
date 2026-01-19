@@ -524,8 +524,7 @@ const ProgramDetails = () => {
               color={isExpiredInstallment || isFailed ? "#F59E0B" : "#F59E0B"}
             />
           ),
-          route: `/(app)/learn/${id}/payment`,
-          routeParams: { selectedProgramId: id },
+          route: `/(app)/learn/${id}/installment-payment`,
           color:
             isExpiredInstallment || isFailed
               ? "#F59E0B"
