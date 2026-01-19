@@ -273,15 +273,29 @@ const InstallmentPaymentPage = () => {
 
       case PaymentFlowState.NEXT_PAYMENT_OPTIONS:
         return (
-          <NextPaymentOptions
-            programName={programName}
-            installmentAmount={installmentPayment?.amount || 0}
-            currentInstallment={installmentPayment?.current_installment || 1}
-            totalInstallments={installmentPayment?.total_installments || 1}
-            onSubmit={handlePaymentSubmit}
-            onBack={handleBack}
-            isDark={isDark}
-          />
+          <View style={{ flex: 1 }}>
+            <View style={[styles.header, isDark && styles.headerDark]}>
+              <TouchableOpacity onPress={handleBack} style={styles.backIconButton}>
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={24}
+                  color={isDark ? "#FFFFFF" : "#111827"}
+                />
+              </TouchableOpacity>
+              <ThemedText style={[styles.headerTitle, isDark && styles.headerTitleDark]}>
+                Payer la prochaine échéance
+              </ThemedText>
+            </View>
+            <NextPaymentOptions
+              programName={programName}
+              installmentAmount={installmentPayment?.amount || 0}
+              currentInstallment={installmentPayment?.current_installment || 1}
+              totalInstallments={installmentPayment?.total_installments || 1}
+              onPayment={handlePaymentSubmit}
+              isDark={isDark}
+              isLoading={false}
+            />
+          </View>
         );
 
       case PaymentFlowState.NEXT_PAYMENT_PROCESSING:
@@ -365,6 +379,31 @@ const styles = StyleSheet.create({
   },
   containerDark: {
     backgroundColor: theme.color.dark.background.primary,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  headerDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+    borderBottomColor: theme.color.dark.border,
+  },
+  backIconButton: {
+    marginRight: 12,
+    padding: 4,
+  },
+  headerTitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  headerTitleDark: {
+    color: "#FFFFFF",
   },
   centerContainer: {
     flex: 1,
