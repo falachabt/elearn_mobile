@@ -41,6 +41,8 @@ const InstallmentPaymentPage = () => {
   const [currentTrxReference, setCurrentTrxReference] = useState<string | null>(null);
   const [authorizationUrl, setAuthorizationUrl] = useState<string | null>(null);
   const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [statusCheckCount, setStatusCheckCount] = useState(0);
+  const MAX_STATUS_CHECK_ATTEMPTS = 60; // 60 attempts * 10 seconds = 10 minutes max
 
   // Load program and installment data
   useEffect(() => {
@@ -160,9 +162,25 @@ const InstallmentPaymentPage = () => {
   const startStatusCheck = (trxReference: string) => {
     if (!trxReference) return;
 
+    setStatusCheckCount(0);
+
     // Check status every 10 seconds
     const interval = setInterval(async () => {
       try {
+        setStatusCheckCount((prev) => {
+          const newCount = prev + 1;
+          
+          // Stop checking after max attempts
+          if (newCount >= MAX_STATUS_CHECK_ATTEMPTS) {
+            clearInterval(interval);
+            setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
+            setErrorMessage("Le délai de vérification du paiement a expiré. Veuillez vérifier votre compte ou contacter le support.");
+            return newCount;
+          }
+          
+          return newCount;
+        });
+
         // Get the payment by reference to check status
         const payment = await ProgramPaymentService.getPaymentByReference(trxReference);
         
@@ -212,6 +230,8 @@ const InstallmentPaymentPage = () => {
         {
           text: "OK",
           onPress: () => {
+            // Use replace to prevent user from going back to success screen
+            // This ensures they return to program details with updated access
             router.replace(`/(app)/learn/${pdId}/index?fromPayment=success`);
           },
         },
@@ -272,6 +292,25 @@ const InstallmentPaymentPage = () => {
         );
 
       case PaymentFlowState.NEXT_PAYMENT_OPTIONS:
+        if (!installmentPayment) {
+          // Fallback if installment payment is not available
+          return (
+            <View style={styles.centerContainer}>
+              <MaterialCommunityIcons
+                name="alert-circle"
+                size={48}
+                color={isDark ? "#CCCCCC" : "#6B7280"}
+              />
+              <ThemedText style={[styles.errorText, isDark && styles.errorTextDark]}>
+                Les informations de paiement ne sont pas disponibles.
+              </ThemedText>
+              <TouchableOpacity style={styles.retryButton} onPress={handleBack}>
+                <ThemedText style={styles.retryButtonText}>Retour</ThemedText>
+              </TouchableOpacity>
+            </View>
+          );
+        }
+        
         return (
           <View style={{ flex: 1 }}>
             <View style={[styles.header, isDark && styles.headerDark]}>
@@ -288,9 +327,9 @@ const InstallmentPaymentPage = () => {
             </View>
             <NextPaymentOptions
               programName={programName}
-              installmentAmount={installmentPayment?.amount || 0}
-              currentInstallment={installmentPayment?.current_installment || 1}
-              totalInstallments={installmentPayment?.total_installments || 1}
+              installmentAmount={installmentPayment.amount}
+              currentInstallment={installmentPayment.current_installment || 1}
+              totalInstallments={installmentPayment.total_installments || 1}
               onPayment={handlePaymentSubmit}
               isDark={isDark}
               isLoading={false}
