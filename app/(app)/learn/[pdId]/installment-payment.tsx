@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   useColorScheme,
   StyleSheet,
-  ScrollView,
   Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -38,7 +37,6 @@ const InstallmentPaymentPage = () => {
   const [installmentPayment, setInstallmentPayment] = useState<ProgramPayment | null>(null);
   const [currentState, setCurrentState] = useState<PaymentFlowState>(PaymentFlowState.INSTALLMENT_DETAILS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [currentTrxReference, setCurrentTrxReference] = useState<string | null>(null);
   const [authorizationUrl, setAuthorizationUrl] = useState<string | null>(null);
   const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [statusCheckCount, setStatusCheckCount] = useState(0);
@@ -140,10 +138,6 @@ const InstallmentPaymentPage = () => {
         phoneNumber
       );
 
-      if (result.trxReference) {
-        setCurrentTrxReference(result.trxReference);
-      }
-
       if (result.authorizationUrl) {
         setAuthorizationUrl(result.authorizationUrl);
       }
@@ -166,26 +160,27 @@ const InstallmentPaymentPage = () => {
 
     // Check status every 10 seconds
     const interval = setInterval(async () => {
-      try {
-        setStatusCheckCount((prev) => {
-          const newCount = prev + 1;
-          
-          // Stop checking after max attempts
-          if (newCount >= MAX_STATUS_CHECK_ATTEMPTS) {
-            clearInterval(interval);
-            setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
-            setErrorMessage("Le délai de vérification du paiement a expiré. Veuillez vérifier votre compte ou contacter le support.");
-            return newCount;
-          }
-          
-          return newCount;
-        });
+      setStatusCheckCount((prev) => {
+        const newCount = prev + 1;
+        
+        // Stop checking after max attempts
+        if (newCount >= MAX_STATUS_CHECK_ATTEMPTS) {
+          clearInterval(interval);
+          setStatusCheckInterval(null);
+          setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
+          setErrorMessage("Le délai de vérification du paiement a expiré. Veuillez vérifier votre compte ou contacter le support.");
+        }
+        
+        return newCount;
+      });
 
+      try {
         // Get the payment by reference to check status
         const payment = await ProgramPaymentService.getPaymentByReference(trxReference);
         
         if (payment && payment.payment_status === "completed") {
           clearInterval(interval);
+          setStatusCheckInterval(null);
           setCurrentState(PaymentFlowState.NEXT_PAYMENT_SUCCESS);
           
           // Revalidate data
@@ -199,6 +194,7 @@ const InstallmentPaymentPage = () => {
           }
         } else if (payment && (payment.payment_status === "failed" || payment.payment_status === "canceled")) {
           clearInterval(interval);
+          setStatusCheckInterval(null);
           setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
           setErrorMessage("Le paiement a échoué. Veuillez réessayer.");
         }
