@@ -39,7 +39,6 @@ const InstallmentPaymentPage = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authorizationUrl, setAuthorizationUrl] = useState<string | null>(null);
   const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
-  const [statusCheckCount, setStatusCheckCount] = useState(0);
   const MAX_STATUS_CHECK_ATTEMPTS = 60; // 60 attempts * 10 seconds = 10 minutes max
 
   // Load program and installment data
@@ -156,51 +155,52 @@ const InstallmentPaymentPage = () => {
   const startStatusCheck = (trxReference: string) => {
     if (!trxReference) return;
 
-    setStatusCheckCount(0);
+    let attempts = 0;
 
     // Check status every 10 seconds
-    const interval = setInterval(async () => {
-      setStatusCheckCount((prev) => {
-        const newCount = prev + 1;
-        
-        // Stop checking after max attempts
-        if (newCount >= MAX_STATUS_CHECK_ATTEMPTS) {
-          clearInterval(interval);
-          setStatusCheckInterval(null);
-          setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
-          setErrorMessage("Le délai de vérification du paiement a expiré. Veuillez vérifier votre compte ou contacter le support.");
-        }
-        
-        return newCount;
-      });
-
-      try {
-        // Get the payment by reference to check status
-        const payment = await ProgramPaymentService.getPaymentByReference(trxReference);
-        
-        if (payment && payment.payment_status === "completed") {
-          clearInterval(interval);
-          setStatusCheckInterval(null);
-          setCurrentState(PaymentFlowState.NEXT_PAYMENT_SUCCESS);
-          
-          // Revalidate data
-          await mutateUserPrograms();
-          await mutateProgramAccessMap();
-          
-          // Reload installment data
-          if (programId) {
-            const updatedPayment = await ProgramPaymentService.getLatestPayment(programId);
-            setInstallmentPayment(updatedPayment);
-          }
-        } else if (payment && (payment.payment_status === "failed" || payment.payment_status === "canceled")) {
-          clearInterval(interval);
-          setStatusCheckInterval(null);
-          setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
-          setErrorMessage("Le paiement a échoué. Veuillez réessayer.");
-        }
-      } catch (error) {
-        logger.error("Error checking payment status:", error);
+    const interval = setInterval(() => {
+      attempts++;
+      
+      // Stop checking after max attempts
+      if (attempts >= MAX_STATUS_CHECK_ATTEMPTS) {
+        clearInterval(interval);
+        setStatusCheckInterval(null);
+        setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
+        setErrorMessage("Le délai de vérification du paiement a expiré. Veuillez vérifier votre compte ou contacter le support.");
+        return;
       }
+
+      // Async function to check payment status
+      (async () => {
+        try {
+          // Get the payment by reference to check status
+          const payment = await ProgramPaymentService.getPaymentByReference(trxReference);
+          
+          if (payment && payment.payment_status === "completed") {
+            clearInterval(interval);
+            setStatusCheckInterval(null);
+            setCurrentState(PaymentFlowState.NEXT_PAYMENT_SUCCESS);
+            
+            // Revalidate data
+            await mutateUserPrograms();
+            await mutateProgramAccessMap();
+            
+            // Reload installment data
+            if (programId) {
+              const updatedPayment = await ProgramPaymentService.getLatestPayment(programId);
+              setInstallmentPayment(updatedPayment);
+            }
+          } else if (payment && (payment.payment_status === "failed" || payment.payment_status === "canceled")) {
+            clearInterval(interval);
+            setStatusCheckInterval(null);
+            setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
+            setErrorMessage("Le paiement a échoué. Veuillez réessayer.");
+          }
+        } catch (error) {
+          logger.error("Error checking payment status:", error);
+          // Don't stop checking on individual errors, only on timeout
+        }
+      })();
     }, 10000);
 
     setStatusCheckInterval(interval);
@@ -213,7 +213,7 @@ const InstallmentPaymentPage = () => {
         clearInterval(statusCheckInterval);
       }
     };
-  }, [statusCheckInterval]);
+  }, []); // Empty array ensures cleanup only runs on unmount
 
   // Handle payment success
   const handlePaymentSuccess = () => {
