@@ -122,8 +122,8 @@ export default function PaymentResultPage() {
             
             // FIRST: Check if user already has access (fast path)
             // This avoids unnecessary waiting when access is already active
-            let enrolled = isLearningPathEnrolled(pdId);
-            let accessStatus = await getProgramAccessStatus(pdId);
+            const enrolled = isLearningPathEnrolled(pdId);
+            const accessStatus = await getProgramAccessStatus(pdId);
             
             logger.log(`[PaymentResult] Initial check - Enrolled: ${enrolled}, HasAccess: ${accessStatus.hasAccess}`);
             
@@ -131,7 +131,8 @@ export default function PaymentResultPage() {
             if (enrolled && accessStatus.hasAccess) {
                 logger.log(`[PaymentResult] Access already active, skipping polling`);
                 setActivationMessage('Accès confirmé ! Redirection...');
-                await new Promise(resolve => setTimeout(resolve, 500));
+                const FAST_REDIRECT_DELAY = 500; // Brief delay for user feedback
+                await new Promise(resolve => setTimeout(resolve, FAST_REDIRECT_DELAY));
                 setIsActivatingAccess(false);
                 router.replace(`/(app)/learn/${pdId}?fromPayment=success&timestamp=${Date.now()}`);
                 return;
@@ -171,13 +172,13 @@ export default function PaymentResultPage() {
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
                 // Vérifie si l'utilisateur est bien inscrit ET a un accès valide
-                enrolled = isLearningPathEnrolled(pdId);
-                accessStatus = await getProgramAccessStatus(pdId);
+                const enrolledNow = isLearningPathEnrolled(pdId);
+                const accessStatusNow = await getProgramAccessStatus(pdId);
                 
-                logger.log(`[PaymentResult] Attempt ${attempts}/${maxAttempts} - Enrolled: ${enrolled}, HasAccess: ${accessStatus.hasAccess}`);
+                logger.log(`[PaymentResult] Attempt ${attempts}/${maxAttempts} - Enrolled: ${enrolledNow}, HasAccess: ${accessStatusNow.hasAccess}`);
                 
                 // Succès si inscrit ET accès confirmé (pas expiré)
-                if (enrolled && accessStatus.hasAccess) {
+                if (enrolledNow && accessStatusNow.hasAccess) {
                     setActivationMessage('Accès confirmé ! Redirection...');
                     await new Promise(resolve => setTimeout(resolve, 500));
                     break;
