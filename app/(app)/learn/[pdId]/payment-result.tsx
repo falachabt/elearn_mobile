@@ -118,10 +118,29 @@ export default function PaymentResultPage() {
     const handleViewDetails = async () => {
         if (result === 'success') {
             setIsActivatingAccess(true);
+            setActivationMessage('Vérification de vos accès...');
             
-            // Vérification active de l'accès avec boucle de polling
+            // FIRST: Check if user already has access (fast path)
+            // This avoids unnecessary waiting when access is already active
+            let enrolled = isLearningPathEnrolled(pdId);
+            let accessStatus = await getProgramAccessStatus(pdId);
+            
+            logger.log(`[PaymentResult] Initial check - Enrolled: ${enrolled}, HasAccess: ${accessStatus.hasAccess}`);
+            
+            // If already enrolled and has access, skip polling
+            if (enrolled && accessStatus.hasAccess) {
+                logger.log(`[PaymentResult] Access already active, skipping polling`);
+                setActivationMessage('Accès confirmé ! Redirection...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                setIsActivatingAccess(false);
+                router.replace(`/(app)/learn/${pdId}?fromPayment=success&timestamp=${Date.now()}`);
+                return;
+            }
+            
+            // If not yet enrolled/active, start polling to wait for DB trigger
+            logger.log(`[PaymentResult] Access not yet active, starting polling...`);
             let attempts = 0;
-            const maxAttempts = 12; // 12 tentatives max (12 secondes avec 1s de délai)
+            const maxAttempts = 12; // 12 tentatives max
             
             while (attempts < maxAttempts) {
                 attempts++;
@@ -152,8 +171,8 @@ export default function PaymentResultPage() {
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
                 // Vérifie si l'utilisateur est bien inscrit ET a un accès valide
-                const enrolled = isLearningPathEnrolled(pdId);
-                const accessStatus = await getProgramAccessStatus(pdId);
+                enrolled = isLearningPathEnrolled(pdId);
+                accessStatus = await getProgramAccessStatus(pdId);
                 
                 logger.log(`[PaymentResult] Attempt ${attempts}/${maxAttempts} - Enrolled: ${enrolled}, HasAccess: ${accessStatus.hasAccess}`);
                 
