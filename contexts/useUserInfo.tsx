@@ -425,13 +425,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       
       try {
         const { data, error } = await supabase
-          .from('learning_paths')
-          .select('concours_id')
-          .eq('id', learningPathId)
+          .from('concours_learningpaths')
+          .select('id')
+          .eq('learningPathId', learningPathId)
           .single();
         
         if (!error && data) {
-          programId = data.concours_id?.toString();
+          programId = data.id?.toString();
           logger.log(`[UserContext] getProgramAccessStatus - found programId from DB: ${programId}`);
         } else {
           logger.error(`[UserContext] getProgramAccessStatus - DB query error:`, error);
