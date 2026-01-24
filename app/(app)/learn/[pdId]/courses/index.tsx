@@ -81,8 +81,18 @@ const CourseScreen: React.FC<null> = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isEnrolled, setIsEnrolled] = useState(false);
   const { isLearningPathEnrolled } = useUser();
-  const isEnrolled = isLearningPathEnrolled(String(pdId));
+
+  // Check enrollment asynchronously
+  useEffect(() => {
+    if (!pdId) return;
+    const checkEnrollment = async () => {
+      const enrolled = await isLearningPathEnrolled(String(pdId));
+      setIsEnrolled(enrolled);
+    };
+    checkEnrollment();
+  }, [pdId, isLearningPathEnrolled]);
 
   // Fetch program data
   const { data: program, isLoading: isLoadingProgram } = useSWR<Program>(

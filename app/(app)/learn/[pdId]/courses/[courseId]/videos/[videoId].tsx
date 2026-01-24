@@ -75,10 +75,18 @@ const VideoPlayerScreen = () => {
     const pathname = usePathname();
     const { playClick } = useSound();
     const { trigger } = useHaptics();
+    const [isEnrolled, setIsEnrolled] = useState(false);
     const { isLearningPathEnrolled } = useUser();
 
     // Check if user is enrolled in this program
-    const isEnrolled = isLearningPathEnrolled(String(pdId));
+    useEffect(() => {
+        if (!pdId) return;
+        const checkEnrollment = async () => {
+            const enrolled = await isLearningPathEnrolled(String(pdId));
+            setIsEnrolled(enrolled);
+        };
+        checkEnrollment();
+    }, [pdId, isLearningPathEnrolled]);
 
     // Handle purchase flow
     const handlePurchaseFlow = () => {

@@ -144,9 +144,10 @@ const InstallmentPaymentPage = () => {
       // Start checking payment status
       setCurrentState(PaymentFlowState.NEXT_PAYMENT_VERIFYING);
       startStatusCheck(result.trxReference || result.payment_reference);
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors du traitement du paiement";
       logger.error("Error processing next installment:", error);
-      setErrorMessage(error.message || "Erreur lors du traitement du paiement");
+      setErrorMessage(errorMessage);
       setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
     }
   };
@@ -349,7 +350,7 @@ const InstallmentPaymentPage = () => {
             <MaterialCommunityIcons
               name="check-circle"
               size={80}
-              color={theme.color.success[500]}
+              color={theme.color.primary[500]}
             />
             <ThemedText style={styles.successTitle}>Paiement réussi !</ThemedText>
             <ThemedText style={[styles.successMessage, isDark && styles.successMessageDark]}>
@@ -372,7 +373,7 @@ const InstallmentPaymentPage = () => {
             <MaterialCommunityIcons
               name="close-circle"
               size={80}
-              color={theme.color.error[500]}
+              color={theme.color.error}
             />
             <ThemedText style={styles.errorTitle}>Paiement échoué</ThemedText>
             <ThemedText style={[styles.errorMessage, isDark && styles.errorMessageDark]}>
@@ -467,7 +468,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 24,
     fontWeight: "700",
-    color: theme.color.success[500],
+    color: theme.color.primary[500],
   },
   successMessage: {
     marginTop: 12,
@@ -484,7 +485,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 24,
     fontWeight: "700",
-    color: theme.color.error[500],
+    color: theme.color.error,
   },
   errorMessage: {
     marginTop: 12,
@@ -498,7 +499,7 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     marginTop: 24,
-    backgroundColor: theme.color.success[500],
+    backgroundColor: theme.color.primary[500],
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,

@@ -282,15 +282,24 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
     const [showAllPrereqs, setShowAllPrereqs] = useState(false);
     const { user } = useAuth();
     const { trigger } = useHaptics();
+    const [isEnrolled, setIsEnrolled] = useState(false);
     const { isLearningPathEnrolled, isSecondaryProgramEnrolled } = useUser();
 
     // Check if we're in secondary context
     const isSecondaryContext = basePath.includes("secondary");
 
     // Check if user is enrolled in this program
-    const isEnrolled = isSecondaryContext 
-        ? isSecondaryProgramEnrolled(String(programId))
-        : isLearningPathEnrolled(String(programId));
+    useEffect(() => {
+        if (!programId) return;
+        
+        const checkEnrollment = async () => {
+            const enrolled = isSecondaryContext 
+                ? isSecondaryProgramEnrolled(String(programId))
+                : await isLearningPathEnrolled(String(programId));
+            setIsEnrolled(enrolled);
+        };
+        checkEnrollment();
+    }, [programId, isSecondaryContext, isLearningPathEnrolled, isSecondaryProgramEnrolled]);
 
     // Set preview mode based on enrollment status
     const [, setIsPreviewMode] = useState<boolean>(!isEnrolled);

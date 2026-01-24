@@ -223,7 +223,7 @@ export const InstallmentDetails: FC<InstallmentDetailsProps> = ({
         
         {loadingInstallments ? (
           <View style={{ padding: 20, alignItems: 'center' }}>
-            <ActivityIndicator size="small" color={isDark ? theme.color.success[300] : theme.color.success[500]} />
+            <ActivityIndicator size="small" color={isDark ? theme.color.primary[300] : theme.color.primary[500]} />
           </View>
         ) : (
           Array.from({ length: totalInstallments }).map((_, index) => {
@@ -247,7 +247,7 @@ export const InstallmentDetails: FC<InstallmentDetailsProps> = ({
             const isOverdue = dueDate && dueDate < new Date();
             
             const getStatusColor = () => {
-              if (isPaid && matchingPayment?.payment_status === 'completed') return isDark ? theme.color.success[300] : theme.color.success[500];
+              if (isPaid && matchingPayment?.payment_status === 'completed') return isDark ? theme.color.primary[300] : theme.color.primary[500];
               if (isPaid && matchingPayment?.payment_status === 'failed') return theme.color.error[500];
               if (isOverdue) return theme.color.warning[500];
               if (isCurrent) return theme.color.info[500];
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     color: theme.color.gray[600],
   },
   continueButton: {
-    backgroundColor: theme.color.success[500],
+    backgroundColor: theme.color.primary[500],
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: "700",
-    color: theme.color.success[500],
+    color: theme.color.primary[500],
   },
   installmentProgressBar: {
     height: 8,
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   },
   installmentProgressFill: {
     height: "100%",
-    backgroundColor: theme.color.success[500],
+    backgroundColor: theme.color.primary[500],
     borderRadius: 4,
   },
   installmentInfoCard: {
@@ -545,10 +545,10 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 20,
     fontWeight: "700",
-    color: theme.color.success[500],
+    color: theme.color.primary[500],
   },
   payNowButton: {
-    backgroundColor: theme.color.success[500],
+    backgroundColor: theme.color.primary[500],
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: "center",

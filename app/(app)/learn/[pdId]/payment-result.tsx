@@ -122,13 +122,13 @@ export default function PaymentResultPage() {
             
             // FIRST: Check if user already has access (fast path)
             // This avoids unnecessary waiting when access is already active
-            const enrolled = isLearningPathEnrolled(pdId);
+            const enrolled = await isLearningPathEnrolled(pdId);
             const accessStatus = await getProgramAccessStatus(pdId);
             
             logger.log(`[PaymentResult] Initial check - Enrolled: ${enrolled}, HasAccess: ${accessStatus.hasAccess}`);
             
             // If already enrolled and has access, skip polling
-            if (enrolled && accessStatus.hasAccess) {
+            if (enrolled || accessStatus.hasAccess) {
                 logger.log(`[PaymentResult] Access already active, skipping polling`);
                 setActivationMessage('Accès confirmé ! Redirection...');
                 const FAST_REDIRECT_DELAY = 500; // Brief delay for user feedback
@@ -164,15 +164,15 @@ export default function PaymentResultPage() {
                 
                 // Force revalidation avec option pour bypasser le cache
                 await Promise.all([
-                    mutateUserPrograms(undefined, { revalidate: true }),
-                    mutateProgramAccessMap(undefined, { revalidate: true })
+                    mutateUserPrograms(),
+                    mutateProgramAccessMap()
                 ]);
                 
                 // Petit délai pour laisser SWR mettre à jour les données
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
                 // Vérifie si l'utilisateur est bien inscrit ET a un accès valide
-                const enrolledNow = isLearningPathEnrolled(pdId);
+                const enrolledNow = await isLearningPathEnrolled(pdId);
                 const accessStatusNow = await getProgramAccessStatus(pdId);
                 
                 logger.log(`[PaymentResult] Attempt ${attempts}/${maxAttempts} - Enrolled: ${enrolledNow}, HasAccess: ${accessStatusNow.hasAccess}`);

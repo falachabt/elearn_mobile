@@ -11,7 +11,6 @@ import {
 } from "@/types/type";
 import { useAuth } from "@/contexts/auth";
 import { useAppConfig } from "@/contexts/useAppConfig";
-import { ProgramPaymentService } from "@/services/program-payment.service";
 import { logger } from "@/utils/logger";
 
 interface UserStreak {
@@ -51,7 +50,7 @@ type UserContextType = {
   mutateTodayXp: () => void;
   mutateTodayExercises: () => void;
   mutateUserPrograms: () => Promise<LearningPaths[] | undefined>;
-  isLearningPathEnrolled: (learningPathId: string) => boolean;
+  isLearningPathEnrolled: (learningPathId: string) => Promise<boolean>;
   isSecondaryProgramEnrolled: (programId: string) => boolean;
   getProgramAccessStatus: (learningPathId: string) => Promise<ProgramAccessStatus>;
   mutateProgramAccessMap: () => Promise<ProgramAccessMap | undefined>;
@@ -390,35 +389,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   );
 
-  // Nouvelle fonction utilitaire pour obtenir le statut d'accès d'un programme - mémorisée
-  // Synchronous version for component-level usage (returns cached result only)
-  const getProgramAccessStatusSync = useCallback((
-    learningPathId: string
-  ): ProgramAccessStatus => {
-    const userProgram = userPrograms?.find(
-      (program) => program.id === learningPathId
-    );
-    const programId = userProgram?.concours_learningpaths?.id;
-    
-    if (!programAccessMap || !programId) {
-      return { hasAccess: false, isExpired: false };
-    }
-    
-    return programAccessMap[programId] || { hasAccess: false, isExpired: false };
-  }, [userPrograms, programAccessMap]);
-
   // Async version with DB fallback for programId lookup (for payment flows)
   const getProgramAccessStatus = useCallback(async (
     learningPathId: string
   ): Promise<ProgramAccessStatus> => {
     let programId: string | undefined;
+
+    logger.log(`------------ [UserContext] getProgramAccessStatus called for learningPathId: ${learningPathId}`);
     
     // Try to get programId from userPrograms first (fast path)
     const userProgram = userPrograms?.find(
       (program) => program.id === learningPathId
     );
+
+    logger.log(`[UserContext] getProgramAccessStatus - userProgram from userPrograms:`, userProgram);
+
     programId = userProgram?.concours_learningpaths?.id;
     
+
+    logger.log(`[UserContext] getProgramAccessStatus - initial programId: ${programId}`);
+
+
     // If not found in userPrograms, query database directly (fallback for race condition)
     if (!programId) {
       logger.log(`[UserContext] getProgramAccessStatus - programId not in userPrograms, querying DB directly for learningPathId: ${learningPathId}`);
@@ -460,15 +451,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [userPrograms, programAccessMap]);
 
   // Nouvelle version de isLearningPathEnrolled - mémorisée pour éviter re-renders en boucle
-  const isLearningPathEnrolled = useCallback((learningPathId: string) => {
+  const isLearningPathEnrolled = useCallback(async (learningPathId: string): Promise<boolean> => {
     const userProgram = userPrograms?.find(
       (program) => program.id === learningPathId
     );
-    
-    // Log seulement si programme trouvé (réduit le spam)
-    if (userProgram) {
-      logger.log('[UserContext] ✓ Program enrolled:', learningPathId);
-    }
     
     if (!userProgram) {
       if (!isGenerousWeekActive()) return false;
@@ -478,7 +464,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       ) {
         const generousWeek = user.metadata.generousWeek as {
           programId: number;
-          selectedAt: string;
+          selectedAt: Date;
           duration: number;
         };
         const selectedAt = new Date(generousWeek.selectedAt);
@@ -489,21 +475,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
       return false;
     }
-    
-    // CORRECTION: Si le programme est trouvé dans userPrograms, il est inscrit
-    // On vérifie le status d'accès (expiration) seulement s'il est disponible dans le map
-    const programId = userProgram?.concours_learningpaths?.id;
-    
-    // Si programAccessMap n'a pas encore été chargé ou ne contient pas ce programme
-    // mais que le programme existe dans userPrograms, on considère l'utilisateur comme inscrit
-    if (!programAccessMap || !programId || !(programId in programAccessMap)) {
-      return true; // Le programme existe dans les inscriptions, donc l'utilisateur est inscrit
-    }
-    
-    // Sinon, on vérifie le statut d'accès (expiration)
-    const status = getProgramAccessStatus(learningPathId);
+
+    // Si le programme est trouvé dans userPrograms, vérifier le statut d'accès
+    const status = await getProgramAccessStatus(learningPathId);
     return status.hasAccess;
-  }, [userPrograms, programAccessMap, generousWeekLearningPathId, user?.metadata?.generousWeek]);
+  }, [userPrograms, generousWeekLearningPathId, user?.metadata?.generousWeek, isGenerousWeekActive, getProgramAccessStatus]);
 
   // Check if user is enrolled in a secondary program - mémorisée
   const isSecondaryProgramEnrolled = useCallback((programId: string) => {

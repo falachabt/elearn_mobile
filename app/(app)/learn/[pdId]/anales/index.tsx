@@ -135,13 +135,20 @@ export const ArchivesList = () => {
   const scheme = useColorScheme();
   const isDark = scheme === "dark";
   const { user } = useAuth();
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState<boolean>(true);
   const { isLearningPathEnrolled, generousWeekLearningPathId } = useUser();
 
   // Check if user is enrolled in this program
-  const isEnrolled = isLearningPathEnrolled(pdId);
-
-  // Set preview mode based on enrollment status
-  const [isPreviewMode] = useState<boolean>(!isEnrolled || (generousWeekLearningPathId === pdId));
+  useEffect(() => {
+    if (!pdId) return;
+    const checkEnrollment = async () => {
+      const enrolled = await isLearningPathEnrolled(pdId);
+      setIsEnrolled(enrolled);
+      setIsPreviewMode(!enrolled || (generousWeekLearningPathId === pdId));
+    };
+    checkEnrollment();
+  }, [pdId, isLearningPathEnrolled, generousWeekLearningPathId]);
 
   // Handle purchase flow - memoized with useCallback
   const handlePurchaseFlow = useCallback(() => {

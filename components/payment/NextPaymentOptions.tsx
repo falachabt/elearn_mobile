@@ -86,7 +86,7 @@ export const NextPaymentOptions: FC<NextPaymentOptionsProps> = ({
             style={[
               styles.paymentMethodButton,
               {
-                backgroundColor: isDark ? theme.color.success[600] : theme.color.success[500],
+                backgroundColor: isDark ? theme.color.primary[600] : theme.color.primary[500],
                 opacity: isLoading || !phoneNumber.trim() ? 0.5 : 1,
               },
             ]}
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 18,
     fontWeight: "600",
-    color: theme.color.success[500],
+    color: theme.color.primary[500],
   },
   installmentInfo: {
     fontFamily: theme.typography.fontFamily,
