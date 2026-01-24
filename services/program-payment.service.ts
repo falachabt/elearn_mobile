@@ -237,7 +237,7 @@ export const ProgramPaymentService = {
   },
 
   // Update parent payment after successful installment payment
-  async updateParentPaymentAfterInstallment(paymentId: string): Promise<void> {
+  async updateParentPaymentAfterInstallment(paymentId: string, nextPaymentDueDate?: Date | null): Promise<void> {
     // Get the current payment
     const { data: payment, error } = await supabase
       .from('user_program_payments')
@@ -262,14 +262,21 @@ export const ProgramPaymentService = {
       p => p.payment_status === 'completed'
     ).length;
 
+    // Prepare update data
+    const updateData: any = {
+      current_installment: completedInstallments,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Only update next_payment_due_date if provided
+    if (nextPaymentDueDate) {
+      updateData.next_payment_due_date = nextPaymentDueDate.toISOString();
+    }
+
     // Update the parent payment with the number of completed installments
     const { error: updateError } = await supabase
       .from('user_program_payments')
-      .update({
-        current_installment: completedInstallments,
-        next_payment_due_date: payment.next_payment_due_date,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', payment.parent_payment_id);
 
     if (updateError) {
@@ -806,19 +813,33 @@ export const ProgramPaymentService = {
           } else {
             // If this is an installment payment, update the parent payment
             if (payment.is_installment) {
-              // Calculate next payment due date based on the CURRENT due date (not from today)
+              // Calculate next payment due date based on parent's CURRENT due date
               let nextPaymentDueDate = null;
+              
+              // Get parent payment to use its next_payment_due_date for calculation
+              let parentPayment = null;
+              if (payment.parent_payment_id) {
+                const { data: parent } = await supabase
+                  .from('user_program_payments')
+                  .select('next_payment_due_date, total_installments')
+                  .eq('id', payment.parent_payment_id)
+                  .single();
+                parentPayment = parent;
+              }
+              
               if (payment.current_installment < payment.total_installments) {
-                // Get the current next_payment_due_date from the payment
-                const currentDueDate = payment.next_payment_due_date 
-                  ? new Date(payment.next_payment_due_date)
-                  : new Date();
+                // Use parent's next_payment_due_date if available, otherwise use current payment's
+                const currentDueDate = parentPayment?.next_payment_due_date
+                  ? new Date(parentPayment.next_payment_due_date)
+                  : payment.next_payment_due_date 
+                    ? new Date(payment.next_payment_due_date)
+                    : new Date();
                 
-                // Add 7 days to the current due date (not from today)
+                // Add 7 days to the current due date
                 nextPaymentDueDate = new Date(currentDueDate);
                 nextPaymentDueDate.setDate(nextPaymentDueDate.getDate() + 7);
 
-                // Update the payment with next payment due date
+                // Update the current payment with next payment due date
                 await supabase
                   .from('user_program_payments')
                   .update({
@@ -829,7 +850,7 @@ export const ProgramPaymentService = {
 
               // If this payment has a parent, update the parent payment
               if (payment.parent_payment_id) {
-                await this.updateParentPaymentAfterInstallment(paymentId);
+                await this.updateParentPaymentAfterInstallment(paymentId, nextPaymentDueDate);
               }
 
               // Only create enrollment for the first installment
