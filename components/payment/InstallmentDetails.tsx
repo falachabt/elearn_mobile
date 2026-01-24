@@ -69,12 +69,20 @@ export const InstallmentDetails: FC<InstallmentDetailsProps> = ({
 
   const currentInstallment = installmentPayment.current_installment || 1;
   const totalInstallments = installmentPayment.total_installments || 1;
+  
+  // Calculate the number of SUCCESSFULLY completed installments (not failed/canceled)
+  const completedInstallments = allInstallments.filter(
+    p => p.payment_status === 'completed'
+  ).length;
+  
   const nextPaymentDueDate = installmentPayment.next_payment_due_date
     ? new Date(installmentPayment.next_payment_due_date)
     : null;
   const installmentAmount = installmentPayment.amount || 0;
   const totalAmount = installmentPayment.total_amount || 0;
-  const paidAmount = installmentAmount * currentInstallment;
+  
+  // Calculate paid amount based on COMPLETED payments only
+  const paidAmount = installmentAmount * completedInstallments;
   const remainingAmount = totalAmount - paidAmount;
 
   const daysUntilNextPayment = nextPaymentDueDate
@@ -218,7 +226,7 @@ export const InstallmentDetails: FC<InstallmentDetailsProps> = ({
         ]}
       >
         <ThemedText style={styles.paymentHistoryTitle}>
-          Toutes les échéances ({currentInstallment}/{totalInstallments} payées)
+          Toutes les échéances ({completedInstallments}/{totalInstallments} payées)
         </ThemedText>
         
         {loadingInstallments ? (
@@ -228,13 +236,16 @@ export const InstallmentDetails: FC<InstallmentDetailsProps> = ({
         ) : (
           Array.from({ length: totalInstallments }).map((_, index) => {
             const installmentNumber = index + 1;
-            const isPaid = installmentNumber <= currentInstallment;
-            const isCurrent = installmentNumber === currentInstallment + 1;
             
             // Trouver le paiement correspondant dans allInstallments
             const matchingPayment = allInstallments.find(
               p => p.current_installment === installmentNumber
             );
+            
+            // Check if this installment is successfully paid
+            const isPaid = matchingPayment?.payment_status === 'completed';
+            const isFailed = matchingPayment && (matchingPayment.payment_status === 'failed' || matchingPayment.payment_status === 'canceled');
+            const isCurrent = installmentNumber === completedInstallments + 1 && !isFailed;
             
             const paymentDate = matchingPayment?.payment_date 
               ? new Date(matchingPayment.payment_date)
@@ -247,24 +258,24 @@ export const InstallmentDetails: FC<InstallmentDetailsProps> = ({
             const isOverdue = dueDate && dueDate < new Date();
             
             const getStatusColor = () => {
-              if (isPaid && matchingPayment?.payment_status === 'completed') return isDark ? theme.color.primary[300] : theme.color.primary[500];
-              if (isPaid && matchingPayment?.payment_status === 'failed') return theme.color.error[500];
+              if (isPaid) return isDark ? theme.color.success[300] : theme.color.success[500];
+              if (isFailed) return theme.color.error[500];
               if (isOverdue) return theme.color.warning[500];
               if (isCurrent) return theme.color.info[500];
               return isDark ? theme.color.gray[600] : theme.color.gray[400];
             };
             
             const getStatusIcon = () => {
-              if (isPaid && matchingPayment?.payment_status === 'completed') return "check-circle";
-              if (isPaid && matchingPayment?.payment_status === 'failed') return "close-circle";
+              if (isPaid) return "check-circle";
+              if (isFailed) return "close-circle";
               if (isOverdue) return "alert-circle";
               if (isCurrent) return "clock-outline";
               return "circle-outline";
             };
             
             const getStatusLabel = () => {
-              if (isPaid && matchingPayment?.payment_status === 'completed') return "Payé";
-              if (isPaid && matchingPayment?.payment_status === 'failed') return "Échoué";
+              if (isPaid) return "Payé";
+              if (isFailed) return "Échoué";
               if (isOverdue) return "En retard";
               if (isCurrent) return "À payer";
               return "À venir";
