@@ -160,11 +160,25 @@ export const ProgramPaymentService = {
     parentPaymentId: string,
     phoneNumber: string
   ): Promise<ProgramPayment> {
-    // Get the parent payment
-    const { data: parentPayment, error: parentError } = await supabase
+    // Get the payment that was passed in
+    const { data: paymentData, error: paymentError } = await supabase
       .from('user_program_payments')
       .select('*')
       .eq('id', parentPaymentId)
+      .single();
+
+    if (paymentError || !paymentData) {
+      logger.error('Error getting payment:', paymentError);
+      throw new Error('Payment not found');
+    }
+
+    // Find the TRUE parent payment (the one with parent_payment_id = null)
+    const trueParentId = paymentData.parent_payment_id || paymentData.id;
+    
+    const { data: parentPayment, error: parentError } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('id', trueParentId)
       .single();
 
     if (parentError || !parentPayment) {
@@ -173,7 +187,7 @@ export const ProgramPaymentService = {
     }
 
     // Get all installments for this plan to count completed ones
-    const allInstallments = await this.getAllInstallmentsForPlan(parentPaymentId);
+    const allInstallments = await this.getAllInstallmentsForPlan(trueParentId);
     const completedInstallments = allInstallments.filter(
       p => p.payment_status === 'completed'
     ).length;
@@ -207,7 +221,7 @@ export const ProgramPaymentService = {
       throw new Error("Payment initialization failed");
     }
 
-    // Create the next installment payment record
+    // Create the next installment payment record with the TRUE parent ID
     const payment = await this.createPayment(
       parentPayment.program_id.toString(),
       phoneNumber,
@@ -218,7 +232,7 @@ export const ProgramPaymentService = {
       parentPayment.total_installments,
       nextInstallmentNumber,
       parentPayment.total_amount,
-      parentPayment.id
+      trueParentId  // Use the TRUE parent ID, not the payment passed in
     );
 
     // If direct charge was successful or needs fallback
