@@ -83,23 +83,35 @@ const ProgramDetails = () => {
   const { user } = useAuth();
   const { isLearningPathEnrolled, getProgramAccessStatus, mutateUserPrograms, mutateProgramAccessMap } =
     useUser();
-  
-  // Use a state to hold the access status since getProgramAccessStatus is now async
+
+  // Use state to track enrollment and access status
+  const [isEnrolled, setIsEnrolled] = useState(false);
   const [accessStatus, setAccessStatus] = useState<{ hasAccess: boolean; isExpired: boolean }>({ 
     hasAccess: false, 
     isExpired: false 
   });
-  
-  const isEnrolled = isLearningPathEnrolled(id);
 
-  // Fetch access status asynchronously
+  // Fetch enrollment status asynchronously
   useEffect(() => {
+    if (!id) return;
+    
+    const checkEnrollment = async () => {
+      const enrolled = await isLearningPathEnrolled(id);
+      setIsEnrolled(enrolled);
+    };
+    checkEnrollment();
+  }, [id, isLearningPathEnrolled]);
+
+  // Fetch access status asynchronously only if enrolled
+  useEffect(() => {
+    if (!isEnrolled || !id) return;
+    
     const fetchAccessStatus = async () => {
       const status = await getProgramAccessStatus(id);
       setAccessStatus(status);
     };
     fetchAccessStatus();
-  }, [id, getProgramAccessStatus]);
+  }, [id, isEnrolled, getProgramAccessStatus]);
   
   const isExpired = accessStatus.isExpired;
 
@@ -524,8 +536,7 @@ const ProgramDetails = () => {
               color={isExpiredInstallment || isFailed ? "#F59E0B" : "#F59E0B"}
             />
           ),
-          route: `/(app)/learn/${id}/payment`,
-          routeParams: { selectedProgramId: id },
+          route: `/(app)/learn/${id}/installment-payment`,
           color:
             isExpiredInstallment || isFailed
               ? "#F59E0B"

@@ -71,8 +71,18 @@ const CourseDetail = () => {
     const { trigger } = useHaptics();
 
     // Check if user is enrolled in this program
+    const [isEnrolled, setIsEnrolled] = useState(false);
     const { isLearningPathEnrolled } = useUser();
-    const isEnrolled = isLearningPathEnrolled(pdId);
+
+    // Check enrollment asynchronously
+    useEffect(() => {
+        if (!pdId) return;
+        const checkEnrollment = async () => {
+            const enrolled = await isLearningPathEnrolled(pdId);
+            setIsEnrolled(enrolled);
+        };
+        checkEnrollment();
+    }, [pdId, isLearningPathEnrolled]);
 
     // Set preview mode based on enrollment status
     const [isPreviewMode, setIsPreviewMode] = useState<boolean>(!isEnrolled);

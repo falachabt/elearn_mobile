@@ -253,8 +253,18 @@ const EnhancedQuizScreen = () => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const {trigger} = useHaptics();
+    const [isEnrolled, setIsEnrolled] = useState(false);
     const {isLearningPathEnrolled} = useUser();
-    const isEnrolled = isLearningPathEnrolled(pdId as string);
+
+    // Check enrollment asynchronously
+    useEffect(() => {
+        if (!pdId) return;
+        const checkEnrollment = async () => {
+            const enrolled = await isLearningPathEnrolled(pdId as string);
+            setIsEnrolled(enrolled);
+        };
+        checkEnrollment();
+    }, [pdId, isLearningPathEnrolled]);
 
 
     // Animation refs

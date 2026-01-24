@@ -118,10 +118,30 @@ export default function PaymentResultPage() {
     const handleViewDetails = async () => {
         if (result === 'success') {
             setIsActivatingAccess(true);
+            setActivationMessage('Vérification de vos accès...');
             
-            // Vérification active de l'accès avec boucle de polling
+            // FIRST: Check if user already has access (fast path)
+            // This avoids unnecessary waiting when access is already active
+            const enrolled = await isLearningPathEnrolled(pdId);
+            const accessStatus = await getProgramAccessStatus(pdId);
+            
+            logger.log(`[PaymentResult] Initial check - Enrolled: ${enrolled}, HasAccess: ${accessStatus.hasAccess}`);
+            
+            // If already enrolled and has access, skip polling
+            if (enrolled || accessStatus.hasAccess) {
+                logger.log(`[PaymentResult] Access already active, skipping polling`);
+                setActivationMessage('Accès confirmé ! Redirection...');
+                const FAST_REDIRECT_DELAY = 500; // Brief delay for user feedback
+                await new Promise(resolve => setTimeout(resolve, FAST_REDIRECT_DELAY));
+                setIsActivatingAccess(false);
+                router.replace(`/(app)/learn/${pdId}?fromPayment=success&timestamp=${Date.now()}`);
+                return;
+            }
+            
+            // If not yet enrolled/active, start polling to wait for DB trigger
+            logger.log(`[PaymentResult] Access not yet active, starting polling...`);
             let attempts = 0;
-            const maxAttempts = 12; // 12 tentatives max (12 secondes avec 1s de délai)
+            const maxAttempts = 12; // 12 tentatives max
             
             while (attempts < maxAttempts) {
                 attempts++;
@@ -144,21 +164,21 @@ export default function PaymentResultPage() {
                 
                 // Force revalidation avec option pour bypasser le cache
                 await Promise.all([
-                    mutateUserPrograms(undefined, { revalidate: true }),
-                    mutateProgramAccessMap(undefined, { revalidate: true })
+                    mutateUserPrograms(),
+                    mutateProgramAccessMap()
                 ]);
                 
                 // Petit délai pour laisser SWR mettre à jour les données
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
                 // Vérifie si l'utilisateur est bien inscrit ET a un accès valide
-                const enrolled = isLearningPathEnrolled(pdId);
-                const accessStatus = await getProgramAccessStatus(pdId);
+                const enrolledNow = await isLearningPathEnrolled(pdId);
+                const accessStatusNow = await getProgramAccessStatus(pdId);
                 
-                logger.log(`[PaymentResult] Attempt ${attempts}/${maxAttempts} - Enrolled: ${enrolled}, HasAccess: ${accessStatus.hasAccess}`);
+                logger.log(`[PaymentResult] Attempt ${attempts}/${maxAttempts} - Enrolled: ${enrolledNow}, HasAccess: ${accessStatusNow.hasAccess}`);
                 
                 // Succès si inscrit ET accès confirmé (pas expiré)
-                if (enrolled && accessStatus.hasAccess) {
+                if (enrolledNow && accessStatusNow.hasAccess) {
                     setActivationMessage('Accès confirmé ! Redirection...');
                     await new Promise(resolve => setTimeout(resolve, 500));
                     break;

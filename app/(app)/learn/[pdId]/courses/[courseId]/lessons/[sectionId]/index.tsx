@@ -58,8 +58,17 @@ const SectionDetail = () => {
   const { user } = useAuth();
 
   // Check if user is enrolled in this program
+  const [isEnrolled, setIsEnrolled] = useState(false);
   const { isLearningPathEnrolled } = useUser();
-  const isEnrolled = isLearningPathEnrolled(String(pdId));
+  
+  useEffect(() => {
+    if (!pdId) return;
+    const checkEnrollment = async () => {
+      const enrolled = await isLearningPathEnrolled(String(pdId));
+      setIsEnrolled(enrolled);
+    };
+    checkEnrollment();
+  }, [pdId, isLearningPathEnrolled]);
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";

@@ -160,11 +160,25 @@ export const ProgramPaymentService = {
     parentPaymentId: string,
     phoneNumber: string
   ): Promise<ProgramPayment> {
-    // Get the parent payment
-    const { data: parentPayment, error: parentError } = await supabase
+    // Get the payment that was passed in
+    const { data: paymentData, error: paymentError } = await supabase
       .from('user_program_payments')
       .select('*')
       .eq('id', parentPaymentId)
+      .single();
+
+    if (paymentError || !paymentData) {
+      logger.error('Error getting payment:', paymentError);
+      throw new Error('Payment not found');
+    }
+
+    // Find the TRUE parent payment (the one with parent_payment_id = null)
+    const trueParentId = paymentData.parent_payment_id || paymentData.id;
+    
+    const { data: parentPayment, error: parentError } = await supabase
+      .from('user_program_payments')
+      .select('*')
+      .eq('id', trueParentId)
       .single();
 
     if (parentError || !parentPayment) {
@@ -172,13 +186,19 @@ export const ProgramPaymentService = {
       throw new Error('Parent payment not found');
     }
 
+    // Get all installments for this plan to count completed ones
+    const allInstallments = await this.getAllInstallmentsForPlan(trueParentId);
+    const completedInstallments = allInstallments.filter(
+      p => p.payment_status === 'completed'
+    ).length;
+
     // Check if all installments are already paid
-    if (parentPayment.current_installment >= parentPayment.total_installments) {
+    if (completedInstallments >= parentPayment.total_installments) {
       throw new Error('All installments are already paid');
     }
 
-    // Calculate next installment amount
-    const nextInstallmentNumber = parentPayment.current_installment + 1;
+    // Next installment number is based on completed payments, not current_installment
+    const nextInstallmentNumber = completedInstallments + 1;
     const nextInstallmentAmount = this.calculateInstallmentAmount(
       parentPayment.total_amount,
       parentPayment.total_installments,
@@ -201,7 +221,7 @@ export const ProgramPaymentService = {
       throw new Error("Payment initialization failed");
     }
 
-    // Create the next installment payment record
+    // Create the next installment payment record with the TRUE parent ID
     const payment = await this.createPayment(
       parentPayment.program_id.toString(),
       phoneNumber,
@@ -212,7 +232,7 @@ export const ProgramPaymentService = {
       parentPayment.total_installments,
       nextInstallmentNumber,
       parentPayment.total_amount,
-      parentPayment.id
+      trueParentId  // Use the TRUE parent ID, not the payment passed in
     );
 
     // If direct charge was successful or needs fallback
@@ -231,7 +251,7 @@ export const ProgramPaymentService = {
   },
 
   // Update parent payment after successful installment payment
-  async updateParentPaymentAfterInstallment(paymentId: string): Promise<void> {
+  async updateParentPaymentAfterInstallment(paymentId: string, nextPaymentDueDate?: Date | null): Promise<void> {
     // Get the current payment
     const { data: payment, error } = await supabase
       .from('user_program_payments')
@@ -244,14 +264,33 @@ export const ProgramPaymentService = {
       return;
     }
 
-    // Update the parent payment with the new current installment number
+    // Only update parent if this payment is completed
+    if (payment.payment_status !== 'completed') {
+      logger.log('Payment not completed, skipping parent update');
+      return;
+    }
+
+    // Get all installments to count completed ones
+    const allInstallments = await this.getAllInstallmentsForPlan(payment.parent_payment_id);
+    const completedInstallments = allInstallments.filter(
+      p => p.payment_status === 'completed'
+    ).length;
+
+    // Prepare update data
+    const updateData: any = {
+      current_installment: completedInstallments,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Only update next_payment_due_date if provided
+    if (nextPaymentDueDate) {
+      updateData.next_payment_due_date = nextPaymentDueDate.toISOString();
+    }
+
+    // Update the parent payment with the number of completed installments
     const { error: updateError } = await supabase
       .from('user_program_payments')
-      .update({
-        current_installment: payment.current_installment,
-        next_payment_due_date: payment.next_payment_due_date,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', payment.parent_payment_id);
 
     if (updateError) {
@@ -788,13 +827,34 @@ export const ProgramPaymentService = {
           } else {
             // If this is an installment payment, update the parent payment
             if (payment.is_installment) {
-              // Calculate next payment due date (1 week from now)
+              // Calculate next payment due date based on parent's CURRENT due date
               let nextPaymentDueDate = null;
+              
+              // Find the true parent ID
+              const trueParentId = payment.parent_payment_id || payment.id;
+              
+              // Get parent payment to use its next_payment_due_date for calculation
+              let parentPayment = null;
+              const { data: parent } = await supabase
+                .from('user_program_payments')
+                .select('next_payment_due_date, total_installments')
+                .eq('id', trueParentId)
+                .single();
+              parentPayment = parent;
+              
               if (payment.current_installment < payment.total_installments) {
-                nextPaymentDueDate = new Date();
-                nextPaymentDueDate.setDate(nextPaymentDueDate.getDate() + 7); // Next payment due in 1 week
+                // Use parent's next_payment_due_date if available, otherwise use current payment's
+                const currentDueDate = parentPayment?.next_payment_due_date
+                  ? new Date(parentPayment.next_payment_due_date)
+                  : payment.next_payment_due_date 
+                    ? new Date(payment.next_payment_due_date)
+                    : new Date();
+                
+                // Add 7 days to the current due date
+                nextPaymentDueDate = new Date(currentDueDate);
+                nextPaymentDueDate.setDate(nextPaymentDueDate.getDate() + 7);
 
-                // Update the payment with next payment due date
+                // Update the current payment with next payment due date
                 await supabase
                   .from('user_program_payments')
                   .update({
@@ -803,9 +863,32 @@ export const ProgramPaymentService = {
                   .eq('id', paymentId);
               }
 
-              // If this payment has a parent, update the parent payment
+              // Update the parent payment (whether it's the current payment or a different one)
               if (payment.parent_payment_id) {
-                await this.updateParentPaymentAfterInstallment(paymentId);
+                // This is a child payment, update the parent
+                await this.updateParentPaymentAfterInstallment(paymentId, nextPaymentDueDate);
+              } else {
+                // This is the parent payment itself completing, update it directly
+                // Get all installments to count completed ones
+                const allInstallments = await this.getAllInstallmentsForPlan(payment.id);
+                const completedInstallments = allInstallments.filter(
+                  p => p.payment_status === 'completed'
+                ).length;
+                
+                // Update the parent with completed count and next due date
+                const updateData: any = {
+                  current_installment: completedInstallments,
+                  updated_at: new Date().toISOString()
+                };
+                
+                if (nextPaymentDueDate) {
+                  updateData.next_payment_due_date = nextPaymentDueDate.toISOString();
+                }
+                
+                await supabase
+                  .from('user_program_payments')
+                  .update(updateData)
+                  .eq('id', payment.id);
               }
 
               // Only create enrollment for the first installment

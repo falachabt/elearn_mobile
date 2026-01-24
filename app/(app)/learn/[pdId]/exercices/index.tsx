@@ -55,13 +55,20 @@ export const ExercisesList = () => {
     const {trigger} = useHaptics();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
+    const [isEnrolled, setIsEnrolled] = useState(false);
+    const [isPreviewMode, setIsPreviewMode] = useState<boolean>(true);
     const { isLearningPathEnrolled } = useUser();
 
     // Check if user is enrolled in this program
-    const isEnrolled = isLearningPathEnrolled(pdId);
-
-    // Set preview mode based on enrollment status
-    const [isPreviewMode] = useState<boolean>(!isEnrolled);
+    useEffect(() => {
+        if (!pdId) return;
+        const checkEnrollment = async () => {
+            const enrolled = await isLearningPathEnrolled(pdId);
+            setIsEnrolled(enrolled);
+            setIsPreviewMode(!enrolled);
+        };
+        checkEnrollment();
+    }, [pdId, isLearningPathEnrolled]);
 
     // Handle purchase flow
     const handlePurchaseFlow = () => {

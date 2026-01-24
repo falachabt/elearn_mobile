@@ -31,12 +31,21 @@ const ExercisePage = () => {
     const isDark = scheme === "dark";
     const {trigger} = useHaptics();
     const {playNextLesson, playCorrect} = useSound();
+    const [isEnrolled, setIsEnrolled] = useState(false);
     const {isLearningPathEnrolled} = useUser();
     const {getWebViewUrls} = useAppConfig();
     const webViewUrls = getWebViewUrls();
 
     // Check if user is enrolled in this program
-    const isEnrolled = isLearningPathEnrolled(String(pdId));
+    useEffect(() => {
+        if (!pdId) return;
+        const checkEnrollment = async () => {
+            const enrolled = await isLearningPathEnrolled(String(pdId));
+            setIsEnrolled(enrolled);
+        };
+        checkEnrollment();
+    }, [pdId, isLearningPathEnrolled]);
+    
     const [isCorrection, setIsCorrection] = useState(false);
     const [correctionLoading, setCorrectionLoading] = useState(true);
     const [contentLoading, setContentLoading] = useState(true);
