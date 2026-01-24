@@ -3,6 +3,7 @@ import useSWR from 'swr';
 
 import { supabase } from '@/lib/supabase';
 import { AppConfigError } from '@/components/shared/AppConfigError';
+import { logger } from '@/utils/logger';
 
 // Define types for app_config data
 interface GenerousWeekConfig {
@@ -82,7 +83,7 @@ const fetchAppConfig = async () => {
     .limit(1)
 
   if (error) {
-    console.error('Error fetching app_config:', error);
+    logger.error('Error fetching app_config:', error);
     return null;
   }
 
@@ -100,11 +101,11 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
       refreshInterval: 60000, // Refresh every minute
       revalidateOnFocus: true,
       onError: (err) => {
-        console.error('[AppConfig] Error fetching config:', err);
+        logger.error('[AppConfig] Error fetching config:', err);
         setError(err);
       },
       onSuccess: (data) => {
-        console.log('[AppConfig] Config loaded successfully:', data ? 'Data available' : 'No data');
+        logger.log('[AppConfig] Config loaded successfully:', data ? 'Data available' : 'No data');
         setError(null);
       },
     }
@@ -126,7 +127,7 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     if (!appConfig?.data?.webview || 
         !appConfig.data.webview.course_url || 
         !appConfig.data.webview.exercise_url) {
-        console.warn('[AppConfig] WebView URLs not configured, using defaults');
+        logger.warn('[AppConfig] WebView URLs not configured, using defaults');
         return {
             course_url: "https://elearn.ezadrive.com/fr/webview/courseContent",
             exercise_url: "https://elearn.ezadrive.com/fr/webview/exercices"
@@ -137,7 +138,7 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
 
   const getApiBaseUrl = () => {
     if (!appConfig?.data?.api_base_url || appConfig.data.api_base_url.trim() === '') {
-        console.warn('[AppConfig] API base URL not configured, using default');
+        logger.warn('[AppConfig] API base URL not configured, using default');
         return "https://elearn.ezadrive.com";
     }
     return appConfig.data.api_base_url;
@@ -145,7 +146,7 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
 
   const getPricingConfig = (): PricingConfig | null => {
     if (!appConfig?.data?.pricing || Object.keys(appConfig.data.pricing).length === 0) {
-      console.warn('[AppConfig] Pricing configuration not yet loaded or not found in database');
+      logger.warn('[AppConfig] Pricing configuration not yet loaded or not found in database');
       return null;
     }
     return appConfig.data.pricing;

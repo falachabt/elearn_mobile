@@ -644,7 +644,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           },
           async () => {
             if (authUser.id) {
-              console.log('[UserContext] Realtime: user_program_payments changed, mutating...');
+              logger.log('[UserContext] Realtime: user_program_payments changed, mutating...');
               // Mutate both enrollments and access map when payment changes
               mutateUserProgramsRef.current();
               mutateProgramAccessMapRef.current();
