@@ -231,7 +231,7 @@ const InstallmentPaymentPage = () => {
           onPress: () => {
             // Use replace to prevent user from going back to success screen
             // This ensures they return to program details with updated access
-            router.replace(`/(app)/learn/${pdId}/index?fromPayment=success`);
+            router.replace(`/(app)/learn/${pdId}?fromPayment=success`);
           },
         },
       ]
