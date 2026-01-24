@@ -219,6 +219,8 @@ const InstallmentPaymentPage = () => {
   // Handle payment success
   const handlePaymentSuccess = () => {
     trigger(HapticType.SUCCESS);
+
+    
     
     Alert.alert(
       "Paiement réussi",
