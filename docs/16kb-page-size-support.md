@@ -9,12 +9,12 @@ This project now includes an Expo config plugin that ensures the Android build i
 ## Implementation Details
 
 ### Plugin: `plugins/withAndroid16KBPageSize.js`
-The plugin modifies the Android `gradle.properties` file to set:
-```
-android.bundle.enableUncompressedNativeLibs=false
+The plugin modifies the Android `AndroidManifest.xml` file to set:
+```xml
+<application android:extractNativeLibs="false">
 ```
 
-This setting ensures that native libraries are properly aligned for 16KB page sizes by keeping them compressed in the APK/AAB, which allows the Android runtime to properly handle page alignment.
+This setting ensures that native libraries remain compressed in the APK/AAB and are properly aligned for 16KB page sizes, allowing devices with 16KB memory pages to load them correctly.
 
 ### Configuration
 The plugin is added to `app.json` in the `plugins` array:
@@ -42,7 +42,10 @@ npm run build:preview
 To verify the configuration is applied:
 1. Run `npx expo config --type public` to see the configuration
 2. The plugin should be listed in the plugins array
-3. During EAS build, the gradle.properties file will contain the required setting
+3. During EAS build, the AndroidManifest.xml will contain the required attribute
+
+## Technical Background
+Previously, this was configured via the `android.bundle.enableUncompressedNativeLibs` gradle property, but that property was deprecated and removed in Android Gradle Plugin 8.1+. The manifest-based approach using `android:extractNativeLibs="false"` is now the official method for supporting 16KB page sizes.
 
 ## References
 - [Google Play 16KB page sizes requirement](https://developer.android.com/guide/practices/page-sizes)

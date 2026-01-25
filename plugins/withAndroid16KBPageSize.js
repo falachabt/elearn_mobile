@@ -1,4 +1,4 @@
-const { withGradleProperties } = require('@expo/config-plugins');
+const { withAndroidManifest } = require('@expo/config-plugins');
 
 /**
  * Expo config plugin to add 16 KB page size support for Android
@@ -9,24 +9,13 @@ const { withGradleProperties } = require('@expo/config-plugins');
  * Reference: https://developer.android.com/guide/practices/page-sizes
  */
 const withAndroid16KBPageSize = (config) => {
-  return withGradleProperties(config, (config) => {
-    const gradleProperties = config.modResults;
+  return withAndroidManifest(config, (config) => {
+    const mainApplication = config.modResults.manifest.application[0];
 
-    // Add or update the android.bundle.enableUncompressedNativeLibs property
-    // This ensures native libraries are properly aligned for 16KB page sizes
-    const enableUncompressedNativeLibsIndex = gradleProperties.findIndex(
-      (prop) => prop.key === 'android.bundle.enableUncompressedNativeLibs'
-    );
-
-    if (enableUncompressedNativeLibsIndex >= 0) {
-      gradleProperties[enableUncompressedNativeLibsIndex].value = 'false';
-    } else {
-      gradleProperties.push({
-        type: 'property',
-        key: 'android.bundle.enableUncompressedNativeLibs',
-        value: 'false',
-      });
-    }
+    // Set extractNativeLibs to false to support 16KB page sizes
+    // This ensures native libraries remain compressed in the APK/AAB
+    // and are properly aligned for devices with 16KB memory pages
+    mainApplication.$['android:extractNativeLibs'] = 'false';
 
     return config;
   });
