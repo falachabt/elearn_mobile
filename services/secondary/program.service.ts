@@ -7,10 +7,7 @@ export async function getSecondaryPrograms(): Promise<SecondaryProgram[]> {
     .select("*, class:secondary_classes(*), serie:secondary_series(*)")
     .filter("is_active", "eq", true);
   if (error) throw error;
-  return (data || []).map(program => ({
-    ...program,
-    document_count: 0 // TODO: Add document_count field to database
-  }));
+  return data || [];
 }
 
 export async function getSecondaryProgramById(
@@ -22,10 +19,7 @@ export async function getSecondaryProgramById(
     .eq("id", id)
     .single();
   if (error) throw error;
-  return {
-    ...data,
-    document_count: 0 // TODO: Add document_count field to database
-  };
+  return data;
 }
 
 export async function getSecondaryProgramsByClass(classId: string) {

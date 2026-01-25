@@ -85,69 +85,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
 
     const exerciseIds = programExercises?.map(pe => pe.exercise_id).filter(id => id != null) || [];
 
-    // 5. Récupérer TOUS les documents du programme
-    // Récupérer d'abord tous les folders du programme
-    const { data: folders, error: foldersError } = await supabase
-      .from('secondary_document_folders')
-      .select('id')
-      .eq('program_id', programId);
-
-    if (foldersError) {
-      console.error('Error fetching document folders:', foldersError);
-    }
-
-    const folderIds = folders?.map(f => f.id) || [];
-
-    // Récupérer les IDs des documents via la table de jonction
-    const { data: programDocLinks, error: docLinksError } = await supabase
-      .from('secondary_program_documents')
-      .select('document_id')
-      .eq('program_id', programId)
-      .eq('is_active', true);
-
-    if (docLinksError) {
-      console.error('Error fetching program document links:', docLinksError);
-    }
-
-    const rootDocIds = programDocLinks?.map(d => d.document_id).filter(id => id != null) || [];
-
-    // Récupérer tous les documents (dans folders + à la racine)
-    const allDocumentIds = new Set<string>();
-
-    // Documents dans les folders
-    if (folderIds.length > 0) {
-      const { data: folderDocs, error: folderDocsError } = await supabase
-        .from('secondary_documents')
-        .select('id')
-        .in('folder_id', folderIds)
-        .eq('is_correction', false);
-
-      if (folderDocsError) {
-        console.error('Error fetching folder documents:', folderDocsError);
-      } else if (folderDocs) {
-        folderDocs.forEach(doc => allDocumentIds.add(doc.id));
-      }
-    }
-
-    // Documents à la racine
-    if (rootDocIds.length > 0) {
-      const { data: rootDocs, error: rootDocsError } = await supabase
-        .from('secondary_documents')
-        .select('id')
-        .in('id', rootDocIds)
-        .is('folder_id', null)
-        .eq('is_correction', false);
-
-      if (rootDocsError) {
-        console.error('Error fetching root documents:', rootDocsError);
-      } else if (rootDocs) {
-        rootDocs.forEach(doc => allDocumentIds.add(doc.id));
-      }
-    }
-
-    const documentIds = Array.from(allDocumentIds);
-
-    // 6. Récupérer la progression des cours (table partagée avec Learn)
+    // 5. Récupérer la progression des cours (table partagée avec Learn)
     const { data: courseProgressData, error: coursesError } = await supabase
       .from('course_progress_summary')
       .select('course_id, progress_percentage')
@@ -163,7 +101,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
       course => course.progress_percentage >= 100
     ) || [];
 
-    // 7. Récupérer les quiz complétés (table partagée avec Learn)
+    // 6. Récupérer les quiz complétés (table partagée avec Learn)
     const { data: completedQuizzes, error: quizzesError } = await supabase
       .from('quiz_attempts')
       .select('quiz_id')
@@ -179,7 +117,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
     // Dédupliquer les quiz_id (un utilisateur peut avoir plusieurs tentatives réussies du même quiz)
     const uniqueCompletedQuizIds = [...new Set(completedQuizzes?.map(q => q.quiz_id) || [])];
 
-    // 8. Récupérer les exercices complétés avec chunking (table partagée avec Learn)
+    // 7. Récupérer les exercices complétés avec chunking (table partagée avec Learn)
     let completedExercises: { exercice_id: string }[] = [];
     if (exerciseIds.length > 0) {
       const exerciseChunks = chunkArray(exerciseIds, 100);
@@ -201,19 +139,17 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
     // Dédupliquer les exercice_id (même logique que pour les quiz)
     const uniqueCompletedExerciseIds = [...new Set(completedExercises.map(e => e.exercice_id))];
 
-    // 9. Documents consultés/complétés
-    const { data: completedDocuments, error: documentsError } = await supabase
+    // 8. Compter les documents complétés pour ce programme
+    const { count: completedDocumentsCount, error: documentsError } = await supabase
       .from('secondary_documents_complete')
-      .select('document_id, is_completed')
+      .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .in('document_id', documentIds.length > 0 ? documentIds : []);
+      .eq('program_id', programId)
+      .eq('is_completed', true);
 
     if (documentsError) {
-      console.error('Error fetching completed documents:', documentsError);
+      console.error('Error fetching completed documents count:', documentsError);
     }
-
-    // Filtrer uniquement les documents marqués comme complétés
-    const completedDocumentIds = completedDocuments?.filter(d => d.is_completed) || [];
 
     // Calculer les progressions
     const courseTotal = courseIds.length;
@@ -228,8 +164,9 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
     const exerciseCompleted = uniqueCompletedExerciseIds.length;
     const exercisePercentage = exerciseTotal > 0 ? capPercentage((exerciseCompleted / exerciseTotal) * 100) : 0;
 
-    const documentTotal = documentIds.length;
-    const documentCompleted = completedDocumentIds.length;
+    // Utiliser le compteur de la base de données (fiable et stable)
+    const documentTotal = program.document_count ?? 0;
+    const documentCompleted = completedDocumentsCount ?? 0;
     const documentPercentage = documentTotal > 0 ? capPercentage((documentCompleted / documentTotal) * 100) : 0;
 
     // Progression totale
