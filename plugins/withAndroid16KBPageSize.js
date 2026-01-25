@@ -10,7 +10,14 @@ const { withAndroidManifest } = require('@expo/config-plugins');
  */
 const withAndroid16KBPageSize = (config) => {
   return withAndroidManifest(config, (config) => {
-    const mainApplication = config.modResults.manifest.application[0];
+    const manifest = config.modResults.manifest;
+    
+    // Safety check: ensure application element exists
+    if (!manifest.application || !manifest.application[0]) {
+      throw new Error('AndroidManifest.xml is missing the application element');
+    }
+    
+    const mainApplication = manifest.application[0];
 
     // Set extractNativeLibs to false to support 16KB page sizes
     // This ensures native libraries remain compressed in the APK/AAB
