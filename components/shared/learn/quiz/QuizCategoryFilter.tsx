@@ -18,6 +18,7 @@ interface QuizCategoryFilterProps {
 export const QUIZ_CATEGORY_ICONS = {
     'Anglais': 'book-alphabet',
     'Mathématiques': 'function',
+    'Mathématique': 'function',
     'Biologie': 'dna',
     'Chimie': 'flask',
     'Physique': 'atom',
@@ -36,6 +37,14 @@ export const QUIZ_CATEGORY_ICONS = {
     'Droit': 'scale-balance',
     'Médecine': 'medical-bag',
     'Sport': 'run',
+    'IOT': 'cloud-outline',
+    'FORMATION_STAFF': 'account-tie',
+    'AUTRE': 'dots-horizontal',
+    'SVT': 'leaf',
+    'Philosophie': 'thought-bubble',
+    'LANGUE FRANÇAISE & LITTÉRATURE': 'book-open-variant',
+    'Espagnol': 'flag',
+    'Allemand': 'flag-variant',
     // Default icon for other categories
     'default': 'help-box'
 };
@@ -44,6 +53,7 @@ export const QUIZ_CATEGORY_ICONS = {
 export const QUIZ_CATEGORY_COLORS = {
     'Anglais': '#1D4ED8',
     'Mathématiques': '#3B82F6',
+    'Mathématique': '#3B82F6',
     'Biologie': '#10B981',
     'Chimie': '#8B5CF6',
     'Physique': '#EC4899',
@@ -62,6 +72,14 @@ export const QUIZ_CATEGORY_COLORS = {
     'Droit': '#9333EA',
     'Médecine': '#0EA5E9',
     'Sport': '#22C55E',
+    'IOT': '#6366F1',
+    'FORMATION_STAFF': '#F59E0B',
+    'AUTRE': '#9CA3AF',
+    'SVT': '#10B981',
+    'Philosophie': '#8B5CF6',
+    'LANGUE FRANÇAISE & LITTÉRATURE': '#A855F7',
+    'Espagnol': '#EF4444',
+    'Allemand': '#F59E0B',
     // Default color for other categories
     'default': theme.color.primary[500]
 };
