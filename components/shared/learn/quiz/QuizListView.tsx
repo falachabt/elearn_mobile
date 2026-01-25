@@ -83,7 +83,7 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -101,7 +101,7 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
   }, [isLoading, fadeAnim]);
 
   // Handle search debouncing - notify parent after user stops typing
-  React.useEffect(() => {
+  useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }

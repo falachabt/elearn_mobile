@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState, useCallback, useRef } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 
 import {
   useSecondaryProgram,
@@ -7,11 +7,9 @@ import {
 } from "@/hooks/secondary/useSecondaryPrograms";
 import { QuizListView } from "@/components/shared/learn/quiz/QuizListView";
 import { useQuizPins, useQuizAttempts } from "@/hooks/useQuizData";
-import { useAuth } from "@/contexts/auth";
 
 export default function QuizzesList() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
-  const { user } = useAuth();
   const [page, setPage] = useState(0);
   const [allQuizzes, setAllQuizzes] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
