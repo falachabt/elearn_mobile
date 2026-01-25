@@ -83,7 +83,7 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;

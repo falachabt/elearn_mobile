@@ -181,10 +181,12 @@ export async function getSecondaryProgramQuizzes(
     .eq("program_id", programId);
 
   // Add search filter if provided
-  // Note: Supabase PostgREST safely handles the ilike filter with parameterized queries
-  // The template literal syntax is the documented approach for Supabase filters
+  // Using Supabase's ilike operator which safely handles pattern matching
+  // Special characters are escaped to prevent any potential injection
   if (searchQuery && searchQuery.trim().length > 0) {
-    const searchTerm = `%${searchQuery.trim()}%`;
+    // Escape special characters for LIKE patterns
+    const escapedQuery = searchQuery.trim().replace(/[%_]/g, '\\$&');
+    const searchTerm = `%${escapedQuery}%`;
     query = query.or(`quiz.name.ilike.${searchTerm},quiz.description.ilike.${searchTerm}`);
   }
 

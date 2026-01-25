@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 
 import {
   useSecondaryProgram,
@@ -8,10 +8,15 @@ import {
 import { QuizListView } from "@/components/shared/learn/quiz/QuizListView";
 import { useQuizPins, useQuizAttempts } from "@/hooks/useQuizData";
 
+type QuizItem = {
+  quiz_id: string;
+  quiz: any; // Will be properly typed by the service response
+};
+
 export default function QuizzesList() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
   const [page, setPage] = useState(0);
-  const [allQuizzes, setAllQuizzes] = useState<any[]>([]);
+  const [allQuizzes, setAllQuizzes] = useState<QuizItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch program and quizzes data
@@ -27,7 +32,7 @@ export default function QuizzesList() {
   const isLoading = isLoadingProgram || (isLoadingQuizzes && page === 0);
 
   // Append new quizzes when they load
-  React.useEffect(() => {
+  useEffect(() => {
     if (quizzes && quizzes.length > 0) {
       if (page === 0) {
         setAllQuizzes(quizzes);
