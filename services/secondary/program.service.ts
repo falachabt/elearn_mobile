@@ -152,7 +152,6 @@ export async function getSecondaryProgramExercises(
 
 export async function getSecondaryProgramQuizzes(
   programId: string,
-  userId?: string,
   page: number = 0,
   pageSize: number = 20,
   searchQuery: string = ""

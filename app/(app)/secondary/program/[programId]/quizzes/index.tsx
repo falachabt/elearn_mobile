@@ -15,7 +15,6 @@ export default function QuizzesList() {
   const [page, setPage] = useState(0);
   const [allQuizzes, setAllQuizzes] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch program and quizzes data
   const { program, isLoading: isLoadingProgram } = useSecondaryProgram(programId);
@@ -25,18 +24,9 @@ export default function QuizzesList() {
     hasMore,
     isLoading: isLoadingQuizzes,
     mutate
-  } = useSecondaryProgramQuizzes(programId, user?.id, page, searchQuery);
+  } = useSecondaryProgramQuizzes(programId, page, searchQuery);
 
   const isLoading = isLoadingProgram || (isLoadingQuizzes && page === 0);
-
-  // Cleanup timeout on unmount
-  React.useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Append new quizzes when they load
   React.useEffect(() => {
@@ -46,6 +36,9 @@ export default function QuizzesList() {
       } else {
         setAllQuizzes(prev => [...prev, ...quizzes]);
       }
+    } else if (page === 0) {
+      // Handle empty results when searching or first load
+      setAllQuizzes([]);
     }
   }, [quizzes, page]);
 
@@ -71,18 +64,10 @@ export default function QuizzesList() {
     setPage(0);
   }, []);
 
-  // Handle search query changes from child component with debounce
+  // Handle search query changes from child component
   const handleSearchChange = useCallback((query: string) => {
-    // Clear previous timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    
-    // Wait 500ms before updating the state to avoid excessive re-renders
-    searchTimeoutRef.current = setTimeout(() => {
-      setSearchQuery(query);
-      setPage(0);
-    }, 500);
+    setSearchQuery(query);
+    setPage(0);
   }, []);
 
   // Convert quizzes to the format expected by QuizListView

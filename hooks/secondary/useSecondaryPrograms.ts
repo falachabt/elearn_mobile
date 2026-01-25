@@ -66,10 +66,10 @@ export function useSecondaryProgramExercises(programId: string, userId?: string,
 }
 
 // Récupérer les quiz d'un programme avec pagination
-export function useSecondaryProgramQuizzes(programId: string, userId?: string, page: number = 0, searchQuery: string = "") {
+export function useSecondaryProgramQuizzes(programId: string, page: number = 0, searchQuery: string = "") {
   const { data, error, isLoading, mutate } = useSWR(
-    programId ? ['secondary-program-quizzes', programId, userId, page, searchQuery] : null,
-    ([, id, uid, p, search]) => getSecondaryProgramQuizzes(id, uid, p, 20, search),
+    programId ? ['secondary-program-quizzes', programId, page, searchQuery] : null,
+    ([, id, p, search]) => getSecondaryProgramQuizzes(id, p, 20, search),
     {
       revalidateOnFocus: false,
       dedupingInterval: 60000, // 1 minute
