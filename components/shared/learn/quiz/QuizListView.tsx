@@ -50,6 +50,12 @@ export interface QuizListItem {
 export interface QuizListViewProps {
   quizzes: QuizListItem[] | null | undefined;
   isLoading?: boolean;
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  onFilterChange?: () => void;
+  onSearchChange?: (query: string) => void;
+  totalCount?: number;
   programTitle?: string;
   programId?: string;
   baseRoute: string;
@@ -59,6 +65,12 @@ export interface QuizListViewProps {
 export const QuizListView: React.FC<QuizListViewProps> = ({
   quizzes,
   isLoading = false,
+  isLoadingMore = false,
+  hasMore = false,
+  onLoadMore,
+  onFilterChange,
+  onSearchChange,
+  totalCount,
   programTitle = "Programme",
   programId = "",
   baseRoute,
@@ -71,6 +83,7 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -87,6 +100,24 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
     }
   }, [isLoading, fadeAnim]);
 
+  // Handle search debouncing - notify parent after user stops typing
+  React.useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      // Only notify parent about search query change
+      onSearchChange?.(searchQuery);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery, onSearchChange]);
+
   // Extract unique categories from quizzes
   const categories = useMemo(() => {
     if (!quizzes) return [];
@@ -96,21 +127,18 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
     return Array.from(uniqueCategories) as string[];
   }, [quizzes]);
 
-  // Filter quizzes based on search and category
+  // Filter quizzes based on category only (search is done at database level)
   const filteredQuizzes = useMemo(() => {
     if (!quizzes) return [];
     return quizzes.filter((quizItem) => {
       const quiz = quizItem?.quiz;
       if (!quiz) return false;
-      const matchesSearch = quiz.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
       const matchesCategory =
         selectedCategory === "all" ||
         quiz.category?.name === selectedCategory;
-      return matchesSearch && matchesCategory;
+      return matchesCategory;
     });
-  }, [quizzes, searchQuery, selectedCategory]);
+  }, [quizzes, selectedCategory]);
 
   // Toggle view mode between list and grid
   const toggleViewMode = () => {
@@ -211,7 +239,10 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
           <EnhancedQuizCategoryFilter
             categories={categories}
             selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
+            onSelectCategory={(cat) => {
+              setSelectedCategory(cat);
+              onFilterChange?.();
+            }}
             isDark={isDark}
           />
         </View>
@@ -229,7 +260,7 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
               isDark && styles.quizCountTextDark,
             ]}
           >
-            0 quiz disponible
+            {filteredQuizzes.length}{totalCount ? ` / ${totalCount}` : ''} quiz{filteredQuizzes.length !== 1 ? 's' : ''} disponible{filteredQuizzes.length !== 1 ? 's' : ''}
           </ThemedText>
         </View>
 
@@ -331,7 +362,10 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
         <EnhancedQuizCategoryFilter
           categories={categories}
           selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
+          onSelectCategory={(cat) => {
+            setSelectedCategory(cat);
+            onFilterChange?.();
+          }}
           isDark={isDark}
         />
       </View>
@@ -347,7 +381,7 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
         <ThemedText
           style={[styles.quizCountText, isDark && styles.quizCountTextDark]}
         >
-          {filteredQuizzes.length} quiz{filteredQuizzes.length !== 1 ? "s" : ""}{" "}
+          {filteredQuizzes.length}{totalCount ? ` / ${totalCount}` : ''} quiz{filteredQuizzes.length !== 1 ? "s" : ""}{" "}
           disponible{filteredQuizzes.length !== 1 ? "s" : ""}
         </ThemedText>
       </Animated.View>
@@ -359,6 +393,26 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
             data={filteredQuizzes}
             keyExtractor={(item) => item?.quizId?.toString() || ""}
             contentContainerStyle={styles.quizList}
+            showsVerticalScrollIndicator={false}
+            onEndReached={() => {
+              if (hasMore && !isLoadingMore && onLoadMore) {
+                onLoadMore();
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={() => {
+              if (isLoadingMore) {
+                return (
+                  <View style={styles.loadingMoreContainer}>
+                    <ActivityIndicator size="small" color={theme.color.primary[500]} />
+                    <ThemedText style={[styles.loadingMoreText, isDark && styles.loadingMoreTextDark]}>
+                      Chargement...
+                    </ThemedText>
+                  </View>
+                );
+              }
+              return null;
+            }}
             renderItem={({ item, index }) => {
               if (!item) return null;
               return (
@@ -379,6 +433,26 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
             numColumns={2}
             contentContainerStyle={styles.quizGrid}
             columnWrapperStyle={styles.quizGridRow}
+            showsVerticalScrollIndicator={false}
+            onEndReached={() => {
+              if (hasMore && !isLoadingMore && onLoadMore) {
+                onLoadMore();
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={() => {
+              if (isLoadingMore) {
+                return (
+                  <View style={styles.loadingMoreContainer}>
+                    <ActivityIndicator size="small" color={theme.color.primary[500]} />
+                    <ThemedText style={[styles.loadingMoreText, isDark && styles.loadingMoreTextDark]}>
+                      Chargement...
+                    </ThemedText>
+                  </View>
+                );
+              }
+              return null;
+            }}
             renderItem={({ item, index }) => {
               if (!item) return null;
               return (
@@ -528,6 +602,21 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
     maxWidth: "80%",
+  },
+  loadingMoreContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  loadingMoreText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: theme.typography.fontFamily,
+  },
+  loadingMoreTextDark: {
+    color: '#9CA3AF',
   },
 });
 

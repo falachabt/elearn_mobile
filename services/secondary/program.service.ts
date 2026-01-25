@@ -150,8 +150,17 @@ export async function getSecondaryProgramExercises(
   return { data, count: count || 0, hasMore: (count || 0) > to + 1 };
 }
 
-export async function getSecondaryProgramQuizzes(programId: string) {
-  const { data, error } = await supabase
+export async function getSecondaryProgramQuizzes(
+  programId: string,
+  userId?: string,
+  page: number = 0,
+  pageSize: number = 20,
+  searchQuery: string = ""
+) {
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+  
+  let query = supabase
     .from("secondary_program_quizzes")
     .select(`
       *,
@@ -169,10 +178,22 @@ export async function getSecondaryProgramQuizzes(programId: string) {
           )
         )
       )
-    `)
+    `, { count: 'exact' })
     .eq("program_id", programId);
+
+  // Add search filter if provided
+  if (searchQuery && searchQuery.trim().length > 0) {
+    const searchTerm = `%${searchQuery.trim()}%`;
+    query = query.or(`quiz.name.ilike.${searchTerm},quiz.description.ilike.${searchTerm}`);
+  }
+
+  const { data, error, count } = await query
+    .order('id', { ascending: true })
+    .range(from, to);
+  
   if (error) throw error;
-  return data;
+  
+  return { data, count: count || 0, hasMore: (count || 0) > to + 1 };
 }
 
 export async function getSecondaryProgramQuizById(programId: string, quizId: string) {
@@ -210,8 +231,8 @@ export async function getSecondaryProgramContent(programId: string) {
 
   return {
     courses,
-    exercises,
-    quizzes,
+    exercises: exercises.data,
+    quizzes: quizzes.data,
   };
 }
 

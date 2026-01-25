@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback, useRef } from "react";
 
 import {
   useSecondaryProgram,
@@ -7,32 +7,89 @@ import {
 } from "@/hooks/secondary/useSecondaryPrograms";
 import { QuizListView } from "@/components/shared/learn/quiz/QuizListView";
 import { useQuizPins, useQuizAttempts } from "@/hooks/useQuizData";
+import { useAuth } from "@/contexts/auth";
 
 export default function QuizzesList() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
+  const { user } = useAuth();
+  const [page, setPage] = useState(0);
+  const [allQuizzes, setAllQuizzes] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch program and quizzes data
   const { program, isLoading: isLoadingProgram } = useSecondaryProgram(programId);
-  const { quizzes, isLoading: isLoadingQuizzes } =
-    useSecondaryProgramQuizzes(programId);
+  const { 
+    quizzes, 
+    count,
+    hasMore,
+    isLoading: isLoadingQuizzes,
+    mutate
+  } = useSecondaryProgramQuizzes(programId, user?.id, page, searchQuery);
+
+  const isLoading = isLoadingProgram || (isLoadingQuizzes && page === 0);
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Append new quizzes when they load
+  React.useEffect(() => {
+    if (quizzes && quizzes.length > 0) {
+      if (page === 0) {
+        setAllQuizzes(quizzes);
+      } else {
+        setAllQuizzes(prev => [...prev, ...quizzes]);
+      }
+    }
+  }, [quizzes, page]);
 
   // Get quiz IDs for fetching pins and attempts
   const quizIds = useMemo(
-    () => quizzes?.map((item) => item.quiz_id).filter((id): id is string => Boolean(id)) || [],
-    [quizzes]
+    () => allQuizzes?.map((item) => item.quiz_id).filter((id): id is string => Boolean(id)) || [],
+    [allQuizzes]
   );
 
   // Use shared hooks for pins and attempts
   const { pinnedMap } = useQuizPins(quizIds);
   const { bestScoreMap } = useQuizAttempts(quizIds, "completed");
 
-  const isLoading = isLoadingProgram || isLoadingQuizzes;
+  // Load more function
+  const loadMore = useCallback(() => {
+    if (!isLoadingQuizzes && hasMore) {
+      setPage(prev => prev + 1);
+    }
+  }, [isLoadingQuizzes, hasMore]);
+
+  // Reset pagination when filter changes (will be called from child)
+  const resetPagination = useCallback(() => {
+    setPage(0);
+  }, []);
+
+  // Handle search query changes from child component with debounce
+  const handleSearchChange = useCallback((query: string) => {
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Wait 500ms before updating the state to avoid excessive re-renders
+    searchTimeoutRef.current = setTimeout(() => {
+      setSearchQuery(query);
+      setPage(0);
+    }, 500);
+  }, []);
 
   // Convert quizzes to the format expected by QuizListView
   const quizzesWithProgress = useMemo(() => {
-    if (!quizzes) return [];
+    if (!allQuizzes) return [];
 
-    return quizzes.map((item) => {
+    return allQuizzes.map((item) => {
       if (!item.quiz) return null;
 
       const quizId = item.quiz.id;
@@ -64,7 +121,7 @@ export default function QuizzesList() {
         progress: progress,
       };
     }).filter(Boolean);
-  }, [quizzes, programId, pinnedMap, bestScoreMap]);
+  }, [allQuizzes, programId, pinnedMap, bestScoreMap]);
 
   // Get program info
   const getProgramInfo = () => {
@@ -80,6 +137,12 @@ export default function QuizzesList() {
     <QuizListView
       quizzes={quizzesWithProgress as never}
       isLoading={isLoading}
+      isLoadingMore={isLoadingQuizzes && page > 0}
+      hasMore={hasMore}
+      onLoadMore={loadMore}
+      onFilterChange={resetPagination}
+      onSearchChange={handleSearchChange}
+      totalCount={count}
       programTitle={programTitle}
       programId={programId}
       baseRoute={`/(app)/secondary/program/${programId}/quizzes`}

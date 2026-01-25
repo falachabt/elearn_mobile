@@ -65,13 +65,23 @@ export function useSecondaryProgramExercises(programId: string, userId?: string,
   };
 }
 
-// Récupérer les quiz d'un programme
-export function useSecondaryProgramQuizzes(programId: string) {
-  const { data, error, isLoading } = useSWR(programId ? ['secondary-program-quizzes', programId] : null, ([, id]) => getSecondaryProgramQuizzes(id));
+// Récupérer les quiz d'un programme avec pagination
+export function useSecondaryProgramQuizzes(programId: string, userId?: string, page: number = 0, searchQuery: string = "") {
+  const { data, error, isLoading, mutate } = useSWR(
+    programId ? ['secondary-program-quizzes', programId, userId, page, searchQuery] : null,
+    ([, id, uid, p, search]) => getSecondaryProgramQuizzes(id, uid, p, 20, search),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000, // 1 minute
+    }
+  );
   return {
-    quizzes: data,
+    quizzes: data?.data,
+    count: data?.count,
+    hasMore: data?.hasMore,
     isLoading,
     isError: !!error,
+    mutate,
   };
 }
 
