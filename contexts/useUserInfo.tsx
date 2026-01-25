@@ -324,6 +324,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Récupère tous les programIds de l'utilisateur
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const programIds =
     userPrograms
       ?.map((p) => p?.concours_learningpaths?.id)

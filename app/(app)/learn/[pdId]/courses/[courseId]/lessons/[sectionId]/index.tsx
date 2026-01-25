@@ -22,7 +22,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import { useCourseProgress } from "@/hooks/useCourseProgress";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { Courses, CoursesContent } from "@/types/type";
 import { useSound } from "@/hooks/useSound";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import PreloadWebView from "@/components/shared/learn/WebViewCourrseSection";

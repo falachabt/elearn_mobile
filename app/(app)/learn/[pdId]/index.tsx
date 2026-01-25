@@ -36,7 +36,7 @@ interface ActionCard {
   color: string;
   rightContent?: React.ReactNode;
   isShopCard?: boolean;
-  routeParams?: Record<string, any>;
+  routeParams?: Record<string, string | number | boolean>;
 }
 
 interface ProgramData {
@@ -58,7 +58,7 @@ interface ProgramData {
       id: string;
       name?: string;
       description?: string;
-      dates?: any;
+      dates?: Record<string, unknown>;
       nextDate?: string;
       study_cycles?: {
         level?: number;
@@ -166,7 +166,6 @@ const ProgramDetails = () => {
       logger.error("[ProgramDetails] Erreur dans fetchProgramData:", error);
       throw error;
     }
-    // @ts-ignore
     return data;
   };
 
@@ -268,7 +267,16 @@ const ProgramDetails = () => {
 
   // Ajout : état pour l'id du programme (concours_learningpaths.id)
   const [programId, setProgramId] = useState<string | null>(null);
-  const [activeInstallment, setActiveInstallment] = useState<any>(null);
+  const [activeInstallment, setActiveInstallment] = useState<{
+    is_installment: boolean;
+    current_installment: number;
+    total_installments: number;
+    amount: number;
+    total_amount: number;
+    next_payment_due_date?: string;
+    expiry_date?: string;
+    payment_status: string;
+  } | null>(null);
 
   // Récupérer l'id du programme à partir du learning path id
   useEffect(() => {
@@ -352,7 +360,6 @@ const ProgramDetails = () => {
       }
 
       // Add regular content cards
-      // @ts-ignore
       cards.push(
         {
           id: "courses",
@@ -587,9 +594,9 @@ const ProgramDetails = () => {
       router.push({
         pathname: card.route,
         params: card.routeParams,
-      } as any);
+      } as Href);
     } else {
-      router.push(card.route as any);
+      router.push(card.route as Href);
     }
   };
 
