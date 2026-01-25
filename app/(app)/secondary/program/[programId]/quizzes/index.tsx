@@ -80,6 +80,9 @@ export default function QuizzesList() {
       const isPinned = pinnedMap.has(quizId);
       const progress = bestScoreMap.get(quizId) || 0;
 
+      // Use direct category field if available, otherwise fall back to course category
+      const categoryData = item.quiz.category || item.quiz.course?.courses_categories;
+
       return {
         quizId: quizId,
         lpId: programId,
@@ -87,10 +90,10 @@ export default function QuizzesList() {
           id: item.quiz.id,
           name: item.quiz.name || "Quiz sans titre",
           description: item.quiz.description,
-          category: item.quiz.course?.courses_categories
+          category: categoryData
             ? {
-                id: parseInt(item.quiz.course.courses_categories.id),
-                name: item.quiz.course.courses_categories.name || "",
+                id: typeof categoryData.id === 'string' ? parseInt(categoryData.id) : categoryData.id,
+                name: categoryData.name || "",
               }
             : undefined,
           quiz_questions: item.quiz.quiz_questions || [],

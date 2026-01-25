@@ -166,6 +166,12 @@ export async function getSecondaryProgramQuizzes(
       quiz(
         *,
         quiz_questions(id),
+        category:courses_categories!quiz_category_fkey(
+          id,
+          name,
+          description,
+          icon
+        ),
         course:courses(
           id,
           name,
