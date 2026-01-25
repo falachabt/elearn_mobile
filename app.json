@@ -37,6 +37,7 @@
     "plugins": [
       "expo-router",
       "expo-apple-authentication",
+      "./plugins/withAndroid16KBPageSize.js",
       [
         "expo-splash-screen",
         {
