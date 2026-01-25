@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'expo-router';
 import { mutate } from 'swr';
+import { logger } from '@/utils/logger';
 
 interface RouteRevalidationOptions {
   enabled?: boolean;
@@ -44,11 +45,11 @@ export function useRouteRevalidation(options?: RouteRevalidationOptions) {
       const THROTTLE_MS = 2000;
 
       if (now - lastRevalidationRef.current > THROTTLE_MS) {
-        console.log(`[SWR] Route change detected: ${previousPathRef.current} → ${pathname}`);
+        logger.log(`[SWR] Route change detected: ${previousPathRef.current} → ${pathname}`);
         
         if (aggressive) {
           // Mode agressif : Revalide TOUTES les clés
-          console.log(`[SWR] Aggressive revalidation: all keys`);
+          logger.log(`[SWR] Aggressive revalidation: all keys`);
           mutate(
             () => true, // Matcher: revalide toutes les clés
             undefined,
@@ -57,7 +58,7 @@ export function useRouteRevalidation(options?: RouteRevalidationOptions) {
         } else {
           // Mode conservateur : Ne force pas la revalidation
           // Laisse SWR gérer naturellement avec revalidateOnFocus
-          console.log(`[SWR] Conservative mode: relying on revalidateOnFocus`);
+          logger.log(`[SWR] Conservative mode: relying on revalidateOnFocus`);
         }
 
         lastRevalidationRef.current = now;
@@ -87,7 +88,7 @@ export function usePageFocusRevalidation(swrKey: string | string[] | null | unde
 
     // Si on revient sur cette page après avoir été ailleurs
     if (previousPathRef.current !== pathname && swrKey) {
-      console.log(`[SWR] Revalidating key on page focus:`, swrKey);
+      logger.log(`[SWR] Revalidating key on page focus:`, swrKey);
       mutate(swrKey, undefined, { revalidate: true });
     }
 

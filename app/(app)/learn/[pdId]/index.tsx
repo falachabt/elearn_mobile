@@ -20,6 +20,7 @@ import { useProgramProgress } from "@/hooks/useProgramProgress";
 import { useUser } from "@/contexts/useUserInfo";
 import { supabase } from "@/lib/supabase";
 import { ProgramPaymentService } from "@/services/program-payment.service";
+import { logger } from "@/utils/logger";
 
 interface ActionCard {
   id: string;
@@ -162,7 +163,7 @@ const ProgramDetails = () => {
       .single();
 
     if (error) {
-      console.error("[ProgramDetails] Erreur dans fetchProgramData:", error);
+      logger.error("[ProgramDetails] Erreur dans fetchProgramData:", error);
       throw error;
     }
     // @ts-ignore
@@ -199,7 +200,7 @@ const ProgramDetails = () => {
   // Revalidate when coming from successful payment
   useEffect(() => {
     if (fromPayment === 'success') {
-      console.log('[ProgramDetails] Arriving from successful payment - Force revalidation');
+      logger.log('[ProgramDetails] Arriving from successful payment - Force revalidation');
       
       const revalidateAfterPayment = async () => {
         await Promise.all([
@@ -208,7 +209,7 @@ const ProgramDetails = () => {
           mutateProgramAccessMap(undefined, { revalidate: true }), // CRUCIAL : Revalide le statut d'accès
         ]);
         
-        console.log('[ProgramDetails] Revalidation complete - Access status updated');
+        logger.log('[ProgramDetails] Revalidation complete - Access status updated');
       };
       
       // Petit délai pour laisser le temps aux données de se propager
@@ -241,18 +242,18 @@ const ProgramDetails = () => {
   // LOG: Suivi des états d'erreur
   useEffect(() => {
     if (programError) {
-      console.error(
+      logger.error(
         "[ProgramDetails] Erreur détectée lors du chargement du PROGRAMME:",
         programError
       );
     }
     if (progressError && isEnrolled) {
       // Only log progress errors if user is enrolled
-      console.error(
+      logger.error(
         "[ProgramDetails] Erreur détectée lors du chargement de la PROGRESSION:",
         progressError
       );
-      console.error("[ProgramDetails] Progress error details:", progressError);
+      logger.error("[ProgramDetails] Progress error details:", progressError);
     }
   }, [programError, progressError, isEnrolled]);
 
@@ -686,7 +687,7 @@ const ProgramDetails = () => {
 
   if (hasError || !program) {
     // LOG: Confirme que l'on affiche l'écran d'erreur
-    console.error(
+    logger.error(
       `[ProgramDetails] Rendu du bloc d'erreur. (hasError: ${!!hasError}, !program: ${!program}, progressError: ${!!progressError})`
     );
     return (

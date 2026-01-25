@@ -21,6 +21,7 @@ import { theme } from '@/constants/theme'
 import NoProgram from "@/components/shared/catalogue/NoProgramCard"
 import ModernLearningPathCard from "@/components/shared/learn/LearningPathCard"
 import { useUser } from '@/contexts/useUserInfo'
+import { logger } from '@/utils/logger'
 
 interface School {
     id: string
@@ -99,7 +100,7 @@ const MyLearningPaths = () => {
     const { data, error, isLoading, mutate } = useSWR(
         authUser ? 'all-learning-paths-with-enrollment' : null,
         async () => {
-            console.log('[MyLearningPaths] Fetching learning paths for user:', authUser?.id);
+            logger.log('[MyLearningPaths] Fetching learning paths for user:', authUser?.id);
             
             // Single optimized query using LEFT JOIN to get all learning paths with enrollment status
             const { data: learningPathsData, error: lpError } = await supabase
@@ -145,7 +146,7 @@ const MyLearningPaths = () => {
                 .or(`user_id.eq.${authUser?.id},user_id.is.null`, { foreignTable: 'user_program_enrollments' })
 
             if (lpError) {
-                console.error("Learning paths fetch error:", lpError)
+                logger.error("Learning paths fetch error:", lpError)
                 throw lpError
             }
 
@@ -261,15 +262,15 @@ const MyLearningPaths = () => {
             dedupingInterval: 1000, // Allow revalidation every second
             refreshInterval: 0, // Disable auto-refresh, rely on manual triggers
             onSuccess: (data) => {
-                console.log('[MyLearningPaths] Data fetched successfully. Total paths:', data?.length);
-                console.log('[MyLearningPaths] Enrolled paths:', data?.filter(p => p.isEnrolled).length);
+                logger.log('[MyLearningPaths] Data fetched successfully. Total paths:', data?.length);
+                logger.log('[MyLearningPaths] Enrolled paths:', data?.filter(p => p.isEnrolled).length);
             }
         }
     )
 
     // Force revalidation on mount and when returning from payment
     useEffect(() => {
-        console.log('[MyLearningPaths] Component mounted, forcing revalidation...');
+        logger.log('[MyLearningPaths] Component mounted, forcing revalidation...');
         // Force revalidation of both the list and user context
         mutate();
         mutateUserPrograms();
@@ -279,7 +280,7 @@ const MyLearningPaths = () => {
     // Also revalidate when the screen comes into focus (e.g., after payment)
     useFocusEffect(
         useCallback(() => {
-            console.log('[MyLearningPaths] Screen focused, revalidating...');
+            logger.log('[MyLearningPaths] Screen focused, revalidating...');
             mutate();
             mutateUserPrograms();
             mutateProgramAccessMap();
