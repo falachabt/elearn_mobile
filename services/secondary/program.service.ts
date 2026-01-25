@@ -182,10 +182,13 @@ export async function getSecondaryProgramQuizzes(
 
   // Add search filter if provided
   // Using Supabase's ilike operator which safely handles pattern matching
-  // Special characters are escaped to prevent any potential injection
+  // Escape special LIKE wildcards (% and _) to treat them as literal characters
   if (searchQuery && searchQuery.trim().length > 0) {
     // Escape special characters for LIKE patterns
-    const escapedQuery = searchQuery.trim().replace(/[%_]/g, '\\$&');
+    const escapedQuery = searchQuery.trim()
+      .replace(/\\/g, '\\\\')  // Escape backslash first
+      .replace(/%/g, '\\%')    // Escape percent
+      .replace(/_/g, '\\_');    // Escape underscore
     const searchTerm = `%${escapedQuery}%`;
     query = query.or(`quiz.name.ilike.${searchTerm},quiz.description.ilike.${searchTerm}`);
   }

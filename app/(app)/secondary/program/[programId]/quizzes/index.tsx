@@ -7,16 +7,12 @@ import {
 } from "@/hooks/secondary/useSecondaryPrograms";
 import { QuizListView } from "@/components/shared/learn/quiz/QuizListView";
 import { useQuizPins, useQuizAttempts } from "@/hooks/useQuizData";
-
-type QuizItem = {
-  quiz_id: string;
-  quiz: any; // Will be properly typed by the service response
-};
+import { SecondaryProgramQuiz } from "@/types/secondary.type";
 
 export default function QuizzesList() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
   const [page, setPage] = useState(0);
-  const [allQuizzes, setAllQuizzes] = useState<QuizItem[]>([]);
+  const [allQuizzes, setAllQuizzes] = useState<SecondaryProgramQuiz[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch program and quizzes data
