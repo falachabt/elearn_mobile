@@ -62,10 +62,17 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
                     // Platform-specific handling
                     if (Platform.OS === 'web') {
                         // On web, Supabase automatically processes the URL hash with access_token
-                        // Just wait a moment for it to be processed
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                        // Poll for session to be established (max 5 seconds)
+                        let session = null;
+                        let attempts = 0;
+                        const maxAttempts = 10; // 10 attempts * 500ms = 5 seconds max
                         
-                        const { data: { session } } = await supabase.auth.getSession();
+                        while (!session && attempts < maxAttempts) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            const { data: { session: currentSession } } = await supabase.auth.getSession();
+                            session = currentSession;
+                            attempts++;
+                        }
                         
                         if (!session?.access_token) {
                             throw new Error('No session created after Google authentication');
@@ -91,7 +98,7 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
                                 }
                             );
 
-                            logger.info('Google login successful, account created');
+                            logger.info('Google login successful, account created (web)');
                         } catch (apiError) {
                             logger.error('Error creating account after Google login:', apiError);
                             // If account already exists (user logging in), that's okay
@@ -106,29 +113,33 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
                     } else {
                         // On mobile, the DeepLinkHandler will process the deep link URL
                         // and call supabase.auth.setSession() with the tokens from the URL
-                        // We just need to wait for that to complete and then refresh user data
+                        // Poll for session to be established (max 5 seconds)
+                        let session = null;
+                        let attempts = 0;
+                        const maxAttempts = 10; // 10 attempts * 500ms = 5 seconds max
                         
-                        // Wait for deep link processing
-                        await new Promise(resolve => setTimeout(resolve, 1500));
-                        
-                        // Check if session was established
-                        const { data: { session } } = await supabase.auth.getSession();
+                        while (!session && attempts < maxAttempts) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            const { data: { session: currentSession } } = await supabase.auth.getSession();
+                            session = currentSession;
+                            attempts++;
+                        }
                         
                         if (session?.access_token) {
                             // Session established, the DeepLinkHandler should have created the account
                             // Just force revalidation
                             await mutateUser();
                             
+                            logger.info('Google login successful (mobile, session established)');
+                            
                             if (onAuthSuccess) {
                                 onAuthSuccess();
                             }
                         } else {
-                            // Session not established yet, let the auth state change listener handle it
-                            logger.warn('Session not immediately available after OAuth redirect on mobile');
-                            // The DeepLinkHandler and auth.onAuthStateChange will handle the rest
-                            if (onAuthSuccess) {
-                                onAuthSuccess();
-                            }
+                            // Session not established within timeout
+                            // The DeepLinkHandler might still be processing or there was an error
+                            logger.error('Session not established after OAuth redirect on mobile');
+                            throw new Error('Authentication timed out. Please try again.');
                         }
                     }
                 } catch (postAuthError) {
