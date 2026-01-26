@@ -48,6 +48,21 @@ export const CourseGridByCategory: React.FC<CourseGridByCategoryProps> = ({
     [onCoursePress]
   );
 
+  // Render category section using the CategorySection component
+  const renderCategorySection = useCallback(
+    ({ item }: { item: { name: string; icon?: string | null; courses: CourseItem[] } }) => (
+      <CategorySection
+        item={item}
+        pdId={pdId || programId || ""}
+        type={type}
+        isEnrolled={isEnrolled}
+        isDark={isDark}
+        onCoursePress={handleCoursePress}
+      />
+    ),
+    [pdId, programId, type, isEnrolled, isDark, handleCoursePress]
+  );
+
   // If no courses are found for the selected category
   if (coursesByCategory.length === 0) {
     return (
@@ -65,21 +80,6 @@ export const CourseGridByCategory: React.FC<CourseGridByCategoryProps> = ({
       </View>
     );
   }
-
-  // Render category section using the CategorySection component
-  const renderCategorySection = useCallback(
-    ({ item }: { item: { name: string; icon?: string | null; courses: CourseItem[] } }) => (
-      <CategorySection
-        item={item}
-        pdId={pdId || programId || ""}
-        type={type}
-        isEnrolled={isEnrolled}
-        isDark={isDark}
-        onCoursePress={handleCoursePress}
-      />
-    ),
-    [pdId, programId, type, isEnrolled, isDark, handleCoursePress]
-  );
 
   return (
     <FlatList

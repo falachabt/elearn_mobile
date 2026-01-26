@@ -49,8 +49,6 @@ const CourseScreen: React.FC<null> = () => {
   const { categories: allCategories, isLoading: isLoadingCategories } =
     useCategories();
 
-  const isLoading = isLoadingProgram || isLoadingCourses || isLoadingCategories;
-
   // Extract unique categories from courses
   const categories = useCallback(() => {
     if (!courses) return [];
@@ -135,6 +133,8 @@ const CourseScreen: React.FC<null> = () => {
   };
 
   const { title: programTitle} = getProgramInfo();
+
+  const isLoading = isLoadingProgram || isLoadingCourses || isLoadingCategories;
 
   // Render loading state
   if (isLoading) {
