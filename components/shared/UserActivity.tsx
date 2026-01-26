@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { useNavigationState } from '@react-navigation/native';
 import { usePathname } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
@@ -17,11 +16,19 @@ const UserActivityTracker: React.FC = () => {
 
     const isLearningPath = (path: string) => {
         const patterns = [
+            // Learn paths
             /^\/learn\/[^\/]+\/courses\/[^\/]+\/lessons\/[^\/]+$/, // accapter quand l'utilisateur est sur une leçon
             /^\/learn\/[^\/]+\/courses\/[^\/]+\/videos\/[^\/]+$/, // accapter quand l'utilisateur est sur une video
             /^\/learn\/[^\/]+\/quizzes\/[^\/]+\/[^\/]+$/, // accapter quand l'utilisateur est sur un quiz
             /^\/learn\/[^\/]+\/anales\/[^\/]+\/.+$/, // accapter quand l'utilisateur est sur une ancienne epreuve
-            /^\/learn\/[^\/]+\/exercices\/[^\/]+$/ // accapter quand l'utilisateur est sur un exercice
+            /^\/learn\/[^\/]+\/exercices\/[^\/]+$/, // accapter quand l'utilisateur est sur un exercice
+            
+            // Secondary paths
+            /^\/secondary\/program\/[^\/]+\/courses\/[^\/]+\/lessons\/[^\/]+\/[^\/]+$/, // leçon dans secondary
+            /^\/secondary\/program\/[^\/]+\/courses\/[^\/]+\/videos\/[^\/]+$/, // video dans secondary
+            /^\/secondary\/program\/[^\/]+\/quizzes\/[^\/]+\/[^\/]+$/, // quiz dans secondary
+            /^\/secondary\/program\/[^\/]+\/exercices\/[^\/]+$/, // exercice dans secondary
+            /^\/secondary\/program\/[^\/]+\/documents\/[^\/]+$/ // document dans secondary
         ];
         return patterns.some(pattern => pattern.test(path));
     };

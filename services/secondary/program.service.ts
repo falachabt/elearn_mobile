@@ -7,10 +7,7 @@ export async function getSecondaryPrograms(): Promise<SecondaryProgram[]> {
     .select("*, class:secondary_classes(*), serie:secondary_series(*)")
     .filter("is_active", "eq", true);
   if (error) throw error;
-  return (data || []).map(program => ({
-    ...program,
-    document_count: 0 // TODO: Add document_count field to database
-  }));
+  return data || [];
 }
 
 export async function getSecondaryProgramById(
@@ -22,10 +19,7 @@ export async function getSecondaryProgramById(
     .eq("id", id)
     .single();
   if (error) throw error;
-  return {
-    ...data,
-    document_count: 0 // TODO: Add document_count field to database
-  };
+  return data;
 }
 
 export async function getSecondaryProgramsByClass(classId: string) {
@@ -150,14 +144,28 @@ export async function getSecondaryProgramExercises(
   return { data, count: count || 0, hasMore: (count || 0) > to + 1 };
 }
 
-export async function getSecondaryProgramQuizzes(programId: string) {
-  const { data, error } = await supabase
+export async function getSecondaryProgramQuizzes(
+  programId: string,
+  page: number = 0,
+  pageSize: number = 20,
+  searchQuery: string = ""
+) {
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+  
+  let query = supabase
     .from("secondary_program_quizzes")
     .select(`
       *,
       quiz(
         *,
         quiz_questions(id),
+        category:courses_categories!quiz_category_fkey(
+          id,
+          name,
+          description,
+          icon
+        ),
         course:courses(
           id,
           name,
@@ -169,10 +177,29 @@ export async function getSecondaryProgramQuizzes(programId: string) {
           )
         )
       )
-    `)
+    `, { count: 'exact' })
     .eq("program_id", programId);
+
+  // Add search filter if provided
+  // Using Supabase's ilike operator which safely handles pattern matching
+  // Escape special LIKE wildcards (% and _) to treat them as literal characters
+  if (searchQuery && searchQuery.trim().length > 0) {
+    // Escape special characters for LIKE patterns
+    const escapedQuery = searchQuery.trim()
+      .replace(/\\/g, '\\\\')  // Escape backslash first
+      .replace(/%/g, '\\%')    // Escape percent
+      .replace(/_/g, '\\_');    // Escape underscore
+    const searchTerm = `%${escapedQuery}%`;
+    query = query.or(`quiz.name.ilike.${searchTerm},quiz.description.ilike.${searchTerm}`);
+  }
+
+  const { data, error, count } = await query
+    .order('id', { ascending: true })
+    .range(from, to);
+  
   if (error) throw error;
-  return data;
+  
+  return { data, count: count || 0, hasMore: (count || 0) > to + 1 };
 }
 
 export async function getSecondaryProgramQuizById(programId: string, quizId: string) {
@@ -210,8 +237,8 @@ export async function getSecondaryProgramContent(programId: string) {
 
   return {
     courses,
-    exercises,
-    quizzes,
+    exercises: exercises.data,
+    quizzes: quizzes.data,
   };
 }
 
