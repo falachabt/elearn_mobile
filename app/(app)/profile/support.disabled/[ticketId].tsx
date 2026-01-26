@@ -16,7 +16,12 @@ import {
     Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+// NOTE: expo-image-picker has been removed from package.json
+// If re-enabling this feature, you must:
+// 1. Add expo-image-picker back to package.json
+// 2. Remove image upload functionality OR implement alternative without READ_MEDIA permissions
+// 3. Consult Google Play Photo & Video Permissions policy
+// import * as ImagePicker from 'expo-image-picker';
 import { useRoute } from '@react-navigation/native';
 import {useLocalSearchParams} from "expo-router";
 

@@ -8,6 +8,7 @@ import {
     useColorScheme,
     Linking,
     Platform,
+    Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -20,6 +21,15 @@ interface ContactInfo {
     hours: string;
     description: string;
 }
+
+// WhatsApp support configuration
+const WHATSAPP_CONFIG = {
+    defaultMessage: 'Bonjour, j\'ai besoin d\'aide avec Elearn Prepa.',
+    errorMessages: {
+        cannotOpen: 'Impossible d\'ouvrir WhatsApp. Veuillez installer l\'application WhatsApp ou vérifier votre connexion internet.',
+        genericError: 'Une erreur s\'est produite lors de l\'ouverture de WhatsApp. Veuillez réessayer.',
+    },
+} as const;
 
 const contactNumbers: ContactInfo[] = [
     {
@@ -40,19 +50,28 @@ const WhatsAppSupportScreen = () => {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
 
-    const handleWhatsAppPress = (phoneNumber: string) => {
-        const message = encodeURIComponent('Bonjour, j\'ai besoin d\'aide avec Elearn Prepa.');
-        const whatsappUrl = `whatsapp://send?phone=${phoneNumber}&text=${message}`;
-        
-        Linking.canOpenURL(whatsappUrl).then(supported => {
+    const handleWhatsAppPress = async (phoneNumber: string) => {
+        try {
+            const message = encodeURIComponent(WHATSAPP_CONFIG.defaultMessage);
+            const whatsappUrl = `whatsapp://send?phone=${phoneNumber}&text=${message}`;
+            
+            const supported = await Linking.canOpenURL(whatsappUrl);
+            
             if (supported) {
-                Linking.openURL(whatsappUrl);
+                await Linking.openURL(whatsappUrl);
             } else {
                 // Fallback to web WhatsApp
                 const webUrl = `https://wa.me/${phoneNumber}?text=${message}`;
-                Linking.openURL(webUrl);
+                try {
+                    await Linking.openURL(webUrl);
+                } catch (webError) {
+                    Alert.alert('Erreur', WHATSAPP_CONFIG.errorMessages.cannotOpen);
+                }
             }
-        });
+        } catch (error) {
+            console.error('Error opening WhatsApp:', error);
+            Alert.alert('Erreur', WHATSAPP_CONFIG.errorMessages.genericError);
+        }
     };
 
     return (
