@@ -25,11 +25,14 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
     const apiBaseUrl = getApiBaseUrl();
 
     // Get redirect URI for this app
+    // On web: returns https://app.elearnprepa.com/auth
+    // On mobile: returns myapp://auth
     const redirectUri = makeRedirectUri({
-        // This should match the scheme you've set in app.json
-        scheme: 'com.ezadrive.elearn', // Replace with your app's URL scheme
+        scheme: Platform.OS === 'web' ? undefined : 'myapp', // Match scheme in app.json for mobile
         path: 'auth',
     });
+
+    logger.info('Google OAuth redirect URI:', redirectUri, 'Platform:', Platform.OS);
 
     const signInWithGoogle = async (): Promise<void> => {
         try {
@@ -56,45 +59,77 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
 
             if (result.type === 'success') {
                 try {
-                    // Get the session after authentication
-                    const { data: { session } } = await supabase.auth.getSession();
-                    
-                    if (!session?.access_token) {
-                        throw new Error('No session created after Google authentication');
-                    }
+                    // Platform-specific handling
+                    if (Platform.OS === 'web') {
+                        // On web, Supabase automatically processes the URL hash with access_token
+                        // Just wait a moment for it to be processed
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        const { data: { session } } = await supabase.auth.getSession();
+                        
+                        if (!session?.access_token) {
+                            throw new Error('No session created after Google authentication');
+                        }
 
-                    // Get user data
-                    const { data: userData } = await supabase.auth.getUser();
+                        // Get user data
+                        const { data: userData } = await supabase.auth.getUser();
 
-                    // Create account in the database
-                    try {
-                        await axios.post(
-                            `${apiBaseUrl}/api/mobile/auth/createAccount`,
-                            {
-                                email: userData?.user?.email,
-                                phone: userData?.user?.phone
-                            },
-                            {
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${session.access_token}`
+                        // Create account in the database
+                        try {
+                            await axios.post(
+                                `${apiBaseUrl}/api/mobile/auth/createAccount`,
+                                {
+                                    email: userData?.user?.email,
+                                    phone: userData?.user?.phone
                                 },
-                                timeout: 10000,
+                                {
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${session.access_token}`
+                                    },
+                                    timeout: 10000,
+                                }
+                            );
+
+                            logger.info('Google login successful, account created');
+                        } catch (apiError) {
+                            logger.error('Error creating account after Google login:', apiError);
+                            // If account already exists (user logging in), that's okay
+                        }
+
+                        // Force revalidation of user data
+                        await mutateUser();
+
+                        if (onAuthSuccess) {
+                            onAuthSuccess();
+                        }
+                    } else {
+                        // On mobile, the DeepLinkHandler will process the deep link URL
+                        // and call supabase.auth.setSession() with the tokens from the URL
+                        // We just need to wait for that to complete and then refresh user data
+                        
+                        // Wait for deep link processing
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                        
+                        // Check if session was established
+                        const { data: { session } } = await supabase.auth.getSession();
+                        
+                        if (session?.access_token) {
+                            // Session established, the DeepLinkHandler should have created the account
+                            // Just force revalidation
+                            await mutateUser();
+                            
+                            if (onAuthSuccess) {
+                                onAuthSuccess();
                             }
-                        );
-
-                        logger.info('Google login successful, account created');
-                    } catch (apiError) {
-                        logger.error('Error creating account after Google login:', apiError);
-                        // If account already exists (user logging in), that's okay
-                        // Just continue
-                    }
-
-                    // Force revalidation of user data
-                    await mutateUser();
-
-                    if (onAuthSuccess) {
-                        onAuthSuccess();
+                        } else {
+                            // Session not established yet, let the auth state change listener handle it
+                            logger.warn('Session not immediately available after OAuth redirect on mobile');
+                            // The DeepLinkHandler and auth.onAuthStateChange will handle the rest
+                            if (onAuthSuccess) {
+                                onAuthSuccess();
+                            }
+                        }
                     }
                 } catch (postAuthError) {
                     logger.error('Error in post-authentication process:', postAuthError);
