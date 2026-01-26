@@ -236,14 +236,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
         // If account creation is in progress, stay in loading state
         if (isAccountCreating) {
-            // Add a timeout safety net for account creation (30 seconds max)
-            const timeoutId = setTimeout(() => {
-                console.warn('Account creation timeout - forcing loading state to end');
-                setIsAccountCreating(false);
-                setIsLoading(false);
-            }, 30000); // 30 seconds timeout
-
-            return () => clearTimeout(timeoutId);
+            return;
         }
 
         if (!session) {
