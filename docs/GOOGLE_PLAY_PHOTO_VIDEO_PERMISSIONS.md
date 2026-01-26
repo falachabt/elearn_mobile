@@ -109,6 +109,22 @@ Created `/app/(app)/profile/whatsapp-support.tsx`:
 
 ## Verification
 
+### Automated Verification Script
+
+We've created a script to verify the build is compliant:
+
+```bash
+# Run after prebuild
+./scripts/verify-permissions.sh
+```
+
+The script will:
+- ✅ Check AndroidManifest.xml for blocked permissions
+- ✅ Show all permissions that ARE declared
+- ✅ Give clear pass/fail result with next steps
+
+### Manual Verification
+
 To verify the app is compliant:
 
 ```bash
@@ -126,7 +142,14 @@ find . -type f \( -name "*.tsx" -o -name "*.ts" \) \
 npx expo prebuild --platform android --clean
 cat android/app/src/main/AndroidManifest.xml | grep -E "READ_|WRITE_|MEDIA"
 # Should return nothing
+
+# Or use the verification script
+./scripts/verify-permissions.sh
 ```
+
+### Expected AndroidManifest Permissions
+
+The AndroidManifest.xml should contain only:
 
 ## Testing
 
