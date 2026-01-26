@@ -104,12 +104,44 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                                                              apiError?.message?.includes('already exists');
                                     
                                     if (!isUserExistsError) {
-                                        logger.warn('Account creation failed with unexpected error, continuing anyway:', apiError);
+                                        logger.warn('Account creation API failed, will retry with polling. Error:', apiError);
                                     }
                                 }
 
-                                // Force revalidation of user data
-                                await mutateUser();
+                                // Wait for account to be available in database (with polling)
+                                // This handles cases where database triggers are slow or broken
+                                logger.info('Polling for account data availability...');
+                                let accountExists = false;
+                                let pollAttempts = 0;
+                                const maxPollAttempts = 10; // 10 attempts * 1 second = 10 seconds max
+                                
+                                while (!accountExists && pollAttempts < maxPollAttempts) {
+                                    try {
+                                        // Try to fetch user data via mutateUser which calls userDataFetcher
+                                        const result = await mutateUser();
+                                        if (result && result.id) {
+                                            accountExists = true;
+                                            logger.info('Account data found after', pollAttempts + 1, 'attempts');
+                                            break;
+                                        }
+                                    } catch (pollError) {
+                                        // Account not ready yet, continue polling
+                                        logger.debug('Account not yet available, attempt', pollAttempts + 1);
+                                    }
+                                    
+                                    await new Promise(resolve => setTimeout(resolve, 1000));
+                                    pollAttempts++;
+                                }
+                                
+                                if (!accountExists) {
+                                    logger.error('Account data not available after polling. Database trigger may be broken.');
+                                    // Still clear the flag to prevent infinite loading
+                                    // The 30-second timeout in auth context will also help
+                                } else {
+                                    // Force one final revalidation to ensure latest data
+                                    await mutateUser();
+                                }
+
                                 
                                 // Clear the account creating flag
                                 setIsAccountCreating(false);
