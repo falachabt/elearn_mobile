@@ -1,4 +1,4 @@
-const { withAndroidManifest, AndroidConfig } = require('@expo/config-plugins');
+const { withAndroidManifest } = require('@expo/config-plugins');
 
 /**
  * Expo config plugin to block READ_MEDIA permissions from being added to AndroidManifest
