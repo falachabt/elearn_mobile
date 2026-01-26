@@ -8,7 +8,7 @@ Google Play Store has strict policies regarding the use of `READ_MEDIA_IMAGES`, 
 
 Our app, **Elearn Prepa**, was rejected because:
 - We declared `READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO` permissions
-- We only use these for **one-time photo/video uploads** in the support ticket feature
+- We only used these for **one-time photo/video uploads** in the support ticket feature
 - This is not a core feature requiring persistent broad access
 
 ### Google Play Policy Reference
@@ -19,113 +19,157 @@ Our app, **Elearn Prepa**, was rejected because:
 
 ### What We Did
 
-1. **Created a Custom Expo Config Plugin** (`/plugins/withBlockMediaPermissions.js`)
-   - Automatically removes media storage permissions from the AndroidManifest
-   - Prevents `expo-image-picker` and other packages from adding these permissions
-   - Blocks the following permissions:
+We took a comprehensive approach to completely eliminate the need for READ_MEDIA permissions:
+
+1. **Removed `expo-image-picker` Dependency**
+   - Completely removed from `package.json`
+   - This eliminates the source of the problematic permissions
+
+2. **Disabled Support Ticket Feature**
+   - Renamed `supportList.tsx` → `supportList.tsx.disabled`
+   - Renamed `support/` folder → `support.disabled/`
+   - Feature is preserved but not active in the app
+
+3. **Replaced with WhatsApp Support**
+   - Created new `/app/(app)/profile/whatsapp-support.tsx` screen
+   - Direct integration with WhatsApp for support
+   - Two contact options:
+     - **Support Technique**: +237657273753
+     - **Support Commercial**: +237651055663
+   - No permissions required
+
+4. **Created Custom Expo Config Plugin** (`/plugins/withBlockMediaPermissions.js`)
+   - Extra safety layer to block permissions if they're re-added
+   - Prevents future permission issues
+   - Blocks:
      - `android.permission.READ_EXTERNAL_STORAGE`
      - `android.permission.WRITE_EXTERNAL_STORAGE`
      - `android.permission.READ_MEDIA_IMAGES`
      - `android.permission.READ_MEDIA_VIDEO`
      - `android.permission.READ_MEDIA_VISUAL_USER_SELECTED`
 
-2. **Applied the Plugin in `app.json`**
-   - Added to the plugins array
-   - Runs after all other plugins to ensure final manifest is clean
+5. **Updated Profile Menu**
+   - Changed "Service client" route to use WhatsApp support
+   - Seamless user experience
 
-### How It Works
+### How It Works Now
 
-The app's photo/video upload feature in the support ticket system (`/app/(app)/profile/support/[ticketId].tsx`) continues to work without these permissions because:
+The app's support system has been simplified and improved:
 
-#### Android 13+ (API Level 33+)
-- `expo-image-picker`'s `launchImageLibraryAsync()` automatically uses the **Android Photo Picker**
-- The Photo Picker is a system UI that doesn't require any permissions
-- Users can select specific photos/videos to share without granting broad access
-- This is the recommended approach by Google
-
-#### Android 12 and Below
-- Uses **Storage Access Framework (SAF)** via the photo picker
-- SAF allows apps to access specific files chosen by the user
-- No broad storage access permissions needed
+#### WhatsApp Support (Active)
+- Users navigate to Profile → Service Client
+- Opens WhatsApp support screen
+- Shows two contact cards with:
+  - Contact type (Technical/Commercial)
+  - Phone number
+  - Operating hours
+  - Description
+- Tapping "Ouvrir WhatsApp" opens WhatsApp with:
+  - Pre-filled contact number
+  - Pre-filled message: "Bonjour, j'ai besoin d'aide avec Elearn Prepa."
+- Works on all Android versions
+- **Zero permissions required**
 - Fully compliant with Google Play policies
+
+#### Other Features
+- **AI Chat with PDF Upload**: Still works via `expo-document-picker`
+  - Uses Storage Access Framework (SAF)
+  - No permissions required
+  - Compliant with Google Play policies
 
 ## Code Changes
 
-### Support Feature Code (No Changes Required)
+### Removed Dependencies
 
-The existing code in `/app/(app)/profile/support/[ticketId].tsx` already works correctly:
-
-```typescript
-const pickImage = async () => {
-    try {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 0.8,
-        });
-
-        if (!result.canceled && result.assets[0]) {
-            // Upload logic...
-        }
-    } catch (error) {
-        console.error('Image picker error:', error);
-    }
-};
+```json
+// package.json - REMOVED
+"expo-image-picker": "~17.0.8"
 ```
 
-This code:
-- ✅ Uses `launchImageLibraryAsync()` which triggers the Android Photo Picker on Android 13+
-- ✅ Doesn't use `launchCameraAsync()` (which would require CAMERA permission)
-- ✅ Only requests one-time access to specific images chosen by the user
-- ✅ Fully compliant with Google Play policies
+### New WhatsApp Support Screen
+
+Created `/app/(app)/profile/whatsapp-support.tsx`:
+- Clean, modern UI
+- Dark mode support
+- Contact cards for Technical and Commercial support
+- Direct WhatsApp integration
+- Info banner explaining the service
+- Response time information
+
+### Updated Profile Menu
+
+```typescript
+// app/(app)/profile/index.tsx - UPDATED
+{
+    icon: <MaterialIcons name="support-agent" size={24} />,
+    label: 'Service client',
+    route: '/profile/whatsapp-support', // Changed from /profile/supportList
+}
+```
 
 ## Verification
 
-To verify the permissions are correctly removed:
+To verify the app is compliant:
 
 ```bash
-# Run expo prebuild
+# Check for expo-image-picker
+grep "expo-image-picker" package.json
+# Should return nothing
+
+# Check for active ImagePicker usage
+find . -type f \( -name "*.tsx" -o -name "*.ts" \) \
+  ! -path "*/node_modules/*" ! -path "*/.disabled/*" ! -name "*.disabled" \
+  -exec grep -l "ImagePicker" {} \;
+# Should only return useStorage.ts (which just has a comment)
+
+# Run expo prebuild and check manifest
 npx expo prebuild --platform android --clean
-
-# Check the generated AndroidManifest.xml
 cat android/app/src/main/AndroidManifest.xml | grep -E "READ_|WRITE_|MEDIA"
+# Should return nothing
 ```
-
-You should see **no results** if the plugin is working correctly.
 
 ## Testing
 
-### Testing on Android 13+ Devices
+### Testing WhatsApp Support
 1. Open the app
-2. Navigate to Profile → Support → Create a ticket
-3. Tap the attach button
-4. The **Android Photo Picker** should open (new system UI)
-5. Select a photo
-6. Photo should upload successfully
+2. Navigate to Profile → Service client
+3. Verify WhatsApp support screen displays correctly
+4. Tap "Ouvrir WhatsApp" on either contact card
+5. Verify WhatsApp opens with:
+   - Correct phone number
+   - Pre-filled message
+6. Test on both light and dark mode
 
-### Testing on Android 12 and Below
-1. Same steps as above
-2. The photo gallery should open using SAF
-3. Photo selection and upload should work normally
+### Testing Other Features
+1. Test AI Chat PDF upload (should still work)
+2. Verify no permission prompts appear anywhere
+3. Test on Android 13+ and Android 12 devices
 
 ## Important Notes
 
+⚠️ **Support Ticket Feature**:
+- The old support ticket feature has been **disabled** but **not deleted**
+- Files are preserved in `support.disabled/` and `supportList.tsx.disabled`
+- Can be re-enabled if needed (but would require alternative solution for images)
+
 ⚠️ **DO NOT**:
-- Add `expo-image-picker` plugin configuration that includes photo permissions
-- Use `launchCameraAsync()` without adding CAMERA permission configuration
-- Manually add READ_MEDIA or storage permissions to the manifest
+- Re-add `expo-image-picker` to package.json
+- Re-enable the support ticket feature without removing image upload
+- Add any permissions that include READ_MEDIA or storage access
 
 ✅ **DO**:
-- Keep the `withBlockMediaPermissions.js` plugin in the plugins array
-- Use `launchImageLibraryAsync()` for all photo selection needs
-- Test on both Android 13+ and Android 12 devices before submitting to Play Store
+- Keep WhatsApp support as the primary support channel
+- Use `expo-document-picker` for document uploads (it's SAF-based, no permissions)
+- Keep the `withBlockMediaPermissions.js` plugin active
 
 ## Building for Production
 
 When building for Google Play submission:
 
 ```bash
+# Ensure dependencies are clean
+npm install
+
 # Build for production
 npm run build:production
 
@@ -133,26 +177,58 @@ npm run build:production
 eas build --profile production --platform android
 ```
 
-The plugin will automatically run during the build process and ensure the manifest is compliant.
+The app will:
+1. Not include expo-image-picker
+2. Not request READ_MEDIA permissions
+3. Use WhatsApp for support (no permissions needed)
+4. Be fully compliant with Google Play policies
 
 ## Future Considerations
 
-If we ever need to add features that require direct access to photos/videos:
-1. Evaluate if it's truly a core feature requiring persistent broad access
-2. If yes, consult Google Play's policy and provide justification in the Developer Console
-3. If no, continue using the Photo Picker approach
+If you need to add photo/video features in the future:
+
+1. **Evaluate if it's a core feature** requiring persistent broad access
+2. **If YES**: Consult Google Play policy and provide justification
+3. **If NO**: Use one of these alternatives:
+   - Android Photo Picker (built-in, no permissions on Android 13+)
+   - WhatsApp/external app integration
+   - Web-based upload interface
 
 ## Support
 
-If you encounter issues:
-1. Verify the plugin is in `app.json` plugins array
-2. Clean rebuild: `rm -rf android && npx expo prebuild --platform android`
-3. Check the generated AndroidManifest.xml
-4. Test on a real device with Android 13+
+### Re-enabling Support Tickets (If Needed)
+
+To re-enable the support ticket feature without image upload:
+
+1. Rename files back:
+   ```bash
+   mv app/(app)/profile/supportList.tsx.disabled app/(app)/profile/supportList.tsx
+   mv app/(app)/profile/support.disabled app/(app)/profile/support
+   ```
+
+2. Remove image picker functionality from `[ticketId].tsx`:
+   - Remove `expo-image-picker` import
+   - Remove `pickImage` function
+   - Remove image upload UI
+   - Keep text-only messaging
+
+3. Update route in profile index
+
+### Troubleshooting
+
+If Google Play still reports permission issues:
+
+1. Verify expo-image-picker is not in package.json
+2. Run clean build: `rm -rf node_modules package-lock.json && npm install`
+3. Check AndroidManifest.xml in build
+4. Ensure no other packages add media permissions
 
 ## References
 
 - [Expo Image Picker Documentation](https://docs.expo.dev/versions/latest/sdk/imagepicker/)
+- [Expo Document Picker Documentation](https://docs.expo.dev/versions/latest/sdk/document-picker/)
 - [Android Photo Picker](https://developer.android.com/training/data-storage/shared/photopicker)
 - [Google Play Photo and Video Permissions Policy](https://support.google.com/googleplay/android-developer/answer/14115180)
-- [Expo Config Plugins](https://docs.expo.dev/config-plugins/introduction/)
+- [Storage Access Framework](https://developer.android.com/guide/topics/providers/document-provider)
+- [WhatsApp Business API](https://faq.whatsapp.com/general/how-to-use-click-to-chat)
+
