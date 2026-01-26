@@ -87,10 +87,8 @@ export function AppleLogin() {
                             // Always clear the account creating flag
                             setIsAccountCreating(false);
                         }
-                    } catch (e: any) {
-                        setIsAccountCreating(false);
-                        
-                        if (e.code === 'ERR_REQUEST_CANCELED') {
+                    } catch (e) {
+                        if (e && typeof e === 'object' && 'code' in e && e.code === 'ERR_REQUEST_CANCELED') {
                             // User canceled the sign-in flow - silent failure
                             logger.info('User canceled Apple sign-in');
                         } else {
