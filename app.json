@@ -64,7 +64,8 @@
             "./assets/sounds/notification.wav"
           ]
         }
-      ]
+      ],
+      "./plugins/withBlockMediaPermissions.js"
     ],
     "experiments": {
       "typedRoutes": true

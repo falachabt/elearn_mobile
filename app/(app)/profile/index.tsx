@@ -101,7 +101,7 @@ const Profile = () => {
         {
             icon: <MaterialIcons name="support-agent" size={24} color={theme.color.primary[500]}/>,
             label: 'Service client',
-            route: '/profile/supportList',
+            route: '/profile/whatsapp-support',
         },
         {
             icon: <MaterialIcons name="delete-forever" size={24} color="#EF4444"/>,
