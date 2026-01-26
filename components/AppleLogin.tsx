@@ -1,4 +1,4 @@
-import {Platform, TouchableOpacity, Text} from 'react-native'
+import {Platform, TouchableOpacity, Text, Alert} from 'react-native'
 import * as AppleAuthentication from 'expo-apple-authentication'
 import axios from "axios";
 
@@ -6,11 +6,13 @@ import {supabase} from "@/lib/supabase";
 import {useAuth} from "@/contexts/auth";
 import {ThemedText} from "@/components/ThemedText";
 import {useAppConfig} from "@/contexts/useAppConfig";
+import {logger} from "@/utils/logger";
 
 export function AppleLogin() {
-    const {setIsAccountCreating, signOut} = useAuth();
+    const {setIsAccountCreating, mutateUser} = useAuth();
     const {getApiBaseUrl} = useAppConfig();
     const apiBaseUrl = getApiBaseUrl();
+    
     if (Platform.OS === 'ios')
         return (
             <AppleAuthentication.AppleAuthenticationButton
@@ -26,46 +28,77 @@ export function AppleLogin() {
                                 AppleAuthentication.AppleAuthenticationScope.EMAIL,
                             ],
                         })
+                        
                         // Sign in via Supabase Auth.
-                        if (credential.identityToken) {
-                            setIsAccountCreating(true);
-                            const {
-                                error,
-                                data: {user},
-                            } = await supabase.auth.signInWithIdToken({
+                        if (!credential.identityToken) {
+                            throw new Error('No identityToken.')
+                        }
+
+                        setIsAccountCreating(true);
+                        
+                        try {
+                            const {error, data: {session}} = await supabase.auth.signInWithIdToken({
                                 provider: 'apple',
                                 token: credential.identityToken,
                             })
-                            if (!error) {
-                                setTimeout(async () => {
-                                    const {data: userData} = await supabase.auth.getUser();
-                                    await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
-                                        {
-                                            email: userData?.user?.email,
-                                            phone: userData?.user?.phone
-                                        },
-                                        {
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                                'Authorization': `Bearer ${credential.identityToken}`
-                                            }
-                                        }
-                                    );
-                                }, 500);
+                            
+                            if (error) {
+                                throw error;
                             }
 
+                            if (!session?.access_token) {
+                                throw new Error('No session created after Apple authentication');
+                            }
 
-                        } else {
-                            throw new Error('No identityToken.')
+                            // Get user data
+                            const {data: userData} = await supabase.auth.getUser();
+
+                            // Create account in the database
+                            try {
+                                await axios.post(
+                                    `${apiBaseUrl}/api/mobile/auth/createAccount`,
+                                    {
+                                        email: userData?.user?.email,
+                                        phone: userData?.user?.phone
+                                    },
+                                    {
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${session.access_token}`
+                                        },
+                                        timeout: 10000,
+                                    }
+                                );
+
+                                // Force revalidation of user data
+                                await mutateUser();
+                                
+                                logger.info('Apple login successful, account created');
+                            } catch (apiError) {
+                                logger.error('Error creating account after Apple login:', apiError);
+                                // If account already exists (user logging in), that's okay
+                                // Just force revalidation
+                                await mutateUser();
+                            }
+                        } catch (authError) {
+                            logger.error('Apple authentication error:', authError);
+                            throw authError;
+                        } finally {
+                            // Always clear the account creating flag
+                            setIsAccountCreating(false);
                         }
-                    } catch (e) {
-                        // @ts-ignore
+                    } catch (e: any) {
                         setIsAccountCreating(false);
-                        // @ts-ignore
+                        
                         if (e.code === 'ERR_REQUEST_CANCELED') {
-                            // handle that the user canceled the sign-in flow
+                            // User canceled the sign-in flow - silent failure
+                            logger.info('User canceled Apple sign-in');
                         } else {
-                            throw e
+                            logger.error('Apple login error:', e);
+                            Alert.alert(
+                                'Erreur de connexion',
+                                'Une erreur est survenue lors de la connexion avec Apple. Veuillez réessayer.'
+                            );
                         }
                     }
                 }}
