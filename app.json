@@ -38,7 +38,6 @@
       "expo-router",
       "expo-apple-authentication",
       "./plugins/withAndroid16KBPageSize.js",
-      "./plugins/withBlockMediaPermissions.js",
       [
         "expo-splash-screen",
         {
@@ -65,7 +64,8 @@
             "./assets/sounds/notification.wav"
           ]
         }
-      ]
+      ],
+      "./plugins/withBlockMediaPermissions.js"
     ],
     "experiments": {
       "typedRoutes": true

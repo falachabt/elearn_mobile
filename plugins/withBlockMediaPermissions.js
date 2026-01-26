@@ -1,4 +1,4 @@
-const { withAndroidManifest } = require('@expo/config-plugins');
+const { withAndroidManifest, AndroidConfig } = require('@expo/config-plugins');
 
 /**
  * Expo config plugin to block READ_MEDIA permissions from being added to AndroidManifest
@@ -19,6 +19,17 @@ const { withAndroidManifest } = require('@expo/config-plugins');
  * Reference: https://support.google.com/googleplay/android-developer/answer/14115180
  */
 const withBlockMediaPermissions = (config) => {
+  // First, use AndroidConfig to block permissions at the config level
+  config = AndroidConfig.Permissions.withBlockedPermissions(config, [
+    'android.permission.READ_EXTERNAL_STORAGE',
+    'android.permission.WRITE_EXTERNAL_STORAGE',
+    'android.permission.READ_MEDIA_IMAGES',
+    'android.permission.READ_MEDIA_VIDEO',
+    'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
+    'android.permission.READ_MEDIA_AUDIO', // Also block audio just to be safe
+  ]);
+
+  // Then, also manually remove them from the manifest as a backup
   return withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
     
@@ -34,6 +45,7 @@ const withBlockMediaPermissions = (config) => {
       'android.permission.READ_MEDIA_IMAGES',
       'android.permission.READ_MEDIA_VIDEO',
       'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
+      'android.permission.READ_MEDIA_AUDIO',
     ];
 
     // Remove the permissions from the manifest
