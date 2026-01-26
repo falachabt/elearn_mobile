@@ -5,6 +5,8 @@ import {useRouter} from "expo-router";
 
 import {supabase} from '@/lib/supabase';
 import {useAppConfig} from "@/contexts/useAppConfig";
+import {useAuth} from "@/contexts/auth";
+import {logger} from "@/utils/logger";
 
 
 // Define prop types for the component
@@ -23,6 +25,7 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
     const router = useRouter();
     const {getApiBaseUrl} = useAppConfig();
     const apiBaseUrl = getApiBaseUrl();
+    const {setIsAccountCreating, mutateUser} = useAuth();
 
     useEffect(() => {
         // Handler function to process deep link URLs
@@ -53,35 +56,61 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                     // If there's a code/token, process the authentication
                     if (params.access_token || params.refresh_token || params.code) {
                         if (params.access_token && params.refresh_token) {
-                            // Direct token exchange (more common with OAuth)
-                            const {error} = await supabase.auth.setSession({
-                                access_token: params.access_token,
-                                refresh_token: params.refresh_token,
-                            });
+                            try {
+                                // Set the account creating flag to keep loading state active
+                                setIsAccountCreating(true);
+                                
+                                // Direct token exchange (more common with OAuth)
+                                const {error} = await supabase.auth.setSession({
+                                    access_token: params.access_token,
+                                    refresh_token: params.refresh_token,
+                                });
 
-                            setTimeout(async () => {
-                                const { data } = await supabase.auth.getUser();
+                                if (error) {
+                                    logger.error('Error setting session:', error);
+                                    onAuthError?.(new Error(`Failed to set session: ${error.message}`));
+                                    setIsAccountCreating(false);
+                                    return;
+                                }
 
-                                if (params?.access_token) {
-                                    // await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
-                                    await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
-                                        { email: data?.user?.email, phone: data?.user?.phone },
+                                // Get user data
+                                const { data: userData } = await supabase.auth.getUser();
+
+                                // Create account in the database
+                                try {
+                                    await axios.post(
+                                        `${apiBaseUrl}/api/mobile/auth/createAccount`,
+                                        { 
+                                            email: userData?.user?.email, 
+                                            phone: userData?.user?.phone 
+                                        },
                                         {
                                             headers: {
                                                 'Content-Type': 'application/json',
-                                                'Authorization': `Bearer ${params?.access_token}`
+                                                'Authorization': `Bearer ${params.access_token}`
                                             },
-                                            timeout : 1500,
+                                            timeout: 10000, // 10 seconds timeout (increased from 1500ms)
                                         }
                                     );
-                                }
-                            }, 500);
 
-                            if (error) {
-                                console.error('Error setting session:', error);
-                                onAuthError?.(new Error(`Failed to set session: ${error.message}`));
-                            } else {
+                                    logger.info('Account created successfully via deep link');
+                                } catch (apiError) {
+                                    logger.error('Error creating account via deep link:', apiError);
+                                    // If account already exists, that's okay for existing users
+                                    // The error is logged but we continue
+                                }
+
+                                // Force revalidation of user data
+                                await mutateUser();
+                                
+                                // Clear the account creating flag
+                                setIsAccountCreating(false);
+                                
                                 onAuthSuccess?.();
+                            } catch (deepLinkError) {
+                                logger.error('Error processing deep link auth:', deepLinkError);
+                                setIsAccountCreating(false);
+                                onAuthError?.(deepLinkError instanceof Error ? deepLinkError : new Error('Deep link processing failed'));
                             }
                         } else if (params.code) {
                             // Some providers return a code that needs to be exchanged
@@ -89,7 +118,7 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                             const {data, error} = await supabase.auth.getSession();
 
                             if (error) {
-                                console.error('Error getting session after code exchange:', error);
+                                logger.error('Error getting session after code exchange:', error);
                                 onAuthError?.(new Error(`Failed to get session: ${error.message}`));
                             } else if (data?.session) {
                                 onAuthSuccess?.();

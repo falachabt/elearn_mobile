@@ -37,7 +37,11 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
     const signInWithGoogle = async (): Promise<void> => {
         try {
             setLoading(true);
-            setIsAccountCreating(true);
+            // Only set isAccountCreating for web platform
+            // On mobile, DeepLinkHandler will manage this flag
+            if (Platform.OS === 'web') {
+                setIsAccountCreating(true);
+            }
 
             // Get authentication URL from Supabase
             const { data, error } = await supabase.auth.signInWithOAuth({
@@ -112,34 +116,14 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
                         }
                     } else {
                         // On mobile, the DeepLinkHandler will process the deep link URL
-                        // and call supabase.auth.setSession() with the tokens from the URL
-                        // Poll for session to be established (max 5 seconds)
-                        let session = null;
-                        let attempts = 0;
-                        const maxAttempts = 10; // 10 attempts * 500ms = 5 seconds max
+                        // We don't need to do anything here - just let the deep link handler
+                        // manage the session, account creation, and isAccountCreating flag
+                        logger.info('Google OAuth redirect completed on mobile, waiting for deep link handler');
                         
-                        while (!session && attempts < maxAttempts) {
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                            const { data: { session: currentSession } } = await supabase.auth.getSession();
-                            session = currentSession;
-                            attempts++;
-                        }
-                        
-                        if (session?.access_token) {
-                            // Session established, the DeepLinkHandler should have created the account
-                            // Just force revalidation
-                            await mutateUser();
-                            
-                            logger.info('Google login successful (mobile, session established)');
-                            
-                            if (onAuthSuccess) {
-                                onAuthSuccess();
-                            }
-                        } else {
-                            // Session not established within timeout
-                            // The DeepLinkHandler might still be processing or there was an error
-                            logger.error('Session not established after OAuth redirect on mobile');
-                            throw new Error('Authentication timed out. Please try again.');
+                        // Call onAuthSuccess to signal OAuth step is complete
+                        // The actual session/account will be handled by DeepLinkHandler
+                        if (onAuthSuccess) {
+                            onAuthSuccess();
                         }
                     }
                 } catch (postAuthError) {
@@ -158,7 +142,11 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
             );
         } finally {
             setLoading(false);
-            setIsAccountCreating(false);
+            // Only clear isAccountCreating on web
+            // On mobile, DeepLinkHandler manages this flag
+            if (Platform.OS === 'web') {
+                setIsAccountCreating(false);
+            }
         }
     };
 
