@@ -94,10 +94,18 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                                     );
 
                                     logger.info('Account created successfully via deep link');
-                                } catch (apiError) {
+                                } catch (apiError: any) {
                                     logger.error('Error creating account via deep link:', apiError);
-                                    // If account already exists, that's okay for existing users
-                                    // The error is logged but we continue
+                                    // Check if this is a "user already exists" error (HTTP 409 or similar)
+                                    // If so, it's okay for existing users logging in
+                                    // For other errors, we still continue but log them prominently
+                                    const isUserExistsError = apiError?.response?.status === 409 || 
+                                                             apiError?.response?.status === 400 ||
+                                                             apiError?.message?.includes('already exists');
+                                    
+                                    if (!isUserExistsError) {
+                                        logger.warn('Account creation failed with unexpected error, continuing anyway:', apiError);
+                                    }
                                 }
 
                                 // Force revalidation of user data
@@ -110,7 +118,10 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                             } catch (deepLinkError) {
                                 logger.error('Error processing deep link auth:', deepLinkError);
                                 setIsAccountCreating(false);
-                                onAuthError?.(deepLinkError instanceof Error ? deepLinkError : new Error('Deep link processing failed'));
+                                const errorMessage = deepLinkError instanceof Error 
+                                    ? deepLinkError 
+                                    : new Error(`Deep link processing failed: ${String(deepLinkError)}`);
+                                onAuthError?.(errorMessage);
                             }
                         } else if (params.code) {
                             // Some providers return a code that needs to be exchanged
