@@ -5,7 +5,7 @@ import useSWR from 'swr'
 
 import {supabase} from '@/lib/supabase'
 import {Accounts, tables, UserXp} from '@/types/type'
-import { trackEvent, Events, setUserId } from '@/utils/analytics'
+import { trackEvent, Events, setUserId, resetPostHogUser } from '@/utils/analytics'
 import { registerForPushNotificationsAsync, setupNotifications } from '@/utils/pushNotifications'
 import { useAppConfig } from './useAppConfig'
 
@@ -521,6 +521,9 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
             // Track logout event before signing out
             trackEvent(Events.LOGOUT);
+
+            // Reset PostHog user on logout
+            resetPostHogUser();
 
 
 

@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as amplitude from "@amplitude/analytics-react-native";
+import { PostHogProvider } from "posthog-react-native";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import React from "react";
 
@@ -26,6 +27,7 @@ import { ChatProvider } from "@/contexts/chatBotContext";
 import { UpdatesProvider } from "@/contexts/UpdatesContext";
 import UpdatesManager from "@/components/shared/UpdatesManager";
 import { NavigationProvider } from "@/contexts/NavigationContext";
+import { posthog } from "@/lib/posthog";
 // import {useRouteRevalidation} from "@/hooks/useRouteRevalidation";
 
 // Array of motivational messages to show when user tries to exit
@@ -352,6 +354,7 @@ export function Provider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
+    <PostHogProvider client={posthog}>
     <SWRConfig
       value={{
         provider: asyncStorageProvider,
@@ -455,5 +458,6 @@ export function Provider({ children }: { children: React.ReactNode }) {
         </AppConfigProvider>
       </NotificationProvider>
     </SWRConfig>
+    </PostHogProvider>
   );
 }

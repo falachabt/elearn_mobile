@@ -1,39 +1,54 @@
 import * as amplitude from '@amplitude/analytics-react-native';
+import { posthog } from '@/lib/posthog';
 
 /**
- * Track an event in Amplitude
+ * Track an event in Amplitude and PostHog
  * @param eventName The name of the event to track
  * @param eventProperties Optional properties to include with the event
  */
 export const trackEvent = (eventName: string, eventProperties?: Record<string, any>) => {
   try {
     amplitude.track(eventName, eventProperties);
+    posthog.capture(eventName, eventProperties);
   } catch (error) {
     console.error(`Failed to track event: ${eventName}`, error);
   }
 };
 
 /**
- * Set user ID for Amplitude tracking
+ * Set user ID for Amplitude and PostHog tracking
  * @param userId The user ID to set
  */
 export const setUserId = (userId: string) => {
   try {
     amplitude.setUserId(userId);
+    posthog.identify(userId);
   } catch (error) {
     console.error(`Failed to set user ID: ${userId}`, error);
   }
 };
 
 /**
- * Set user properties for Amplitude tracking
+ * Set user properties for Amplitude and PostHog tracking
  * @param userProperties The user properties to set
  */
 export const setUserProperties = (userProperties: Record<string, any>) => {
   try {
     amplitude.identify(new amplitude.Identify().setUserProperties(userProperties));
+    posthog.setPersonProperties(userProperties);
   } catch (error) {
     console.error('Failed to set user properties', error);
+  }
+};
+
+/**
+ * Reset PostHog user on logout
+ */
+export const resetPostHogUser = () => {
+  try {
+    posthog.reset();
+  } catch (error) {
+    console.error('Failed to reset PostHog user', error);
   }
 };
 
