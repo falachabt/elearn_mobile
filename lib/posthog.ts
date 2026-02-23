@@ -1,4 +1,5 @@
 import PostHog from 'posthog-react-native';
+
 import { logger } from '@/utils/logger';
 
 const posthogApiKey = process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
@@ -10,4 +11,12 @@ if (!posthogApiKey) {
 export const posthog = new PostHog(posthogApiKey ?? '', {
   host: 'https://eu.i.posthog.com',
   captureAppLifecycleEvents: true,
+  // Enable session replay for React Native
+  enableSessionReplay: true,
+  sessionReplayConfig: {
+    // Capture network requests in session replay
+    maskAllTextInputs: true,
+    maskAllImages: false,
+    captureNetworkTelemetry: true,
+  },
 });

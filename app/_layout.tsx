@@ -20,6 +20,8 @@ import ScreenTracker from "@/components/shared/ScreenTracker";
 import { theme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Provider } from "@/providers";
+import { initializeErrorHandlers } from "@/utils/errorHandler";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 
 
@@ -106,6 +108,11 @@ export default function RootLayout() {
         }
     }, [loaded]);
 
+    // Initialize global error handlers
+    useEffect(() => {
+        initializeErrorHandlers();
+    }, []);
+
     if (!loaded) {
         return null;
     }
@@ -120,17 +127,19 @@ export default function RootLayout() {
 
     // Normal app flow if not expired
     return (
-        <Provider>
-            <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-                <ScreenTracker />
-                <Stack initialRouteName={"(auth)"} screenOptions={{animation: "slide_from_left", headerShown: false}}>
-                    <Stack.Screen name="(auth)"/>
-                    <Stack.Screen name="(app)"/>
-                    <Stack.Screen name="+not-found"/>
-                </Stack>
-                <StatusBar hidden={Platform.OS == "ios" ? true : false} style="auto"
-                           backgroundColor={theme.color.primary[500]}/>
-            </ThemeProvider>
-        </Provider>
+        <ErrorBoundary>
+            <Provider>
+                <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+                    <ScreenTracker />
+                    <Stack initialRouteName={"(auth)"} screenOptions={{animation: "slide_from_left", headerShown: false}}>
+                        <Stack.Screen name="(auth)"/>
+                        <Stack.Screen name="(app)"/>
+                        <Stack.Screen name="+not-found"/>
+                    </Stack>
+                    <StatusBar hidden={Platform.OS == "ios" ? true : false} style="auto"
+                               backgroundColor={theme.color.primary[500]}/>
+                </ThemeProvider>
+            </Provider>
+        </ErrorBoundary>
     );
 }

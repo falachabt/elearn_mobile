@@ -1,15 +1,21 @@
 import * as amplitude from '@amplitude/analytics-react-native';
+
+import { reportError, trackHandledException } from './errorHandler';
+
 import { posthog } from '@/lib/posthog';
+
+type TrackingProperties = Record<string, string | number | boolean>;
 
 /**
  * Track an event in Amplitude and PostHog
  * @param eventName The name of the event to track
  * @param eventProperties Optional properties to include with the event
  */
-export const trackEvent = (eventName: string, eventProperties?: Record<string, any>) => {
+export const trackEvent = (eventName: string, eventProperties?: TrackingProperties) => {
   try {
     amplitude.track(eventName, eventProperties);
-    posthog.capture(eventName, eventProperties);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    posthog.capture(eventName, eventProperties as any);
   } catch (error) {
     console.error(`Failed to track event: ${eventName}`, error);
   }
@@ -32,10 +38,15 @@ export const setUserId = (userId: string) => {
  * Set user properties for Amplitude and PostHog tracking
  * @param userProperties The user properties to set
  */
-export const setUserProperties = (userProperties: Record<string, any>) => {
+export const setUserProperties = (userProperties: TrackingProperties) => {
   try {
-    amplitude.identify(new amplitude.Identify().setUserProperties(userProperties));
-    posthog.setPersonProperties(userProperties);
+    const identify = new amplitude.Identify();
+    Object.entries(userProperties).forEach(([key, value]) => {
+      identify.set(key, value);
+    });
+    amplitude.identify(identify);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    posthog.setPersonProperties(userProperties as any);
   } catch (error) {
     console.error('Failed to set user properties', error);
   }
@@ -50,6 +61,72 @@ export const resetPostHogUser = () => {
   } catch (error) {
     console.error('Failed to reset PostHog user', error);
   }
+};
+
+/**
+ * Track an error with context
+ * Helper function that wraps reportError for easier use
+ * @param error The error to track
+ * @param context Additional context about the error
+ */
+export const trackError = (error: Error, context?: Record<string, unknown>) => {
+  reportError(error, context);
+};
+
+/**
+ * Track a handled exception
+ * Use this for expected errors that are handled gracefully
+ * @param message Description of what went wrong
+ * @param errorType Category/type of the error
+ * @param context Additional context
+ */
+export const trackException = (
+  message: string,
+  errorType: string,
+  context?: Record<string, unknown>
+) => {
+  trackHandledException(message, errorType, context);
+};
+
+/**
+ * Track an API error
+ * Specialized function for tracking API/network errors
+ * @param endpoint The API endpoint that failed
+ * @param error The error object
+ * @param statusCode Optional HTTP status code
+ */
+export const trackApiError = (
+  endpoint: string,
+  error: Error,
+  statusCode?: number
+) => {
+  reportError(error, {
+    error_type: 'api_error',
+    endpoint,
+    status_code: statusCode,
+  });
+};
+
+/**
+ * Track a data validation error
+ * @param field The field that failed validation
+ * @param reason Why it failed
+ * @param value The invalid value (if safe to log)
+ */
+export const trackValidationError = (
+  field: string,
+  reason: string,
+  value?: unknown
+) => {
+  trackHandledException(
+    `Validation failed for ${field}: ${reason}`,
+    'ValidationError',
+    {
+      field,
+      reason,
+      value: value !== undefined ? String(value) : undefined,
+    }
+  );
 };
 
 /**
@@ -99,4 +176,11 @@ export const Events = {
   // Chat events
   CHAT_OPENED: 'Chat Opened',
   MESSAGE_SENT: 'Message Sent',
+
+  // Error events
+  ERROR_OCCURRED: 'Error Occurred',
+  API_ERROR: 'API Error',
+  VALIDATION_ERROR: 'Validation Error',
+  PAYMENT_ERROR: 'Payment Error',
+  NETWORK_ERROR: 'Network Error',
 };
