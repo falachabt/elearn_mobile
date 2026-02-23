@@ -18,9 +18,10 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
     const [loading, setLoading] = useState<boolean>(false);
 
     // Get redirect URI for this app
+    // On web: returns https://app.elearnprepa.com/auth
+    // On mobile: returns myapp://auth  
     const redirectUri = makeRedirectUri({
-        // This should match the scheme you've set in app.json
-        scheme: 'com.ezadrive.elearn', // Replace with your app's URL scheme
+        scheme: Platform.OS === 'web' ? undefined : 'myapp', // Match scheme in app.json for mobile
         path: 'auth',
     });
 
