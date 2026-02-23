@@ -65,8 +65,7 @@
           ]
         }
       ],
-      "./plugins/withBlockMediaPermissions.js",
-      "expo-localization"
+      "./plugins/withBlockMediaPermissions.js"
     ],
     "experiments": {
       "typedRoutes": true
