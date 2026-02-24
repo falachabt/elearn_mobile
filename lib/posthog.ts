@@ -14,9 +14,17 @@ export const posthog = new PostHog(posthogApiKey ?? '', {
   // Enable session replay for React Native
   enableSessionReplay: true,
   sessionReplayConfig: {
-    // Capture network requests in session replay
     maskAllTextInputs: true,
     maskAllImages: false,
     captureNetworkTelemetry: true,
+  },
+  // Enable automatic error tracking (no console logs as events)
+  errorTracking: {
+    autocapture: {
+      uncaughtExceptions: true,
+      unhandledRejections: true,
+      // Do NOT capture console logs as events
+      console: [],
+    },
   },
 });

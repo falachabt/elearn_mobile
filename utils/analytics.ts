@@ -1,7 +1,5 @@
 import * as amplitude from '@amplitude/analytics-react-native';
 
-import { reportError, trackHandledException } from './errorHandler';
-
 import { posthog } from '@/lib/posthog';
 
 type TrackingProperties = Record<string, string | number | boolean>;
@@ -64,33 +62,21 @@ export const resetPostHogUser = () => {
 };
 
 /**
- * Track an error with context
- * Helper function that wraps reportError for easier use
+ * Track an error with context using PostHog captureException
  * @param error The error to track
  * @param context Additional context about the error
  */
-export const trackError = (error: Error, context?: Record<string, unknown>) => {
-  reportError(error, context);
-};
-
-/**
- * Track a handled exception
- * Use this for expected errors that are handled gracefully
- * @param message Description of what went wrong
- * @param errorType Category/type of the error
- * @param context Additional context
- */
-export const trackException = (
-  message: string,
-  errorType: string,
-  context?: Record<string, unknown>
-) => {
-  trackHandledException(message, errorType, context);
+export const trackError = (error: Error, context?: Record<string, string | number | boolean>) => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    posthog.captureException(error, context as any);
+  } catch (e) {
+    console.error('Failed to track error:', e);
+  }
 };
 
 /**
  * Track an API error
- * Specialized function for tracking API/network errors
  * @param endpoint The API endpoint that failed
  * @param error The error object
  * @param statusCode Optional HTTP status code
@@ -100,11 +86,16 @@ export const trackApiError = (
   error: Error,
   statusCode?: number
 ) => {
-  reportError(error, {
-    error_type: 'api_error',
-    endpoint,
-    status_code: statusCode,
-  });
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    posthog.captureException(error, {
+      error_type: 'api_error',
+      endpoint,
+      status_code: statusCode || 0,
+    } as any);
+  } catch (e) {
+    console.error('Failed to track API error:', e);
+  }
 };
 
 /**
@@ -118,15 +109,18 @@ export const trackValidationError = (
   reason: string,
   value?: unknown
 ) => {
-  trackHandledException(
-    `Validation failed for ${field}: ${reason}`,
-    'ValidationError',
-    {
+  try {
+    const error = new Error(`Validation failed for ${field}: ${reason}`);
+    error.name = 'ValidationError';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    posthog.captureException(error, {
       field,
       reason,
-      value: value !== undefined ? String(value) : undefined,
-    }
-  );
+      value: value !== undefined ? String(value) : '',
+    } as any);
+  } catch (e) {
+    console.error('Failed to track validation error:', e);
+  }
 };
 
 /**

@@ -5,10 +5,15 @@
  * 
  * Ce fichier contient des exemples pratiques montrant comment utiliser
  * les fonctionnalités de tracking d'erreurs et de session replay dans l'application.
+ * 
+ * PostHog capture automatiquement :
+ * - Erreurs JavaScript non gérées (uncaughtExceptions)
+ * - Rejets de promesses non gérées (unhandledRejections)
+ * - Erreurs React (via PostHogErrorBoundary)
  */
 
 import { logger } from '@/utils/logger';
-import { reportError, trackHandledException } from '@/utils/errorHandler';
+import { posthog } from '@/lib/posthog';
 import { trackError, trackApiError, trackValidationError, trackEvent, Events } from '@/utils/analytics';
 
 // ============================================================================
@@ -83,20 +88,19 @@ const example3_ValidationError = (email: string) => {
 
 /**
  * Pour des erreurs attendues qui n'empêchent pas l'app de fonctionner
+ * Utilisez captureException pour tracker ces situations
  */
 const example4_HandledException = async () => {
   const cached = await loadFromCache();
   
   if (!cached) {
-    // ✅ Erreur gérée mais qu'on veut monitorer
-    trackHandledException(
-      'Cache miss, fetching from API',
-      'CacheError',
-      {
-        cache_key: 'user_data',
-        fallback: 'api'
-      }
-    );
+    // ✅ Track l'événement de cache miss
+    const error = new Error('Cache miss, fetching from API');
+    error.name = 'CacheError';
+    posthog.captureException(error, {
+      cache_key: 'user_data',
+      fallback: 'api'
+    } as any);
     return await fetchFromApi();
   }
   
@@ -282,7 +286,7 @@ export const testErrorTracking = () => {
   
   console.log('Testing error tracking...');
   
-  // Test 1: Logger error
+  // Test 1: Logger error (sera capturé par errorTracking.autocapture)
   logger.error('Test logger error', new Error('This is a test error'));
   
   // Test 2: Track API error
@@ -291,11 +295,13 @@ export const testErrorTracking = () => {
   // Test 3: Track validation error
   trackValidationError('test_field', 'Test validation failure', 'invalid-value');
   
-  // Test 4: Track handled exception
-  trackHandledException('Test handled exception', 'TestError', {
+  // Test 4: Track with captureException
+  const testError = new Error('Test exception');
+  testError.name = 'TestError';
+  posthog.captureException(testError, {
     test: true,
     timestamp: Date.now()
-  });
+  } as any);
   
   // Test 5: Track with event
   trackEvent(Events.ERROR_OCCURRED, {

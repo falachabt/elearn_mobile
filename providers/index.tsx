@@ -4,6 +4,8 @@ import {
   BackHandler,
   Platform,
   ToastAndroid,
+  View,
+  Text,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SWRConfig } from "swr";
@@ -11,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as amplitude from "@amplitude/analytics-react-native";
-import { PostHogProvider } from "posthog-react-native";
+import { PostHogProvider, PostHogErrorBoundary } from "posthog-react-native";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import React from "react";
 
@@ -28,6 +30,7 @@ import { UpdatesProvider } from "@/contexts/UpdatesContext";
 import UpdatesManager from "@/components/shared/UpdatesManager";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { posthog } from "@/lib/posthog";
+import { theme } from "@/constants/theme";
 // import {useRouteRevalidation} from "@/hooks/useRouteRevalidation";
 
 // Array of motivational messages to show when user tries to exit
@@ -341,6 +344,62 @@ const BackHandlerManager = React.memo(
 //     return <>{children}</>;
 // });
 
+/**
+ * Fallback component for PostHogErrorBoundary
+ * Displayed when a React error occurs
+ */
+const ErrorFallback = ({ error }: { error: Error; componentStack?: string }) => {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        padding: 20,
+        backgroundColor: theme.color.light.background.primary 
+      }}>
+        <View style={{ maxWidth: 400, alignItems: 'center' }}>
+          <Text style={{ 
+            fontSize: 24, 
+            fontWeight: 'bold', 
+            color: theme.color.primary[600], 
+            marginBottom: 16, 
+            textAlign: 'center' 
+          }}>
+            Oups! Une erreur s'est produite
+          </Text>
+          <Text style={{ 
+            fontSize: 16, 
+            color: theme.color.light.text.primary, 
+            marginBottom: 24, 
+            textAlign: 'center', 
+            lineHeight: 24 
+          }}>
+            Nous sommes désolés pour ce désagrément. L'erreur a été signalée et nous travaillons à la corriger.
+          </Text>
+          
+          {__DEV__ && error && (
+            <View style={{ 
+              width: '100%', 
+              padding: 16, 
+              backgroundColor: '#f5f5f5', 
+              borderRadius: 8, 
+              marginBottom: 24 
+            }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8, color: '#d32f2f' }}>
+                Détails de l'erreur:
+              </Text>
+              <Text style={{ fontSize: 12, color: '#d32f2f' }}>
+                {error instanceof Error ? error.message : String(error)}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </GestureHandlerRootView>
+  );
+};
+
 export function Provider({ children }: { children: React.ReactNode }) {
   const { quizId, attempId } = useLocalSearchParams();
 
@@ -355,7 +414,14 @@ export function Provider({ children }: { children: React.ReactNode }) {
 
   return (
     <PostHogProvider client={posthog}>
-    <SWRConfig
+      <PostHogErrorBoundary 
+        fallback={ErrorFallback}
+        additionalProperties={{ 
+          screen: 'app',
+          timestamp: new Date().toISOString() 
+        }}
+      >
+        <SWRConfig
       value={{
         provider: asyncStorageProvider,
         isVisible: () => true,
@@ -458,6 +524,7 @@ export function Provider({ children }: { children: React.ReactNode }) {
         </AppConfigProvider>
       </NotificationProvider>
     </SWRConfig>
+      </PostHogErrorBoundary>
     </PostHogProvider>
   );
 }
