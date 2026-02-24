@@ -40,8 +40,7 @@ export default function OAuthCallbackScreen() {
       if (session) {
         logger.log('[OAuthCallback] Session found, redirecting to app');
         // Rediriger vers l'app
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        router.replace('/(app)/(tabs)' as any);
+        router.replace('/(app)');
       } else {
         // Attendre un peu et réessayer
         logger.log('[OAuthCallback] No session yet, waiting...');
@@ -51,8 +50,7 @@ export default function OAuthCallbackScreen() {
         
         if (retrySession) {
           logger.log('[OAuthCallback] Session found after retry, redirecting');
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          router.replace('/(app)/(tabs)' as any);
+          router.replace('/(app)');
         } else {
           logger.error('[OAuthCallback] No session found after retry');
           throw new Error('Authentication failed - no session created');
