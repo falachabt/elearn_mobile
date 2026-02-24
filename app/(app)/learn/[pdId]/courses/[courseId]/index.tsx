@@ -14,6 +14,7 @@ import {useAuth} from "@/contexts/auth";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useUser} from "@/contexts/useUserInfo";
 import {useCustomRouter} from "@/hooks/useCustomRouter";
+import {posthogService} from "@/utils/posthogService";
 
 interface Course extends Courses {
     course_category: CoursesCategories;
@@ -96,6 +97,17 @@ const CourseDetail = () => {
     useEffect(() => {
         setIsPreviewMode(!isEnrolled);
     }, [isEnrolled]);
+
+    // Track course viewed when course data is loaded
+    useEffect(() => {
+        if (course) {
+            posthogService.trackCourseViewed(
+                String(courseId),
+                course.name,
+                isEnrolled
+            );
+        }
+    }, [course, isEnrolled]);
 
     // Handle purchase or enrollment flow
     const handlePurchaseFlow = () => {

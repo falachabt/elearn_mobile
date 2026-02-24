@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import {Button, Alert, TouchableOpacity, Platform} from 'react-native';
+import { Alert, TouchableOpacity, Platform} from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
 
 import {supabase} from "@/lib/supabase";
-
+import { logger } from '@/utils/logger';
 
 // Register for redirect URI handling
 WebBrowser.maybeCompleteAuthSession();
@@ -18,11 +18,17 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
     const [loading, setLoading] = useState<boolean>(false);
 
     // Get redirect URI for this app
-    const redirectUri = makeRedirectUri({
-        // This should match the scheme you've set in app.json
-        scheme: 'com.ezadrive.elearn', // Replace with your app's URL scheme
-        path: 'auth',
+    // Pour mobile natif, utiliser le package name comme scheme
+    const redirectUri = Platform.select({
+        // Mobile natif: utiliser le deep link avec le package name
+        native: 'com.ezadrive.elearn://auth/callback',
+        // Web: utiliser l'URL du site
+        default: makeRedirectUri({
+            scheme: 'https',
+        }),
     });
+
+    logger.log('[GoogleAuth] Redirect URI:', redirectUri);
 
     const signInWithGoogle = async (): Promise<void> => {
         try {
@@ -40,20 +46,39 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
 
             if (!data?.url) throw new Error('No authentication URL returned');
 
+            logger.log('[GoogleAuth] Opening auth URL:', data.url);
+
             // Open browser for authentication
             const result = await WebBrowser.openAuthSessionAsync(
                 data.url,
                 redirectUri
             );
 
+            logger.log('[GoogleAuth] Browser result:', result);
+
             if (result.type === 'success') {
-                // The session will be automatically updated by Supabase client
-                // Check if we have a user now
-                const { data: { user } } = await supabase.auth.getUser();
+                // Attendre un peu pour que Supabase traite le callback
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Vérifier si on a un user maintenant
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                
+                logger.log('[GoogleAuth] User after auth:', user ? 'Found' : 'Not found');
+
+                if (userError) {
+                    logger.error('[GoogleAuth] Error getting user:', userError);
+                    throw userError;
+                }
 
                 if (user && onAuthSuccess) {
                     onAuthSuccess();
+                } else if (!user) {
+                    throw new Error('Authentication succeeded but no user found');
                 }
+            } else if (result.type === 'cancel') {
+                logger.log('[GoogleAuth] User cancelled authentication');
+            } else if (result.type === 'dismiss') {
+                logger.log('[GoogleAuth] Browser dismissed');
             }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';

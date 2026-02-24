@@ -1,3 +1,5 @@
+import {useCallback, useEffect, useState} from "react";
+import {ActivityIndicator, Pressable, useColorScheme, View, StyleSheet} from "react-native";
 import { useLocalSearchParams, usePathname } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -12,8 +14,7 @@ import { useUser } from '@/contexts/useUserInfo';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { trackEvent, Events } from '@/utils/analytics';
 import { useCustomRouter } from "@/hooks/useCustomRouter";
-import {ActivityIndicator, Pressable, useColorScheme, View, StyleSheet} from "react-native";
-import {useCallback, useEffect, useState} from "react";
+import { posthogService } from '@/utils/posthogService';
 
 // Locked Content Component
 const LockedContent = ({ 
@@ -102,12 +103,11 @@ const VideoPlayerScreen = () => {
 
         // Track video start event
         if (currentVideo) {
-            trackEvent(Events.START_VIDEO, {
-                video_id: currentVideo.id,
-                video_title: currentVideo.title,
-                course_id: courseId,
-                learning_path_id: pdId
-            });
+            posthogService.trackVideoPlayed(
+                String(currentVideo.id),
+                currentVideo.title,
+                String(courseId)
+            );
         }
 
         // Handle video progress tracking
@@ -135,13 +135,13 @@ const VideoPlayerScreen = () => {
             setIsVideoDone(true);
 
             // Track video completion event
-            if (currentVideo) {
-                trackEvent(Events.COMPLETE_VIDEO, {
-                    video_id: currentVideo.id,
-                    video_title: currentVideo.title,
-                    course_id: courseId,
-                    learning_path_id: pdId
-                });
+            if (currentVideo && player.durationMillis) {
+                posthogService.trackVideoCompleted(
+                    String(currentVideo.id),
+                    currentVideo.title,
+                    String(courseId),
+                    Math.floor(player.durationMillis / 1000)
+                );
             }
         };
 

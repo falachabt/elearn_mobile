@@ -9,6 +9,7 @@ import {QuizAttempt, QuizOption, QuizProgress, QuizQuestion, QuizResults} from '
 import {QuizService} from '@/services/quiz.service';
 import {Quiz} from "@/types/type";
 import { useNavigation } from '@/contexts/NavigationContext';
+import { posthogService } from '@/utils/posthogService';
 
 
 type QuizAction =
@@ -287,6 +288,15 @@ export function QuizProvider({
         if (questions) {
             dispatch({type: 'SET_QUESTIONS', payload: questions});
 
+            // Track quiz started when questions load and status is in_progress
+            if (state.status === 'in_progress' && quiz && questions.length > 0 && state.currentQuestionIndex === 0) {
+                posthogService.trackQuizStarted(
+                    quizId,
+                    quiz.name || 'Untitled Quiz',
+                    questions.length
+                );
+            }
+
             // If there are questions and we're in completed state, load the answers for the current question
             if (state.status === 'completed' && attempt?.answers && questions.length > 0) {
                 const currentQuestion = questions[state.currentQuestionIndex];
@@ -394,6 +404,13 @@ export function QuizProvider({
                     state.timeSpent,
                     isCorrect
                 );
+
+                // Track question answered
+                posthogService.trackQuizQuestionAnswered(
+                    quizId,
+                    currentQuestion.id,
+                    isCorrect
+                );
             } catch (error) {
                 console.error('Error saving answer:', error);
                 // Don't block UI even if save fails
@@ -405,6 +422,20 @@ export function QuizProvider({
                     const results = await QuizService.finishQuiz(attemptId);
                     dispatch({type: 'UPDATE_ATTEMPT_STATUS', payload: 'completed'});
                     dispatch({type: 'SET_RESULTS', payload: results});
+
+                    // Track quiz completed
+                    if (quiz) {
+                        const score = results.score || 0;
+                        const passed = score >= (quiz.passing_score || 50);
+                        posthogService.trackQuizCompleted(
+                            quizId,
+                            score,
+                            totalQuestions,
+                            state.timeSpent,
+                            passed
+                        );
+                    }
+
                     return results;
                 } catch (error) {
                     console.error('Error finishing quiz:', error);

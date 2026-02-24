@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { NotchPayService } from '@/lib/notchpay';
 import { PURCHASE_VALIDITY_DAYS } from '@/utils/pricing';
 import { logger } from '@/utils/logger';
+import { posthogService } from '@/utils/posthogService';
 
 export interface ProgramPayment {
   id: string;
@@ -378,6 +379,14 @@ export const ProgramPaymentService = {
       logger.error('Error creating program payment:', error);
       throw new Error(error.message);
     }
+
+    // Track payment started event
+    posthogService.trackPaymentStarted(
+      'program',
+      programId,
+      amount,
+      phoneNumber.startsWith('655') ? 'orange' : 'mtn'
+    );
 
     return payment;
   },
@@ -825,6 +834,14 @@ export const ProgramPaymentService = {
           if (error) {
             logger.error("Error fetching payment details:", error);
           } else {
+            // Track payment completed event
+            posthogService.trackPaymentCompleted(
+              reference,
+              'program',
+              String(payment.program_id),
+              payment.amount,
+              phoneNumber.startsWith('655') ? 'orange' : 'mtn'
+            );
             // If this is an installment payment, update the parent payment
             if (payment.is_installment) {
               // Calculate next payment due date based on parent's CURRENT due date

@@ -8,6 +8,7 @@ import {Accounts, tables, UserXp} from '@/types/type'
 import { trackEvent, Events, setUserId, resetPostHogUser } from '@/utils/analytics'
 import { registerForPushNotificationsAsync, setupNotifications } from '@/utils/pushNotifications'
 import { useAppConfig } from './useAppConfig'
+import { posthogService } from '@/utils/posthogService'
 
 interface UserStreak {
     id: string
@@ -266,6 +267,21 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
       }
     }, [session, user]);
 
+    // Identify user with PostHog when user data is loaded
+    useEffect(() => {
+      if (session && user && user.id) {
+        // Identify user with user properties
+        posthogService.identify(user.id, {
+          email: user.email,
+          user_type: user.type || 'student',
+          total_courses_enrolled: user.coursesenrolled?.length || 0,
+          courses_completed: user.coursescompleted?.length || 0,
+          total_points: user.user_xp?.total_xp || 0,
+          has_payment: user.active_trx ? true : false,
+        });
+      }
+    }, [session, user]);
+
     // Register for push notifications when user data becomes available
     useEffect(() => {
       const registerPushNotifications = async () => {
@@ -356,11 +372,13 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             if (error) {
                 console.error("Sign in error:", error);
                 setIsLoading(false);
+                // Track failed login
+                posthogService.trackLoginFailed(error.message);
                 throw error;
             }
 
             // Track login event
-            trackEvent(Events.LOGIN, { method: 'phone' });
+            posthogService.trackLogin('password');
 
             // We don't set isLoading=false here because the useEffect
             // for session/user will handle that after user data loads
@@ -487,7 +505,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         await mutateUser();
 
                         // Track sign up event
-                        trackEvent(Events.SIGN_UP, { method: 'phone' });
+                        posthogService.trackSignupCompleted('phone');
                     } catch (apiError) {
                         console.error('Error in account creation process:', apiError);
                         throw apiError;
@@ -520,12 +538,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             streakCheckedRef.current = false;
 
             // Track logout event before signing out
-            trackEvent(Events.LOGOUT);
+            posthogService.trackLogout();
 
             // Reset PostHog user on logout
+            posthogService.reset();
             resetPostHogUser();
-
-
 
             const {error} = await supabase.auth.signOut();
             if (error) throw error;

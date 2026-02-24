@@ -31,6 +31,7 @@ import { useUser } from "@/contexts/useUserInfo";
 import { trackEvent, Events } from "@/utils/analytics";
 import { useCustomRouter } from "@/hooks/useCustomRouter";
 import { useAppConfig } from "@/contexts/useAppConfig";
+import { posthogService } from "@/utils/posthogService";
 
 interface CourseSection {
   name: string | null;
@@ -88,13 +89,12 @@ const SectionDetail = () => {
 
     // Track lesson start event
     if (category) {
-      trackEvent(Events.START_LESSON, {
-        lesson_id: sectionId,
-        lesson_name: category.name,
-        course_id: courseId,
-        course_name: category.courses?.name,
-        learning_path_id: pdId,
-      });
+      posthogService.trackLessonStarted(
+        String(sectionId),
+        category.name || 'Untitled Lesson',
+        String(courseId),
+        category.courses?.name || 'Untitled Course'
+      );
     }
   }, [sectionId]);
 
@@ -280,13 +280,12 @@ const SectionDetail = () => {
 
     // Track lesson completion
     if ((progress?.progress !== 1 || progress === undefined) && category) {
-      trackEvent(Events.COMPLETE_LESSON, {
-        lesson_id: sectionId,
-        lesson_name: category.name,
-        course_id: courseId,
-        course_name: category.courses?.name,
-        learning_path_id: pdId,
-      });
+      posthogService.trackLessonCompleted(
+        String(sectionId),
+        category.name || 'Untitled Lesson',
+        String(courseId),
+        category.courses?.name || 'Untitled Course'
+      );
     }
 
     if (progress?.progress !== 1 || progress === undefined) {
