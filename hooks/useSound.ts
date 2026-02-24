@@ -47,7 +47,7 @@ export const useSound = (customConfigs?: Partial<SoundConfigs>) => {
                 setSoundsEnabled(settings.soundsEnabled !== false);
             }
         } catch (error) {
-            console.error('Error loading sound settings:', error);
+            logger.error('Error loading sound settings:', error);
             // If there's an error, default to enabling sounds
             setSoundsEnabled(true);
         }
@@ -77,7 +77,7 @@ export const useSound = (customConfigs?: Partial<SoundConfigs>) => {
                     setIsReady(true);
                 }
             } catch (error) {
-                console.error('Failed to initialize audio:', error);
+                logger.error('Failed to initialize audio:', error);
             }
         };
 
@@ -102,7 +102,7 @@ export const useSound = (customConfigs?: Partial<SoundConfigs>) => {
         try {
             await soundManager.playSound(soundKey, configs[soundKey]);
         } catch (error) {
-            console.error(`Error playing ${soundKey}:`, error);
+            logger.error(`Error playing ${soundKey}:`, error);
         }
     };
 

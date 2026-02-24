@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { 
@@ -16,6 +16,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { supabase } from '@/lib/supabase';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { logger } from '@/utils/logger';
 
 // Types for performance metrics
 interface WeeklyMetrics {
@@ -201,7 +202,7 @@ const WeeklyPerformance = () => {
         setDailyActivity(dailyActivityArray);
 
       } catch (error) {
-        console.error('Error fetching weekly performance:', error);
+        logger.error('Error fetching weekly performance:', error);
       } finally {
         setIsLoading(false);
 

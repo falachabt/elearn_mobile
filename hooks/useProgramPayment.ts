@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { logger } from '@/utils/logger';
 import useSWR, { mutate } from "swr";
 
 import { ProgramPaymentService, ProgramPayment } from "@/services/program-payment.service";
@@ -26,7 +27,7 @@ async function getProgramIdFromPdId(pdId: string | undefined): Promise<string | 
         .eq('learningPathId', pdId)
         .single();
     if (error) {
-        console.error("Error fetching program ID:", error);
+        logger.error("Error fetching program ID:", error);
         return null;
     }
 
@@ -203,7 +204,7 @@ export const useProgramPayment = (pdId: string | undefined) => {
 
             return result;
         } catch (error) {
-            console.error("Error in direct program payment:", error);
+            logger.error("Error in direct program payment:", error);
             setChargeError(
                 error instanceof Error ? error.message : "Payment failed"
             );
@@ -238,7 +239,7 @@ export const useProgramPayment = (pdId: string | undefined) => {
                     await mutateAccess();
                 }
             } catch (error) {
-                console.error("Error cancelling program payment:", error);
+                logger.error("Error cancelling program payment:", error);
             }
         } else {
             console.warn("No active payment to cancel");
@@ -302,7 +303,7 @@ export const useProgramPayment = (pdId: string | undefined) => {
 
             return result;
         } catch (error) {
-            console.error("Error verifying program payment status:", error);
+            logger.error("Error verifying program payment status:", error);
         }
     };
 

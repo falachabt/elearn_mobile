@@ -1,9 +1,10 @@
-// notificationService.js
+﻿// notificationService.js
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SchedulableTriggerInputTypes} from 'expo-notifications';
 
 import reminderMessages from '@/constants/reminderMessages';
+import { logger } from '@/utils/logger';
 
 // Storage keys
 const STORAGE_KEY_SETTINGS = '@app_settings';
@@ -48,7 +49,7 @@ export const checkAndUpdateNotifications = async () => {
 
         return true;
     } catch (error) {
-        console.error('Error in checkAndUpdateNotifications:', error);
+        logger.error('Error in checkAndUpdateNotifications:', error);
         return false;
     }
 };
@@ -77,7 +78,7 @@ const shouldUpdateNotifications = async () => {
         // Return true if it's been more than UPDATE_INTERVAL_DAYS since last update
         return diffDays >= UPDATE_INTERVAL_DAYS;
     } catch (error) {
-        console.error('Error checking if notifications should update:', error);
+        logger.error('Error checking if notifications should update:', error);
         // On error, default to updating (safer option)
         return true;
     }
@@ -191,7 +192,7 @@ export const forceUpdateNotifications = async () => {
 
         return true;
     } catch (error) {
-        console.error('Error forcing notification update:', error);
+        logger.error('Error forcing notification update:', error);
         return false;
     }
 };

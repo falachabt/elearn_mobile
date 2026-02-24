@@ -1,4 +1,5 @@
-import React, {useState, useEffect, useMemo, useCallback} from 'react';
+﻿import React, {useState, useEffect, useMemo, useCallback} from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -168,7 +169,7 @@ const SettingsScreen = () => {
                 setDownloadOverWifiOnly(settings.downloadOverWifiOnly ?? true);
             }
         } catch (error) {
-            console.error('Error loading settings:', error);
+            logger.error('Error loading settings:', error);
         }
     };
 
@@ -205,7 +206,7 @@ const SettingsScreen = () => {
                 Alert.alert('Succès', 'Vos préférences ont été enregistrées');
             }
         } catch (error) {
-            console.error('Error saving settings:', error);
+            logger.error('Error saving settings:', error);
             if (showAlert) {
                 Alert.alert('Erreur', 'Une erreur est survenue lors de l\'enregistrement de vos préférences');
             }
@@ -283,7 +284,7 @@ const SettingsScreen = () => {
 
             Alert.alert('Succès', 'Une notification de test a été envoyée. Vous devriez la recevoir dans quelques secondes.');
         } catch (error) {
-            console.error('Error sending test notification:', error);
+            logger.error('Error sending test notification:', error);
             Alert.alert('Erreur', 'Impossible d\'envoyer une notification de test.');
         }
     };

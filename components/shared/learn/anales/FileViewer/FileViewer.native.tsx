@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {View, useColorScheme, StyleSheet, Dimensions} from 'react-native';
 import Pdf from 'react-native-pdf';
 import * as ScreenCapture from 'expo-screen-capture';
@@ -61,7 +61,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({ file }) => {
                 // Prevent screenshots
                 await ScreenCapture.preventScreenCaptureAsync();
             } catch (error) {
-                console.error('Error preventing screen capture:', error);
+                logger.error('Error preventing screen capture:', error);
             }
         };
 
@@ -73,7 +73,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({ file }) => {
                 try {
                     await ScreenCapture.allowScreenCaptureAsync();
                 } catch (error) {
-                    console.error('Error allowing screen capture:', error);
+                    logger.error('Error allowing screen capture:', error);
                 }
             };
 
@@ -92,7 +92,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({ file }) => {
                 }}
                 spacing={1}
                 onError={(error) => {
-                    console.error(`PDF Error: ${error}`);
+                    logger.error(`PDF Error: ${error}`);
                 }}
                 showsVerticalScrollIndicator={true}
             />

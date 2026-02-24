@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect, useState, useRef} from 'react'
+﻿import {createContext, useContext, useEffect, useState, useRef} from 'react'
 import {RealtimeChannel, Session} from '@supabase/supabase-js'
 import axios from 'axios'
 import useSWR from 'swr'
@@ -91,7 +91,7 @@ const userDataFetcher = async (authId: string) => {
             user_program_enrollments: enrollments || []
         } as Account;
     } catch (error) {
-        console.error("Error fetching user data:", error);
+        logger.error("Error fetching user data:", error);
         throw error;
     }
 }
@@ -123,7 +123,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             onError: (error) => {
                 // Don't set loading to false if we're still creating an account
                 if (!isAccountCreating) {
-                    console.error("SWR error loading user:", error);
+                    logger.error("SWR error loading user:", error);
                     setIsLoading(false);
                 }
             }
@@ -174,7 +174,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
             return data;
         } catch (error) {
-            console.error('Error checking streak:', error);
+            logger.error('Error checking streak:', error);
             // Reset streak checked flag on error so it can be tried again
             streakCheckedRef.current = false;
         }
@@ -203,7 +203,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
           initialLoadRef.current = true;
         } catch (error) {
-          console.error("Error initializing auth:", error);
+          logger.error("Error initializing auth:", error);
           setIsLoading(false);
           initialLoadRef.current = true;
         }
@@ -251,7 +251,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             }
 
             // Handle other errors
-            console.error("Error loading user data:", userError);
+            logger.error("Error loading user data:", userError);
             setIsLoading(false);
         } else if (session && user !== undefined) {
             // User data loaded
@@ -290,7 +290,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
           try {
             await registerForPushNotificationsAsync(user.id);
           } catch (error) {
-            console.error("Error registering for push notifications:", error);
+            logger.error("Error registering for push notifications:", error);
           }
         }
       };
@@ -370,7 +370,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             });
 
             if (error) {
-                console.error("Sign in error:", error);
+                logger.error("Sign in error:", error);
                 setIsLoading(false);
                 // Track failed login
                 posthogService.trackLoginFailed(error.message);
@@ -383,7 +383,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // We don't set isLoading=false here because the useEffect
             // for session/user will handle that after user data loads
         } catch (error) {
-            console.error("Sign in exception:", error);
+            logger.error("Sign in exception:", error);
             setIsLoading(false);
             throw error;
         }
@@ -432,12 +432,12 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     // Force revalidation of user data
                     await mutateUser();
                 } catch (apiError) {
-                    console.error('Error in account creation process:', apiError);
+                    logger.error('Error in account creation process:', apiError);
                     throw apiError;
                 }
             }
         } catch (error) {
-            console.error('Error verifying OTP:', error);
+            logger.error('Error verifying OTP:', error);
             throw error;
         } finally {
             // Clear the account creation flag
@@ -507,7 +507,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         // Track sign up event
                         posthogService.trackSignupCompleted('phone');
                     } catch (apiError) {
-                        console.error('Error in account creation process:', apiError);
+                        logger.error('Error in account creation process:', apiError);
                         throw apiError;
                     } finally {
                         setIsAccountCreating(false);
@@ -516,18 +516,18 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 }
 
                 if (error) {
-                    console.error("Sign up error:", error);
+                    logger.error("Sign up error:", error);
                     setIsLoading(false);
                     throw error;
                 }
             } catch (error) {
-                console.error("Sign up exception:", error);
+                logger.error("Sign up exception:", error);
                 setIsLoading(false);
                 throw error;
             }
 
         } catch (error) {
-            console.error('Error signing up:', error);
+            logger.error('Error signing up:', error);
             setIsLoading(false);
             throw error;
         }

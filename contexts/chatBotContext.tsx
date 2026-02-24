@@ -1,8 +1,9 @@
-import React, {createContext, useContext, useState, ReactNode, useEffect} from 'react';
+﻿import React, {createContext, useContext, useState, ReactNode, useEffect} from 'react';
 import {usePathname} from 'expo-router';
 import {useSWRConfig} from 'swr';
 
 import {ContextElement} from '@/components/shared/ChatBot'; // Import the ContextElement type
+import { logger } from '@/utils/logger';
 
 // Define the context interface
 interface ChatContextType {
@@ -242,7 +243,7 @@ export const getContextElementFromCache = (pathname: string, cache: any): Contex
         // If we get here, we couldn't find any matching context in the cache
         return null;
     } catch (error) {
-        console.error('Error getting context from cache:', error);
+        logger.error('Error getting context from cache:', error);
         return null;
     }
 };

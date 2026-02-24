@@ -1,6 +1,7 @@
-import * as amplitude from '@amplitude/analytics-react-native';
+﻿import * as amplitude from '@amplitude/analytics-react-native';
 
 import { posthog } from '@/lib/posthog';
+import { logger } from '@/utils/logger';
 
 type TrackingProperties = Record<string, string | number | boolean>;
 
@@ -15,7 +16,7 @@ export const trackEvent = (eventName: string, eventProperties?: TrackingProperti
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     posthog.capture(eventName, eventProperties as any);
   } catch (error) {
-    console.error(`Failed to track event: ${eventName}`, error);
+    logger.error(`Failed to track event: ${eventName}`, error);
   }
 };
 
@@ -28,7 +29,7 @@ export const setUserId = (userId: string) => {
     amplitude.setUserId(userId);
     posthog.identify(userId);
   } catch (error) {
-    console.error(`Failed to set user ID: ${userId}`, error);
+    logger.error(`Failed to set user ID: ${userId}`, error);
   }
 };
 
@@ -46,7 +47,7 @@ export const setUserProperties = (userProperties: TrackingProperties) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     posthog.setPersonProperties(userProperties as any);
   } catch (error) {
-    console.error('Failed to set user properties', error);
+    logger.error('Failed to set user properties', error);
   }
 };
 
@@ -57,7 +58,7 @@ export const resetPostHogUser = () => {
   try {
     posthog.reset();
   } catch (error) {
-    console.error('Failed to reset PostHog user', error);
+    logger.error('Failed to reset PostHog user', error);
   }
 };
 
@@ -71,7 +72,7 @@ export const trackError = (error: Error, context?: Record<string, string | numbe
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     posthog.captureException(error, context as any);
   } catch (e) {
-    console.error('Failed to track error:', e);
+    logger.error('Failed to track error:', e);
   }
 };
 
@@ -94,7 +95,7 @@ export const trackApiError = (
       status_code: statusCode || 0,
     } as any);
   } catch (e) {
-    console.error('Failed to track API error:', e);
+    logger.error('Failed to track API error:', e);
   }
 };
 
@@ -119,7 +120,7 @@ export const trackValidationError = (
       value: value !== undefined ? String(value) : '',
     } as any);
   } catch (e) {
-    console.error('Failed to track validation error:', e);
+    logger.error('Failed to track validation error:', e);
   }
 };
 

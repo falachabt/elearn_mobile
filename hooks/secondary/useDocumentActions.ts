@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { logger } from '@/utils/logger';
 import useSWR, { mutate as globalMutate } from 'swr';
 
 import { useAuth } from '@/contexts/auth';
@@ -55,7 +56,7 @@ export function useDocumentActions(documentId: string) {
         { revalidate: true }
       );
     } catch (error) {
-      console.error('Error toggling complete:', error);
+      logger.error('Error toggling complete:', error);
     } finally {
       setIsToggling(false);
     }
@@ -85,7 +86,7 @@ export function useDocumentActions(documentId: string) {
         { revalidate: true }
       );
     } catch (error) {
-      console.error('Error toggling pin:', error);
+      logger.error('Error toggling pin:', error);
     } finally {
       setIsToggling(false);
     }

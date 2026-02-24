@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from "react";
+﻿import {useCallback, useEffect, useState} from "react";
 import {ActivityIndicator, Pressable, useColorScheme, View, StyleSheet} from "react-native";
 import { useLocalSearchParams, usePathname } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -15,20 +15,17 @@ import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { trackEvent, Events } from '@/utils/analytics';
 import { useCustomRouter } from "@/hooks/useCustomRouter";
 import { posthogService } from '@/utils/posthogService';
+import { logger } from '@/utils/logger';
 
 // Locked Content Component
 const LockedContent = ({ 
     isDarkMode, 
     onPurchase, 
     onBack,
-    pdId,
-    courseId 
 }: { 
     isDarkMode: boolean, 
     onPurchase: () => void,
     onBack: () => void,
-    pdId: string,
-    courseId: string
 }) => (
     <View style={[styles.lockedContainer, isDarkMode && styles.lockedContainerDark]}>
         <MaterialCommunityIcons
@@ -105,7 +102,6 @@ const VideoPlayerScreen = () => {
         if (currentVideo) {
             posthogService.trackVideoPlayed(
                 String(currentVideo.id),
-                currentVideo.title,
                 String(courseId)
             );
         }
@@ -113,8 +109,8 @@ const VideoPlayerScreen = () => {
         // Handle video progress tracking
         let lastProgressTracked = 0;
         const progressInterval = setInterval(() => {
-            if (player && player.positionMillis && player.durationMillis) {
-                const progressPercent = Math.floor((player.positionMillis / player.durationMillis) * 100);
+            if (player && player.currentTime != null && player.duration) {
+                const progressPercent = Math.floor((player.currentTime / player.duration) * 100);
 
                 // Track progress at 25%, 50%, and 75%
                 if (progressPercent >= 25 && lastProgressTracked < 25) {
@@ -135,12 +131,10 @@ const VideoPlayerScreen = () => {
             setIsVideoDone(true);
 
             // Track video completion event
-            if (currentVideo && player.durationMillis) {
+            if (currentVideo && player.duration) {
                 posthogService.trackVideoCompleted(
                     String(currentVideo.id),
-                    currentVideo.title,
-                    String(courseId),
-                    Math.floor(player.durationMillis / 1000)
+                    Math.floor(player.duration)
                 );
             }
         };
@@ -161,9 +155,9 @@ const VideoPlayerScreen = () => {
         if (currentVideo) {
             trackEvent(Events.VIDEO_PROGRESS, {
                 video_id: currentVideo.id,
-                video_title: currentVideo.title,
-                course_id: courseId,
-                learning_path_id: pdId,
+                video_title: currentVideo.title ?? '',
+                course_id: String(courseId as string),
+                learning_path_id: String(pdId as string),
                 progress_percent: progressPercent
             });
         }
@@ -182,20 +176,20 @@ const VideoPlayerScreen = () => {
                 const { data, error } = await supabase
                     .from('course_videos')
                     .select('*')
-                    .eq('course_id', courseId)
+                    .eq('course_id', Number(courseId as string))
                     .order('order_index', { ascending: true });
 
                 if (error) throw error;
-                setVideos(data);
+                setVideos(data as unknown as CourseVideos[]);
 
                 const currentIndex = data.findIndex(v => v.id === videoId);
                 if (currentIndex !== -1) {
-                    setCurrentVideo(data[currentIndex]);
+                    setCurrentVideo(data[currentIndex] as unknown as CourseVideos);
                     setCurrentVideoIndex(currentIndex);
                 }
             } catch (err) {
                 setError('Error loading videos');
-                console.error(err);
+                logger.error(err);
             } finally {
                 setIsLoading(false);
             }
@@ -266,8 +260,6 @@ const VideoPlayerScreen = () => {
                 isDarkMode={isDarkMode} 
                 onPurchase={handlePurchaseFlow}
                 onBack={() => router.push(`/(app)/learn/${pdId}/courses/${courseId}`)}
-                pdId={String(pdId)}
-                courseId={String(courseId)}
             />
         );
     }

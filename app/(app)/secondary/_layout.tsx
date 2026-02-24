@@ -30,7 +30,7 @@ export default function ProgramLayout() {
       >
         <Stack.Screen name="index" />
 
-        <Stack.Screen name="/program/[programId]" />
+        <Stack.Screen name="program/[programId]" />
       </Stack>
       <ChatFab showContextBadge={true} />
       <NewChatBot

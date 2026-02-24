@@ -1,10 +1,9 @@
-import React, {useEffect} from 'react';
+﻿import React, {useEffect} from 'react';
 import {Linking} from 'react-native';
-import axios from "axios";
 import {useRouter} from "expo-router";
 
 import {supabase} from '@/lib/supabase';
-import {useAppConfig} from "@/contexts/useAppConfig";
+import { logger } from '@/utils/logger';
 
 
 // Define prop types for the component
@@ -21,8 +20,6 @@ interface AuthDeepLinkHandlerProps {
 const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess, onAuthError}) => {
 
     const router = useRouter();
-    const {getApiBaseUrl} = useAppConfig();
-    const apiBaseUrl = getApiBaseUrl();
 
     useEffect(() => {
         // Handler function to process deep link URLs
@@ -60,18 +57,18 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                             });
 
                             if (error) {
-                                console.error('Error setting session:', error);
+                                logger.error('Error setting session:', error);
                                 onAuthError?.(new Error(`Failed to set session: ${error.message}`));
                             } else {
                                 onAuthSuccess?.();
                             }
                         } else {
-                            console.error('Missing tokens in callback URL:', params);
+                            logger.error('Missing tokens in callback URL:', params);
                             onAuthError?.(new Error('Missing access or refresh token in callback URL'));
                         }
                     }
                 } catch (error) {
-                    console.error('Error processing deep link:', error);
+                    logger.error('Error processing deep link:', error);
                     onAuthError?.(error instanceof Error ? error : new Error('Unknown deep link error'));
                 }
             } else if (url && (url.includes("payment/callback") || url.includes("payment-callback"))) {
@@ -81,8 +78,6 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                     const params = Object.fromEntries(parsedURL.searchParams.entries());
 
                     // Redirect to the payment callback page with the parameters
-                    const urlParams = new URLSearchParams(params).toString();
-
                     if(params?.status === "complete"){
                     // Navigate to the payment callback page
 
@@ -100,7 +95,7 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
 
 
                 } catch (error) {
-                    console.error('Error processing payment callback:', error);
+                    logger.error('Error processing payment callback:', error);
                     // Fallback to learn page if there's an error
                     router.replace("/(app)/learn");
                 }

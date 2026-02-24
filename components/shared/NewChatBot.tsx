@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -467,7 +468,7 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
 
                 setSuggestedElements(filteredSuggestions);
             } catch (error) {
-                console.error('Error generating suggestions from cache:', error);
+                logger.error('Error generating suggestions from cache:', error);
                 setSuggestedElements([]);
             }
         };
@@ -492,7 +493,7 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
                 setChatHistory(history);
             }
         } catch (error) {
-            console.error('Error loading chat history:', error);
+            logger.error('Error loading chat history:', error);
         }
     };
 
@@ -501,7 +502,7 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
         try {
             await AsyncStorage.setItem('ezadrive_chat_history', JSON.stringify(history));
         } catch (error) {
-            console.error('Error saving chat history:', error);
+            logger.error('Error saving chat history:', error);
         }
     };
 
@@ -583,7 +584,7 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
                 }
             }
         } catch (error) {
-            console.error('Error loading chat session:', error);
+            logger.error('Error loading chat session:', error);
         }
     };
 
@@ -847,7 +848,7 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
             // Save the updated session
             await saveCurrentSession();
         } catch (error) {
-            console.error('Error getting response from Gemini:', error);
+            logger.error('Error getting response from Gemini:', error);
 
             // Add error message
             const errorMessage: Message = {

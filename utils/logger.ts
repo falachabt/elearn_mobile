@@ -21,8 +21,14 @@ export const logger = {
   },
   
   error: (...args: unknown[]) => {
-    // Always log errors, even in production
-    console.error(...args);
+    if (isDevelopment) {
+      // En dev, console.error pour avoir le stack trace complet
+      console.error(...args);
+    } else {
+      // En prod, console.warn pour éviter de déclencher le reactConsoleErrorHandler
+      // de la nouvelle architecture React Native (qui provoque des error boundaries)
+      console.warn('[ERROR]', ...args);
+    }
   },
   
   info: (...args: unknown[]) => {

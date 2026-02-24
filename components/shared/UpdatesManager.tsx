@@ -1,29 +1,25 @@
-import React, { useEffect, useRef } from 'react';
-import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import React from 'react';
 
 import UpdateBottomSheet from './UpdateBottomSheet';
 
 import { useUpdates } from '@/contexts/UpdatesContext';
 
 /**
- * Component that automatically shows the update bottom sheet when an update is available.
- * This component should be placed high in the component tree to ensure the bottom sheet
- * is displayed over all other content.
+ * Affiche la notification de mise à jour OTA via un Modal natif.
+ * Placé haut dans l'arbre pour être visible par-dessus tout le contenu.
  */
 export default function UpdatesManager() {
-  const { isUpdateAvailable, isUpdating } = useUpdates();
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const { isUpdateAvailable, isUpdating, dismissUpdate } = useUpdates();
 
-  // Show bottom sheet when update becomes available
-  useEffect(() => {
-    if (isUpdateAvailable && !isUpdating) {
-      bottomSheetRef.current?.present();
-    }
-  }, [isUpdateAvailable, isUpdating]);
+  const visible = isUpdateAvailable && !isUpdating;
+
+  // Ne rendre que si nécessaire
+  if (!visible) return null;
 
   return (
     <UpdateBottomSheet
-      ref={bottomSheetRef}
+      visible={visible}
+      onDismiss={dismissUpdate}
     />
   );
 }

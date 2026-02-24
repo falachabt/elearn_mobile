@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { useColorScheme } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
 import { Colors } from '@/constants/Colors';
+import { logger } from '@/utils/logger';
 import {theme} from "@/constants/theme";
 
 const RatingModal = () => {
@@ -23,7 +24,7 @@ const RatingModal = () => {
         .eq('id', user.id);
 
       if (error) {
-        console.error('Error updating user metadata:', error);
+        logger.error('Error updating user metadata:', error);
       } else {
         mutateUser();
       }
@@ -33,7 +34,7 @@ const RatingModal = () => {
       ? 'itms-apps://itunes.apple.com/app/idYOUR_APP_STORE_ID' // TODO: Replace with your App Store ID
       : 'market://details?id=com.ezadrive.elearn';
 
-    Linking.openURL(storeUrl).catch(err => console.error('An error occurred', err));
+    Linking.openURL(storeUrl).catch(err => logger.error('An error occurred', err));
 
     setModalVisible(false);
   };

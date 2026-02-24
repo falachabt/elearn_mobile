@@ -1,4 +1,5 @@
-// services/quizService.ts
+﻿// services/quizService.ts
+import { logger } from '@/utils/logger';
 import {supabase} from '@/lib/supabase';
 import {QuizQuestion, QuizAttempt, QuizResults} from '@/types/quiz.type';
 
@@ -104,7 +105,7 @@ export class QuizService {
 
             return isCorrect;
         } catch (error) {
-            console.error('Error saving answer:', error);
+            logger.error('Error saving answer:', error);
             throw error;
         }
     }
@@ -191,7 +192,7 @@ export class QuizService {
                 completedAt: new Date()
             };
         } catch (error) {
-            console.error('Error finishing quiz:', error);
+            logger.error('Error finishing quiz:', error);
             throw error;
         }
     }
@@ -261,7 +262,7 @@ export class QuizService {
             // Create new attempt
             return await this.createAttempt(quizId, userId);
         } catch (error) {
-            console.error('Error resetting attempt:', error);
+            logger.error('Error resetting attempt:', error);
             throw error;
         }
     }

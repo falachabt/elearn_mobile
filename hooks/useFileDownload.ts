@@ -28,7 +28,7 @@ export const useFileDownload = () => {
             }
             return false;
         } catch (error) {
-            console.error('Error checking file:', error);
+            logger.error('Error checking file:', error);
             return false;
         }
     }, []);
@@ -64,7 +64,7 @@ export const useFileDownload = () => {
             }));
             return true;
         } catch (error) {
-            console.error('Download error:', error);
+            logger.error('Download error:', error);
             setDownloadState(prev => ({
                 ...prev,
                 [file.id]: { downloading: false, progress: 0 }

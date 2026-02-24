@@ -1,4 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
+﻿import React, { useState, useRef, useCallback } from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -147,7 +148,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
                 // setAttachments([...attachments, ...newAttachments]);
             }
         } catch (error) {
-            console.error('Error picking document:', error);
+            logger.error('Error picking document:', error);
             Alert.alert('Error', 'Failed to pick document');
         }
     };
@@ -189,7 +190,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
             // Scroll to bottom
             scrollRef.current?.scrollToEnd({ animated: true });
         } catch (error) {
-            console.error('Error sending message:', error);
+            logger.error('Error sending message:', error);
             Alert.alert('Error', error instanceof Error ? error.message : 'Failed to send message');
         } finally {
             setLoading(false);

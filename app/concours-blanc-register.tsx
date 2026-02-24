@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     StyleSheet,
@@ -32,7 +33,7 @@ const ConcoursBlancRegisterScreen = () => {
     // Handle WebView loading error
     const handleError = (event: any) => {
         const { nativeEvent } = event;
-        console.error('WebView error:', nativeEvent);
+        logger.error('WebView error:', nativeEvent);
         
         Alert.alert(
             'Erreur de connexion',
@@ -56,7 +57,7 @@ const ConcoursBlancRegisterScreen = () => {
     // Handle WebView HTTP error
     const handleHttpError = (event: any) => {
         const { nativeEvent } = event;
-        console.error('WebView HTTP error:', nativeEvent);
+        logger.error('WebView HTTP error:', nativeEvent);
         
         Alert.alert(
             'Erreur de serveur',

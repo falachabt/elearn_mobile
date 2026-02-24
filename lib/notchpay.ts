@@ -1,4 +1,6 @@
-import axios, { AxiosInstance } from "axios";
+﻿import axios, { AxiosInstance } from "axios";
+
+import { logger } from '@/utils/logger';
 
 import {
   NotchPayInitializeParams,
@@ -173,7 +175,7 @@ export class NotchPayService {
 
   private handleError(error: unknown): never {
     if (axios.isAxiosError(error)) {
-      console.error(error, error.message);
+      logger.error(error, error.message);
       throw new Error(error.response?.data?.message || "NotchPay API error");
     }
     throw error;

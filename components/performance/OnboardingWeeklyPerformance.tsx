@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+﻿import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -529,7 +530,7 @@ const OnboardingWeeklyPerformance: React.FC = () => {
       setDailyActivity(activity);
       return mockMetrics;
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      logger.error('Error fetching user data:', error);
       setOnboardingState(prev => ({
         ...prev,
         status: OnboardingStatus.ERROR,

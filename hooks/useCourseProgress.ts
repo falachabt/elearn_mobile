@@ -1,4 +1,5 @@
 import useSWR, { mutate } from "swr";
+import { logger } from '@/utils/logger';
 import { useEffect } from "react";
 
 import { useAuth } from "@/contexts/auth";
@@ -93,7 +94,7 @@ export const useCourseProgress = (courseId: number) => {
       // Muter les progressions au niveau du programme
       programProgressKeys.mutateAll();
     } catch (error) {
-      console.error('Error marking section complete:', error);
+      logger.error('Error marking section complete:', error);
     }
   };
 

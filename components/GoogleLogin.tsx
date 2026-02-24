@@ -57,23 +57,66 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
             logger.log('[GoogleAuth] Browser result:', result);
 
             if (result.type === 'success') {
-                // Attendre un peu pour que Supabase traite le callback
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                const url = result.url;
+                logger.log('[GoogleAuth] Callback URL:', url);
 
-                // Vérifier si on a un user maintenant
-                const { data: { user }, error: userError } = await supabase.auth.getUser();
-                
-                logger.log('[GoogleAuth] User after auth:', user ? 'Found' : 'Not found');
+                // Extraire les tokens depuis l'URL de callback (soit hash fragment, soit query params)
+                let accessToken: string | null = null;
+                let refreshToken: string | null = null;
 
-                if (userError) {
-                    logger.error('[GoogleAuth] Error getting user:', userError);
-                    throw userError;
+                try {
+                    const parsedUrl = new URL(url);
+
+                    // Tokens dans le hash fragment (#access_token=...&refresh_token=...)
+                    if (parsedUrl.hash) {
+                        const hashParams = new URLSearchParams(parsedUrl.hash.substring(1));
+                        accessToken = hashParams.get('access_token');
+                        refreshToken = hashParams.get('refresh_token');
+                    }
+
+                    // Tokens dans les query params (?access_token=...&refresh_token=...)
+                    if (!accessToken) {
+                        accessToken = parsedUrl.searchParams.get('access_token');
+                        refreshToken = parsedUrl.searchParams.get('refresh_token');
+                    }
+                } catch (parseError) {
+                    logger.error('[GoogleAuth] Error parsing callback URL:', parseError);
                 }
 
-                if (user && onAuthSuccess) {
-                    onAuthSuccess();
-                } else if (!user) {
-                    throw new Error('Authentication succeeded but no user found');
+                if (accessToken && refreshToken) {
+                    logger.log('[GoogleAuth] Setting session with tokens from callback URL');
+                    const { error: sessionError } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken,
+                    });
+
+                    if (sessionError) {
+                        logger.error('[GoogleAuth] Error setting session:', sessionError);
+                        throw sessionError;
+                    }
+
+                    logger.log('[GoogleAuth] Session set successfully');
+                    if (onAuthSuccess) {
+                        onAuthSuccess();
+                    }
+                } else {
+                    // Pas de tokens dans l'URL, attendre que Supabase traite le deep link
+                    logger.log('[GoogleAuth] No tokens in URL, waiting for session...');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+
+                    const { data: { user }, error: userError } = await supabase.auth.getUser();
+                    logger.log('[GoogleAuth] User after wait:', user ? 'Found' : 'Not found');
+
+                    if (userError) {
+                        logger.error('[GoogleAuth] Error getting user:', userError);
+                        throw userError;
+                    }
+
+                    if (user && onAuthSuccess) {
+                        onAuthSuccess();
+                    } else if (!user) {
+                        throw new Error('Auth session missing!');
+                    }
                 }
             } else if (result.type === 'cancel') {
                 logger.log('[GoogleAuth] User cancelled authentication');

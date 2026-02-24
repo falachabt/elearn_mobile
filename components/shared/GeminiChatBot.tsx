@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -258,7 +259,7 @@ const GeminiChatbot: React.FC<ChatbotProps> = ({
                 buttonPositionY.setValue(position.y);
             }
         } catch (error) {
-            console.error('Error loading button position:', error);
+            logger.error('Error loading button position:', error);
         }
     };
 
@@ -267,7 +268,7 @@ const GeminiChatbot: React.FC<ChatbotProps> = ({
         try {
             await AsyncStorage.setItem(STORAGE_KEY_BUTTON_POSITION, JSON.stringify({ x, y }));
         } catch (error) {
-            console.error('Error saving button position:', error);
+            logger.error('Error saving button position:', error);
         }
     };
 
@@ -297,7 +298,7 @@ const GeminiChatbot: React.FC<ChatbotProps> = ({
                 }
             }
         } catch (error) {
-            console.error('Error loading chat sessions:', error);
+            logger.error('Error loading chat sessions:', error);
         }
     };
 
@@ -306,7 +307,7 @@ const GeminiChatbot: React.FC<ChatbotProps> = ({
         try {
             await AsyncStorage.setItem(STORAGE_KEY_CHAT_SESSIONS, JSON.stringify(updatedSessions));
         } catch (error) {
-            console.error('Error saving sessions:', error);
+            logger.error('Error saving sessions:', error);
         }
     };
 
@@ -482,7 +483,7 @@ const GeminiChatbot: React.FC<ChatbotProps> = ({
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
         } catch (error) {
-            console.error('Error sending message to Gemini:', error);
+            logger.error('Error sending message to Gemini:', error);
 
             const errorMessage: Message = {
                 id: Date.now().toString(),

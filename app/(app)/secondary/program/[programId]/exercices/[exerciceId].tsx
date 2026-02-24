@@ -1,4 +1,4 @@
-import {
+﻿import {
     View,
     Text,
     StyleSheet,
@@ -218,7 +218,7 @@ const SecondaryExercisePage = () => {
             // Invalidate the exercise list cache to refresh the UI
             mutateGlobal(['secondary-program-exercises', programId, user?.id]);
         } catch (error) {
-            console.error("Error updating completion state:", error);
+            logger.error("Error updating completion state:", error);
             mutateCompleteData({is_completed: isCompleted}, false);
         }
     };
@@ -245,7 +245,7 @@ const SecondaryExercisePage = () => {
             // Invalidate the exercise list cache to refresh the UI
             mutateGlobal(['secondary-program-exercises', programId, user?.id]);
         } catch (error) {
-            console.error("Error updating pin state:", error);
+            logger.error("Error updating pin state:", error);
             mutatePinData({is_pinned: isPinned}, false);
         }
     };

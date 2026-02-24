@@ -1,4 +1,5 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+﻿import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import { logger } from '@/utils/logger';
 import {
     ActivityIndicator,
     Animated,
@@ -198,7 +199,7 @@ const getImageDimensions = (src: string): Promise<{ width: number, height: numbe
                 resolve({width, height});
             },
             (error) => {
-                console.error('Error getting image dimensions:', error);
+                logger.error('Error getting image dimensions:', error);
                 reject(error);
             }
         );
@@ -397,7 +398,7 @@ export default function ExerciseInstructionsDrawer({
                 hasLoaded.current = true;
             }
         } catch (err) {
-            console.error('Error fetching exercise data:', err);
+            logger.error('Error fetching exercise data:', err);
             setError('Impossible de charger les instructions de l\'exercice');
         } finally {
             setIsLoading(false);

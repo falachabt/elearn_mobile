@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
+﻿import React, { useRef, useEffect, useState } from 'react';
+import { logger } from '@/utils/logger';
 import {
   View,
   TextInput,
@@ -71,7 +72,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
         const nextIndex = Math.min(index + clipboardContent.length, length - 1);
         inputRefs.current[nextIndex]?.focus();
       } catch (error) {
-        console.error('Paste handling error:', error);
+        logger.error('Paste handling error:', error);
       }
       return;
     }

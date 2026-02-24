@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
+import { logger } from '@/utils/logger';
 import {
   View,
   StyleSheet,
@@ -55,7 +56,7 @@ const DocumentViewerScreen = () => {
       try {
         await ScreenCapture.preventScreenCaptureAsync();
       } catch (error) {
-        console.error("Error preventing screen capture:", error);
+        logger.error("Error preventing screen capture:", error);
       }
     };
 
@@ -66,7 +67,7 @@ const DocumentViewerScreen = () => {
         try {
           await ScreenCapture.allowScreenCaptureAsync();
         } catch (error) {
-          console.error("Error allowing screen capture:", error);
+          logger.error("Error allowing screen capture:", error);
         }
       };
 

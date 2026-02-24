@@ -1,4 +1,4 @@
-// FileViewerScreen.tsx
+﻿// FileViewerScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import * as ScreenCapture from 'expo-screen-capture';
 import { Archive } from '..';
 
 import { theme } from '@/constants/theme';
+import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
@@ -89,7 +90,7 @@ const fetcher = async (url: string) => {
       return data;
     } catch (error) {
       // Handle error gracefully and return null to indicate not completed
-      console.error('Error fetching completion status:', error);
+      logger.error('Error fetching completion status:', error);
       return null;
     }
   }
@@ -145,7 +146,7 @@ export const FileViewerScreen = () => {
         // Prevent screenshots
         await ScreenCapture.preventScreenCaptureAsync();
       } catch (error) {
-        console.error('Error preventing screen capture:', error);
+        logger.error('Error preventing screen capture:', error);
       }
     };
 
@@ -157,7 +158,7 @@ export const FileViewerScreen = () => {
         try {
           await ScreenCapture.allowScreenCaptureAsync();
         } catch (error) {
-          console.error('Error allowing screen capture:', error);
+          logger.error('Error allowing screen capture:', error);
         }
       };
 
@@ -247,7 +248,7 @@ export const FileViewerScreen = () => {
       // Properly refresh data after operation
       mutate();
     } catch (error: any) {
-      console.error('Error toggling completion status:', error);
+      logger.error('Error toggling completion status:', error);
       Alert.alert(
           'Erreur',
           error.message || 'Impossible de mettre à jour le statut de complétion. Veuillez réessayer.'

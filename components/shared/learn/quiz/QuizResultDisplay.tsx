@@ -1,4 +1,5 @@
-import React, {useState, useCallback, useEffect} from 'react';
+﻿import React, {useState, useCallback, useEffect} from 'react';
+import { logger } from '@/utils/logger';
 import {
   View,
   StyleSheet,
@@ -145,7 +146,7 @@ const MixedContentRenderer = React.memo(({
         setKatexHeight(data.height / 4);
       }
     } catch (error) {
-      console.error('Error parsing WebView message:', error);
+      logger.error('Error parsing WebView message:', error);
     }
   };
 
@@ -180,7 +181,7 @@ const MixedContentRenderer = React.memo(({
         </View>
     );
   } catch (error) {
-    console.error('MixedContentRenderer error:', error);
+    logger.error('MixedContentRenderer error:', error);
     return <Text style={style}>{text.replace(/\$\$(.*?)\$\$/g, '[Math]')}</Text>;
   }
 });

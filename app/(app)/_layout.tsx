@@ -170,17 +170,6 @@ export default function AppLayout() {
                 />
 
                 <Tabs.Screen
-                    name="concours-blanc-register"
-                    options={{
-                        title: "Concour",
-                        tabBarIcon: ({color}) => (
-                            <MaterialCommunityIcons name="progress-pencil" color={color} size={26}/>
-                        ),
-                    }}
-                />
-               
-
-                <Tabs.Screen
                     name="profile"
                     options={{
                         title: "Profile",

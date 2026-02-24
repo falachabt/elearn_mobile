@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -116,7 +117,7 @@ const CustomerService: React.FC = () => {
             setSelectedImagePath(null);
             scrollViewRef.current?.scrollToEnd({ animated: true });
         } catch (error) {
-            console.error('Error sending message:', error);
+            logger.error('Error sending message:', error);
             Alert.alert('Error', 'Failed to send message. Please try again.');
         }
     };
@@ -142,7 +143,7 @@ const CustomerService: React.FC = () => {
                         setSelectedImagePath(upload_result.filePath);
                     }
                 } catch (error) {
-                    console.error('Error uploading image:', error);
+                    logger.error('Error uploading image:', error);
                     Alert.alert(
                         'Upload Error',
                         'Failed to upload image. Please try again.'
@@ -150,7 +151,7 @@ const CustomerService: React.FC = () => {
                 }
             }
         } catch (error) {
-            console.error('Image picker error:', error);
+            logger.error('Image picker error:', error);
             Alert.alert('Error', 'Failed to pick image. Please try again.');
         } finally {
             setIsUploading(false);

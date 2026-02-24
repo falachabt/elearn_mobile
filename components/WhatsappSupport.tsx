@@ -1,4 +1,5 @@
-import React from 'react';
+﻿import React from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -41,7 +42,7 @@ const WhatsAppContact: React.FC<WhatsAppContactProps> = ({
                 await Linking.openURL(webUrl);
             }
         } catch (error) {
-            console.error('Error opening WhatsApp:', error);
+            logger.error('Error opening WhatsApp:', error);
             Alert.alert('Erreur', 'Impossible d\'ouvrir WhatsApp.');
         }
     };

@@ -1,4 +1,5 @@
-import React, {useState} from 'react';
+﻿import React, {useState} from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -42,7 +43,7 @@ const fetcher = async (key: string): Promise<{
     } = await supabase.from('user_streaks').select('max_streak').eq('user_id', id).maybeSingle();
 
     if (error || error2 || error3) {
-        console.error('Error fetching user activity:', error);
+        logger.error('Error fetching user activity:', error);
         return {
             total_time_in_second: 0,
             completed_courses: 0,
@@ -161,7 +162,7 @@ const Profile = () => {
         try {
             await signOut();
         } catch (error) {
-            console.error('Error logging out:', error);
+            logger.error('Error logging out:', error);
         } finally {
             setIsLoggingOut(false);
         }

@@ -1,4 +1,5 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+﻿import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { logger } from '@/utils/logger';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import {
@@ -163,7 +164,7 @@ const CustomizableGoals = ({
         setGoals(mergedGoals);
       }
     } catch (error) {
-      console.error("Error loading custom goals:", error);
+      logger.error("Error loading custom goals:", error);
     }
   };
 
@@ -196,7 +197,7 @@ const CustomizableGoals = ({
       );
       setEditingGoal(null);
     } catch (error) {
-      console.error("Error saving custom goals:", error);
+      logger.error("Error saving custom goals:", error);
     }
   };
 

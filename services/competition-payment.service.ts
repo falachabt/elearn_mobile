@@ -1,4 +1,5 @@
-import { supabase } from '@/lib/supabase';
+﻿import { supabase } from '@/lib/supabase';
+import { logger } from '@/utils/logger';
 import { NotchPayService } from '@/lib/notchpay';
 
 export interface CompetitionPayment {
@@ -30,7 +31,7 @@ export const CompetitionPaymentService = {
       .eq('id', paymentId);
 
     if (error) {
-      console.error('Error marking competition payment as seen:', error);
+      logger.error('Error marking competition payment as seen:', error);
     }
   },
 
@@ -57,7 +58,7 @@ export const CompetitionPaymentService = {
       .single();
 
     if (error) {
-      console.error('Error creating competition payment:', error);
+      logger.error('Error creating competition payment:', error);
       throw new Error(error.message);
     }
 
@@ -74,7 +75,7 @@ export const CompetitionPaymentService = {
       .eq('id', paymentId);
 
     if (error) {
-      console.error('Error updating competition payment status:', error);
+      logger.error('Error updating competition payment status:', error);
       throw new Error(error.message);
     }
   },
@@ -105,7 +106,7 @@ export const CompetitionPaymentService = {
     });
 
     if (error) {
-      console.error('Error checking competition access:', error);
+      logger.error('Error checking competition access:', error);
       return false;
     }
 
@@ -132,7 +133,7 @@ export const CompetitionPaymentService = {
         // No active payment found
         return null;
       }
-      console.error('Error getting active competition payment:', error);
+      logger.error('Error getting active competition payment:', error);
       throw new Error(error.message);
     }
 
@@ -157,7 +158,7 @@ export const CompetitionPaymentService = {
         // No payment found
         return null;
       }
-      console.error('Error getting latest competition payment:', error);
+      logger.error('Error getting latest competition payment:', error);
       throw new Error(error.message);
     }
 
@@ -231,7 +232,7 @@ export const CompetitionPaymentService = {
 
       throw new Error("Payment initialization failed");
     } catch (error) {
-      console.error("Error in direct competition payment:", error);
+      logger.error("Error in direct competition payment:", error);
       throw error;
     }
   },
@@ -249,7 +250,7 @@ export const CompetitionPaymentService = {
 
       return result;
     } catch (error) {
-      console.error("Error verifying competition payment status:", error);
+      logger.error("Error verifying competition payment status:", error);
     }
   },
 
@@ -263,7 +264,7 @@ export const CompetitionPaymentService = {
         .single();
 
       if (fetchError) {
-        console.error("Error fetching payment status:", fetchError);
+        logger.error("Error fetching payment status:", fetchError);
         throw fetchError;
       }
 
@@ -284,7 +285,7 @@ export const CompetitionPaymentService = {
         // Payment cancellation with NotchPay failed
       }
     } catch (error) {
-      console.error("Error cancelling competition payment:", error);
+      logger.error("Error cancelling competition payment:", error);
       throw error;
     }
   }

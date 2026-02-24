@@ -1,4 +1,5 @@
-import React, {useState, useEffect, useCallback, memo, useMemo} from "react";
+﻿import React, {useState, useEffect, useCallback, memo, useMemo} from "react";
+import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -252,7 +253,7 @@ export const ArchivesList = () => {
       setArchives(updatedArchives);
       setCategories(uniqueCategories);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      logger.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -301,7 +302,7 @@ export const ArchivesList = () => {
           )
       );
     } catch (error) {
-      console.error("Error updating pin status:", error);
+      logger.error("Error updating pin status:", error);
     }
   }, [trigger, archives, user?.id, supabase, setArchives]);
 
@@ -361,7 +362,7 @@ export const ArchivesList = () => {
           )
       );
     } catch (error) {
-      console.error("Error updating completion status:", error);
+      logger.error("Error updating completion status:", error);
     }
   }, [trigger, archives, user?.id, supabase, setArchives]);
 

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -375,7 +376,7 @@ export const usePaymentGuide = () => {
                 setShowGuide(true);
             }
         } catch (error) {
-            console.error('Erreur lors de la vérification du guide de paiement:', error);
+            logger.error('Erreur lors de la vérification du guide de paiement:', error);
         }
     };
 

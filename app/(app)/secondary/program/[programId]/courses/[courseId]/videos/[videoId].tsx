@@ -1,4 +1,5 @@
-import { useLocalSearchParams } from "expo-router";
+﻿import { useLocalSearchParams } from "expo-router";
+import { logger } from '@/utils/logger';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 
@@ -167,7 +168,7 @@ const SecondaryVideoPlayerScreen = () => {
           setCurrentVideoIndex(index ?? -1);
         }
       } catch (err) {
-        console.error("Error fetching videos:", err);
+        logger.error("Error fetching videos:", err);
         setError("Failed to load videos");
       } finally {
         setIsLoading(false);

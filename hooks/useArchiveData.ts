@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { logger } from '@/utils/logger';
 import useSWR from 'swr';
 
 import { supabase } from '@/lib/supabase';
@@ -176,7 +177,7 @@ export function useArchiveData(competitionId: string | undefined) {
       await mutatePinned();
       return true;
     } catch (error) {
-      console.error("Error toggling pin status:", error);
+      logger.error("Error toggling pin status:", error);
       // Revert on error
       await mutatePinned();
       return false;
@@ -239,7 +240,7 @@ export function useArchiveData(competitionId: string | undefined) {
       await mutateCompleted();
       return true;
     } catch (error) {
-      console.error("Error toggling completed status:", error);
+      logger.error("Error toggling completed status:", error);
       // Revert on error
       await mutateCompleted();
       return false;

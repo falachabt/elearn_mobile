@@ -1,4 +1,5 @@
-import React, {useState, useRef, useEffect, useCallback, RefObject} from 'react';
+﻿import React, {useState, useRef, useEffect, useCallback, RefObject} from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -250,7 +251,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                 setChatHistory(history);
             }
         } catch (error) {
-            console.error('Erreur lors du chargement de l\'historique:', error);
+            logger.error('Erreur lors du chargement de l\'historique:', error);
         }
     };
 
@@ -258,7 +259,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
         try {
             await AsyncStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(history));
         } catch (error) {
-            console.error('Erreur lors de la sauvegarde:', error);
+            logger.error('Erreur lors de la sauvegarde:', error);
         }
     };
 
@@ -282,7 +283,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                 }
             }
         } catch (error) {
-            console.error('Erreur lors du chargement de la session:', error);
+            logger.error('Erreur lors du chargement de la session:', error);
         }
     };
 
@@ -333,7 +334,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
                     data: data || {}
                 });
             } catch (error) {
-                console.error(`Erreur lors de la rehydratation de l'élément ${elementId}:`, error);
+                logger.error(`Erreur lors de la rehydratation de l'élément ${elementId}:`, error);
             }
         }
 
@@ -401,7 +402,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
 
             setSuggestedElements(filteredSuggestions);
         } catch (error) {
-            console.error('Erreur lors de la génération des suggestions:', error);
+            logger.error('Erreur lors de la génération des suggestions:', error);
             setSuggestedElements([]);
         }
     };
@@ -571,7 +572,7 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
             await saveCurrentSession();
 
         } catch (error) {
-            console.error('Erreur lors de l\'envoi:', error);
+            logger.error('Erreur lors de l\'envoi:', error);
 
             const errorMessage: Message = {
                 id: generateUniqueId(),

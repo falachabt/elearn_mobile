@@ -1,4 +1,5 @@
-import { useLocalSearchParams } from "expo-router";
+﻿import { useLocalSearchParams } from "expo-router";
+import { logger } from '@/utils/logger';
 import React, { useMemo, useState, useCallback, useRef } from "react";
 
 import {
@@ -179,13 +180,13 @@ export default function ExercisesList() {
         );
 
       if (error) {
-        console.error("Error updating pin state:", error);
+        logger.error("Error updating pin state:", error);
         // Revert on error - reload from page 0
         setPage(0);
         mutate();
       }
     } catch (error) {
-      console.error("Unexpected error updating pin state:", error);
+      logger.error("Unexpected error updating pin state:", error);
       setPage(0);
       mutate();
     }
@@ -227,13 +228,13 @@ export default function ExercisesList() {
         );
 
       if (error) {
-        console.error("Error updating completion state:", error);
+        logger.error("Error updating completion state:", error);
         // Revert on error - reload from page 0
         setPage(0);
         mutate();
       }
     } catch (error) {
-      console.error("Unexpected error updating completion state:", error);
+      logger.error("Unexpected error updating completion state:", error);
       setPage(0);
       mutate();
     }

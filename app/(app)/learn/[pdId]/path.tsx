@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     StyleSheet,
@@ -8,13 +8,14 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import WebView from 'react-native-webview';
+import type { WebViewErrorEvent, WebViewHttpErrorEvent } from 'react-native-webview/lib/WebViewTypes';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
-import { useAuth } from '@/contexts/auth';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
+import { logger } from '@/utils/logger';
 
 // URL for your Next.js backend
 const NEXT_JS_BASE_URL = 'https://staff.elearnprepa.com/fr/webview';
@@ -29,7 +30,6 @@ export default function PathPage() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const programId = params.pdId as string;
-    const { user } = useAuth();
     const [userToken, setUserToken] = useState<string | null>(null);
     const { trigger } = useHaptics();
     const [retryCount, setRetryCount] = useState(0);
@@ -44,7 +44,7 @@ export default function PathPage() {
                     setUserToken(session.access_token);
                 }
             } catch (error) {
-                console.error('Error getting user token:', error);
+                logger.error('Error getting user token:', error);
             }
         };
 
@@ -52,7 +52,7 @@ export default function PathPage() {
     }, []);
 
     // Handle messages from WebView
-    const handleMessage = (event: any) => {
+    const handleMessage = (event: { nativeEvent: { data: string } }) => {
         try {
             const data = JSON.parse(event.nativeEvent.data);
 
@@ -93,12 +93,13 @@ export default function PathPage() {
                 default:
                     break;
             }
-        } catch (error) {
+        } catch {
             // Silently handle parsing errors
         }
     };
 
     // Direct HTML content instead of URL to avoid darkMode parameter issues
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const getHtmlContent = () => {
         return `
     <!DOCTYPE html>
@@ -248,9 +249,9 @@ export default function PathPage() {
     };
 
     // Handle WebView loading error
-    const handleError = (syntheticEvent: any) => {
+    const handleError = (syntheticEvent: WebViewErrorEvent) => {
         const { nativeEvent } = syntheticEvent;
-        console.error('WebView error:', nativeEvent);
+        logger.error('WebView error:', nativeEvent);
 
         if (retryCount < MAX_RETRIES) {
             // Retry loading
@@ -264,9 +265,9 @@ export default function PathPage() {
     };
 
     // Handle WebView HTTP error
-    const handleHttpError = (syntheticEvent: any) => {
+    const handleHttpError = (syntheticEvent: WebViewHttpErrorEvent) => {
         const { nativeEvent } = syntheticEvent;
-        console.error('WebView HTTP error:', nativeEvent);
+        logger.error('WebView HTTP error:', nativeEvent);
 
         if (nativeEvent.statusCode === 404) {
             // 404 errors are expected for the "coming soon" feature
@@ -348,6 +349,7 @@ export default function PathPage() {
                         // Render HTML content directly for web
                         <View style={styles.webView}>
                             <iframe
+                                title="Parcours d'apprentissage"
                                 src={`${NEXT_JS_BASE_URL}/learning-path/${programId}?darkMode=${isDark}`}
                                 style={{width: '100%', height: '100%', border: 'none'}}
                                 onLoadedData={ () => setIsLoading(false) }

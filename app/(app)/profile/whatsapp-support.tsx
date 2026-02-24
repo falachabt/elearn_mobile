@@ -1,4 +1,5 @@
-import React from 'react';
+﻿import React from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -69,7 +70,7 @@ const WhatsAppSupportScreen = () => {
                 }
             }
         } catch (error) {
-            console.error('Error opening WhatsApp:', error);
+            logger.error('Error opening WhatsApp:', error);
             Alert.alert('Erreur', WHATSAPP_CONFIG.errorMessages.genericError);
         }
     };

@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
     useState,
     useEffect,
     useImperativeHandle,
@@ -36,6 +36,7 @@ import {useCart} from "@/hooks/useCart";
 import {NotchPayService} from "@/lib/notchpay";
 import {CartService} from "@/services/cart.service";
 import {useAuth} from "@/contexts/auth";
+import { logger } from "@/utils/logger";
 
 
 // Get screen dimensions
@@ -550,7 +551,7 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
                 setPromoCodeDetails(null);
             }
         } catch (err) {
-            console.error('Error verifying promo code:', err);
+            logger.error('Error verifying promo code:', err);
             setPromoCodeStatus('invalid');
             setPromoCodeDetails(null);
         }
@@ -565,7 +566,7 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
             setBrowserRedirected(false);
             stopStatusCheck();
         } catch (err) {
-            console.error("Error during retry:", err);
+            logger.error("Error during retry:", err);
         }
     };
 
@@ -586,12 +587,12 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
                 if (canOpen) {
                     await Linking.openURL(authorizationUrl);
                 } else {
-                    console.error("Cannot open URL:", authorizationUrl);
+                    logger.error("Cannot open URL:", authorizationUrl);
                     setError("Impossible d'ouvrir le navigateur. Veuillez réessayer.");
                     setProcessingState('fallback');
                 }
             } catch (err) {
-                console.error("Error opening URL:", err);
+                logger.error("Error opening URL:", err);
                 setError("Erreur lors de l'ouverture du navigateur. Veuillez réessayer.");
                 setProcessingState('fallback');
             }

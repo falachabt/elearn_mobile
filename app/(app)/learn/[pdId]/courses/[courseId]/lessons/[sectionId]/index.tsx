@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+﻿import { useLocalSearchParams } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import useSWR, { mutate as globalMutate } from "swr";
 import { WebView } from "react-native-webview";
@@ -17,6 +17,7 @@ import {
   Text,
 } from "react-native";
 
+import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
@@ -28,7 +29,6 @@ import PreloadWebView from "@/components/shared/learn/WebViewCourrseSection";
 import { programProgressKeys } from "@/constants/swr-path";
 import { theme } from "@/constants/theme";
 import { useUser } from "@/contexts/useUserInfo";
-import { trackEvent, Events } from "@/utils/analytics";
 import { useCustomRouter } from "@/hooks/useCustomRouter";
 import { useAppConfig } from "@/contexts/useAppConfig";
 import { posthogService } from "@/utils/posthogService";
@@ -113,7 +113,7 @@ const SectionDetail = () => {
       try {
         await ScreenCapture.preventScreenCaptureAsync();
       } catch (error) {
-        console.error("Error preventing screen capture:", error);
+        logger.error("Error preventing screen capture:", error);
       }
     };
 
@@ -124,7 +124,7 @@ const SectionDetail = () => {
         try {
           await ScreenCapture.allowScreenCaptureAsync();
         } catch (error) {
-          console.error("Error allowing screen capture:", error);
+          logger.error("Error allowing screen capture:", error);
         }
       };
       allowScreenshots();

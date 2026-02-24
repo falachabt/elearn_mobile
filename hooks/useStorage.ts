@@ -99,7 +99,7 @@ export const useStorage = ({ bucket, path = '', publicAccess = false }: UseStora
                 });
 
             if (uploadError) {
-                console.error('Supabase upload error:', uploadError);
+                logger.error('Supabase upload error:', uploadError);
                 throw uploadError;
             }
 
@@ -119,7 +119,7 @@ export const useStorage = ({ bucket, path = '', publicAccess = false }: UseStora
             }
 
         } catch (err) {
-            console.error('Upload error:', err);
+            logger.error('Upload error:', err);
             throw new Error(err instanceof Error ? err.message : 'Error uploading file');
         }
     };
@@ -136,7 +136,7 @@ export const useStorage = ({ bucket, path = '', publicAccess = false }: UseStora
 
             await mutate(storageKey);
         } catch (err) {
-            console.error('Delete error:', err);
+            logger.error('Delete error:', err);
             throw new Error(err instanceof Error ? err.message : 'Error deleting file');
         }
     };
@@ -153,7 +153,7 @@ export const useStorage = ({ bucket, path = '', publicAccess = false }: UseStora
             if (downloadError) throw downloadError;
             return data;
         } catch (err) {
-            console.error('Download error:', err);
+            logger.error('Download error:', err);
             throw new Error(err instanceof Error ? err.message : 'Error downloading file');
         }
     };

@@ -1,9 +1,10 @@
-import * as Device from 'expo-device';
+﻿import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/utils/logger';
 
 /**
  * Registers the device for push notifications and stores the token in the user's metadata
@@ -56,7 +57,7 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
         await updateUserPushToken(userId, token);
       }
     } catch (e) {
-      console.error('Error getting push token:', e);
+      logger.error('Error getting push token:', e);
     }
   }
 
@@ -78,7 +79,7 @@ export async function updateUserPushToken(userId: string, token: string): Promis
       .single();
 
     if (fetchError) {
-      console.error('Error fetching user metadata:', fetchError);
+      logger.error('Error fetching user metadata:', fetchError);
       return;
     }
 
@@ -96,10 +97,10 @@ export async function updateUserPushToken(userId: string, token: string): Promis
       .eq('id', userId);
 
     if (updateError) {
-      console.error('Error updating user metadata:', updateError);
+      logger.error('Error updating user metadata:', updateError);
     }
   } catch (error) {
-    console.error('Error in updateUserPushToken:', error);
+    logger.error('Error in updateUserPushToken:', error);
   }
 }
 

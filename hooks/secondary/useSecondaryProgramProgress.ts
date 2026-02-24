@@ -1,4 +1,5 @@
 import useSWR from 'swr';
+import { logger } from '@/utils/logger';
 
 import { supabase } from '@/lib/supabase';
 
@@ -41,7 +42,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
       .single();
 
     if (programError) {
-      console.error('Error fetching program:', programError);
+      logger.error('Error fetching program:', programError);
       throw programError;
     }
 
@@ -56,7 +57,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
       .eq('program_id', programId);
 
     if (coursesLinkError) {
-      console.error('Error fetching program courses:', coursesLinkError);
+      logger.error('Error fetching program courses:', coursesLinkError);
     }
 
     const courseIds = programCourses?.map(pc => pc.course_id).filter(id => id != null) || [];
@@ -68,7 +69,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
       .eq('program_id', programId);
 
     if (quizzesLinkError) {
-      console.error('Error fetching program quizzes:', quizzesLinkError);
+      logger.error('Error fetching program quizzes:', quizzesLinkError);
     }
 
     const quizIds = programQuizzes?.map(pq => pq.quiz_id).filter(id => id != null) || [];
@@ -80,7 +81,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
       .eq('program_id', programId);
 
     if (exercisesLinkError) {
-      console.error('Error fetching program exercises:', exercisesLinkError);
+      logger.error('Error fetching program exercises:', exercisesLinkError);
     }
 
     const exerciseIds = programExercises?.map(pe => pe.exercise_id).filter(id => id != null) || [];
@@ -93,7 +94,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
       .in('course_id', courseIds.length > 0 ? courseIds.map(id => Number(id)) : []);
 
     if (coursesError) {
-      console.error('Error fetching course progress:', coursesError);
+      logger.error('Error fetching course progress:', coursesError);
     }
 
     // Compter les cours complétés (progression >= 100%)
@@ -111,7 +112,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
       .in('quiz_id', quizIds.length > 0 ? quizIds : []);
 
     if (quizzesError) {
-      console.error('Error fetching completed quizzes:', quizzesError);
+      logger.error('Error fetching completed quizzes:', quizzesError);
     }
 
     // Dédupliquer les quiz_id (un utilisateur peut avoir plusieurs tentatives réussies du même quiz)
@@ -148,7 +149,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
       .eq('is_completed', true);
 
     if (documentsError) {
-      console.error('Error fetching completed documents count:', documentsError);
+      logger.error('Error fetching completed documents count:', documentsError);
     }
 
     // Calculer les progressions
@@ -200,7 +201,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
 
     return result;
   } catch (error) {
-    console.error('Error in fetchSecondaryProgramProgress:', error);
+    logger.error('Error in fetchSecondaryProgramProgress:', error);
     throw error;
   }
 };

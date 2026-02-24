@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system/legacy';
+﻿import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import {Pressable, StyleSheet, Text} from 'react-native';
 import {MaterialCommunityIcons} from "@expo/vector-icons";
@@ -29,7 +29,7 @@ const downloadInvoice = async (paymentId: { paymentId: string }) => {
             });
         }
     } catch (err: any) {
-        console.error('Error downloading invoice:', err);
+        logger.error('Error downloading invoice:', err);
         throw err;
     }
 };
@@ -40,7 +40,7 @@ export const DownloadBill = (paymentId: { paymentId: string }) => {
         try {
             await downloadInvoice(paymentId);
         } catch (err: any) {
-            console.error('Error during downloading:', err.message);
+            logger.error('Error during downloading:', err.message);
             // Handle error (show alert, etc.)
         }
     };

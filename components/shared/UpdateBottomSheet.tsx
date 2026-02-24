@@ -1,21 +1,51 @@
-import React, { forwardRef, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+﻿import React, { useCallback, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Modal,
+  Animated,
+  Pressable,
+  Dimensions,
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
 
 import { theme } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useUpdates } from '@/contexts/UpdatesContext';
+import { logger } from '@/utils/logger';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 interface UpdateBottomSheetProps {
-  // No props needed, we'll control it via ref
+  visible: boolean;
+  onDismiss: () => void;
 }
 
-const UpdateBottomSheet = forwardRef<BottomSheetModal, UpdateBottomSheetProps>((props, ref) => {
+export default function UpdateBottomSheet({ visible, onDismiss }: UpdateBottomSheetProps) {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
-  const { downloadAndApplyUpdate, dismissUpdate, isUpdating, updateError } = useUpdates();
+  const { downloadAndApplyUpdate, isUpdating, updateError } = useUpdates();
+
+  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }).start();
+    } else {
+      Animated.timing(translateY, {
+        toValue: SCREEN_HEIGHT,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible, translateY]);
 
   const backgroundColor = isDarkMode 
     ? theme.color.dark.background.primary 
@@ -29,203 +59,191 @@ const UpdateBottomSheet = forwardRef<BottomSheetModal, UpdateBottomSheetProps>((
     ? theme.color.dark.text.secondary 
     : theme.color.light.text.secondary;
 
-  // Define snap points for the bottom sheet
-  const snapPoints = useMemo(() => ['50%'], []);
-
   const handleDismiss = useCallback(() => {
-    dismissUpdate();
-    if (ref && typeof ref !== 'function' && ref.current) {
-      ref.current.dismiss();
-    }
-  }, [dismissUpdate, ref]);
-
-  // Backdrop component
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-        onPress={handleDismiss}
-      />
-    ),
-    [handleDismiss]
-  );
+    onDismiss();
+  }, [onDismiss]);
 
   const handleApplyUpdate = async () => {
     try {
       await downloadAndApplyUpdate();
     } catch (error) {
-      console.error('Error applying update:', error);
+      logger.error('Error applying update:', error);
     }
   };
 
   return (
-    <BottomSheetModal
-      ref={ref}
-      index={0}
-      snapPoints={snapPoints}
-      enablePanDownToClose
-      backdropComponent={renderBackdrop}
-      backgroundStyle={{
-        backgroundColor,
-      }}
-      handleIndicatorStyle={{
-        backgroundColor: isDarkMode ? theme.color.gray[600] : theme.color.gray[400],
-      }}
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={handleDismiss}
     >
-      <BottomSheetView
+      {/* Backdrop */}
+      <Pressable
+        onPress={handleDismiss}
         style={{
           flex: 1,
-          padding: 24,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'flex-end',
         }}
       >
-        {/* Header */}
-        <View style={{ alignItems: 'center', marginBottom: 20 }}>
-          <View
+        {/* Sheet — stopPropagation so tapping inside doesn't close */}
+        <Pressable onPress={() => {}}>
+          <Animated.View
             style={{
-              width: 60,
-              height: 60,
-              borderRadius: 30,
-              backgroundColor: theme.color.primary[500],
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 16,
+              backgroundColor,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 24,
+              paddingBottom: 40,
+              transform: [{ translateY }],
             }}
           >
-            <MaterialCommunityIcons
-              name="download"
-              size={28}
-              color="#FFFFFF"
+            {/* Handle indicator */}
+            <View
+              style={{
+                width: 40,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: isDarkMode ? theme.color.gray[600] : theme.color.gray[400],
+                alignSelf: 'center',
+                marginBottom: 20,
+              }}
             />
-          </View>
-          
-          <Text
-            style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: textColor,
-              fontFamily: theme.typography.fontFamily,
-              textAlign: 'center',
-            }}
-          >
-            Mise à jour disponible
-          </Text>
-        </View>
 
-        {/* Content */}
-        <Text
-          style={{
-            fontSize: 16,
-            color: secondaryTextColor,
-            fontFamily: theme.typography.fontFamily,
-            textAlign: 'center',
-            marginBottom: 24,
-            lineHeight: 24,
-          }}
-        >
-          Une nouvelle version de l'application est disponible. Redémarrez l'application pour bénéficier des dernières améliorations et corrections.
-        </Text>
+            {/* Header */}
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+              <View
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 30,
+                  backgroundColor: theme.color.primary[500],
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 16,
+                }}
+              >
+                <MaterialCommunityIcons name="download" size={28} color="#FFFFFF" />
+              </View>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  color: textColor,
+                  fontFamily: theme.typography.fontFamily,
+                  textAlign: 'center',
+                }}
+              >
+                Mise à jour disponible
+              </Text>
+            </View>
 
-        {/* Error message */}
-        {updateError && (
-          <View
-            style={{
-              backgroundColor: '#ffebee',
-              borderRadius: 8,
-              padding: 12,
-              marginBottom: 20,
-            }}
-          >
+            {/* Content */}
             <Text
               style={{
-                color: theme.color.danger,
-                fontSize: 14,
+                fontSize: 16,
+                color: secondaryTextColor,
                 fontFamily: theme.typography.fontFamily,
                 textAlign: 'center',
+                marginBottom: 24,
+                lineHeight: 24,
               }}
             >
-              {updateError}
+              Une nouvelle version de l'application est disponible. Redémarrez l'application pour bénéficier des dernières améliorations et corrections.
             </Text>
-          </View>
-        )}
 
-        {/* Actions */}
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          {/* Dismiss button */}
-          <TouchableOpacity
-            onPress={handleDismiss}
-            disabled={isUpdating}
-            style={{
-              flex: 1,
-              paddingVertical: 14,
-              paddingHorizontal: 20,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: isDarkMode 
-                ? theme.color.dark.border 
-                : theme.color.light.border,
-              backgroundColor: 'transparent',
-              alignItems: 'center',
-              opacity: isUpdating ? 0.6 : 1,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: textColor,
-                fontFamily: theme.typography.fontFamily,
-              }}
-            >
-              Plus tard
-            </Text>
-          </TouchableOpacity>
-
-          {/* Apply update button */}
-          <TouchableOpacity
-            onPress={handleApplyUpdate}
-            disabled={isUpdating}
-            style={{
-              flex: 1,
-              paddingVertical: 14,
-              paddingHorizontal: 20,
-              borderRadius: 12,
-              backgroundColor: theme.color.primary[500],
-              alignItems: 'center',
-              flexDirection: 'row',
-              justifyContent: 'center',
-              gap: 8,
-              opacity: isUpdating ? 0.8 : 1,
-            }}
-          >
-            {isUpdating ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <MaterialCommunityIcons
-                name="restart"
-                size={20}
-                color="#FFFFFF"
-              />
+            {/* Error message */}
+            {updateError && (
+              <View
+                style={{
+                  backgroundColor: '#ffebee',
+                  borderRadius: 8,
+                  padding: 12,
+                  marginBottom: 20,
+                }}
+              >
+                <Text
+                  style={{
+                    color: theme.color.danger,
+                    fontSize: 14,
+                    fontFamily: theme.typography.fontFamily,
+                    textAlign: 'center',
+                  }}
+                >
+                  {updateError}
+                </Text>
+              </View>
             )}
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: '#FFFFFF',
-                fontFamily: theme.typography.fontFamily,
-              }}
-            >
-              {isUpdating ? 'Redémarrage...' : 'Redémarrer'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </BottomSheetView>
-    </BottomSheetModal>
+
+            {/* Actions */}
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                onPress={handleDismiss}
+                disabled={isUpdating}
+                style={{
+                  flex: 1,
+                  paddingVertical: 14,
+                  paddingHorizontal: 20,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: isDarkMode
+                    ? theme.color.dark.border
+                    : theme.color.light.border,
+                  backgroundColor: 'transparent',
+                  alignItems: 'center',
+                  opacity: isUpdating ? 0.6 : 1,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color: textColor,
+                    fontFamily: theme.typography.fontFamily,
+                  }}
+                >
+                  Plus tard
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleApplyUpdate}
+                disabled={isUpdating}
+                style={{
+                  flex: 1,
+                  paddingVertical: 14,
+                  paddingHorizontal: 20,
+                  borderRadius: 12,
+                  backgroundColor: theme.color.primary[500],
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  gap: 8,
+                  opacity: isUpdating ? 0.8 : 1,
+                }}
+              >
+                {isUpdating ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <MaterialCommunityIcons name="restart" size={20} color="#FFFFFF" />
+                )}
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color: '#FFFFFF',
+                    fontFamily: theme.typography.fontFamily,
+                  }}
+                >
+                  {isUpdating ? 'Redémarrage...' : 'Redémarrer'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
-});
-
-UpdateBottomSheet.displayName = 'UpdateBottomSheet';
-
-export default UpdateBottomSheet;
+}

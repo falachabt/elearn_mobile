@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -128,7 +129,7 @@ export const CompetitionPaymentBottomSheet = ({
             }
           }
         } catch (error) {
-          console.error('Error checking existing payment:', error);
+          logger.error('Error checking existing payment:', error);
         }
       };
 
@@ -206,7 +207,7 @@ export const CompetitionPaymentBottomSheet = ({
         try {
           await verifyPaymentStatus(currentTrxReference);
         } catch (error) {
-          console.error('Error verifying payment:', error);
+          logger.error('Error verifying payment:', error);
         }
       }, 5000); // Check every 5 seconds
 
@@ -294,7 +295,7 @@ export const CompetitionPaymentBottomSheet = ({
         await getLatestPayment(competitionId);
       }
     } catch (error) {
-      console.error('Payment initiation error:', error);
+      logger.error('Payment initiation error:', error);
       setProcessingState('failed');
       setErrorMessage(error instanceof Error ? error.message : 'Une erreur est survenue lors du paiement');
     }
@@ -359,7 +360,7 @@ export const CompetitionPaymentBottomSheet = ({
       try {
         await verifyPaymentStatus(currentTrxReference);
       } catch (error) {
-        console.error('Error verifying payment:', error);
+        logger.error('Error verifying payment:', error);
       }
     }
   };
@@ -392,7 +393,7 @@ export const CompetitionPaymentBottomSheet = ({
       
       // Don't reload payment here - it will be reloaded when user initiates new payment
     } catch (error) {
-      console.error('[PaymentSheet] Error starting new payment:', error);
+      logger.error('[PaymentSheet] Error starting new payment:', error);
       // Even on error, show fresh form
       setProcessingState('idle');
       setErrorMessage(null);

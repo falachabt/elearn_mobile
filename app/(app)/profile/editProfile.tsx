@@ -1,4 +1,5 @@
-import React, {useState, useRef, useEffect} from 'react';
+﻿import React, {useState, useRef, useEffect} from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -150,14 +151,14 @@ export default function EditProfile() {
             }).eq('id', user?.id);
 
             if (error) {
-                console.error('Error updating profile:', error);
+                logger.error('Error updating profile:', error);
                 // Handle error appropriately
                 return;
             }
 
             router.back();
         } catch (error) {
-            console.error('Error updating profile:', error);
+            logger.error('Error updating profile:', error);
             // Handle error appropriately
         }
     };

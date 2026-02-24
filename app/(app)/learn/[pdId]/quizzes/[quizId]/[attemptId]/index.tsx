@@ -1,4 +1,5 @@
-import React, {useState, useEffect, useCallback, useMemo, memo} from "react";
+﻿import React, {useState, useEffect, useCallback, useMemo, memo} from "react";
+import { logger } from '@/utils/logger';
 import {
     View,
     StyleSheet,
@@ -208,7 +209,7 @@ const MixedContentRenderer = memo(({
                 setKatexHeight(data.height / 4);
             }
         } catch (error) {
-            console.error('Error parsing WebView message:', error);
+            logger.error('Error parsing WebView message:', error);
         }
     };
 
@@ -243,7 +244,7 @@ const MixedContentRenderer = memo(({
             </View>
         );
     } catch (error) {
-        console.error('MixedContentRenderer error:', error);
+        logger.error('MixedContentRenderer error:', error);
         return <Text style={style}>{text.replace(/\$\$(.*?)\$\$/g, '[Math]')}</Text>;
     }
 });
@@ -466,7 +467,7 @@ const QuizFooter = memo(({
                 await handleNextQuestion();
             }
         } catch (error) {
-            console.error('Error submitting answer:', error);
+            logger.error('Error submitting answer:', error);
             Alert.alert("Error", "Failed to submit answer. Please try again.");
         } finally {
             setIsSubmitting(false);
@@ -617,7 +618,7 @@ const QuizContent = () => {
             // Navigate to the quiz play page with new attempt ID
             router.push(getQuizAttemptPath(String(quizId), attempt.id));
         } catch (error) {
-            console.error("Error creating quiz attempt:", error);
+            logger.error("Error creating quiz attempt:", error);
             Alert.alert("Error", "Failed to create new quiz attempt. Please try again.");
         }
     }, [quizId, user, router, getQuizAttemptPath]);

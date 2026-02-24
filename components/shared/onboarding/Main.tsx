@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+﻿import React, { useState, useRef, useEffect } from "react";
+import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -130,7 +131,7 @@ const MainOnboarding = () => {
       setMergedAccountData(sanitizedData);
 
     } catch (error) {
-      console.error('Error merging account data:', error);
+      logger.error('Error merging account data:', error);
       setIsDataValid(false);
       setMergedAccountData(null);
     }
@@ -207,7 +208,7 @@ const MainOnboarding = () => {
           });
         }
       } catch (error) {
-        console.error('Error fetching user defaults:', error);
+        logger.error('Error fetching user defaults:', error);
         // Set minimal defaults in case of error
         setUserInfo({
           firstname: '',
@@ -248,7 +249,7 @@ const MainOnboarding = () => {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error updating account:', error);
+      logger.error('Error updating account:', error);
       return false;
     }
   };

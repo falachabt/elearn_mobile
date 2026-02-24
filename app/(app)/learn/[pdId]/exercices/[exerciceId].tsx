@@ -1,4 +1,4 @@
-import {
+﻿import {
     View,
     Text,
     StyleSheet,
@@ -222,7 +222,7 @@ const ExercisePage = () => {
 
             mutateCompleteData();
         } catch (error) {
-            console.error("Error updating completion state:", error);
+            logger.error("Error updating completion state:", error);
             mutateCompleteData({is_completed: isCompleted}, false);
         }
     };
@@ -246,7 +246,7 @@ const ExercisePage = () => {
 
             mutatePinData();
         } catch (error) {
-            console.error("Error updating pin state:", error);
+            logger.error("Error updating pin state:", error);
             mutatePinData({is_pinned: isPinned}, false);
         }
     };

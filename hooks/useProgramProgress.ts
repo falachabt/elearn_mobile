@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { logger } from '@/utils/logger';
 import useSWR from "swr";
 
 import { supabase } from "@/lib/supabase";
@@ -210,7 +211,7 @@ export const useProgramProgress = (
         .single();
 
       if (programError) {
-        console.error(
+        logger.error(
           "[useProgramProgress] ERREUR CRITIQUE à l'étape 1: Échec de la récupération du programme.",
           programError
         );
@@ -220,7 +221,7 @@ export const useProgramProgress = (
         const noDataError = new Error(
           "Aucune donnée de programme trouvée pour cet ID. .single() a probablement échoué car 0 ligne retournée."
         );
-        console.error(
+        logger.error(
           "[useProgramProgress] ❌ ERREUR CRITIQUE à l'étape 1:",
           noDataError.message
         );
@@ -234,7 +235,7 @@ export const useProgramProgress = (
         const structureError = new Error(
           "La structure des données du programme est incorrecte. `course_learningpath` ou `quiz_learningpath` est manquant."
         );
-        console.error(
+        logger.error(
           "[useProgramProgress] ERREUR CRITIQUE DE STRUCTURE:",
           structureError,
           "course_learningpath:",
@@ -292,7 +293,7 @@ export const useProgramProgress = (
                   .in("exercice_id", chunk)
                   .then(({ data, error }) => {
                     if (error) {
-                      console.error(
+                      logger.error(
                         `[useProgramProgress] ❌ Erreur chunk exercices ${index + 1}:`,
                         error,
                         "Message:",
@@ -461,7 +462,7 @@ export const useProgramProgress = (
   // LOG: Ce useEffect se déclenchera UNIQUEMENT si SWR renvoie une erreur finale.
   useEffect(() => {
     if (error) {
-      console.error(
+      logger.error(
         "[useProgramProgress] Erreur:",
         error.message
       );

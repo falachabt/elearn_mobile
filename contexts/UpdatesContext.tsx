@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+﻿import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import * as Updates from 'expo-updates';
 import { AppState, AppStateStatus } from 'react-native';
+
+import { logger } from '@/utils/logger';
 
 interface UpdatesContextType {
   isUpdateAvailable: boolean;
@@ -60,7 +62,7 @@ export function UpdatesProvider({ children }: UpdatesProviderProps) {
         setIsUpdateAvailable(false);
       }
     } catch (error) {
-      console.error('Error checking for updates:', error);
+      logger.error('Error checking for updates:', error);
       setUpdateError(error instanceof Error ? error.message : 'Failed to check for updates');
     } finally {
       setIsCheckingForUpdate(false);
@@ -78,7 +80,7 @@ export function UpdatesProvider({ children }: UpdatesProviderProps) {
     try {
       await Updates.reloadAsync();
     } catch (error) {
-      console.error('Error applying update:', error);
+      logger.error('Error applying update:', error);
       setUpdateError(error instanceof Error ? error.message : 'Failed to apply update');
       setIsUpdating(false);
     }

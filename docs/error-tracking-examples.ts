@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+﻿/* eslint-disable @typescript-eslint/no-unused-vars */
+import { logger } from '@/utils/logger';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Exemples d'utilisation du tracking d'erreurs PostHog
@@ -12,7 +13,6 @@
  * - Erreurs React (via PostHogErrorBoundary)
  */
 
-import { logger } from '@/utils/logger';
 import { posthog } from '@/lib/posthog';
 import { trackError, trackApiError, trackValidationError, trackEvent, Events } from '@/utils/analytics';
 
@@ -168,8 +168,7 @@ const example6_PaymentError = async (amount: number, method: string) => {
  * 
  * import React, { useEffect, useState } from 'react';
  * import { View, Text } from 'react-native';
- * import { logger } from '@/utils/logger';
- * 
+ *  * 
  * const MyComponent = () => {
  *   const [data, setData] = useState(null);
  *   

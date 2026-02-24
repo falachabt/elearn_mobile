@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+﻿import React, { useState, useEffect, useRef, useMemo } from "react";
+import { logger } from '@/utils/logger';
 import {
     ScrollView,
     StyleSheet,
@@ -379,7 +380,7 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
             // Navigate to the quiz play page with attempt ID using basePath
             router.push(`${basePath}/${programId}/quizzes/${quizId}/${attempt.id}` as Href);
         } catch (error) {
-            console.error("Error creating quiz attempt:", error);
+            logger.error("Error creating quiz attempt:", error);
         }
     };
 
@@ -405,7 +406,7 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
 
             await mutateQuizPin();
         } catch (error) {
-            console.error("Error pinning quiz:", error);
+            logger.error("Error pinning quiz:", error);
         }
     };
 

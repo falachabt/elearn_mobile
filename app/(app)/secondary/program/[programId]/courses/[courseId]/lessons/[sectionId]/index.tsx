@@ -1,4 +1,5 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+﻿import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { logger } from '@/utils/logger';
 import { useLocalSearchParams } from "expo-router";
 import * as ScreenCapture from "expo-screen-capture";
 import { useEffect, useRef, useState } from "react";
@@ -106,7 +107,7 @@ const SecondarySectionDetail = () => {
       try {
         await ScreenCapture.preventScreenCaptureAsync();
       } catch (error) {
-        console.error("Error preventing screen capture:", error);
+        logger.error("Error preventing screen capture:", error);
       }
     };
 
@@ -117,7 +118,7 @@ const SecondarySectionDetail = () => {
         try {
           await ScreenCapture.allowScreenCaptureAsync();
         } catch (error) {
-          console.error("Error allowing screen capture:", error);
+          logger.error("Error allowing screen capture:", error);
         }
       };
       allowScreenshots();
@@ -464,7 +465,7 @@ const SecondarySectionDetail = () => {
           }
         } catch (error) {
           // Handle parse errors
-          console.error("Error parsing message from WebView:", error);
+          logger.error("Error parsing message from WebView:", error);
         }
       };
 

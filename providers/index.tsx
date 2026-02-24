@@ -1,4 +1,4 @@
-import {
+﻿import {
   AppState,
   AppStateStatus,
   BackHandler,
@@ -14,7 +14,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as amplitude from "@amplitude/analytics-react-native";
 import { PostHogProvider, PostHogErrorBoundary } from "posthog-react-native";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import React from "react";
 
 import { AuthProvider } from "@/contexts/auth";
@@ -31,6 +30,7 @@ import UpdatesManager from "@/components/shared/UpdatesManager";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { posthog } from "@/lib/posthog";
 import { theme } from "@/constants/theme";
+import { logger } from "@/utils/logger";
 // import {useRouteRevalidation} from "@/hooks/useRouteRevalidation";
 
 // Array of motivational messages to show when user tries to exit
@@ -139,7 +139,7 @@ function asyncStorageProvider() {
                   const parsedValue = JSON.parse(value);
                   map.set(key.substring(SWR_CACHE_PREFIX.length), parsedValue);
                 } catch (parseError) {
-                  console.error("Error parsing cached value:", parseError);
+                  logger.error("Error parsing cached value:", parseError);
                 }
               }
             });
@@ -155,7 +155,7 @@ function asyncStorageProvider() {
         }
         initialized = true;
       } catch (error) {
-        console.error("Error initializing SWR cache:", error);
+        logger.error("Error initializing SWR cache:", error);
       } finally {
         initializing = false;
       }
@@ -198,7 +198,7 @@ function asyncStorageProvider() {
             );
           }
         } catch (error) {
-          console.error("Error setting SWR cache:", error);
+          logger.error("Error setting SWR cache:", error);
         }
       })();
     },
@@ -220,7 +220,7 @@ function asyncStorageProvider() {
             await AsyncStorage.removeItem(`${SWR_CACHE_PREFIX}${key}`);
           }
         } catch (error) {
-          console.error("Error deleting SWR cache:", error);
+          logger.error("Error deleting SWR cache:", error);
         }
       })();
     },
@@ -314,7 +314,7 @@ const BackHandlerManager = React.memo(
             return true;
           }
         } catch (error) {
-          console.error("Erreur lors de l'exécution de backAction:", error);
+          logger.error("Erreur lors de l'exécution de backAction:", error);
           return false;
         }
       };
@@ -501,9 +501,8 @@ export function Provider({ children }: { children: React.ReactNode }) {
             <UserProvider>
               <NavigationProvider>
                 <GestureHandlerRootView style={{ flex: 1 }}>
-                  <BottomSheetModalProvider>
-                    <UpdatesProvider>
-                      <ChatProvider>
+                  <UpdatesProvider>
+                    <ChatProvider>
                         <QuizProvider
                           quizId={String(quizId)}
                           attemptId={String(attempId)}
@@ -514,9 +513,8 @@ export function Provider({ children }: { children: React.ReactNode }) {
                           <BackHandlerManager>{children}</BackHandlerManager>
                           {/* </RouteRevalidationManager> */}
                         </QuizProvider>
-                      </ChatProvider>
-                    </UpdatesProvider>
-                  </BottomSheetModalProvider>
+                    </ChatProvider>
+                  </UpdatesProvider>
                 </GestureHandlerRootView>
               </NavigationProvider>
             </UserProvider>

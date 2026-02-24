@@ -7,9 +7,11 @@
  * Deep link: com.ezadrive.elearn://auth/callback
  */
 
+
 import { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+
 import { ThemedText } from '@/components/ThemedText';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/utils/logger';
@@ -38,7 +40,8 @@ export default function OAuthCallbackScreen() {
       if (session) {
         logger.log('[OAuthCallback] Session found, redirecting to app');
         // Rediriger vers l'app
-        router.replace('/(app)/(tabs)');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.replace('/(app)/(tabs)' as any);
       } else {
         // Attendre un peu et réessayer
         logger.log('[OAuthCallback] No session yet, waiting...');
@@ -48,7 +51,8 @@ export default function OAuthCallbackScreen() {
         
         if (retrySession) {
           logger.log('[OAuthCallback] Session found after retry, redirecting');
-          router.replace('/(app)/(tabs)');
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          router.replace('/(app)/(tabs)' as any);
         } else {
           logger.error('[OAuthCallback] No session found after retry');
           throw new Error('Authentication failed - no session created');

@@ -1,4 +1,5 @@
-import { supabase } from "@/lib/supabase";
+﻿import { supabase } from "@/lib/supabase";
+import { logger } from '@/utils/logger';
 import { SecondaryProgram } from "@/types/secondary.type";
 
 export async function getSecondaryPrograms(): Promise<SecondaryProgram[]> {
@@ -112,8 +113,8 @@ export async function getSecondaryProgramExercises(
       ]);
       
       // Log errors if any
-      if (pinsRes.error) console.error("Error fetching pins:", pinsRes.error);
-      if (completesRes.error) console.error("Error fetching completes:", completesRes.error);
+      if (pinsRes.error) logger.error("Error fetching pins:", pinsRes.error);
+      if (completesRes.error) logger.error("Error fetching completes:", completesRes.error);
       
       // Create maps for quick lookup
       const pinsMap = new Map(

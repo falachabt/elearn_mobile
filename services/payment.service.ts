@@ -1,4 +1,5 @@
-import { supabase } from '@/lib/supabase';
+﻿import { supabase } from '@/lib/supabase';
+import { logger } from '@/utils/logger';
 import { Payments } from '@/types/type';
 
 export const PaymentService = {
@@ -25,7 +26,7 @@ export const PaymentService = {
             .single();
 
         if (error) {
-            console.error('Error creating payment:', error);
+            logger.error('Error creating payment:', error);
             throw new Error(error.message);
         }
 
@@ -41,7 +42,7 @@ export const PaymentService = {
             .eq('id', paymentId);
 
         if (error) {
-            console.error('Error updating payment status:', error);
+            logger.error('Error updating payment status:', error);
             throw new Error(error.message);
         }
     },

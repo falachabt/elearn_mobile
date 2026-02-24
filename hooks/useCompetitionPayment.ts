@@ -48,7 +48,7 @@ export const useCompetitionPayment = () => {
       setHasAccess(hasAccess);
       return hasAccess;
     } catch (error) {
-      console.error("Error checking competition access:", error);
+      logger.error("Error checking competition access:", error);
       setHasAccess(false);
       return false;
     } finally {
@@ -73,7 +73,7 @@ export const useCompetitionPayment = () => {
       setPayment(payment);
       return payment;
     } catch (error) {
-      console.error("Error getting active competition payment:", error);
+      logger.error("Error getting active competition payment:", error);
       return null;
     }
   };
@@ -93,7 +93,7 @@ export const useCompetitionPayment = () => {
       }
       return payment;
     } catch (error) {
-      console.error("Error getting latest competition payment:", error);
+      logger.error("Error getting latest competition payment:", error);
       return null;
     } finally {
       setLatestPaymentLoading(false);
@@ -148,7 +148,7 @@ export const useCompetitionPayment = () => {
 
       return result;
     } catch (error) {
-      console.error("Error in direct competition payment:", error);
+      logger.error("Error in direct competition payment:", error);
       setChargeError(
         error instanceof Error ? error.message : "Payment failed"
       );
@@ -172,7 +172,7 @@ export const useCompetitionPayment = () => {
         setChargeError(null);
         setPaymentStatus("canceled");
       } catch (error) {
-        console.error("Error cancelling competition payment:", error);
+        logger.error("Error cancelling competition payment:", error);
       }
     }
   };
@@ -215,7 +215,7 @@ export const useCompetitionPayment = () => {
 
       return result;
     } catch (error) {
-      console.error("Error verifying competition payment status:", error);
+      logger.error("Error verifying competition payment status:", error);
     }
   };
 

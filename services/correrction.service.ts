@@ -1,4 +1,5 @@
-import run from '@/config/gemini';
+﻿import run from '@/config/gemini';
+import { logger } from '@/utils/logger';
 import {QuizQuestion, QuizOption} from '@/types/quiz.type';
 
 export class CorrectionService {
@@ -55,7 +56,7 @@ Ta réponse doit être pédagogique et permettre à l'apprenant de comprendre le
             cleanedResponse = cleanedResponse.replace(/^(\$).*?:/i, '$$').trim();
             return cleanedResponse;
         } catch (error: unknown) {
-            console.error('Erreur dans CorrectionService.generateAnswer :', error);
+            logger.error('Erreur dans CorrectionService.generateAnswer :', error);
             throw new Error(`Impossible de générer une explication pour la question ID ${question.id}: ${(error as Error).message}`);
         }
         */

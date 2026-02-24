@@ -118,7 +118,7 @@ export const useHaptics = (options: HapticOptions = { disableOnAndroid: false })
                 setHapticEnabled(settings.hapticEnabled !== false);
             }
         } catch (error) {
-            console.error('Error loading haptic settings:', error);
+            logger.error('Error loading haptic settings:', error);
             setHapticEnabled(true);
         }
     };

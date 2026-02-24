@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { logger } from '@/utils/logger';
 
 import { PaymentService } from "@/services/payment.service";
 import { Payments } from "@/types/type";
@@ -45,7 +46,7 @@ export const usePayment = () => {
 
       return payment;
     } catch (error) {
-    console.error("Error in payment initiation:", error);
+    logger.error("Error in payment initiation:", error);
     setChargeError(
         error instanceof Error ? error.message : "Payment initiation failed"
     );
@@ -145,7 +146,7 @@ export const usePayment = () => {
       throw new Error("Payment initialization failed");
 
     }  catch (error) {
-    console.error("Error in direct payment:", error);
+    logger.error("Error in direct payment:", error);
     setChargeError(
         error instanceof Error ? error.message : "Payment failed"
     );
@@ -172,7 +173,7 @@ export const usePayment = () => {
         setAuthorizationUrl(null);
         setChargeError(null);
       } catch (error) {
-        console.error("Error cancelling payment:", error);
+        logger.error("Error cancelling payment:", error);
       }
     }
   };
@@ -182,7 +183,7 @@ export const usePayment = () => {
     try {
       return await PaymentService.verifyPromoCode(code);
     } catch (error) {
-      console.error("Error verifying promo code:", error);
+      logger.error("Error verifying promo code:", error);
       return null;
     }
   };
@@ -205,7 +206,7 @@ export const usePayment = () => {
 
       return result;
     } catch (error) {
-      console.error("Error verifying payment status:", error);
+      logger.error("Error verifying payment status:", error);
     }
   };
 

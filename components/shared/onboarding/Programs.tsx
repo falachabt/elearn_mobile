@@ -1,4 +1,4 @@
-import {
+﻿import {
   Text,
   ScrollView,
   StyleSheet,
@@ -29,6 +29,7 @@ import { ProgramCard } from '../ProgramCard';
 import { useCart } from '@/hooks/useCart';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
+import { logger } from '@/utils/logger';
 
 interface Program {
   id: number;
@@ -250,14 +251,14 @@ const optimizedProgramsFetcher = async () => {
           archiveCount: archiveCount || 0
         };
       } catch (error) {
-        console.error("Error calculating counts for program:", error);
+        logger.error("Error calculating counts for program:", error);
         return program;
       }
     }));
 
     return processedData || [];
   } catch (error) {
-    console.error("Error fetching programs:", error);
+    logger.error("Error fetching programs:", error);
     throw error;
   }
 };
@@ -294,7 +295,7 @@ const loadProgramDetails = async (programId: number) => {
 
     return await fetchProgramDetails(lpId, concourId);
   } catch (error) {
-    console.error(`Error loading details for program ${programId}:`, error);
+    logger.error(`Error loading details for program ${programId}:`, error);
     return null;
   }
 };
@@ -349,7 +350,7 @@ const fetchProgramDetails = async (lpId: string, concourId: string) => {
       archives: archivesData || []
     };
   } catch (error) {
-    console.error("Error fetching program details:", error);
+    logger.error("Error fetching program details:", error);
     return {
       courses: [],
       quizzes: [],
@@ -375,7 +376,7 @@ const prefetchFilterOptions = async () => {
       schools: schoolsResponse.data || []
     };
   } catch (error) {
-    console.error("Error prefetching filter options:", error);
+    logger.error("Error prefetching filter options:", error);
     return {
       cycles: [],
       cities: [],
@@ -698,7 +699,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
         return details;
       }
     } catch (error) {
-      console.error("Error loading program details:", error);
+      logger.error("Error loading program details:", error);
     }
 
     return null;
@@ -719,7 +720,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
         await addToCart(programId, program.price || 0);
       }
     } catch (error) {
-      console.error('Error managing cart:', error);
+      logger.error('Error managing cart:', error);
     }
   };
 

@@ -1,4 +1,4 @@
-import {
+﻿import {
     ActivityIndicator,
     FlatList,
     StyleSheet,
@@ -252,12 +252,12 @@ export const ExercisesList = () => {
                 );
 
             if (error) {
-                console.error("Error updating pin state:", error);
+                logger.error("Error updating pin state:", error);
             } else {
                 await mutate();
             }
         } catch (error) {
-            console.error("Unexpected error updating pin state:", error);
+            logger.error("Unexpected error updating pin state:", error);
         }
     };
 
@@ -299,12 +299,12 @@ export const ExercisesList = () => {
                 );
 
             if (error) {
-                console.error("Error updating completion state:", error);
+                logger.error("Error updating completion state:", error);
             } else {
                 await mutate();
             }
         } catch (error) {
-            console.error("Unexpected error updating completion state:", error);
+            logger.error("Unexpected error updating completion state:", error);
         }
     };
 
@@ -319,7 +319,7 @@ export const ExercisesList = () => {
     }
 
     if (error) {
-        console.error("Error fetching data:", error);
+        logger.error("Error fetching data:", error);
         return null;
     }
 

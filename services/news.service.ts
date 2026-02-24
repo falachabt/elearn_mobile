@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+﻿import { supabase } from '@/lib/supabase';
 import { logger } from '@/utils/logger';
 import type {
   News,
@@ -239,13 +239,13 @@ export const isNewsVisibleForUser = async (
     });
 
     if (error) {
-      console.error('[News Service] Error checking news visibility:', error);
+      logger.error('[News Service] Error checking news visibility:', error);
       return false;
     }
 
     return data === true;
   } catch (error) {
-    console.error('[News Service] Exception in isNewsVisibleForUser:', error);
+    logger.error('[News Service] Exception in isNewsVisibleForUser:', error);
     return false;
   }
 };

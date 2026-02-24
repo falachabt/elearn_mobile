@@ -1,4 +1,4 @@
-import {
+﻿import {
     GoogleGenerativeAI,
     GenerativeModel,
     ChatSession,
@@ -34,7 +34,7 @@ async function run(prompt: string): Promise<string> {
         const response = await result.response;
         return response.text();
     } catch (error) {
-        console.error("Error in Gemini API call:", error);
+        logger.error("Error in Gemini API call:", error);
         throw error;
     }
 }

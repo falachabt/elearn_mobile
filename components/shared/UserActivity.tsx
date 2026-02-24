@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { usePathname } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
+import { logger } from '@/utils/logger';
 
 const HEARTBEAT_INTERVAL = 1000; // 1 seconds
 const SESSION_TIMEOUT = 300000; // 5 minutes
@@ -46,7 +47,7 @@ const UserActivityTracker: React.FC = () => {
             .single();
 
         if (error) {
-            console.error('Error starting session:', error);
+            logger.error('Error starting session:', error);
         } else {
             setSessionId(data.id);
             setLastHeartbeat(new Date());
@@ -63,7 +64,7 @@ const UserActivityTracker: React.FC = () => {
                 .eq('id', sessionId);
 
             if (error) {
-                console.error('Error sending heartbeat:', error);
+                logger.error('Error sending heartbeat:', error);
             } else {
                 setLastHeartbeat(new Date());
             }
@@ -80,7 +81,7 @@ const UserActivityTracker: React.FC = () => {
                 .eq('id', sessionId);
 
             if (error) {
-                console.error('Error ending session:', error);
+                logger.error('Error ending session:', error);
             } else {
                 setSessionId(null);
             }

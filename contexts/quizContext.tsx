@@ -1,4 +1,4 @@
-// contexts/QuizContext.tsx
+﻿// contexts/QuizContext.tsx
 import React, {createContext, useContext, useReducer, useEffect, useRef} from 'react';
 import {Alert} from 'react-native';
 import {useGlobalSearchParams, useLocalSearchParams, useRouter} from "expo-router";
@@ -10,6 +10,7 @@ import {QuizService} from '@/services/quiz.service';
 import {Quiz} from "@/types/type";
 import { useNavigation } from '@/contexts/NavigationContext';
 import { posthogService } from '@/utils/posthogService';
+import { logger } from '@/utils/logger';
 
 
 type QuizAction =
@@ -264,7 +265,7 @@ export function QuizProvider({
                         }
                     }
                 } catch (error) {
-                    console.error('Error loading saved answers:', error);
+                    logger.error('Error loading saved answers:', error);
                 }
             }
         }
@@ -325,7 +326,7 @@ export function QuizProvider({
                         state.currentQuestionIndex
                     );
                 } catch (error) {
-                    console.error('Error updating progress:', error);
+                    logger.error('Error updating progress:', error);
                 }
             }
         };
@@ -412,7 +413,7 @@ export function QuizProvider({
                     isCorrect
                 );
             } catch (error) {
-                console.error('Error saving answer:', error);
+                logger.error('Error saving answer:', error);
                 // Don't block UI even if save fails
             }
 
@@ -438,12 +439,12 @@ export function QuizProvider({
 
                     return results;
                 } catch (error) {
-                    console.error('Error finishing quiz:', error);
+                    logger.error('Error finishing quiz:', error);
                     Alert.alert('Error', 'Failed to submit quiz. Please try again.');
                 }
             }
         } catch (error) {
-            console.error('Error handling next question:', error);
+            logger.error('Error handling next question:', error);
             Alert.alert('Error', 'Failed to process answer. Please try again.');
         } finally {
             dispatch({type: 'SET_SUBMITTING', payload: false});
@@ -463,7 +464,7 @@ export function QuizProvider({
                 justification
             );
         } catch (error) {
-            console.error('Error saving justification:', error);
+            logger.error('Error saving justification:', error);
             Alert.alert('Error', 'Failed to save justification. Please try again.');
         }
     }
@@ -475,7 +476,7 @@ export function QuizProvider({
             try {
                 await QuizService.resetAttempt(quizId, attempt?.user_id || '');
             } catch (error) {
-                console.error('Error resetting quiz on server:', error);
+                logger.error('Error resetting quiz on server:', error);
                 Alert.alert('Error', 'Failed to reset quiz on server. Please try again.');
                 return;
             }
@@ -483,7 +484,7 @@ export function QuizProvider({
             // Reset state completely to ensure all old data is cleared
             dispatch({type: 'RESET_STATE'});
         } catch (error) {
-            console.error('Error resetting quiz:', error);
+            logger.error('Error resetting quiz:', error);
             Alert.alert('Error', 'Failed to reset quiz. Please try again.');
         } finally {
             dispatch({type: 'SET_SUBMITTING', payload: false});

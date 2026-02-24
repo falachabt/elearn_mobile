@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
+import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -88,7 +89,7 @@ const DeleteAccount = () => {
                 throw new Error(response.data.error || 'Failed to delete account');
             }
         } catch (error) {
-            console.error('Error deleting account:', error);
+            logger.error('Error deleting account:', error);
             Alert.alert(
                 'Error',
                 'Failed to delete account. Please try again later.',

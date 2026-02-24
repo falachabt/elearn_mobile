@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo } from "react";
+﻿import React, { useEffect, useState, useMemo } from "react";
+import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -138,13 +139,13 @@ const GenerousWeekPage = () => {
           `);
 
         if (fallbackError) {
-          console.error("Error fetching programs:", fallbackError);
+          logger.error("Error fetching programs:", fallbackError);
           return;
         }
 
         setPrograms(fallbackData as unknown as Course[]);
       } catch (error) {
-        console.error("Error in fetchPrograms:", error);
+        logger.error("Error in fetchPrograms:", error);
       } finally {
         setLoading(false);
       }
@@ -190,7 +191,7 @@ const GenerousWeekPage = () => {
           .eq("id", authUser.id);
 
       if (error) {
-        console.error("Error saving generous week choice:", error);
+        logger.error("Error saving generous week choice:", error);
         return;
       }
 
@@ -211,7 +212,7 @@ const GenerousWeekPage = () => {
         }
       }, 2000);
     } catch (error) {
-      console.error("Error in saveGenerousWeekChoice:", error);
+      logger.error("Error in saveGenerousWeekChoice:", error);
     } finally {
       setSavingChoice(false);
     }
