@@ -79,7 +79,7 @@ export class NotchPayService {
       // Add callback URL if not provided - this should match your app's scheme in app.json
       // const callbackUrl = 'http://192.168.1.168:3000/paiement_webhook/callback';
       const callbackUrl =
-        "https://elearn.ezadrive.com/api/paiement_webhook/callback";
+        "https://staff.elearnprepa.com/api/paiement_webhook/callback";
 
       const updatedParams = {
         ...params,

@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '@/constants/theme';
 
 // URL fixe pour les CGU
-const CGU_URL = 'https://elearn.ezadrive.com/en/privacy';
+const CGU_URL = 'https://elearnprepa.com/en/privacy';
 const PAGE_TITLE = 'Politique de Confidentialité';
 
 export default function CGUScreen() {

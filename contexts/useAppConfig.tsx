@@ -129,8 +129,8 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
         !appConfig.data.webview.exercise_url) {
         logger.warn('[AppConfig] WebView URLs not configured, using defaults');
         return {
-            course_url: "https://elearn.ezadrive.com/fr/webview/courseContent",
-            exercise_url: "https://elearn.ezadrive.com/fr/webview/exercices"
+            course_url: "https://staff.elearnprepa.com/fr/webview/courseContent",
+            exercise_url: "https://staff.elearnprepa.com/fr/webview/exercices"
         };
     }
     return appConfig.data.webview;
@@ -139,7 +139,7 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
   const getApiBaseUrl = () => {
     if (!appConfig?.data?.api_base_url || appConfig.data.api_base_url.trim() === '') {
         logger.warn('[AppConfig] API base URL not configured, using default');
-        return "https://elearn.ezadrive.com";
+        return "https://staff.elearnprepa.com";
     }
     return appConfig.data.api_base_url;
   };

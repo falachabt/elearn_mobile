@@ -220,7 +220,7 @@ export default function Login() {
     return true;
   };
 
-  const validatePassword = (password: string | any[]) => {
+  const validatePassword = (password: string | string[]) => {
     if (!password) {
       setPasswordError("Le mot de passe est requis");
       return false;
@@ -287,7 +287,7 @@ export default function Login() {
         type: "success",
       });
       return <Redirect href={"/(app)"} />;
-    } catch (error) {
+    } catch {
       trigger(HapticType.ERROR);
       shakeForm();
       setToast({

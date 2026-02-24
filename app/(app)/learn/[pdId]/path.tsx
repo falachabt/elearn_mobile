@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/auth';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 
 // URL for your Next.js backend
-const NEXT_JS_BASE_URL = 'https://elearn.ezadrive.com/fr/webview';
+const NEXT_JS_BASE_URL = 'https://staff.elearnprepa.com/fr/webview';
 
 export default function PathPage() {
     const colorScheme = useColorScheme();
