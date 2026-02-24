@@ -9,7 +9,7 @@ if (!posthogApiKey) {
 }
 
 export const posthog = new PostHog(posthogApiKey ?? '', {
-  host: 'https://eu.i.posthog.com',
+  host: 'https://us.posthog.com',
   captureAppLifecycleEvents: true,
   // Enable session replay for React Native
   enableSessionReplay: true,
