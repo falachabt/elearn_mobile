@@ -54,28 +54,10 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                     if (params.access_token || params.refresh_token || params.code) {
                         if (params.access_token && params.refresh_token) {
                             // Direct token exchange (more common with OAuth)
-                            const {error} = await supabase.auth.setSession({
+                            const { error } = await supabase.auth.setSession({
                                 access_token: params.access_token,
                                 refresh_token: params.refresh_token,
                             });
-
-                            setTimeout(async () => {
-                                const { data } = await supabase.auth.getUser();
-
-                                if (params?.access_token) {
-                                    // await axios.post('https://elearn.ezadrive.com/api/mobile/auth/createAccount',
-                                    await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
-                                        { email: data?.user?.email, phone: data?.user?.phone },
-                                        {
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                                'Authorization': `Bearer ${params?.access_token}`
-                                            },
-                                            timeout : 1500,
-                                        }
-                                    );
-                                }
-                            }, 500);
 
                             if (error) {
                                 console.error('Error setting session:', error);
@@ -83,17 +65,9 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                             } else {
                                 onAuthSuccess?.();
                             }
-                        } else if (params.code) {
-                            // Some providers return a code that needs to be exchanged
-                            // Supabase handles this automatically, but we can verify
-                            const {data, error} = await supabase.auth.getSession();
-
-                            if (error) {
-                                console.error('Error getting session after code exchange:', error);
-                                onAuthError?.(new Error(`Failed to get session: ${error.message}`));
-                            } else if (data?.session) {
-                                onAuthSuccess?.();
-                            }
+                        } else {
+                            console.error('Missing tokens in callback URL:', params);
+                            onAuthError?.(new Error('Missing access or refresh token in callback URL'));
                         }
                     }
                 } catch (error) {
