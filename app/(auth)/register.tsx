@@ -6,7 +6,6 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar as RNStatusBar,
   StyleSheet,
@@ -17,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Head from "expo-router/head";
 

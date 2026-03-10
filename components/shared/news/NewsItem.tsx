@@ -201,7 +201,7 @@ const NewsItem: React.FC<NewsItemProps> = ({ news, userId, onPress }) => {
                   {news.action_data?.label || (news.action_type === 'detail_page' ? 'Lire la suite' : 'En savoir plus')}
                 </Text>
                 <MaterialCommunityIcons 
-                  name={getActionIcon() as any} 
+                  name={getActionIcon() as never} 
                   size={16} 
                   color="#FFFFFF" 
                 />

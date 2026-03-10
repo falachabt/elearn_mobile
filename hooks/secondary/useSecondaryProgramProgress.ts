@@ -140,16 +140,73 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
     // Dédupliquer les exercice_id (même logique que pour les quiz)
     const uniqueCompletedExerciseIds = [...new Set(completedExercises.map(e => e.exercice_id))];
 
-    // 8. Compter les documents complétés pour ce programme
-    const { count: completedDocumentsCount, error: documentsError } = await supabase
-      .from('secondary_documents_complete')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('program_id', programId)
-      .eq('is_completed', true);
+    // 8. Compter les documents complétés à partir des documents réellement rattachés au programme.
+    const [
+      programFoldersResult,
+      rootProgramDocumentsResult,
+    ] = await Promise.all([
+      supabase
+        .from('secondary_document_folders')
+        .select('id')
+        .eq('program_id', programId),
+      supabase
+        .from('secondary_program_documents')
+        .select('document_id')
+        .eq('program_id', programId)
+        .eq('is_active', true),
+    ]);
 
-    if (documentsError) {
-      logger.error('Error fetching completed documents count:', documentsError);
+    if (programFoldersResult.error) {
+      logger.error('Error fetching secondary document folders:', programFoldersResult.error);
+    }
+
+    if (rootProgramDocumentsResult.error) {
+      logger.error('Error fetching root program documents:', rootProgramDocumentsResult.error);
+    }
+
+    const folderIds = (programFoldersResult.data ?? [])
+      .map((folder) => folder.id)
+      .filter((id) => id != null);
+    const rootDocumentIds = (rootProgramDocumentsResult.data ?? [])
+      .map((document) => document.document_id)
+      .filter((id) => id != null);
+
+    let programDocumentIds: string[] = [...new Set(rootDocumentIds)];
+
+    if (folderIds.length > 0) {
+      const { data: folderDocuments, error: folderDocumentsError } = await supabase
+        .from('secondary_documents')
+        .select('id')
+        .in('folder_id', folderIds)
+        .eq('is_correction', false);
+
+      if (folderDocumentsError) {
+        logger.error('Error fetching folder documents:', folderDocumentsError);
+      } else {
+        programDocumentIds = [
+          ...new Set([
+            ...programDocumentIds,
+            ...(folderDocuments ?? []).map((document) => document.id).filter((id) => id != null),
+          ]),
+        ];
+      }
+    }
+
+    let completedDocumentsCount = 0;
+
+    if (programDocumentIds.length > 0) {
+      const { count, error: documentsError } = await supabase
+        .from('secondary_documents_complete')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_completed', true)
+        .in('document_id', programDocumentIds);
+
+      if (documentsError) {
+        logger.error('Error fetching completed documents count:', documentsError);
+      } else {
+        completedDocumentsCount = count ?? 0;
+      }
     }
 
     // Calculer les progressions
@@ -167,7 +224,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
 
     // Utiliser le compteur de la base de données (fiable et stable)
     const documentTotal = program.document_count ?? 0;
-    const documentCompleted = completedDocumentsCount ?? 0;
+    const documentCompleted = completedDocumentsCount;
     const documentPercentage = documentTotal > 0 ? capPercentage((documentCompleted / documentTotal) * 100) : 0;
 
     // Progression totale

@@ -1,14 +1,17 @@
 import {
   Image,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import React, { useEffect, useState, useCallback } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { Href, useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import useSWR from "swr";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -74,6 +77,18 @@ interface ProgramData {
       concours_archives?: Array<{ id: string }>;
     };
   }>;
+}
+
+interface ProgramLinkData {
+  id: string | number;
+  concourId: string | number;
+  concour?: {
+    id?: string | number;
+    name?: string;
+    school?: {
+      name?: string;
+    };
+  };
 }
 
 const ProgramDetails = () => {
@@ -185,6 +200,64 @@ const ProgramDetails = () => {
     }
   );
 
+  const { data: programLink, isLoading: programLinkLoading } = useSWR<ProgramLinkData>(
+    id ? `program-link-${id}` : null,
+    async () => {
+      const { data, error } = await supabase
+        .from("concours_learningpaths")
+        .select(`
+          id,
+          concourId,
+          concour:concourId(
+            id,
+            name,
+            school:schools(name)
+          )
+        `)
+        .eq("learningPathId", id)
+        .single();
+
+      if (error) {
+        logger.error("[ProgramDetails] Erreur lors du chargement du lien programme-concours:", error);
+        throw error;
+      }
+
+      return data as ProgramLinkData;
+    },
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 30000,
+    }
+  );
+
+  const primaryConcoursLearningPath = programLink ?? null;
+  const primaryConcour = programLink?.concour;
+
+  const { data: archiveCount = 0, isLoading: archiveCountLoading } = useSWR<number>(
+    programLink?.concourId ? `learn-archive-count-${programLink.concourId}` : null,
+    async () => {
+      const { count, error } = await supabase
+        .from("concours_archives")
+        .select("*", { count: "exact", head: true })
+        .eq("concour_id", programLink!.concourId);
+
+      if (error) {
+        logger.error("[ProgramDetails] Erreur lors du comptage des archives:", error);
+        return 0;
+      }
+
+      return count || 0;
+    },
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 30000,
+    }
+  );
+
+  const hasArchives = !!programLink?.concourId && archiveCount > 0;
+
   // Always call the hook but with proper values - don't pass empty strings
   const {
     courseProgress,
@@ -260,7 +333,7 @@ const ProgramDetails = () => {
   const hasError = programError || (isEnrolled && progressError);
 
   // Combine loading states - only wait for progress if enrolled
-  const isLoading = programLoading || (isEnrolled && progressLoading);
+  const isLoading = programLoading || programLinkLoading || archiveCountLoading || (isEnrolled && progressLoading);
 
   // Prepare action cards
   const [actionCards, setActionCards] = useState<ActionCard[]>([]);
@@ -277,13 +350,14 @@ const ProgramDetails = () => {
     expiry_date?: string;
     payment_status: string;
   } | null>(null);
+  const [showArchivesAccessModal, setShowArchivesAccessModal] = useState(false);
 
   // Récupérer l'id du programme à partir du learning path id
   useEffect(() => {
     const fetchProgramId = async () => {
-      if (id && program?.concours_learningpaths?.[0]?.id) {
+      if (id && primaryConcoursLearningPath?.id) {
         // Utiliser les données déjà chargées au lieu de refetch
-        setProgramId(String(program.concours_learningpaths[0].id));
+        setProgramId(String(primaryConcoursLearningPath.id));
       } else if (id) {
         // Fallback: fetch seulement si les données ne sont pas disponibles
         const { data, error } = await supabase
@@ -301,7 +375,7 @@ const ProgramDetails = () => {
       }
     };
     fetchProgramId();
-  }, [id, program]);
+  }, [id, primaryConcoursLearningPath]);
 
   // Utiliser l'id du programme pour récupérer le dernier paiement (échelonné ou non)
   useEffect(() => {
@@ -496,13 +570,14 @@ const ProgramDetails = () => {
               color={isDark ? "#FBBF24" : "#FF9800"}
             />
           ),
-
-          route: `/(app)/manuel/anciens-sujets/${
-            program.concours_learningpaths?.concours?.id || "default-id"
-          }`,
+          route: `/(app)/learn/${id}/anales`,
           color: isDark ? "#FBBF24" : "#FF9800",
         }
       );
+
+      if (!hasArchives) {
+        cards.pop();
+      }
 
       // Ajout de la carte paiement échelonné si actif ou expiré
       if (activeInstallment) {
@@ -585,11 +660,18 @@ const ProgramDetails = () => {
     isEnrolled,
     activeInstallment,
     isExpired,
+    hasArchives,
   ]);
 
   // Handle card press
   const handleCardPress = (card: ActionCard) => {
     trigger(HapticType.LIGHT);
+
+    if (card.id === "pastExams" && (!isEnrolled || isExpired)) {
+      setShowArchivesAccessModal(true);
+      return;
+    }
+
     if (card.routeParams) {
       router.push({
         pathname: card.route,
@@ -598,6 +680,17 @@ const ProgramDetails = () => {
     } else {
       router.push(card.route as Href);
     }
+  };
+
+  const handleSubscribeToProgram = () => {
+    setShowArchivesAccessModal(false);
+    router.push(`/(app)/learn/${id}/payment` as Href);
+  };
+
+  const handleGoToManualArchives = () => {
+    if (!programLink?.concourId) return;
+    setShowArchivesAccessModal(false);
+    router.push(`/(app)/manuel/anciens-sujets/${programLink.concourId}` as Href);
   };
 
   // Render individual action card
@@ -745,7 +838,7 @@ const ProgramDetails = () => {
             numberOfLines={1}
             style={[styles.concoursName, isDark && styles.concoursNameDark]}
           >
-            {program?.concours_learningpaths.concour.school.name || ""}
+            {primaryConcour?.school?.name || ""}
           </ThemedText>
           {!isEnrolled && (
             <View style={styles.enrollmentStatus}>
@@ -816,6 +909,60 @@ const ProgramDetails = () => {
           ))}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showArchivesAccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowArchivesAccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, isDark && styles.modalCardDark]}>
+            <View style={styles.modalIconWrap}>
+              <MaterialCommunityIcons
+                name="file-document-multiple"
+                size={26}
+                color={isDark ? "#FBBF24" : "#FF9800"}
+              />
+            </View>
+
+            <Text style={[styles.modalTitle, isDark && styles.modalTitleDark]}>
+              Accès aux anciens sujets
+            </Text>
+
+            <Text style={[styles.modalText, isDark && styles.modalTextDark]}>
+              Les annales sont incluses avec l'abonnement au programme. Vous pouvez aussi acheter uniquement les archives dans l'espace manuel si elles sont disponibles.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalPrimaryButton}
+              onPress={handleSubscribeToProgram}
+            >
+              <Text style={styles.modalPrimaryButtonText}>
+                S'abonner au programme
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalSecondaryButton, isDark && styles.modalSecondaryButtonDark]}
+              onPress={handleGoToManualArchives}
+            >
+              <Text style={[styles.modalSecondaryButtonText, isDark && styles.modalSecondaryButtonTextDark]}>
+                Acheter seulement les archives
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalDismissButton}
+              onPress={() => setShowArchivesAccessModal(false)}
+            >
+              <Text style={[styles.modalDismissButtonText, isDark && styles.modalDismissButtonTextDark]}>
+                Plus tard
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -1067,6 +1214,101 @@ const styles = StyleSheet.create({
   },
   errorTextDark: {
     color: "#F87171",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    padding: 24,
+  },
+  modalCardDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+  },
+  modalIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(255, 152, 0, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 10,
+  },
+  modalTitleDark: {
+    color: "#FFFFFF",
+  },
+  modalText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#4B5563",
+    marginBottom: 20,
+  },
+  modalTextDark: {
+    color: "#D1D5DB",
+  },
+  modalPrimaryButton: {
+    backgroundColor: theme.color.primary[500],
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    alignItems: "center",
+  },
+  modalPrimaryButtonText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  modalSecondaryButton: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  modalSecondaryButtonDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+    borderColor: "#4B5563",
+  },
+  modalSecondaryButtonText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  modalSecondaryButtonTextDark: {
+    color: "#F9FAFB",
+  },
+  modalDismissButton: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  modalDismissButtonText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  modalDismissButtonTextDark: {
+    color: "#9CA3AF",
   },
 });
 

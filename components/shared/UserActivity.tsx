@@ -8,6 +8,15 @@ import { logger } from '@/utils/logger';
 
 const HEARTBEAT_INTERVAL = 1000; // 1 seconds
 const SESSION_TIMEOUT = 300000; // 5 minutes
+const isTransientNetworkError = (error: unknown) => {
+    const message = error instanceof Error
+        ? error.message
+        : typeof error === 'object' && error !== null && 'message' in error
+            ? String((error as { message?: unknown }).message ?? '')
+            : String(error ?? '');
+
+    return message.toLowerCase().includes('network request failed');
+};
 
 const UserActivityTracker: React.FC = () => {
     const [sessionId, setSessionId] = useState<number | null>(null);
@@ -81,7 +90,11 @@ const UserActivityTracker: React.FC = () => {
                 .eq('id', sessionId);
 
             if (error) {
-                logger.error('Error ending session:', error);
+                if (isTransientNetworkError(error)) {
+                    setSessionId(null);
+                } else {
+                    logger.error('Error ending session:', error);
+                }
             } else {
                 setSessionId(null);
             }

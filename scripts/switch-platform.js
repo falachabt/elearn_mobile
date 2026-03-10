@@ -46,7 +46,8 @@ function switchPlatform(platform) {
   // List of files to process
   const filesToProcess = [
     path.join(__dirname, '..', 'app', '(app)', 'learn', '[pdId]', 'anales', '[filePath]', '[fileId].tsx'),
-    path.join(__dirname, '..', 'app', '(app)', 'manuel', 'anciens-sujets', '[competitionId]', '[filePath]', '[fileId].tsx')
+    path.join(__dirname, '..', 'app', '(app)', 'manuel', 'anciens-sujets', '[competitionId]', '[filePath]', '[fileId].tsx'),
+    path.join(__dirname, '..', 'app', '(app)', 'secondary', 'program', '[programId]', 'documents', '[documentId].tsx')
   ];
   
   // Process each file

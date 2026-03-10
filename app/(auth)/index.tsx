@@ -3,7 +3,6 @@ import {
   Animated,
   Image,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
   useWindowDimensions,
   Linking,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Lottie from "lottie-react-native";
 import { Link } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";

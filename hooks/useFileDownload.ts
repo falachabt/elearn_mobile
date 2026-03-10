@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { Archive } from '@/app/(app)/learn/[pdId]/anales';
+import { logger } from '@/utils/logger';
 
 interface DownloadState {
     [key: string]: {
