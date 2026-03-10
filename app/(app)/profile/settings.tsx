@@ -16,6 +16,7 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SchedulableTriggerInputTypes} from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 
@@ -584,7 +585,7 @@ const SettingsScreen = () => {
                     {renderPressableSettingItem(
                         'information-outline',
                         'Version',
-                        '1.0.0 (Build 42)',
+                        `${Constants.expoConfig?.version ?? '1.0.0'}`,
                         () => {
                         }
                     )}

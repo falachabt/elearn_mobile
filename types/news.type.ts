@@ -12,6 +12,7 @@ export interface NewsActionData {
   params?: Record<string, any>;
   url?: string;
   deepLink?: string;
+  label?: string; // Texte du bouton d'action
 }
 
 export interface News {

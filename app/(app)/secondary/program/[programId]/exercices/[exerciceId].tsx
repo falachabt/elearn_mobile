@@ -348,6 +348,11 @@ const SecondaryExercisePage = () => {
                 });
             });
         }
+
+        // Add bottom padding so content is not hidden behind bottom buttons
+        var paddingStyle = document.createElement('style');
+        paddingStyle.textContent = 'body { padding-bottom: 120px !important; }';
+        document.head.appendChild(paddingStyle);
     })();`;
 
     const commonWebViewProps = {
@@ -727,7 +732,7 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        bottom: 0,
+        bottom: 90,
     },
     webView: {
         flex: 1,

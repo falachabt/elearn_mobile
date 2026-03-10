@@ -361,6 +361,11 @@ const ExercisePage = () => {
                 });
             });
         }
+
+        // Add bottom padding so content is not hidden behind bottom buttons
+        var paddingStyle = document.createElement('style');
+        paddingStyle.textContent = 'body { padding-bottom: 120px !important; }';
+        document.head.appendChild(paddingStyle);
     })();`;
 
     const commonWebViewProps = {
@@ -576,7 +581,7 @@ const ExercisePage = () => {
                 </>
             )}
 
-            <View style={styles.bottomButtonsContainer}>
+            <View style={[styles.bottomButtonsContainer, isDark && styles.bottomButtonsContainerDark]}>
                 {/* Only show navigation buttons if user is enrolled */}
                 {isEnrolled && previousExerciseId && (
                     <TouchableOpacity
@@ -726,15 +731,13 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        bottom: 0,
+        bottom: 90,
     },
     webView: {
         flex: 1,
         backgroundColor: "#FFFFFF",
         left: Platform.OS !== "web" ? "-10%" : 0,
         width: Platform.OS !== "web" ? "120%" : "100%",
-        paddingBottom: 20,
-        marginBottom: 20,
         marginTop: 20,
     },
     webViewDark: {
@@ -751,6 +754,13 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
+        backgroundColor: "#FFFFFF",
+        borderTopWidth: 1,
+        borderTopColor: '#E5E7EB',
+    },
+    bottomButtonsContainerDark: {
+        backgroundColor: theme.color.dark.background.primary,
+        borderTopColor: '#374151',
     },
     correctionButton: {
         flex: 1,

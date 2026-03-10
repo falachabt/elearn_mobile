@@ -12,7 +12,7 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {ScrollView} from "react-native-gesture-handler";
 import {useLocalSearchParams} from "expo-router";
 import useSWR from "swr";
-import React, { useState } from "react"; // <-- Ajouté ici
+import React, { useState, useEffect } from "react"; // <-- Ajouté ici
 
 import {supabase} from "@/lib/supabase";
 import {theme} from "@/constants/theme";

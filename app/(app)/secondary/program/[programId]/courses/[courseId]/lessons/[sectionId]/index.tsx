@@ -1,4 +1,4 @@
-﻿import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { logger } from '@/utils/logger';
 import { useLocalSearchParams } from "expo-router";
 import * as ScreenCapture from "expo-screen-capture";
@@ -543,9 +543,9 @@ const SecondarySectionDetail = () => {
       <View style={styles.contentArea}>
         {!isWebViewLoaded && <LoadingIndicator />}
         <LessonContentViewer
-          sectionId={sectionId}
+          contentId={sectionId}
           isDark={isDark}
-          webViewUrls={webViewUrls}
+          baseUrl={webViewUrls?.course_url}
           session={session}
           webViewRef={webViewRef}
           isWebViewLoaded={isWebViewLoaded}
@@ -1114,3 +1114,7 @@ const styles = StyleSheet.create({
 });
 
 export default SecondarySectionDetail;
+
+
+
+

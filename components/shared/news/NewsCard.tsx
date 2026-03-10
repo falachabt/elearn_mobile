@@ -1,5 +1,5 @@
 import React from 'react';
-import {Dimensions, Image, Pressable, StyleSheet, Text, TouchableOpacity, useColorScheme, View} from 'react-native';
+import {Image, Pressable, StyleSheet, Text, TouchableOpacity, useColorScheme, View} from 'react-native';
 import {ResizeMode, Video} from 'expo-av';
 import {LinearGradient} from 'expo-linear-gradient';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
@@ -15,7 +15,6 @@ import {theme} from '@/constants/theme';
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import { trackEvent, Events } from '@/utils/analytics';
 
-const { width } = Dimensions.get('window');
 
 // Define types for the news card
 export type NewsCardType = 'image' | 'video' | 'custom';
@@ -44,7 +43,6 @@ const NewsCard = ({
     videoUrl, 
     customComponent, 
     actionLabel, 
-    actionUrl, 
     onPress 
 }: NewsCardProps) => {
     const colorScheme = useColorScheme();

@@ -10,3 +10,7 @@ export { QuizItem } from "./QuizItem";
 export { ViewTabs } from "./ViewTabs";
 export { CourseHeader } from "./CourseHeader";
 export { LoadingState, ErrorState } from "./LoadingErrorStates";
+
+export { CourseSummaryCard } from "./CourseSummaryCard";
+
+

@@ -85,6 +85,25 @@ export default function Index() {
     checkAndUpdateNotifications();
   }, []);
 
+  const sortedNews = [...dbNews].sort((a, b) => {
+    const featuredDelta =
+      Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured));
+    if (featuredDelta !== 0) return featuredDelta;
+
+    const priorityDelta = (b.priority ?? 0) - (a.priority ?? 0);
+    if (priorityDelta !== 0) return priorityDelta;
+
+    const orderDelta =
+      (a.display_order ?? Number.MAX_SAFE_INTEGER) -
+      (b.display_order ?? Number.MAX_SAFE_INTEGER);
+    if (orderDelta !== 0) return orderDelta;
+
+    return (
+      new Date(b.published_at ?? b.created_at ?? 0).getTime() -
+      new Date(a.published_at ?? a.created_at ?? 0).getTime()
+    );
+  });
+
   return (
     <View style={isDarkMode ? styles.containerDark : styles.container}>
       <TopBar
@@ -188,8 +207,8 @@ export default function Index() {
                     NavigationRoutes.learn.lesson(
                       String(lastCourse?.learning_path?.id),
                       String(lastCourse?.id),
-                      String(lastCourse?.current_section)
-                    ) as Href
+                      String(lastCourse?.current_section),
+                    ) as Href,
                   );
                 }}
               >
@@ -229,7 +248,8 @@ export default function Index() {
             });
 
             // Vérifier s'il y a des actualités à afficher
-            const hasNews = filteredNewsItems.length > 0 || (dbNews && dbNews.length > 0);
+            const hasNews =
+              filteredNewsItems.length > 0 || (dbNews && dbNews.length > 0);
 
             return hasNews ? (
               <ScrollView
@@ -245,34 +265,33 @@ export default function Index() {
                 ))}
 
                 {/* Dynamic News from Database */}
-                {dbNews &&
-                  dbNews.map((newsItem) => (
-                    <View key={newsItem.id} style={styles.newsCardWrapper}>
-                      <NewsItem news={newsItem} userId={authUser?.id || ""} />
-                    </View>
-                  ))}
+                {sortedNews.map((newsItem) => (
+                  <View key={newsItem.id} style={styles.newsCardWrapper}>
+                    <NewsItem news={newsItem} userId={authUser?.id || ""} />
+                  </View>
+                ))}
               </ScrollView>
             ) : (
-            <View
-              style={[
-                styles.emptyNewsContainer,
-                isDarkMode && styles.emptyNewsContainerDark,
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="newspaper-variant-outline"
-                size={48}
-                color={isDarkMode ? "#666" : "#CCC"}
-              />
-              <Text
+              <View
                 style={[
-                  styles.emptyNewsText,
-                  isDarkMode && styles.emptyNewsTextDark,
+                  styles.emptyNewsContainer,
+                  isDarkMode && styles.emptyNewsContainerDark,
                 ]}
               >
-                Aucune actualité disponible pour le moment
-              </Text>
-            </View>
+                <MaterialCommunityIcons
+                  name="newspaper-variant-outline"
+                  size={48}
+                  color={isDarkMode ? "#666" : "#CCC"}
+                />
+                <Text
+                  style={[
+                    styles.emptyNewsText,
+                    isDarkMode && styles.emptyNewsTextDark,
+                  ]}
+                >
+                  Aucune actualité disponible pour le moment
+                </Text>
+              </View>
             );
           })()}
         </View>
@@ -476,6 +495,7 @@ const styles = StyleSheet.create({
   },
   newsScrollContainer: {
     paddingRight: HORIZONTAL_PADDING,
+    paddingBottom: 8,
     gap: 12,
   },
   newsCardWrapper: {

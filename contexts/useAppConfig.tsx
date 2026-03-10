@@ -14,6 +14,7 @@ interface GenerousWeekConfig {
 interface WebViewConfig {
   course_url: string;
   exercise_url: string;
+  summary_url?: string;
 }
 
 interface PricingConfig {
@@ -75,12 +76,8 @@ type AppConfigContextType = {
 
 const AppConfigContext = createContext<AppConfigContextType | undefined>(undefined);
 
-// Fetch app_config data from the database
 const fetchAppConfig = async () => {
-  const { data, error } = await supabase
-    .from('app_config')
-    .select('*')
-    .limit(1)
+  const { data, error } = await supabase.from('app_config').select('*').limit(1);
 
   if (error) {
     logger.error('Error fetching app_config:', error);
@@ -98,7 +95,7 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     'app_config',
     fetchAppConfig,
     {
-      refreshInterval: 60000, // Refresh every minute
+      refreshInterval: 60000,
       revalidateOnFocus: true,
       onError: (err) => {
         logger.error('[AppConfig] Error fetching config:', err);
@@ -111,7 +108,6 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     }
   );
 
-  // Check if the generous week feature is currently active based on app_config dates
   const isGenerousWeekActive = () => {
     if (!appConfig?.data?.generous_week) return false;
 
@@ -123,23 +119,31 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getWebViewUrls = () => {
-    // Vérifier si webview existe et contient les URLs
-    if (!appConfig?.data?.webview || 
-        !appConfig.data.webview.course_url || 
-        !appConfig.data.webview.exercise_url) {
-        logger.warn('[AppConfig] WebView URLs not configured, using defaults');
-        return {
-            course_url: "https://staff.elearnprepa.com/fr/webview/courseContent",
-            exercise_url: "https://staff.elearnprepa.com/fr/webview/exercices"
-        };
+    if (
+      !appConfig?.data?.webview ||
+      !appConfig.data.webview.course_url ||
+      !appConfig.data.webview.exercise_url
+    ) {
+      logger.warn('[AppConfig] WebView URLs not configured, using defaults');
+      return {
+        course_url: 'https://staff.elearnprepa.com/fr/webview/courseContent',
+        exercise_url: 'https://staff.elearnprepa.com/fr/webview/exercices',
+        summary_url: 'https://staff.elearnprepa.com/fr/webview/course-summary',
+      };
     }
-    return appConfig.data.webview;
+
+    return {
+      ...appConfig.data.webview,
+      summary_url:
+        appConfig.data.webview.summary_url?.trim() ||
+        'https://staff.elearnprepa.com/fr/webview/course-summary',
+    };
   };
 
   const getApiBaseUrl = () => {
     if (!appConfig?.data?.api_base_url || appConfig.data.api_base_url.trim() === '') {
-        logger.warn('[AppConfig] API base URL not configured, using default');
-        return "https://staff.elearnprepa.com";
+      logger.warn('[AppConfig] API base URL not configured, using default');
+      return 'https://staff.elearnprepa.com';
     }
     return appConfig.data.api_base_url;
   };
@@ -160,7 +164,6 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
   }, [appConfig, swrError]);
 
   useEffect(() => {
-    // Subscribe to changes in the app_config table
     const subscription = supabase
       .channel('app_config_changes')
       .on(
@@ -190,14 +193,8 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     mutateAppConfig,
   };
 
-  // Si erreur critique de configuration, afficher un écran d'erreur
   if (error && !isLoading) {
-    return (
-      <AppConfigError 
-        error={error} 
-        onRetry={() => mutateAppConfig()} 
-      />
-    );
+    return <AppConfigError error={error} onRetry={() => mutateAppConfig()} />;
   }
 
   return <AppConfigContext.Provider value={value}>{children}</AppConfigContext.Provider>;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ScrollView, StyleSheet, View } from "react-native";
 import React, { useState, useEffect } from "react";
 import { useLocalSearchParams } from "expo-router";
@@ -21,6 +22,7 @@ import {
   CourseHeader,
   LoadingState,
   ErrorState,
+  CourseSummaryCard,
 } from "@/components/shared/courses";
 import { useCourseProgress } from "@/hooks/useCourseProgress";
 
@@ -76,7 +78,7 @@ const SecondaryCourseDetail = () => {
     isLoading: courseLoading,
     mutate: mutateCourse,
   } = useSWR<Course>(courseId ? `secondary-course-${courseId}` : null, async () => {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("courses")
       .select(
         `
@@ -91,10 +93,22 @@ const SecondaryCourseDetail = () => {
     return data;
   });
 
+  const { data: courseSummary } = useSWR(
+    courseId ? `secondary-course-summary-${courseId}` : null,
+    async () => {
+      const { data } = await (supabase as any)
+        .from("course_summaries")
+        .select("course_id, source_content_count")
+        .eq("course_id", Number(courseId))
+        .maybeSingle();
+      return data;
+    }
+  );
+
   const { data: quizzes } = useSWR(
     courseId ? `secondary-quizzes-${courseId}` : null,
     async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("quiz_courses")
         .select("quiz(id, name, questions:quiz_questions(id))")
         .eq("courseId", courseId);
@@ -105,7 +119,7 @@ const SecondaryCourseDetail = () => {
   const { data: quizProgress } = useSWR(
     user ? [`secondary-quiz-progress-${user.id}`, courseId, quizzes] : null,
     async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("quiz_attempts")
         .select("id, status, score, quiz_id")
         .eq("user_id", user?.id)
@@ -141,8 +155,24 @@ const SecondaryCourseDetail = () => {
   const renderContent = () => {
     switch (selectedView) {
       case "content":
+        const summaryCard = (
+          <CourseSummaryCard
+            isDark={isDark}
+            sourceContentCount={courseSummary?.source_content_count}
+            onPress={() => {
+              trigger(HapticType.SELECTION);
+              router.push(`/(app)/secondary/program/${programId}/courses/${courseId}/summary`);
+            }}
+          />
+        );
+
         if (sections.length === 0) {
-          return <EmptyState type="content" isDark={isDark} />;
+          return (
+            <>
+              {summaryCard}
+              <EmptyState type="content" isDark={isDark} />
+            </>
+          );
         }
 
         // En mode aperçu, afficher uniquement la première section
@@ -179,6 +209,7 @@ const SecondaryCourseDetail = () => {
         if (isPreviewMode && sections.length > 1) {
           return (
             <>
+              {summaryCard}
               {sectionItems}
               <PreviewBanner
                 isDark={isDark}
@@ -190,7 +221,12 @@ const SecondaryCourseDetail = () => {
           );
         }
 
-        return sectionItems;
+        return (
+          <>
+            {summaryCard}
+            {sectionItems}
+          </>
+        );
 
       case "videos":
         if (videos.length === 0) {
@@ -337,3 +373,14 @@ const styles = StyleSheet.create({
 });
 
 export default SecondaryCourseDetail;
+
+
+
+
+
+
+
+
+
+
+

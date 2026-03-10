@@ -1,4 +1,4 @@
-﻿import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import useSWR, { mutate as globalMutate } from "swr";
 import { WebView } from "react-native-webview";
@@ -446,6 +446,11 @@ const SectionDetail = () => {
             childList: true,
             subtree: true
         });
+
+        // Add bottom padding so content is not hidden behind navigation bar
+        var paddingStyle = document.createElement('style');
+        paddingStyle.textContent = 'body { padding-bottom: 100px !important; }';
+        document.head.appendChild(paddingStyle);
     })();`;
 
   // Custom loading indicator component with progress
@@ -1355,3 +1360,4 @@ const styles = StyleSheet.create({
 });
 
 export default SectionDetail;
+

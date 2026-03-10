@@ -2,12 +2,11 @@
   "expo": {
     "name": "Elearn Prepa",
     "slug": "elearn_mobile",
-    "version": "1.0.7",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "com.ezadrive.elearn",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "usesAppleSignIn": true,

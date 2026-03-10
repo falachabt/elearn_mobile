@@ -32,6 +32,24 @@ const NewsItem: React.FC<NewsItemProps> = ({ news, userId, onPress }) => {
   const hasRecordedView = useRef(false);
   const [, setImageLoadError] = React.useState(false);
 
+  const getActionIcon = () => {
+    if (news.action_type === 'none') return null;
+    
+    // Si c'est un lien profond ou externe, on essaie de détecter le réseau social
+    const url = news.action_data?.deepLink || news.action_data?.url || '';
+    const lowUrl = url.toLowerCase();
+    
+    if (lowUrl.includes('wa.me') || lowUrl.includes('whatsapp.com')) return 'whatsapp';
+    if (lowUrl.includes('facebook.com') || lowUrl.includes('fb.watch') || lowUrl.includes('fb.me')) return 'facebook';
+    if (lowUrl.includes('instagram.com')) return 'instagram';
+    if (lowUrl.includes('tiktok.com')) return 'tiktok';
+    if (lowUrl.includes('youtube.com') || lowUrl.includes('youtu.be')) return 'youtube';
+    if (lowUrl.includes('t.me') || lowUrl.includes('telegram.org')) return 'telegram';
+    if (lowUrl.includes('twitter.com') || lowUrl.includes('x.com')) return 'twitter';
+    
+    return news.action_type === 'detail_page' ? 'eye' : 'chevron-right';
+  };
+
   useEffect(() => {
     if (!hasRecordedView.current && !news.has_viewed) {
       recordView();
@@ -175,8 +193,20 @@ const NewsItem: React.FC<NewsItemProps> = ({ news, userId, onPress }) => {
               </View>
             )}
           </View>
+          
           {news.action_type !== 'none' && (
-            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.color.primary[500]} />
+            <View style={styles.actionContainer}>
+              <View style={styles.ctaButton}>
+                <Text style={styles.ctaText}>
+                  {news.action_data?.label || (news.action_type === 'detail_page' ? 'Lire la suite' : 'En savoir plus')}
+                </Text>
+                <MaterialCommunityIcons 
+                  name={getActionIcon() as any} 
+                  size={16} 
+                  color="#FFFFFF" 
+                />
+              </View>
+            </View>
           )}
         </View>
       </View>
@@ -319,6 +349,25 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
+    fontFamily: theme.typography.fontFamily,
+  },
+  actionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.color.primary[500],
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    gap: 4,
+  },
+  ctaText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
     fontFamily: theme.typography.fontFamily,
   },
 });

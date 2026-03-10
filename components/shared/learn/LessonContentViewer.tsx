@@ -2,9 +2,9 @@ import { Platform, View, Dimensions, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 interface LessonContentViewerProps {
-  sectionId: string | string[];
+  contentId: string | string[];
   isDark: boolean;
-  webViewUrls: { course_url?: string } | null;
+  baseUrl?: string;
   session: { access_token?: string } | null;
   webViewRef: React.RefObject<WebView | null>;
   isWebViewLoaded: boolean;
@@ -16,10 +16,17 @@ interface LessonContentViewerProps {
   onScrolledToEnd: () => void;
 }
 
+const BOTTOM_PADDING_SCRIPT = `
+(function() {
+  var s = document.createElement('style');
+  s.textContent = 'body { padding-bottom: 100px !important; }';
+  document.head.appendChild(s);
+})();`;
+
 export const LessonContentViewer = ({
-  sectionId,
+  contentId,
   isDark,
-  webViewUrls,
+  baseUrl,
   session,
   webViewRef,
   isWebViewLoaded,
@@ -30,18 +37,22 @@ export const LessonContentViewer = ({
   onContentLoaded,
   onScrolledToEnd,
 }: LessonContentViewerProps) => {
+  if (!baseUrl) {
+    return <View style={styles.webViewContainer} />;
+  }
+
   if (Platform.OS === 'web') {
     return (
       <View style={styles.webViewContainer}>
         <iframe
-          src={`${webViewUrls?.course_url}/${sectionId}${isDark ? '?theme=dark' : '?theme=light'}&device=web`}
+          src={`${baseUrl}/${contentId}${isDark ? '?theme=dark' : '?theme=light'}&device=web`}
           style={{
-            width: Dimensions.get("window").width >= 640 ? '100%' : '117%',
-            left: Dimensions.get("window").width >= 640 ? 0 : "-8%",
-            position: Dimensions.get("window").width >= 640 ? 'relative' : 'absolute',
+            width: Dimensions.get('window').width >= 640 ? '100%' : '117%',
+            left: Dimensions.get('window').width >= 640 ? 0 : '-8%',
+            position: Dimensions.get('window').width >= 640 ? 'relative' : 'absolute',
             height: '100%',
             border: 'none',
-            backgroundColor: isDark ? "#111827" : '#FFFFFF',
+            backgroundColor: isDark ? '#111827' : '#FFFFFF',
           }}
           onLoad={() => {
             onWebViewLoaded();
@@ -56,18 +67,18 @@ export const LessonContentViewer = ({
     <WebView
       ref={webViewRef}
       source={{
-        uri: `${webViewUrls?.course_url}/${sectionId}?theme=${isDark ? "dark" : "light"}`,
+        uri: `${baseUrl}/${contentId}?theme=${isDark ? 'dark' : 'light'}`,
         headers: {
           Authorization: `Bearer ${session?.access_token}`,
-          "color-scheme": isDark ? "dark" : "light",
+          'color-scheme': isDark ? 'dark' : 'light',
         },
       }}
       style={[
         styles.webView,
         isDark && styles.webViewDark,
-        !isWebViewLoaded && styles.hiddenWebView
+        !isWebViewLoaded && styles.hiddenWebView,
       ]}
-      originWhitelist={["*"]}
+      originWhitelist={['*']}
       javaScriptEnabled={true}
       domStorageEnabled={true}
       cacheEnabled={true}
@@ -81,14 +92,14 @@ export const LessonContentViewer = ({
         onWebViewLoaded();
       }}
       renderLoading={() => <View />}
-      injectedJavaScript={darkModeScript}
+      injectedJavaScript={`${darkModeScript}\n${BOTTOM_PADDING_SCRIPT}`}
       onMessage={(event) => {
         try {
           const data = JSON.parse(event.nativeEvent.data);
-          if (data.type === "contentLoaded") {
+          if (data.type === 'contentLoaded') {
             onContentLoaded();
           }
-          if (isListening && data.type === "scrolledToEnd") {
+          if (isListening && data.type === 'scrolledToEnd') {
             onScrolledToEnd();
           }
         } catch {
@@ -102,16 +113,16 @@ export const LessonContentViewer = ({
 const styles = StyleSheet.create({
   webViewContainer: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
   },
   webView: {
     flex: 1,
-    left: "-10%",
-    width: "120%",
-    backgroundColor: "#FFFFFF",
+    left: '-10%',
+    width: '120%',
+    backgroundColor: '#FFFFFF',
   },
   webViewDark: {
-    backgroundColor: "#111827",
+    backgroundColor: '#111827',
   },
   hiddenWebView: {
     opacity: 0,

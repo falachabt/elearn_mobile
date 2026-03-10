@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {ActivityIndicator, Pressable, ScrollView, StyleSheet, View,} from "react-native";
 import React, {useState, useEffect} from "react";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
@@ -5,6 +6,7 @@ import {useLocalSearchParams} from "expo-router";
 import useSWR from "swr";
 
 import {ThemedText} from "@/components/ThemedText";
+import { CourseSummaryCard } from "@/components/shared/courses";
 import {supabase} from "@/lib/supabase";
 import {theme} from "@/constants/theme";
 import {useCourseProgress} from "@/hooks/useCourseProgress";
@@ -154,7 +156,7 @@ const CourseDetail = () => {
         isLoading: courseLoading,
         mutate: mutateCourse,
     } = useSWR<Course>(courseId ? `course-${courseId}` : null, async () => {
-        const {data} = await supabase
+        const {data} = await (supabase as any)
             .from("courses")
             .select(
                 `
@@ -169,10 +171,22 @@ const CourseDetail = () => {
         return data;
     });
 
+    const {data: courseSummary} = useSWR(
+        courseId ? `course-summary-${courseId}` : null,
+        async () => {
+            const { data } = await (supabase as any)
+                .from("course_summaries")
+                .select("course_id, source_content_count")
+                .eq("course_id", Number(courseId))
+                .maybeSingle();
+            return data;
+        }
+    );
+
     const {data: quizzes} = useSWR(
         courseId ? `quizzes-${courseId}` : null,
         async () => {
-            const {data} = await supabase
+            const {data} = await (supabase as any)
                 .from("quiz_courses")
                 .select("quiz(id, name  , questions:quiz_questions(id))")
                 .eq("courseId", courseId)
@@ -183,7 +197,7 @@ const CourseDetail = () => {
     const {data: quizProgress} = useSWR(
         user ? [`quiz-progress-${user.id}`, courseId, quizzes] : null,
         async () => {
-            const {data} = await supabase
+            const {data} = await (supabase as any)
                 .from("quiz_attempts")
                 .select("id, status, score, quiz_id")
                 .eq("user_id", user?.id)
@@ -255,8 +269,24 @@ const CourseDetail = () => {
     const renderContent = () => {
         switch (selectedView) {
             case "content":
+                const summaryCard = (
+                    <CourseSummaryCard
+                        isDark={isDark}
+                        sourceContentCount={courseSummary?.source_content_count}
+                        onPress={() => {
+                            trigger(HapticType.SELECTION);
+                            router.push(`/(app)/learn/${pdId}/courses/${courseId}/summary`);
+                        }}
+                    />
+                );
+
                 if (sections.length === 0) {
-                    return <EmptyState type="content" isDark={isDark}/>;
+                    return (
+                        <>
+                            {summaryCard}
+                            <EmptyState type="content" isDark={isDark}/>
+                        </>
+                    );
                 }
 
                 // En mode aperçu, afficher uniquement la première section
@@ -334,6 +364,7 @@ const CourseDetail = () => {
                 if (isPreviewMode && sections.length > 1) {
                     return (
                         <>
+                            {summaryCard}
                             {sectionItems}
                             <View style={[styles.previewBanner, isDark && styles.previewBannerDark]}>
                                 <MaterialCommunityIcons
@@ -362,7 +393,12 @@ const CourseDetail = () => {
                     );
                 }
 
-                return sectionItems;
+                return (
+                    <>
+                        {summaryCard}
+                        {sectionItems}
+                    </>
+                );
 
             case "videos":
                 if (videos.length === 0) {
@@ -1178,3 +1214,10 @@ const styles = StyleSheet.create({
 });
 
 export default CourseDetail;
+
+
+
+
+
+
+
