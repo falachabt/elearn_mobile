@@ -6,19 +6,16 @@ on:
       - master
 
 jobs:
-  build_and_submit_android:
-    name: Build & Submit Android
+  build:
+    name: Build Android
     type: build
     params:
       platform: android
       profile: production
-    on_success:
-      - job: submit_android
 
-  submit_android:
+  submit:
     name: Submit to Google Play
     type: submit
+    needs: [build]
     params:
-      platform: android
-      profile: production
-      build_id: ${{ jobs.build_and_submit_android.outputs.build_id }}
+      build_id: ${{ needs.build.outputs.build_id }}
