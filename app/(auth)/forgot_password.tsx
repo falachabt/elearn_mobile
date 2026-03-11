@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import {StatusBar} from "expo-status-bar";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useSearchParams} from "expo-router/build/hooks";
+import {useLocalSearchParams} from "expo-router";
 
 import OTPInput from "../../components/ui/OTPInput";
 
@@ -171,7 +171,7 @@ const ResetPassword: React.FC = () => {
     const [confirmPasswordError, setConfirmPasswordError] = useState<string>("");
 
 
-    const b = useSearchParams();
+    const { come_from } = useLocalSearchParams<{ come_from?: string }>();
 
     // Toast state
     const [toast, setToast] = useState<ToastState>({
@@ -486,7 +486,7 @@ const ResetPassword: React.FC = () => {
                 type: "success",
                 action: {
                     label: "Se connecter",
-                    onPress: () => b.get('come_from') === "mobile"
+                    onPress: () => come_from === "mobile"
                         ? router.push("com.ezadrive.elearn://login")
                         : router.push("/login")
                 }
@@ -494,7 +494,7 @@ const ResetPassword: React.FC = () => {
 
             // Reset form after successful password reset
             setTimeout(() => {
-                if (b.get('come_from') === "mobile") {
+                if (come_from === "mobile") {
                   router.push("com.ezadrive.elearn://login");
                 } else {
                   router.push("/login");
@@ -716,7 +716,7 @@ const ResetPassword: React.FC = () => {
                                         Revenir à{" "}
                                     </Text>
                                     {
-                                        b.get('come_from') === "mobile" ? (
+                                        come_from === "mobile" ? (
                                             // Handle mobile deep link redirect
                                             <TouchableOpacity
                                                 onPress={() => router.push("com.ezadrive.elearn://login")}>
