@@ -1,0 +1,24 @@
+name: Production Build & Submit
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build_and_submit_android:
+    name: Build & Submit Android
+    type: build
+    params:
+      platform: android
+      profile: production
+    on_success:
+      - job: submit_android
+
+  submit_android:
+    name: Submit to Google Play
+    type: submit
+    params:
+      platform: android
+      profile: production
+      build_id: ${{ jobs.build_and_submit_android.outputs.build_id }}
