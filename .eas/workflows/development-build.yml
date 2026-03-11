@@ -2,8 +2,8 @@ name: Development Build
 
 on:
   push:
-    branches:
-      - develop
+    tags:
+      - "v*-dev*"
 
 jobs:
   build:
