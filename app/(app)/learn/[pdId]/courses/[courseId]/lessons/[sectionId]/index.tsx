@@ -48,6 +48,9 @@ interface Course {
 const SectionDetail = () => {
   const router = useCustomRouter();
   const { sectionId, courseId, pdId } = useLocalSearchParams();
+  const sectionIdParam = Array.isArray(sectionId) ? sectionId[0] : sectionId;
+  const courseIdParam = Array.isArray(courseId) ? courseId[0] : courseId;
+  const pdIdParam = Array.isArray(pdId) ? pdId[0] : pdId;
   const { session } = useAuth();
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -62,13 +65,13 @@ const SectionDetail = () => {
   const { isLearningPathEnrolled } = useUser();
   
   useEffect(() => {
-    if (!pdId) return;
+    if (!pdIdParam) return;
     const checkEnrollment = async () => {
-      const enrolled = await isLearningPathEnrolled(String(pdId));
+      const enrolled = await isLearningPathEnrolled(String(pdIdParam));
       setIsEnrolled(enrolled);
     };
     checkEnrollment();
-  }, [pdId, isLearningPathEnrolled]);
+  }, [pdIdParam, isLearningPathEnrolled]);
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -82,21 +85,13 @@ const SectionDetail = () => {
     sectionsProgress,
     updateLastAccessed,
     refreshProgress,
-  } = useCourseProgress(Number(courseId));
+  } = useCourseProgress(courseIdParam ? Number(courseIdParam) : undefined);
 
   useEffect(() => {
-    updateLastAccessed(Number(sectionId));
-
-    // Track lesson start event
-    if (category) {
-      posthogService.trackLessonStarted(
-        String(sectionId),
-        category.name || 'Untitled Lesson',
-        String(courseId),
-        category.courses?.name || 'Untitled Course'
-      );
+    if (sectionIdParam) {
+      updateLastAccessed(Number(sectionIdParam));
     }
-  }, [sectionId]);
+  }, [sectionIdParam, updateLastAccessed]);
 
   // Refresh progress when the sections list modal is opened
   useEffect(() => {
@@ -132,7 +127,7 @@ const SectionDetail = () => {
   }, []);
 
   const progress = sectionsProgress?.find(
-    (section) => section.sectionid == Number(sectionId)
+    (section) => section.sectionid == Number(sectionIdParam)
   );
 
   // Use prefetching for category data with SWR
@@ -147,7 +142,7 @@ const SectionDetail = () => {
       const { data } = await supabase
         .from("courses_content")
         .select("id, name, order, courseId, courses(name)")
-        .eq("id", Number(sectionId))
+        .eq("id", Number(sectionIdParam))
         .order("order", { ascending: true })
         .single();
       return data;
@@ -158,6 +153,17 @@ const SectionDetail = () => {
       dedupingInterval: 60000, // 1 minute
     }
   );
+
+  useEffect(() => {
+    if (!category) return;
+
+    posthogService.trackLessonStarted(
+      String(sectionIdParam),
+      category.name || 'Untitled Lesson',
+      String(courseIdParam),
+      category.courses?.name || 'Untitled Course'
+    );
+  }, [category, sectionIdParam, courseIdParam]);
 
   // Optimized course data query with SWR
   const {
@@ -171,7 +177,7 @@ const SectionDetail = () => {
       const { data } = await supabase
         .from("courses")
         .select("*, courses_content(name, order, id)")
-        .eq("id", Number(courseId))
+        .eq("id", Number(courseIdParam))
         .single();
 
       // Sort the sections by the 'order' field
@@ -211,7 +217,7 @@ const SectionDetail = () => {
   );
 
   const currentIndex =
-    sections?.findIndex((section) => section.id == Number(sectionId)) ?? -1;
+    sections?.findIndex((section) => section.id == Number(sectionIdParam)) ?? -1;
 
   const previousSection =
     sections && currentIndex > 0 ? sections[currentIndex - 1] : null;
@@ -234,7 +240,9 @@ const SectionDetail = () => {
   // Handle purchase flow
   const handlePurchaseFlow = () => {
     trigger(HapticType.SELECTION);
-    router.navigateToShop(pdId);
+    if (pdIdParam) {
+      router.navigateToShop(pdIdParam);
+    }
   };
 
   // Preload next section data directly into SWR cache
@@ -281,15 +289,15 @@ const SectionDetail = () => {
     // Track lesson completion
     if ((progress?.progress !== 1 || progress === undefined) && category) {
       posthogService.trackLessonCompleted(
-        String(sectionId),
+        String(sectionIdParam),
         category.name || 'Untitled Lesson',
-        String(courseId),
+        String(courseIdParam),
         category.courses?.name || 'Untitled Course'
       );
     }
 
     if (progress?.progress !== 1 || progress === undefined) {
-      await markSectionComplete(Number(sectionId));
+      await markSectionComplete(Number(sectionIdParam));
       
       // Attendre un peu pour que les mutations se propagent
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -299,12 +307,12 @@ const SectionDetail = () => {
       playNextLesson();
       trigger(HapticType.LIGHT);
       router.push(
-        `/(app)/learn/${pdId}/courses/${courseId}/lessons/${nextSection.id}`
+        `/(app)/learn/${pdIdParam}/courses/${courseIdParam}/lessons/${nextSection.id}`
       );
     } else {
       playCorrect();
       trigger(HapticType.LIGHT);
-      router.push(`/(app)/learn/${pdId}/courses/${courseId}`);
+      router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}`);
     }
   }
 
@@ -313,7 +321,7 @@ const SectionDetail = () => {
       playNextLesson();
       trigger(HapticType.LIGHT);
       router.push(
-        `/(app)/learn/${pdId}/courses/${courseId}/lessons/${previousSection.id}`
+        `/(app)/learn/${pdIdParam}/courses/${courseIdParam}/lessons/${previousSection.id}`
       );
     }
   }
@@ -512,7 +520,7 @@ const SectionDetail = () => {
           styles.backToCourseButton,
           isDark && styles.backToCourseButtonDark,
         ]}
-        onPress={() => router.push(`/(app)/learn/${pdId}/courses/${courseId}`)}
+        onPress={() => router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}`)}
       >
         <ThemedText
           style={[
@@ -574,7 +582,7 @@ const SectionDetail = () => {
           style={styles.backButton}
           onPress={() => {
             trigger(HapticType.LIGHT);
-            router.push(`/(app)/learn/${pdId}/courses/${courseId}`);
+            router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}`);
           }}
         >
           <MaterialCommunityIcons
@@ -792,10 +800,9 @@ const SectionDetail = () => {
       {/* Preload next section - only on mobile and if not locked */}
       {Platform.OS !== "web" && nextSection && !isNextSectionLocked && (
         <PreloadWebView
-          uri={`${webViewUrls?.course_url}/${nextSection.id}?theme=${
+          url={`${webViewUrls?.course_url}/${nextSection.id}?theme=${
             isDark ? "dark" : "light"
           }`}
-          accessToken={session?.access_token}
           isDark={isDark}
         />
       )}
@@ -835,7 +842,7 @@ const SectionDetail = () => {
               data={sections}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item, index }) => {
-                const isCurrentSection = item.id == Number(sectionId);
+                const isCurrentSection = item.id == Number(sectionIdParam);
                 const sectionProgress = sectionsProgress?.find(
                   (sp) => sp.sectionid == item.id
                 );
@@ -864,7 +871,7 @@ const SectionDetail = () => {
                       trigger(HapticType.LIGHT);
                       setShowSectionList(false);
                       router.push(
-                        `/(app)/learn/${pdId}/courses/${courseId}/lessons/${item.id}`
+                        `/(app)/learn/${pdIdParam}/courses/${courseIdParam}/lessons/${item.id}`
                       );
                     }}
                     disabled={isSectionLocked}

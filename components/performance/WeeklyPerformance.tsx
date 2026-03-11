@@ -1,13 +1,11 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
-  withTiming, 
-  withSequence, 
-  withDelay,
-  Easing
+  withTiming,
+  withDelay
 } from 'react-native-reanimated';
 
 import { useAuth } from '@/contexts/auth';
@@ -82,7 +80,7 @@ const WeeklyPerformance = () => {
         // 1. Get XP gained in the last week
         const { data: xpData, error: xpError } = await supabase
           .from('xp_history')
-          .select('xp_gained')
+          .select('xp_gained, created_at')
           .eq('userid', user.id)
           .gte('created_at', oneWeekAgoStr)
           .lte('created_at', todayStr);

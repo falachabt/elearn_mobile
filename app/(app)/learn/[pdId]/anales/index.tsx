@@ -1,5 +1,4 @@
 ﻿import React, {useState, useEffect, useCallback, memo, useMemo} from "react";
-import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -12,33 +11,19 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import useSWR from "swr";
+import {useLocalSearchParams} from "expo-router";
 
+import { logger } from '@/utils/logger';
 import { useCustomRouter } from "@/hooks/useCustomRouter";
 import { useFileDownload } from "@/hooks/useFileDownload";
-import { ArchiveCard } from "@/components/ArchiveCard";
+import { ArchiveCard, type Archive as Archive } from "@/components/ArchiveCard";
 import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useUser } from "@/contexts/useUserInfo";
 import {supabase} from "@/lib/supabase";
-import {useLocalSearchParams} from "expo-router";
 import {theme} from "@/constants/theme";
 
-export interface Archive {
-  id: string;
-  name: string;
-  file_url: string;
-  session: string;
-  is_pinned: boolean;
-  is_completed?: boolean;
-  local_path?: string;
-  file_type: "pdf" | "doc" | "other";
-  courses_categories?: {
-    id: string;
-    name: string;
-    description: string;
-  };
-  concour_id?: number; // Added this property
-}
+export type { Archive };
 
 export interface Category {
   id: string;
@@ -47,7 +32,7 @@ export interface Category {
 }
 
 interface PathData {
-  concourId: number;
+  concourId: string;
   concours: {
     name: string;
   };
@@ -76,12 +61,13 @@ const fetchPathData = async (url: string): Promise<PathData> => {
   if (!data) throw new Error("No data returned from API");
 
   // Ensure the structure matches the PathData type
+  const concours = Array.isArray(data.concours) ? data.concours[0] : data.concours;
+
   return {
-    concourId: data.concourId,
+    concourId: data.concourId ?? "",
     concours: {
-  // @ts-expect-error - concours is not always present
-      name: data.concours?.name || ""
-    }
+      name: concours?.name ?? "",
+    },
   };
 };
 
@@ -108,16 +94,28 @@ const fetchArchivesData = async (url: string): Promise<Archive[]> => {
 
   if (!data) return [];
 
-  // Transform to ensure it matches the Archive type
+  const inferFileType = (fileUrl: string): Archive["file_type"] => {
+    const normalizedUrl = fileUrl.toLowerCase();
+    if (normalizedUrl.endsWith(".pdf")) return "pdf";
+    if (normalizedUrl.endsWith(".doc") || normalizedUrl.endsWith(".docx")) return "doc";
+    return "other";
+  };
+
   return data.map(item => ({
     id: item.id,
     name: item.name || "",
     file_url: item.file_url || "",
     session: item.session || "",
-    is_pinned: false, // Will be set later
-    file_type: item.file_type || "other",
+    is_pinned: false,
+    file_type: inferFileType(item.file_url || ""),
     concour_id: item.concour_id,
     courses_categories: item.courses_categories
+      ? {
+          id: item.courses_categories.id,
+          name: item.courses_categories.name ?? "",
+          description: item.courses_categories.description ?? "",
+        }
+      : null,
   }));
 };
 
@@ -136,7 +134,7 @@ export const ArchivesList = () => {
   const scheme = useColorScheme();
   const isDark = scheme === "dark";
   const { user } = useAuth();
-  const [isEnrolled, setIsEnrolled] = useState(false);
+  const userId = user?.id;
   const [isPreviewMode, setIsPreviewMode] = useState<boolean>(true);
   const { isLearningPathEnrolled, generousWeekLearningPathId } = useUser();
 
@@ -145,7 +143,6 @@ export const ArchivesList = () => {
     if (!pdId) return;
     const checkEnrollment = async () => {
       const enrolled = await isLearningPathEnrolled(pdId);
-      setIsEnrolled(enrolled);
       setIsPreviewMode(!enrolled || (generousWeekLearningPathId === pdId));
     };
     checkEnrollment();
@@ -176,12 +173,6 @@ export const ArchivesList = () => {
   }, [pathData]);
 
   useEffect(() => {
-    if (archivesData && user?.id) {
-      fetchPinnedAndCompletedStatus();
-    }
-  }, [archivesData, user?.id]);
-
-  useEffect(() => {
     // Check existing downloads for all archives
     archives.forEach((archive) => {
       checkIfFileExists(archive);
@@ -192,8 +183,7 @@ export const ArchivesList = () => {
     try {
       setLoading(true);
 
-      // Ensure archivesData exists
-      if (!archivesData) {
+      if (!archivesData || !userId) {
         setLoading(false);
         return;
       }
@@ -204,9 +194,9 @@ export const ArchivesList = () => {
           .select("archive_id, is_pinned")
           .in(
               "archive_id",
-              archivesData.map((archive) => archive.id)
+              archivesData.map((archive) => Number(archive.id))
           )
-          .eq("user_id", user?.id);
+          .eq("user_id", userId);
 
       if (pinnedArchivesError) throw pinnedArchivesError;
 
@@ -216,9 +206,9 @@ export const ArchivesList = () => {
           .select("archive_id")
           .in(
               "archive_id",
-              archivesData.map((archive) => archive.id)
+              archivesData.map((archive) => Number(archive.id))
           )
-          .eq("user_id", user?.id);
+          .eq("user_id", userId);
 
       if (completedArchivesError) throw completedArchivesError;
 
@@ -236,7 +226,7 @@ export const ArchivesList = () => {
         return {
           ...archive,
           is_pinned: pinnedArchive?.is_pinned || false,
-          is_completed: completedArchiveIds.has(archive.id)
+          is_completed: completedArchiveIds.has(Number(archive.id))
         };
       });
 
@@ -257,20 +247,28 @@ export const ArchivesList = () => {
     } finally {
       setLoading(false);
     }
-  }, [archivesData, user?.id, supabase, setArchives, setCategories, setLoading]);
+  }, [archivesData, userId]);
 
-  const handlePin = useCallback(async (archiveId: string) => {
+  useEffect(() => {
+    if (archivesData && userId) {
+      void fetchPinnedAndCompletedStatus();
+    }
+  }, [archivesData, userId, fetchPinnedAndCompletedStatus]);
+
+  const handlePin = useCallback(async (archiveId: number | string) => {
     try {
+      if (!userId) return;
       trigger(HapticType.LIGHT);
+      const normalizedArchiveId = Number(archiveId);
 
-      const archive = archives.find((a) => a.id === archiveId);
+      const archive = archives.find((a) => a.id === normalizedArchiveId);
       if (!archive) return;
 
       const { data: existingPin, error: fetchError } = await supabase
           .from("user_pinned_archive")
           .select("archive_id, is_pinned")
-          .eq("archive_id", archiveId)
-          .eq("user_id", user?.id)
+          .eq("archive_id", normalizedArchiveId)
+          .eq("user_id", userId)
           .single();
 
       if (fetchError && fetchError.code !== "PGRST116") throw fetchError;
@@ -280,16 +278,16 @@ export const ArchivesList = () => {
         const { error: updateError } = await supabase
             .from("user_pinned_archive")
             .update({ is_pinned: !existingPin.is_pinned })
-            .eq("archive_id", archiveId)
-            .eq("user_id", user?.id);
+            .eq("archive_id", normalizedArchiveId)
+            .eq("user_id", userId);
         error = updateError;
       } else {
         const { error: insertError } = await supabase
             .from("user_pinned_archive")
             .insert({
-              archive_id: archiveId,
+              archive_id: normalizedArchiveId,
               is_pinned: true,
-              user_id: user?.id,
+              user_id: userId,
             });
         error = insertError;
       }
@@ -298,19 +296,21 @@ export const ArchivesList = () => {
 
       setArchives(
           archives.map((a) =>
-              a.id === archiveId ? { ...a, is_pinned: !a.is_pinned } : a
+              a.id === normalizedArchiveId ? { ...a, is_pinned: !a.is_pinned } : a
           )
       );
     } catch (error) {
       logger.error("Error updating pin status:", error);
     }
-  }, [trigger, archives, user?.id, supabase, setArchives]);
+  }, [trigger, archives, userId]);
 
-  const handleToggleComplete = useCallback(async (archiveId: string) => {
+  const handleToggleComplete = useCallback(async (archiveId: number | string) => {
     try {
+      if (!userId) return;
       trigger(HapticType.SUCCESS);
+      const normalizedArchiveId = Number(archiveId);
 
-      const archive = archives.find((a) => a.id === archiveId);
+      const archive = archives.find((a) => a.id === normalizedArchiveId);
       if (!archive) return;
 
       const isCurrentlyCompleted = archive.is_completed;
@@ -320,8 +320,8 @@ export const ArchivesList = () => {
         const { error } = await supabase
             .from("user_completed_archives")
             .delete()
-            .eq("user_id", user?.id)
-            .eq("archive_id", archiveId);
+            .eq("user_id", userId)
+            .eq("archive_id", normalizedArchiveId);
 
         if (error) throw error;
       } else {
@@ -329,16 +329,16 @@ export const ArchivesList = () => {
         const { data: existingRecord } = await supabase
             .from("user_completed_archives")
             .select("id")
-            .eq("user_id", user?.id)
-            .eq("archive_id", archiveId);
+            .eq("user_id", userId)
+            .eq("archive_id", normalizedArchiveId);
 
         if (existingRecord && existingRecord.length > 0) {
           // Already exists, just update the timestamp
           const { error } = await supabase
               .from("user_completed_archives")
               .update({ completed_at: new Date().toISOString() })
-              .eq("user_id", user?.id)
-              .eq("archive_id", archiveId);
+              .eq("user_id", userId)
+              .eq("archive_id", normalizedArchiveId);
 
           if (error) throw error;
         } else {
@@ -346,8 +346,8 @@ export const ArchivesList = () => {
           const { error } = await supabase
               .from("user_completed_archives")
               .insert({
-                user_id: user?.id,
-                archive_id: archiveId,
+                user_id: userId,
+                archive_id: normalizedArchiveId,
                 completed_at: new Date().toISOString(),
               });
 
@@ -358,13 +358,13 @@ export const ArchivesList = () => {
       // Update local state
       setArchives(
           archives.map((a) =>
-              a.id === archiveId ? { ...a, is_completed: !isCurrentlyCompleted } : a
+              a.id === normalizedArchiveId ? { ...a, is_completed: !isCurrentlyCompleted } : a
           )
       );
     } catch (error) {
       logger.error("Error updating completion status:", error);
     }
-  }, [trigger, archives, user?.id, supabase, setArchives]);
+  }, [trigger, archives, userId]);
 
   const handleDownload = useCallback(async (file: Archive) => {
     trigger(HapticType.MEDIUM);
@@ -380,8 +380,8 @@ export const ArchivesList = () => {
       pathname: "/learn/[pdId]/anales/[filePath]/[fileId]",
       params: {
         pdId: String(pdId),
-        fileId: file.id || "",
-        filePath: downloadState[file.id]?.localPath || file.file_url || "",
+        fileId: String(file.id),
+        filePath: downloadState[String(file.id)]?.localPath || file.file_url || "",
       },
     });
   }, [trigger, router, pdId, downloadState]);
@@ -438,12 +438,12 @@ export const ArchivesList = () => {
         onDownload={handleDownload}
         onView={handleView}
         onToggleComplete={handleToggleComplete}
-        downloadState={downloadState[item.id] || {}}
+        downloadState={downloadState[String(item.id)] || { downloading: false, progress: 0 }}
         />
     ), [isDark, handlePin, handleDownload, handleView, handleToggleComplete, downloadState]);
 
     // Memoized key extractor for FlatList
-    const keyExtractor = useCallback((item : Archive) => item.id, []);
+    const keyExtractor = useCallback((item : Archive) => String(item.id), []);
 
 
   return (

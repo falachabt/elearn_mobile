@@ -264,7 +264,7 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
                             ]}>
                                 {daysRemaining ?
                                     `J-${daysRemaining} avant l'examen` :
-                                    `Examen le ${formatDate(concours.nextDate)}`
+                                    `Examen le ${formatDate(new Date(concours.nextDate))}`
                                 }
                             </Text>
                         </View>

@@ -5,7 +5,7 @@ export type SecondaryClass = Database["public"]["Tables"]["secondary_classes"]["
 export type SecondaryClassSerie = Database["public"]["Tables"]["secondary_series"]["Row"];
 
 export type SecondaryProgram = Database["public"]["Tables"]["secondary_programs"]["Row"] & {
-    document_count: number; // TODO update the database schema to include documents_count
+    document_count: number | null; // TODO update the database schema to include documents_count
     class?: SecondaryClass | null;
     serie?: SecondaryClassSerie | null;
 };

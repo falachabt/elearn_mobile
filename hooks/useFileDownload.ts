@@ -17,13 +17,14 @@ export const useFileDownload = () => {
     const [downloadState, setDownloadState] = useState<DownloadState>({});
 
     const checkIfFileExists = useCallback(async (file: Archive) => {
+        const fileKey = String(file.id);
         const localPath = `${FileSystem.documentDirectory}${file.id}_${file.name}`;
         try {
             const fileInfo = await FileSystem.getInfoAsync(localPath);
             if (fileInfo.exists) {
                 setDownloadState(prev => ({
                     ...prev,
-                    [file.id]: { ...prev[file.id], localPath }
+                    [fileKey]: { ...prev[fileKey], localPath }
                 }));
                 return true;
             }
@@ -35,11 +36,12 @@ export const useFileDownload = () => {
     }, []);
 
     const downloadFile = useCallback(async (file: Archive) => {
+        const fileKey = String(file.id);
         const localPath = `${FileSystem.documentDirectory}${file.id}_${file.name}`;
         
         setDownloadState(prev => ({
             ...prev,
-            [file.id]: { downloading: true, progress: 0 }
+            [fileKey]: { downloading: true, progress: 0 }
         }));
 
         try {
@@ -51,7 +53,7 @@ export const useFileDownload = () => {
                     const progress = (downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite) * 100;
                     setDownloadState(prev => ({
                         ...prev,
-                        [file.id]: { ...prev[file.id], progress }
+                        [fileKey]: { ...prev[fileKey], progress }
                     }));
                 }
             );
@@ -61,14 +63,14 @@ export const useFileDownload = () => {
 
             setDownloadState(prev => ({
                 ...prev,
-                [file.id]: { downloading: false, progress: 100, localPath: uri }
+                [fileKey]: { downloading: false, progress: 100, localPath: uri }
             }));
             return true;
         } catch (error) {
             logger.error('Download error:', error);
             setDownloadState(prev => ({
                 ...prev,
-                [file.id]: { downloading: false, progress: 0 }
+                [fileKey]: { downloading: false, progress: 0 }
             }));
             return false;
         }

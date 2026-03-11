@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { logger } from '@/utils/logger';
 
+import { logger } from '@/utils/logger';
 import { PaymentService } from "@/services/payment.service";
 import { Payments } from "@/types/type";
 import { NotchPayService } from "@/lib/notchpay";
@@ -30,9 +30,9 @@ export const usePayment = () => {
           promoCodeId
       );
 
-      setPayment(payment);
+      setPayment(payment as unknown as Payments);
       PaymentService.subscribeToPaymentStatus(payment.id, (status, payment) => {
-        setPayment(payment);
+        setPayment(payment as unknown as Payments);
         if (status === "initialized" || status === "completed") {
           setPaymentStatus(status);
         } else {
@@ -100,11 +100,11 @@ export const usePayment = () => {
       // listen to realtime of that payment
 
         PaymentService.subscribeToPaymentStatus(payment.id, (status, payment) => {
-          setPayment(payment);
+          setPayment(payment as unknown as Payments);
           setPaymentStatus(status);
         });
 
-        setPayment(payment);
+        setPayment(payment as unknown as Payments);
         await PaymentService.setStatus(payment.id, "pending");
         setPaymentStatus("pending");
 
@@ -126,9 +126,9 @@ export const usePayment = () => {
             promoCodeId
         );
 
-        setPayment(payment);
+        setPayment(payment as unknown as Payments);
         PaymentService.subscribeToPaymentStatus(payment.id, (status, payment) => {
-          setPayment(payment);
+          setPayment(payment as unknown as Payments);
           setPaymentStatus(status);
         });
 

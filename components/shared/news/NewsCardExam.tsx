@@ -6,9 +6,7 @@ import {
     TouchableOpacity,
     useColorScheme
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { theme } from '@/constants/theme';
 
@@ -19,13 +17,9 @@ interface NewsCardExamProps {
 const NewsCardExam: React.FC<NewsCardExamProps> = ({ onPress }) => {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
-    const router = useRouter();
 
     const handlePress = () => {
-        if (onPress) {
-            onPress();
-        } else {
-        }
+        onPress?.();
     };
 
     return (

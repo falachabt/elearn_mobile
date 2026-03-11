@@ -13,19 +13,23 @@ interface Cart extends Carts {
 
 const CART_KEY = 'currentCart';
 
-const fetcher = async () => {
+const fetcher = async (): Promise<Cart | null> => {
   const cart = await CartService.getCurrentCart();
-  return cart;
+  return (cart as Cart | null) ?? null;
 };
 
 //  TODO handle complete payemnent to apply directly essential formula
 
 export const useCart = () => {
-  const { data: currentCart, error, isLoading } = useSWR<Cart>(CART_KEY, fetcher);
+  const { data: currentCart, error, isLoading } = useSWR<Cart | null>(CART_KEY, fetcher);
   const { user } = useAuth();
   const { mutate } = useSWRConfig();
 
   useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+
     const cartChannel = supabase
       .channel('cart-changes')
       .on(
@@ -34,19 +38,7 @@ export const useCart = () => {
           event: '*',
           schema: 'public',
           table: 'carts',
-          filter: `user_id=eq.${user?.id}`,
-        },
-        () => {
-          mutate(CART_KEY);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'cart_items',
-          filter: currentCart ? `cart_id=eq.${currentCart.id}` : undefined,
+          filter: `user_id=eq.${user.id}`,
         },
         () => {
           mutate(CART_KEY);
@@ -54,10 +46,25 @@ export const useCart = () => {
       )
       .subscribe();
 
+    if (currentCart?.id) {
+      cartChannel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'cart_items',
+          filter: `cart_id=eq.${currentCart.id}`,
+        },
+        () => {
+          mutate(CART_KEY);
+        }
+      );
+    }
+
     return () => {
       supabase.removeChannel(cartChannel);
     };
-  }, [currentCart?.id]);
+  }, [currentCart?.id, mutate, user?.id]);
 
   const addToCart = async (programId: number, price: number) => {
     try {
@@ -88,7 +95,7 @@ export const useCart = () => {
         program_id: programId,
         price: price,
         currency: 'XAF',
-        user_id: user?.id
+        user_id: user?.id ?? ''
       });
 
       // Make the API call
@@ -124,9 +131,9 @@ export const useCart = () => {
       const removedItem = currentCart.items.find(item => item.program_id === programId);
       trackEvent(Events.REMOVE_FROM_CART, {
         program_id: programId,
-        price: removedItem?.price,
+        price: removedItem?.price ?? 0,
         currency: 'XAF',
-        user_id: user?.id
+        user_id: user?.id ?? ''
       });
 
       // Make the API call

@@ -1,5 +1,4 @@
 ﻿import React, {useState, useRef, useEffect} from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -17,9 +16,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import useSWR from 'swr';
 
+import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';
 import {supabase} from "@/lib/supabase";
+import type { Database } from '@/types/supabase';
 
 
 const { width } = Dimensions.get('window');
@@ -109,7 +110,9 @@ export default function EditProfile() {
 
 
 
-    const handleInputChange = (field: string, value: string) => {
+    type FormData = typeof formData;
+
+    const handleInputChange = (field: keyof FormData, value: string) => {
         setFormData(prev => ({
             ...prev,
             [field]: value
@@ -144,11 +147,18 @@ export default function EditProfile() {
         if (!validateForm()) {
             return;
         }
+        if (!user?.id) {
+            return;
+        }
 
         try {
+           const updatePayload: Database["public"]["Tables"]["accounts"]["Update"] = {
+                ...formData,
+                phone: formData.phone ? Number(formData.phone) : null,
+           };
            const {error} = await supabase.from('accounts').update({
-                ...formData
-            }).eq('id', user?.id);
+                ...updatePayload
+            }).eq('id', user.id);
 
             if (error) {
                 logger.error('Error updating profile:', error);
@@ -177,10 +187,10 @@ export default function EditProfile() {
     });
 
 
-    const renderInput = (label: string, field: string, placeholder: string,  options: {
+    const renderInput = (label: string, field: keyof FormData, placeholder: string,  options: {
             keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad',
-            ref?: React.RefObject<TextInput>,
-            nextRef?: React.RefObject<TextInput>,
+            ref?: React.RefObject<TextInput | null> | null,
+            nextRef?: React.RefObject<TextInput | null>,
             returnKeyType?: 'next' | 'done',
         } = {}
     ) => (
@@ -196,7 +206,6 @@ export default function EditProfile() {
                     isDarkMode ? styles.inputTextDark : styles.inputText,
                     errors[field] && styles.inputError
                 ]}
-                // @ts-ignore
                 value={formData[field]}
                 editable={field !== 'email'}
                 onChangeText={(value) => handleInputChange(field, value)}
@@ -279,7 +288,6 @@ export default function EditProfile() {
                             Informations personnelles
                         </Text>
                         {renderInput('Prénom', 'firstname', 'Votre prénom', {
-                            // @ts-ignore
                             ref: null,
                             nextRef: lastNameRef
                         })}

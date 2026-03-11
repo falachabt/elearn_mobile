@@ -1,15 +1,16 @@
 import React from "react";
 import {Image, Pressable, StyleSheet, View} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useRouter} from "expo-router";
+import {Href, useRouter} from "expo-router";
 
 import {ThemedText} from "@/components/ThemedText";
 import {theme} from "@/constants/theme";
 import {useCourseProgress} from "@/hooks/useCourseProgress";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
+import type { CourseItem } from '@/types/course.type';
 
 interface CourseRowItemProps {
-    courseItem: any;
+    courseItem: CourseItem;
     pdId: string;
     baseRoute: string;
     isDark: boolean;
@@ -18,10 +19,26 @@ interface CourseRowItemProps {
 
 const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRoute, isDark, isEnrolled = false}) => {
     const router = useRouter();
-    const sections = courseItem.course?.courses_content?.length || 0;
-    const videos = courseItem.course?.course_videos?.length || 0;
-    const {progress} = useCourseProgress(courseItem.course?.id);
+    void pdId;
+    const course = courseItem.course ?? undefined;
+    const sections =
+        course && 'courses_content' in course && Array.isArray(course.courses_content)
+            ? course.courses_content.length
+            : 0;
+    const videos =
+        course && 'course_videos' in course && Array.isArray(course.course_videos)
+            ? course.course_videos.length
+            : 0;
+    const courseId =
+        typeof course?.id === 'number'
+            ? course.id
+            : typeof course?.id === 'string' && Number.isFinite(Number(course.id))
+                ? Number(course.id)
+                : undefined;
+    const {progress} = useCourseProgress(courseId);
     const {trigger} = useHaptics();
+    const categoryName = typeof course?.category === 'string' ? course.category : course?.category?.name;
+    const categoryIcon = typeof course?.category === 'object' ? course.category?.icon : null;
 
     return (
         <Pressable
@@ -29,7 +46,9 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRout
             onPress={() => {
                 trigger(HapticType.SELECTION);
 
-                router.push(`${baseRoute}/${courseItem.course?.id}`)
+                if (course?.id != null) {
+                    router.push(`${baseRoute}/${course.id}` as Href);
+                }
             }
             }
         >
@@ -43,9 +62,9 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRout
                     >
                         {
                             !progress?.is_completed ? (
-                                courseItem.course.category?.icon ? (
+                                categoryIcon ? (
                                     <Image
-                                        source={{uri: courseItem.course.category?.icon}}
+                                        source={{uri: categoryIcon}}
                                         style={styles.categoryIconImage}
                                         resizeMode="contain"
                                     />
@@ -90,11 +109,11 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRout
                             numberOfLines={1}
                             ellipsizeMode="tail"
                         >
-                            {courseItem.course?.name}
+                            {course?.name}
                         </ThemedText>
                         <View style={styles.courseMetricsContainer}>
                             <ThemedText style={[styles.courseMetrics, isDark && styles.courseMetricsDark]}>
-                                {courseItem.course?.category?.name} • {sections} sections • {videos} vidéos
+                                {categoryName} • {sections} sections • {videos} vidéos
                             </ThemedText>
                             {!isEnrolled && (
                                 <View style={[styles.previewBadge, isDark && styles.previewBadgeDark]}>

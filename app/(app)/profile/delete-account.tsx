@@ -1,5 +1,4 @@
 ﻿import React, { useState } from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -18,6 +17,7 @@ import { router } from 'expo-router';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import axios from "axios";
 
+import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';
 import { supabase } from "@/lib/supabase";
@@ -38,7 +38,7 @@ interface CheckboxProps {
 }
 
 const DeleteAccount = () => {
-    const { user, signOut } = useAuth();
+    const { signOut } = useAuth();
     const { getApiBaseUrl } = useAppConfig();
     const apiBaseUrl = getApiBaseUrl();
     const [isDeleting, setIsDeleting] = useState(false);

@@ -1,11 +1,11 @@
-// types/quiz.ts
+import type { Json } from "./supabase";
 
 export interface QuizQuestion {
     justificatif: string;
     id: number;
     title: string;
-    content: any;
-    last_modify_at: Date | null;
+    content: Json;
+    last_modify_at: string | null;
     name: string | null;
     order: number | null;
     quizId: string;
@@ -16,25 +16,33 @@ export interface QuizQuestion {
     hasImg: boolean;
     hasEditor: boolean;
     hasDetails: boolean;
-    image: any | null;
-    details: any[] | null;
+    image: Json | null;
+    details: Json[] | null;
   }
   
   export interface QuizOption {
-      isCorrect: any;
+      isCorrect: boolean | null;
     id: string;
     value: string;
   }
   
+  export interface QuizAnswerState {
+    selectedOptions: string[];
+    isCorrect: boolean;
+    timeSpent: number;
+  }
+
   export interface QuizAttempt {
     id: number;
-    user_id: string;
-    quiz_id: string;
-    start_time: Date;
-    end_time?: Date;
-    score?: number;
-    status: 'in_progress' | 'completed';
-    answers?: UserAnswer[];
+    user_id: string | null;
+    quiz_id: string | null;
+    start_time: string | null;
+    end_time?: string | null;
+    score?: number | null;
+    status: 'in_progress' | 'completed' | string | null;
+    answers?: Record<string, QuizAnswerState> | null;
+    current_question_index?: number | null;
+    timeSpent?: number | null;
   }
   
   export interface UserAnswer {
@@ -61,11 +69,11 @@ export interface QuizQuestion {
     attempt: QuizAttempt;
     totalQuestions: number;
     correctAnswers: number;
-    quizId: string;
-    userId: string;
+    quizId: string | null;
+    userId: string | null;
     score: number;
     status: 'failed' | 'passed' | 'completed' | 'in_progress';
-    completedAt: Date;
+    completedAt: string;
     timeSpent: number;
     xpGained: number;
   }

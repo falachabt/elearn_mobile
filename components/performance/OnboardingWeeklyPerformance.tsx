@@ -1,5 +1,4 @@
 ﻿import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -27,9 +26,13 @@ import Animated, {
 import {
   PanGestureHandler,
   GestureHandlerRootView,
-  PanGestureHandlerGestureEvent
+  PanGestureHandlerGestureEvent,
+  State,
+  HandlerStateChangeEvent,
+  PanGestureHandlerEventPayload
 } from 'react-native-gesture-handler';
 
+import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/auth';
 import { theme } from '@/constants/theme';
 import { ThemedView } from '@/components/ThemedView';
@@ -133,7 +136,7 @@ interface AnimatedCounterProps {
   duration?: number;
   suffix?: string;
   prefix?: string;
-  style?: any;
+  style?: React.ComponentProps<typeof Text>["style"];
   onComplete?: () => void;
   showParticles?: boolean;
 }
@@ -701,8 +704,11 @@ const OnboardingWeeklyPerformance: React.FC = () => {
     }
   }, [canGoToNextStep, availableSteps, onboardingState.currentStepIndex, onboardingState.completedSteps, markStepCompleted]);
 
-  const onGestureEnd = useCallback((event: PanGestureHandlerGestureEvent) => {
+  const onGestureEnd = useCallback((event: HandlerStateChangeEvent<PanGestureHandlerEventPayload>) => {
     'worklet';
+    if (event.nativeEvent.state !== State.END) {
+      return;
+    }
     const threshold = SCREEN_WIDTH * 0.25;
 
     if (event.nativeEvent.translationX > threshold &&
@@ -1227,6 +1233,7 @@ const OnboardingWeeklyPerformance: React.FC = () => {
   }
 
   const currentStep = availableSteps[onboardingState.currentStepIndex];
+  const isPreviousDisabled = onboardingState.currentStepIndex === 0;
 
   if (!currentStep) return null;
 
@@ -1271,7 +1278,7 @@ const OnboardingWeeklyPerformance: React.FC = () => {
                 'worklet';
                 translateX.value = event.nativeEvent.translationX;
               })}
-              onEnded={onGestureEnd}
+              onHandlerStateChange={onGestureEnd}
           >
             <Animated.View style={[styles.contentContainer, contentAnimatedStyle]}>
               {renderCurrentStepContent()}
@@ -1283,30 +1290,22 @@ const OnboardingWeeklyPerformance: React.FC = () => {
             <TouchableOpacity
                 style={[
                   styles.navButton,
-                  (onboardingState.currentStepIndex === 0 ||
-                      onboardingState.status === OnboardingStatus.INITIALIZING ||
-                      onboardingState.status === OnboardingStatus.LOADING_DATA) && styles.navButtonDisabled,
+                  isPreviousDisabled && styles.navButtonDisabled,
                   isDark && styles.navButtonDark
                 ]}
                 onPress={goToPreviousStep}
-                disabled={onboardingState.currentStepIndex === 0 ||
-                    onboardingState.status === OnboardingStatus.INITIALIZING ||
-                    onboardingState.status === OnboardingStatus.LOADING_DATA}
+                disabled={isPreviousDisabled}
             >
               <MaterialCommunityIcons
                   name="chevron-left"
                   size={24}
-                  color={(onboardingState.currentStepIndex === 0 ||
-                      onboardingState.status === OnboardingStatus.INITIALIZING ||
-                      onboardingState.status === OnboardingStatus.LOADING_DATA)
+                  color={isPreviousDisabled
                       ? theme.color.gray[400] : (isDark ? '#FFFFFF' : '#1A1A1A')}
               />
               <Text style={[
                 styles.navButtonText,
                 isDark && styles.textDark,
-                (onboardingState.currentStepIndex === 0 ||
-                    onboardingState.status === OnboardingStatus.INITIALIZING ||
-                    onboardingState.status === OnboardingStatus.LOADING_DATA) && styles.navButtonTextDisabled
+                isPreviousDisabled && styles.navButtonTextDisabled
               ]}>
                 Précédent
               </Text>

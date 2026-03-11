@@ -33,9 +33,9 @@ export const useTicketMessages = (ticketId: string) => {
                 .single();
 
             if (err) throw err;
-            setTicket(data);
-        } catch (err: any) {
-            setError(err.message);
+            setTicket(data as unknown as Ticket);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Unknown error');
         }
     }
     const fetchMessages = async () => {
@@ -47,9 +47,9 @@ export const useTicketMessages = (ticketId: string) => {
                 .order('created_at', {ascending: true});
 
             if (err) throw err;
-            setMessages(data);
-        } catch (err: any) {
-            setError(err.message);
+            setMessages((data as unknown as Message[]) ?? []);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Unknown error');
         } finally {
             setLoading(false);
         }
@@ -61,11 +61,15 @@ export const useTicketMessages = (ticketId: string) => {
                                imagePath?: string
     ) => {
         try {
+            if (!user?.id) {
+                throw new Error('User not authenticated');
+            }
+
             const {data, error: err} = await supabase
                 .from('tickets_messages')
                 .insert({
                     ticket_id: ticketId,
-                    sender_id: user?.id,
+                    sender_id: user.id,
                     content,
                     message_type: messageType,
                     image_url: imageUrl,
@@ -76,8 +80,8 @@ export const useTicketMessages = (ticketId: string) => {
 
             if (err) throw err;
             return data;
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Unknown error');
             throw err;
         }
     };
@@ -88,12 +92,12 @@ export const useTicketMessages = (ticketId: string) => {
                 .from('tickets_messages')
                 .update({read_at: new Date().toISOString()})
                 .eq('ticket_id', ticketId)
-                .neq('sender_id', user?.id)
+                .neq('sender_id', user?.id ?? null)
                 .is('read_at', null);
 
             if (err) throw err;
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Unknown error');
         }
     };
 

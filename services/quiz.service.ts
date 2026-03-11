@@ -1,298 +1,313 @@
-﻿// services/quizService.ts
 import { logger } from '@/utils/logger';
-import {supabase} from '@/lib/supabase';
-import {QuizQuestion, QuizAttempt, QuizResults} from '@/types/quiz.type';
+import { supabase } from '@/lib/supabase';
+import type { Database, Json } from '@/types/supabase';
+import { QuizAttempt, QuizResults, type QuizAnswerState } from '@/types/quiz.type';
 
+type QuizRecord = Database['public']['Tables']['quiz']['Row'];
+type QuizAttemptRow = Database['public']['Tables']['quiz_attempts']['Row'];
+
+const isQuizAnswerState = (value: unknown): value is QuizAnswerState => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Record<string, Json | undefined>;
+  return (
+    Array.isArray(candidate.selectedOptions) &&
+    typeof candidate.isCorrect === 'boolean' &&
+    typeof candidate.timeSpent === 'number'
+  );
+};
+
+const parseAnswers = (
+  answers: Json | null
+): Record<string, QuizAnswerState> | null => {
+  if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
+    return null;
+  }
+
+  const entries = Object.entries(answers);
+  const parsed = entries.reduce<Record<string, QuizAnswerState>>((acc, [key, value]) => {
+    if (isQuizAnswerState(value)) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {});
+
+  return Object.keys(parsed).length > 0 ? parsed : {};
+};
+
+const mapAttempt = (attempt: QuizAttemptRow): QuizAttempt => ({
+  id: attempt.id,
+  user_id: attempt.user_id,
+  quiz_id: attempt.quiz_id,
+  start_time: attempt.start_time,
+  end_time: attempt.end_time,
+  score: attempt.score,
+  status: attempt.status,
+  answers: parseAnswers(attempt.answers),
+  current_question_index: attempt.current_question_index,
+  timeSpent: attempt.timeSpent,
+});
 
 // TODO - on database increment the user total_xp
 export class QuizService {
-    //  Get the quiz by id
-    static async getQuizById(quizId: string) {
-        if(!quizId) {
-            return null;
-        }
-        const {data, error} = await supabase
-            .from('quiz')
-            .select(`
-            *
-        `)
-            .eq('id', quizId)
-            .single();
-
-        if (error) throw error;
-        return data;
+  static async getQuizById(quizId: string): Promise<QuizRecord | null> {
+    if (!quizId) {
+      return null;
     }
 
-    /**
-     * Create a new quiz attempt
-     */
-    static async createAttempt(quizId: string, userId: string): Promise<QuizAttempt> {
-        const {data, error} = await supabase
-            .from('quiz_attempts')
-            .insert({
-                quiz_id: quizId,
-                user_id: userId,
-                start_time: new Date().toISOString(),
-                status: 'in_progress',
-                timeSpent: 0,
-                current_question_index: 0,
-                selectedAnswers: [],
-                answers: {}
-            })
-            .select()
-            .single();
+    const { data, error } = await supabase
+      .from('quiz')
+      .select('*')
+      .eq('id', quizId)
+      .single();
 
-        if (error) throw error;
-        return data;
+    if (error) throw error;
+    return data;
+  }
+
+  static async createAttempt(quizId: string, userId: string): Promise<QuizAttempt> {
+    const { data, error } = await supabase
+      .from('quiz_attempts')
+      .insert({
+        quiz_id: quizId,
+        user_id: userId,
+        start_time: new Date().toISOString(),
+        status: 'in_progress',
+        timeSpent: 0,
+        current_question_index: 0,
+        selected_answers: [],
+        answers: {},
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return mapAttempt(data);
+  }
+
+  static async saveAnswer(
+    attemptId: number,
+    questionId: number,
+    selectedOptions: string[],
+    _correctOptions: string[],
+    timeSpent: number,
+    isCorrect: boolean
+  ) {
+    try {
+      const { error: answerError } = await supabase
+        .from('user_answers')
+        .insert({
+          attempt_id: attemptId,
+          question_id: questionId,
+          selected_options: selectedOptions,
+          is_correct: isCorrect,
+          time_taken: timeSpent,
+        });
+
+      if (answerError) throw answerError;
+
+      const { data: attempt, error: attemptError } = await supabase
+        .from('quiz_attempts')
+        .select('answers, current_question_index')
+        .eq('id', attemptId)
+        .single();
+
+      if (attemptError || !attempt) {
+        throw attemptError ?? new Error('Attempt not found');
+      }
+
+      const updatedAnswers: Record<string, QuizAnswerState> = {
+        ...(parseAnswers(attempt.answers) ?? {}),
+        [String(questionId)]: {
+          selectedOptions,
+          isCorrect,
+          timeSpent,
+        },
+      };
+
+      const { error: updateError } = await supabase
+        .from('quiz_attempts')
+        .update({
+          answers: updatedAnswers as unknown as Json,
+          current_question_index: (attempt.current_question_index ?? 0) + 1,
+          timeSpent,
+        })
+        .eq('id', attemptId);
+
+      if (updateError) throw updateError;
+
+      return isCorrect;
+    } catch (error) {
+      logger.error('Error saving answer:', error);
+      throw error;
     }
+  }
 
-    /**
-     * Save user's answer for current question
-     */
-    static async saveAnswer(
-        attemptId: number,
-        questionId: number,
-        selectedOptions: string[],
-        correctOptions: string[],
-        timeSpent: number,
-        isCorrect: boolean
-    ) {
-        try {
+  static async updateAttemptProgress(
+    attemptId: number,
+    timeSpent: number,
+    currentQuestionIndex: number
+  ) {
+    const { error } = await supabase
+      .from('quiz_attempts')
+      .update({
+        timeSpent,
+        current_question_index: currentQuestionIndex,
+      })
+      .eq('id', attemptId);
 
-            // Save user answer
-            const {error: answerError} = await supabase
-                .from('user_answers')
-                .insert({
-                    attempt_id: attemptId,
-                    question_id: questionId,
-                    selected_options: selectedOptions,
-                    is_correct: isCorrect,
-                    time_taken: timeSpent
-                });
+    if (error) throw error;
+  }
 
-            if (answerError) throw answerError;
+  static async finishQuiz(attemptId: string): Promise<QuizResults> {
+    try {
+      const numericAttemptId = Number(attemptId);
+      if (Number.isNaN(numericAttemptId)) {
+        throw new Error('Invalid attempt ID');
+      }
 
-            // Update attempt progress
-            const {data: attempt} = await supabase
-                .from('quiz_attempts')
-                .select('answers, current_question_index')
-                .eq('id', attemptId)
-                .single();
+      const { data: attemptRow, error: attemptError } = await supabase
+        .from('quiz_attempts')
+        .select('*')
+        .eq('id', numericAttemptId)
+        .single();
 
-            if (!attempt) {
-                throw new Error('Attempt not found');
-            }
+      if (attemptError || !attemptRow) {
+        throw attemptError ?? new Error('Attempt not found');
+      }
 
-            const updatedAnswers = {
-                ...attempt.answers,
-                [questionId]: {
-                    selectedOptions,
-                    isCorrect,
-                    timeSpent
-                }
-            };
+      const attempt = mapAttempt(attemptRow);
+      const answers = Object.values(attempt.answers ?? {});
+      const totalQuestions = answers.length;
+      const correctAnswers = answers.filter((answer) => answer.isCorrect).length;
+      const score = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
 
-            const {error: updateError} = await supabase
-                .from('quiz_attempts')
-                .update({
-                    answers: updatedAnswers,
-                    current_question_index: attempt.current_question_index + 1,
-                    timeSpent: timeSpent
-                })
-                .eq('id', attemptId);
+      const baseXP = 100;
+      const scoreMultiplier = score / 100;
+      const timeBonus = Math.max(0, 1 - ((attempt.timeSpent ?? 0) / Math.max(totalQuestions, 1) / 60));
+      const xpGained = Math.round(baseXP * scoreMultiplier * (1 + timeBonus));
 
-            if (updateError) throw updateError;
+      const { error: updateError } = await supabase
+        .from('quiz_attempts')
+        .update({
+          status: 'completed',
+          score,
+          end_time: new Date().toISOString(),
+        })
+        .eq('id', numericAttemptId);
 
-            return isCorrect;
-        } catch (error) {
-            logger.error('Error saving answer:', error);
-            throw error;
-        }
+      if (updateError) throw updateError;
+
+      if (attempt.user_id && attempt.quiz_id) {
+        const { error: xpError } = await supabase
+          .from('xp_history')
+          .insert({
+            userid: attempt.user_id,
+            xp_gained: xpGained,
+            source_type: 'quiz',
+            source_id: attempt.quiz_id,
+            quiz_id: attempt.quiz_id,
+          });
+
+        if (xpError) throw xpError;
+      }
+
+      return {
+        attemptId,
+        attempt: {
+          ...attempt,
+          end_time: new Date().toISOString(),
+          score,
+          status: 'completed',
+        },
+        quizId: attempt.quiz_id,
+        userId: attempt.user_id,
+        score,
+        totalQuestions,
+        correctAnswers,
+        timeSpent: attempt.timeSpent ?? 0,
+        xpGained,
+        status: score >= 70 ? 'passed' : 'failed',
+        completedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      logger.error('Error finishing quiz:', error);
+      throw error;
     }
+  }
 
-    /**
-     * Update attempt progress (time spent, current question)
-     */
-    static async updateAttemptProgress(
-        attemptId: number,
-        timeSpent: number,
-        currentQuestionIndex: number
-    ) {
-        const {error} = await supabase
-            .from('quiz_attempts')
-            .update({
-                timeSpent,
-                current_question_index: currentQuestionIndex
-            })
-            .eq('id', attemptId);
+  static async getAttemptStatus(attemptId: number) {
+    const { data: attempt, error } = await supabase
+      .from('quiz_attempts')
+      .select('id, quiz_id, status, score, timeSpent, current_question_index')
+      .eq('id', attemptId)
+      .single();
 
-        if (error) throw error;
+    if (error || !attempt) throw error ?? new Error('Attempt not found');
+
+    const [{ count: answeredQuestions, error: answersError }, { count: totalQuestions, error: questionsError }] =
+      await Promise.all([
+        supabase
+          .from('user_answers')
+          .select('*', { count: 'exact', head: true })
+          .eq('attempt_id', attemptId),
+        supabase
+          .from('quiz_questions')
+          .select('*', { count: 'exact', head: true })
+          .eq('quizId', attempt.quiz_id ?? ''),
+      ]);
+
+    if (answersError) throw answersError;
+    if (questionsError) throw questionsError;
+
+    const total = totalQuestions ?? 0;
+    const answered = answeredQuestions ?? 0;
+
+    return {
+      attemptId: attempt.id,
+      status: attempt.status,
+      progress: total > 0 ? (answered / total) * 100 : 0,
+      timeSpent: attempt.timeSpent ?? 0,
+      currentQuestionIndex: attempt.current_question_index,
+      score: attempt.score,
+      isCompleted: attempt.status === 'completed',
+    };
+  }
+
+  static async resetAttempt(quizId: string, userId: string) {
+    try {
+      const { data: previousAttempt } = await supabase
+        .from('quiz_attempts')
+        .select('id')
+        .eq('quiz_id', quizId)
+        .eq('user_id', userId)
+        .eq('status', 'in_progress')
+        .single();
+
+      if (previousAttempt) {
+        await supabase
+          .from('quiz_attempts')
+          .delete()
+          .eq('id', previousAttempt.id);
+      }
+
+      return await this.createAttempt(quizId, userId);
+    } catch (error) {
+      logger.error('Error resetting attempt:', error);
+      throw error;
     }
+  }
 
-    /**
-     * Complete quiz attempt and calculate results
-     */
-    static async finishQuiz(attemptId: string): Promise<QuizResults> {
-        try {
-            // Get attempt details
-            const {data: attempt} = await supabase
-                .from('quiz_attempts')
-                .select('*, user_answers(*)')
-                .eq('id', attemptId)
-                .single();
+  static async saveJustification(questionId: number, justification: string) {
+    const { error } = await supabase
+      .from('quiz_questions')
+      .update({
+        justificatif: justification,
+      })
+      .eq('id', questionId);
 
-            // Calculate results
-            const answers = Object.values(attempt.answers);
-            const totalQuestions = answers.length;
-            const correctAnswers = answers.filter((a: any) => a.isCorrect).length;
-            const score = (correctAnswers / totalQuestions) * 100;
-
-            // Calculate XP
-            const baseXP = 100;
-            const scoreMultiplier = score / 100;
-            const timeBonus = Math.max(0, 1 - (attempt.timeSpent / (totalQuestions * 60)));
-            const xpGained = Math.round(baseXP * scoreMultiplier * (1 + timeBonus));
-
-            // Update attempt
-            const {error: updateError} = await supabase
-                .from('quiz_attempts')
-                .update({
-                    status: 'completed',
-                    score,
-                    end_time: new Date().toISOString()
-                })
-                .eq('id', attemptId);
-
-            if (updateError) throw updateError;
-
-            // Award XP
-            const {error: xpError} = await supabase
-                .from('xp_history')
-                .insert({
-                    userid: attempt.user_id,
-                    xp_gained: xpGained,
-                    source_type: 'quiz',
-                    source_id: attempt.quiz_id,
-                    quiz_id: attempt.quiz_id
-                });
-
-            if (xpError) throw xpError;
-
-            return {
-                attemptId,
-                attempt,
-                quizId: attempt.quiz_id,
-                userId: attempt.user_id,
-                score,
-                totalQuestions,
-                correctAnswers,
-                timeSpent: attempt.timeSpent,
-                xpGained,
-                status: score >= 70 ? 'passed' : 'failed',
-                completedAt: new Date()
-            };
-        } catch (error) {
-            logger.error('Error finishing quiz:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Check if selected answer is correct
-     */
-    private static checkAnswer(selected: string[], correct: string[]): boolean {
-        return (
-            correct.every(c => selected.includes(c)) &&
-            selected.length === correct.length
-        );
-    }
-
-    /**
-     * Get quiz attempt status
-     */
-    static async getAttemptStatus(attemptId: number) {
-        const {data, error} = await supabase
-            .from('quiz_attempts')
-            .select(`
-                *,
-                user_answers(count),
-                quiz:quiz_id(quiz_questions(count))
-            `)
-            .eq('id', attemptId)
-            .single();
-
-        if (error) throw error;
-
-        const totalQuestions = data.quiz.quiz_questions[0].count;
-        const answeredQuestions = data.user_answers[0].count;
-
-        return {
-            attemptId: data.id,
-            status: data.status,
-            progress: (answeredQuestions / totalQuestions) * 100,
-            timeSpent: data.timeSpent,
-            currentQuestionIndex: data.current_question_index,
-            score: data.score,
-            isCompleted: data.status === 'completed'
-        };
-    }
-
-    /**
-     * Reset quiz attempt
-     */
-    static async resetAttempt(quizId: string, userId: string) {
-        try {
-            // Get previous attempt
-            const {data: previousAttempt} = await supabase
-                .from('quiz_attempts')
-                .select('id')
-                .eq('quiz_id', quizId)
-                .eq('user_id', userId)
-                .eq('status', 'in_progress')
-                .single();
-
-            if (previousAttempt) {
-                // Delete previous attempt
-                await supabase
-                    .from('quiz_attempts')
-                    .delete()
-                    .eq('id', previousAttempt.id);
-            }
-
-            // Create new attempt
-            return await this.createAttempt(quizId, userId);
-        } catch (error) {
-            logger.error('Error resetting attempt:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get user's best attempt for a quiz
-     */
-    static async getBestAttempt(quizId: string, userId: string) {
-        const {data, error} = await supabase
-            .from('quiz_attempts')
-            .select('*')
-            .eq('quiz_id', quizId)
-            .eq('user_id', userId)
-            .eq('status', 'completed')
-            .order('score', {ascending: false})
-            .limit(1)
-            .single();
-
-        if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
-        return data;
-    }
-
-    static async saveJustification(questionId: number, jusification: string) {
-        const {
-            data,
-            error
-        } = await supabase.from("quiz_questions").update({justification: jusification}).eq('id', questionId).single();
-
-        if (error) {
-            throw error
-        }
-    }
+    if (error) throw error;
+  }
 }

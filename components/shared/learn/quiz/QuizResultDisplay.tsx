@@ -1,5 +1,4 @@
 ﻿import React, {useState, useCallback, useEffect} from 'react';
-import { logger } from '@/utils/logger';
 import {
   View,
   StyleSheet,
@@ -9,19 +8,60 @@ import {
   Platform,
   Text,
   Dimensions, ActivityIndicator,
+  StyleProp,
+  TextStyle,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Katex from 'react-native-katex';
 
+import { logger } from '@/utils/logger';
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/constants/theme';
-import { QuizAttempt, QuizQuestion, QuizResults } from '@/types/quiz.type';
+import { QuizAnswerState, QuizQuestion } from '@/types/quiz.type';
 import { Attempt } from '@/hooks/useQuiz';
 import { useQuizContext } from '@/contexts/quizContext';
 import {CorrectionService} from "@/services/correrction.service";
 import {QuizService} from "@/services/quiz.service";
+import { Json } from '@/types/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+type QuizAnswerMap = Record<string, QuizAnswerState>;
+
+const isQuizAnswerState = (value: unknown): value is QuizAnswerState => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Partial<QuizAnswerState>;
+  return (
+    Array.isArray(candidate.selectedOptions) &&
+    typeof candidate.isCorrect === 'boolean' &&
+    typeof candidate.timeSpent === 'number'
+  );
+};
+
+const parseAttemptAnswers = (value: unknown): QuizAnswerMap => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.entries(value).reduce<QuizAnswerMap>((acc, [questionId, answer]) => {
+    if (isQuizAnswerState(answer)) {
+      acc[questionId] = answer;
+    }
+    return acc;
+  }, {});
+};
+
+const getImageUrl = (value: Json | null): string | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const candidate = value as { url?: string };
+  return typeof candidate.url === 'string' ? candidate.url : null;
+};
 
 // Enhanced mixed content renderer with improved LaTeX rendering - matching main component
 const MixedContentRenderer = React.memo(({
@@ -31,7 +71,7 @@ const MixedContentRenderer = React.memo(({
                                            containerWidth: customWidth
                                          }: {
   text: string;
-  style?: any;
+  style?: StyleProp<TextStyle>;
   isDark?: boolean;
   containerWidth?: number;
 }) => {
@@ -162,7 +202,7 @@ const MixedContentRenderer = React.memo(({
         <View style={{
           width: containerWidth,
           minHeight: 30,
-          overflow: 'auto'
+          overflow: 'hidden'
         }}>
           <Katex
               expression={latexExpression}
@@ -195,6 +235,9 @@ const QuizResultsDisplay = ({currentQuestion, attempt, isDark}: {
   const { handleSaveJustification, quiz } = useQuizContext();
   const [correction, setCorrection] = useState<string|null>(null);
   const [isLoadingCorrection, setIsLoadingCorrection] = useState(false);
+  const answers = parseAttemptAnswers(attempt.answers);
+  const currentQuestionAnswers = answers[String(currentQuestion.id)]?.selectedOptions ?? [];
+  const questionImageUrl = getImageUrl(currentQuestion.image);
 
 
 
@@ -248,14 +291,14 @@ const QuizResultsDisplay = ({currentQuestion, attempt, isDark}: {
     );
   }
 
-  const isAnswerCorrect = (optionId) => {
-    const isSelected = attempt.answers?.[currentQuestion?.id]?.selectedOptions.includes(optionId) ?? false;
+  const isAnswerCorrect = (optionId: string) => {
+    const isSelected = currentQuestionAnswers.includes(optionId);
     const isCorrect = currentQuestion.correct.includes(String(optionId));
     return isSelected && isCorrect;
   };
 
-  const isAnswerIncorrect = (optionId) => {
-    const isSelected = attempt.answers?.[currentQuestion?.id  as any]?.selectedOptions.includes(optionId) ?? false ;
+  const isAnswerIncorrect = (optionId: string) => {
+    const isSelected = currentQuestionAnswers.includes(optionId);
     const isCorrect = currentQuestion.correct.includes(String(optionId));
     return isSelected && !isCorrect;
   };
@@ -268,10 +311,10 @@ const QuizResultsDisplay = ({currentQuestion, attempt, isDark}: {
         >
           <View style={[styles.questionCard, isDark && styles.questionCardDark]}>
             {/* Question Image */}
-            {currentQuestion.hasImg && currentQuestion.image && (
+            {currentQuestion.hasImg && questionImageUrl && (
                 <View style={styles.imageContainer}>
                   <Image
-                      source={{ uri: currentQuestion.image.url }}
+                      source={{ uri: questionImageUrl }}
                       style={styles.questionImage}
                       resizeMode="contain"
                   />
@@ -303,7 +346,7 @@ const QuizResultsDisplay = ({currentQuestion, attempt, isDark}: {
                           isDark && styles.optionButtonDark,
                           correct && styles.optionCorrect,
                           incorrect && styles.optionIncorrect,
-                          !attempt.answers?.[currentQuestion?.id]?.selectedOptions.includes(option.id) && isCorrectAnswer && styles.optionHighlight,
+                          !currentQuestionAnswers.includes(option.id) && isCorrectAnswer && styles.optionHighlight,
                         ]}
                     >
                       <View style={styles.optionTextContainer}>
@@ -334,7 +377,7 @@ const QuizResultsDisplay = ({currentQuestion, attempt, isDark}: {
                               color={theme.color.error}
                           />
                       )}
-                      {!attempt.answers?.[currentQuestion?.id]?.selectedOptions.includes(option.id) && isCorrectAnswer && (
+                      {!currentQuestionAnswers.includes(option.id) && isCorrectAnswer && (
                           <MaterialCommunityIcons
                               name="information"
                               size={24}

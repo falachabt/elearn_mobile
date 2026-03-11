@@ -1,7 +1,7 @@
 import useSWR, { mutate } from "swr";
-import { logger } from '@/utils/logger';
 import { useEffect } from "react";
 
+import { logger } from '@/utils/logger';
 import { useAuth } from "@/contexts/auth";
 import { CourseProgressService } from "@/services/course.progress.service";
 import { supabase } from "@/lib/supabase";
@@ -15,18 +15,44 @@ interface CourseProgress {
 }
 
 interface SectionProgress {
-  total: any;
-  completed: any;
+  total: number;
+  completed: number;
   sectionid: number;
   progress: number;
   lastaccessed: string;
 }
 
-const fetcher = (userId: string, courseId: number) =>
-  CourseProgressService.getCurrentProgress(userId, courseId);
+const fetcher = async (userId: string, courseId: number): Promise<CourseProgress | null> => {
+  const progress = await CourseProgressService.getCurrentProgress(userId, courseId);
 
-const fetchSectionsProgress = (userId: string, courseId: number) =>
-  CourseProgressService.getSectionsProgress(userId, courseId);
+  if (!progress) {
+    return null;
+  }
+
+  return {
+    total_sections: progress.total_sections ?? 0,
+    completed_sections: progress.completed_sections ?? 0,
+    progress_percentage: progress.progress_percentage ?? 0,
+    is_completed: progress.is_completed ?? false,
+  };
+};
+
+const fetchSectionsProgress = async (userId: string, courseId: number): Promise<SectionProgress[] | null> => {
+  const sections = await CourseProgressService.getSectionsProgress(userId, courseId);
+
+  return (sections ?? [])
+    .filter(
+      (section): section is typeof section & { sectionid: number } =>
+        typeof section.sectionid === "number"
+    )
+    .map((section) => ({
+      total: 1,
+      completed: (section.progress ?? 0) >= 1 ? 1 : 0,
+      sectionid: section.sectionid,
+      progress: section.progress ?? 0,
+      lastaccessed: section.lastaccessed ?? "",
+    }));
+};
 
 const fetchSectionProgress = (
   userId: string,
@@ -34,13 +60,13 @@ const fetchSectionProgress = (
   sectionId: number
 ) => CourseProgressService.getSectionProgress(userId, courseId, sectionId);
 
-export const useCourseProgress = (courseId: number) => {
+export const useCourseProgress = (courseId: number | undefined) => {
   const { user } = useAuth(); // Get current user
 
     const { data: progress, error: progressError, mutate: mutateCourseProgress } =
         useSWR<CourseProgress | null>(
-            user?.id ? courseProgressKeys.summary(user.id, courseId) : null,
-            () => fetcher(user!.id, courseId),
+            user?.id && typeof courseId === "number" ? courseProgressKeys.summary(user.id, courseId) : null,
+            () => fetcher(user!.id, courseId as number),
             {
                 revalidateOnFocus: true,
                 revalidateOnReconnect: true,
@@ -49,8 +75,8 @@ export const useCourseProgress = (courseId: number) => {
         );
 
     const { data: sectionsProgress, error: sectionsProgressError, mutate: mutateSectionProgress } = useSWR<SectionProgress[] | null>(
-        user?.id ? courseProgressKeys.sections(user.id, courseId) : null,
-            () => fetchSectionsProgress(user!.id, courseId),
+        user?.id && typeof courseId === "number" ? courseProgressKeys.sections(user.id, courseId) : null,
+            () => fetchSectionsProgress(user!.id, courseId as number),
             {
                 revalidateOnFocus: true,
                 revalidateOnReconnect: true,
@@ -61,6 +87,7 @@ export const useCourseProgress = (courseId: number) => {
 
   const updateLastAccessed = async (sectionId: number) => {
     if (!user?.id) return;
+    if (typeof courseId !== "number") return;
 
     await CourseProgressService.updateLastAccessed(user.id, courseId, sectionId);
     mutate(["courseProgress", user.id, courseId]);
@@ -69,6 +96,7 @@ export const useCourseProgress = (courseId: number) => {
 
   const markSectionComplete = async (sectionId: number) => {
     if (!user?.id) return;
+    if (typeof courseId !== "number") return;
 
     try {
       await CourseProgressService.markSectionAsComplete(
@@ -99,7 +127,7 @@ export const useCourseProgress = (courseId: number) => {
   };
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || typeof courseId !== "number") return;
 
     const channel = supabase
       .channel("courses_progress" + courseId)
@@ -146,7 +174,9 @@ export const useCourseProgress = (courseId: number) => {
     updateLastAccessed,
     markSectionComplete,
     refreshProgress: () => {
-        courseProgressKeys.mutateAllForCourse(user?.id || "", courseId);
+        if (user?.id && typeof courseId === "number") {
+          courseProgressKeys.mutateAllForCourse(user.id, courseId);
+        }
     },
     getSectionProgress: (sectionId: number) =>
       sectionsProgress?.find(

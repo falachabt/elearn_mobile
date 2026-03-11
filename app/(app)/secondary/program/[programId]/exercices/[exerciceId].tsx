@@ -23,10 +23,27 @@ import {trackEvent, Events} from '@/utils/analytics';
 import {useCustomRouter} from "@/hooks/useCustomRouter";
 import {useAppConfig} from "@/contexts/useAppConfig";
 import { useNavigation } from "@/contexts/NavigationContext";
+import { logger } from "@/utils/logger";
 
+interface ExerciseDetails {
+    id: string;
+    title: string | null;
+    correction: unknown;
+    course_id: number | null;
+    course: {
+        id: number;
+        name: string | null;
+        courses_categories: {
+            id: string;
+            name: string | null;
+        }[] | null;
+    } | null;
+}
 
 const SecondaryExercisePage = () => {
     const {exerciceId, programId} = useLocalSearchParams();
+    const exerciseIdParam = Array.isArray(exerciceId) ? exerciceId[0] : exerciceId;
+    const secondaryProgramId = Array.isArray(programId) ? programId[0] : programId;
     const router = useCustomRouter();
     const { getExercicePath } = useNavigation();
     const scheme = useColorScheme();
@@ -38,7 +55,7 @@ const SecondaryExercisePage = () => {
     const webViewUrls = getWebViewUrls();
 
     // Check if user is enrolled in this program
-    const isEnrolled = isSecondaryProgramEnrolled(String(programId));
+    const isEnrolled = isSecondaryProgramEnrolled(secondaryProgramId ?? "");
     const [isCorrection, setIsCorrection] = useState(false);
     const [correctionLoading, setCorrectionLoading] = useState(true);
     const [contentLoading, setContentLoading] = useState(true);
@@ -46,6 +63,8 @@ const SecondaryExercisePage = () => {
 
     // Fetcher for exercise data
     const exerciseFetcher = useCallback(async () => {
+        if (!exerciseIdParam) return null;
+
         const {data, error} = await supabase
             .from("exercices")
             .select(`
@@ -59,21 +78,21 @@ const SecondaryExercisePage = () => {
                     )
                 )
             `)
-            .eq("id", String(exerciceId))
+            .eq("id", exerciseIdParam)
             .single();
 
         if (error) throw error;
-        return data;
-    }, [exerciceId]);
+        return data as ExerciseDetails;
+    }, [exerciseIdParam]);
 
     // Fetcher for pin state
     const pinFetcher = useCallback(async () => {
-        if (!user?.id) return {is_pinned: false};
+        if (!user?.id || !exerciseIdParam) return {is_pinned: false};
 
         const {data, error} = await supabase
             .from("exercices_pin")
             .select("is_pinned")
-            .eq("exercice_id", exerciceId)
+            .eq("exercice_id", exerciseIdParam)
             .eq("user_id", user.id)
             .single();
 
@@ -81,16 +100,16 @@ const SecondaryExercisePage = () => {
         if (error) throw error;
 
         return data;
-    }, [exerciceId, user?.id]);
+    }, [exerciseIdParam, user?.id]);
 
     // Fetcher for completion state
     const completeFetcher = useCallback(async () => {
-        if (!user?.id) return {is_completed: false};
+        if (!user?.id || !exerciseIdParam) return {is_completed: false};
 
         const {data, error} = await supabase
             .from("exercices_complete")
             .select("is_completed")
-            .eq("exercice_id", exerciceId)
+            .eq("exercice_id", exerciseIdParam)
             .eq("user_id", user.id)
             .single();
 
@@ -98,72 +117,72 @@ const SecondaryExercisePage = () => {
         if (error) throw error;
 
         return data;
-    }, [exerciceId, user?.id]);
+    }, [exerciseIdParam, user?.id]);
 
     // Fetcher for next exercise
     const nextExerciseFetcher = useCallback(async () => {
-        if (!exerciceId) return null;
+        if (!exerciseIdParam) return null;
 
         const {data: currentExercise} = await supabase
             .from("exercices")
             .select(`course_id, created_at`)
-            .eq("id", exerciceId)
+            .eq("id", exerciseIdParam)
             .single();
 
-        if (!currentExercise) return null;
+        if (!currentExercise?.course_id || !currentExercise.created_at) return null;
 
         const {data: nextExo} = await supabase
             .from("exercices")
             .select("id")
-            .eq("course_id", currentExercise?.course_id)
-            .neq("id", exerciceId)
+            .eq("course_id", currentExercise.course_id)
+            .neq("id", exerciseIdParam)
             .order('created_at', {ascending: true})
-            .gt("created_at", currentExercise?.created_at)
+            .gt("created_at", currentExercise.created_at)
             .limit(1)
             .single();
 
         return nextExo?.id || null;
-    }, [exerciceId]);
+    }, [exerciseIdParam]);
 
     // Fetcher for previous exercise
     const previousExerciseFetcher = useCallback(async () => {
-        if (!exerciceId) return null;
+        if (!exerciseIdParam) return null;
 
         const {data: currentExercise} = await supabase
             .from("exercices")
             .select(`course_id, created_at`)
-            .eq("id", exerciceId)
+            .eq("id", exerciseIdParam)
             .single();
 
-        if (!currentExercise) return null;
+        if (!currentExercise?.course_id || !currentExercise.created_at) return null;
 
         const {data: previousExo} = await supabase
             .from("exercices")
             .select("id")
-            .eq("course_id", currentExercise?.course_id)
-            .neq("id", exerciceId)
+            .eq("course_id", currentExercise.course_id)
+            .neq("id", exerciseIdParam)
             .order('created_at', {ascending: false})
-            .lt("created_at", currentExercise?.created_at)
+            .lt("created_at", currentExercise.created_at)
             .limit(1)
             .single();
 
         return previousExo?.id || null;
-    }, [exerciceId]);
+    }, [exerciseIdParam]);
 
     const {data: exercise, error: exerciseError, isLoading: exerciseLoading} =
-        useSWR(`secondary-exercise-${exerciceId}`, exerciseFetcher);
+        useSWR(`secondary-exercise-${exerciseIdParam}`, exerciseFetcher);
 
     const {data: pinData, mutate: mutatePinData} =
-        useSWR(`secondary-exercise-pin-${exerciceId}-${user?.id}`, pinFetcher);
+        useSWR(`secondary-exercise-pin-${exerciseIdParam}-${user?.id}`, pinFetcher);
 
     const {data: completeData, mutate: mutateCompleteData} =
-        useSWR(`secondary-exercise-complete-${exerciceId}-${user?.id}`, completeFetcher);
+        useSWR(`secondary-exercise-complete-${exerciseIdParam}-${user?.id}`, completeFetcher);
 
     const {data: nextExerciseId} =
-        useSWR(`secondary-next-exercise-${exerciceId}`, nextExerciseFetcher);
+        useSWR(`secondary-next-exercise-${exerciseIdParam}`, nextExerciseFetcher);
 
     const {data: previousExerciseId} =
-        useSWR(`secondary-previous-exercise-${exerciceId}`, previousExerciseFetcher);
+        useSWR(`secondary-previous-exercise-${exerciseIdParam}`, previousExerciseFetcher);
 
     const isPinned = pinData?.is_pinned || false;
     const isCompleted = completeData?.is_completed || false;
@@ -172,16 +191,18 @@ const SecondaryExercisePage = () => {
     useEffect(() => {
         if (exercise) {
             trackEvent(Events.START_EXERCISE, {
-                exercise_id: exerciceId,
-                exercise_name: exercise.name,
-                course_id: exercise.course_id,
-                course_name: exercise.course?.name,
-                program_id: programId
+                exercise_id: exerciseIdParam ?? "",
+                exercise_name: exercise.title ?? "Exercice",
+                course_id: exercise.course_id ?? "",
+                course_name: exercise.course?.name ?? "Sans cours",
+                program_id: secondaryProgramId ?? ""
             });
         }
-    }, [exercise, exerciceId, programId]);
+    }, [exercise, exerciseIdParam, secondaryProgramId]);
 
     const handleToggleComplete = async () => {
+        if (!user?.id || !exerciseIdParam) return;
+
         const newCompletionState = !isCompleted;
         mutateCompleteData({is_completed: newCompletionState}, false);
         trigger(HapticType.SUCCESS);
@@ -192,11 +213,11 @@ const SecondaryExercisePage = () => {
             // Track exercise completion event
             if (exercise) {
                 trackEvent(Events.COMPLETE_EXERCISE, {
-                    exercise_id: exerciceId,
-                    exercise_name: exercise.name,
-                    course_id: exercise.course_id,
-                    course_name: exercise.course?.name,
-                    program_id: programId
+                    exercise_id: exerciseIdParam ?? "",
+                    exercise_name: exercise.title ?? "Exercice",
+                    course_id: exercise.course_id ?? "",
+                    course_name: exercise.course?.name ?? "Sans cours",
+                    program_id: secondaryProgramId ?? ""
                 });
             }
         }
@@ -206,8 +227,8 @@ const SecondaryExercisePage = () => {
                 .from("exercices_complete")
                 .upsert(
                     {
-                        user_id: user?.id,
-                        exercice_id: String(exerciceId),
+                        user_id: user.id,
+                        exercice_id: exerciseIdParam,
                         is_completed: newCompletionState,
                     },
                     {onConflict: "user_id,exercice_id"}
@@ -216,7 +237,7 @@ const SecondaryExercisePage = () => {
             mutateCompleteData();
             
             // Invalidate the exercise list cache to refresh the UI
-            mutateGlobal(['secondary-program-exercises', programId, user?.id]);
+            mutateGlobal(['secondary-program-exercises', secondaryProgramId, user.id]);
         } catch (error) {
             logger.error("Error updating completion state:", error);
             mutateCompleteData({is_completed: isCompleted}, false);
@@ -224,6 +245,8 @@ const SecondaryExercisePage = () => {
     };
 
     const handleTogglePin = async () => {
+        if (!user?.id || !exerciseIdParam) return;
+
         const newPinState = !isPinned;
         mutatePinData({is_pinned: newPinState}, false);
         trigger(HapticType.SUCCESS);
@@ -233,8 +256,8 @@ const SecondaryExercisePage = () => {
                 .from("exercices_pin")
                 .upsert(
                     {
-                        user_id: user?.id,
-                        exercice_id: exerciceId,
+                        user_id: user.id,
+                        exercice_id: exerciseIdParam,
                         is_pinned: newPinState,
                     },
                     {onConflict: "user_id,exercice_id"}
@@ -243,7 +266,7 @@ const SecondaryExercisePage = () => {
             mutatePinData();
             
             // Invalidate the exercise list cache to refresh the UI
-            mutateGlobal(['secondary-program-exercises', programId, user?.id]);
+            mutateGlobal(['secondary-program-exercises', secondaryProgramId, user.id]);
         } catch (error) {
             logger.error("Error updating pin state:", error);
             mutatePinData({is_pinned: isPinned}, false);
@@ -399,7 +422,7 @@ const SecondaryExercisePage = () => {
                 </TouchableOpacity>
                 <View style={styles.headerTitleContainer}>
                     <Text style={[styles.courseName, isDark && styles.textDark]} numberOfLines={2}>
-                        {exercise.name}
+                        {exercise.title ?? "Exercice"}
                     </Text>
                     <View style={styles.metaContainer}>
                         <Text style={[styles.categoryName, isDark && styles.categoryNameDark]} numberOfLines={2}>
@@ -474,7 +497,7 @@ const SecondaryExercisePage = () => {
                             !isCorrection && styles.hidden
                         ]}>
                             <iframe
-                                src={`${webViewUrls?.exercise_url}/${exerciceId}/correction?theme=${isDark ? "dark" : "light"}`}
+                                src={`${webViewUrls?.exercise_url}/${exerciseIdParam}/correction?theme=${isDark ? "dark" : "light"}`}
                                 style={{
                                     width: '100%',
                                     height: '100%',
@@ -491,7 +514,7 @@ const SecondaryExercisePage = () => {
                             isCorrection && styles.hidden
                         ]}>
                             <iframe
-                                src={`${webViewUrls?.exercise_url}/${exerciceId}/content?theme=${isDark ? "dark" : "light"}`}
+                                src={`${webViewUrls?.exercise_url}/${exerciseIdParam}/content?theme=${isDark ? "dark" : "light"}`}
                                 style={{
                                     width: '100%',
                                     height: '100%',
@@ -524,7 +547,7 @@ const SecondaryExercisePage = () => {
                         ]}>
                             <WebView
                                 source={{
-                                    uri: `${webViewUrls?.exercise_url}/${exerciceId}/correction?theme=${isDark ? "dark" : "light"}`,
+                                    uri: `${webViewUrls?.exercise_url}/${exerciseIdParam}/correction?theme=${isDark ? "dark" : "light"}`,
                                     headers: {
                                         Authorization: `Bearer ${session?.access_token}`,
                                         "color-scheme": isDark ? "dark" : "light",
@@ -548,7 +571,7 @@ const SecondaryExercisePage = () => {
                         ]}>
                             <WebView
                                 source={{
-                                    uri: `${webViewUrls?.exercise_url}/${exerciceId}/content?theme=${isDark ? "dark" : "light"}`,
+                                    uri: `${webViewUrls?.exercise_url}/${exerciseIdParam}/content?theme=${isDark ? "dark" : "light"}`,
                                     headers: {
                                         Authorization: `Bearer ${session?.access_token}`,
                                         "color-scheme": isDark ? "dark" : "light",
@@ -606,7 +629,7 @@ const SecondaryExercisePage = () => {
                 {!isEnrolled && (
                     <TouchableOpacity
                         style={[styles.nextButton, {backgroundColor: '#F59E0B'}]}
-                        onPress={() => router.navigateToShop(programId)}
+                        onPress={() => router.navigateToShop(secondaryProgramId ?? "")}
                     >
                         <MaterialCommunityIcons name="cart" size={24} color="#FFFFFF"/>
                     </TouchableOpacity>

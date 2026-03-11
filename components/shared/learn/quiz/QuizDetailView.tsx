@@ -1,5 +1,4 @@
 ﻿import React, { useState, useEffect, useRef, useMemo } from "react";
-import { logger } from '@/utils/logger';
 import {
     ScrollView,
     StyleSheet,
@@ -12,8 +11,10 @@ import {
     Easing,
     Dimensions
 } from "react-native";
+import { Href } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { theme } from "@/constants/theme";
@@ -25,12 +26,14 @@ import { useUser } from "@/contexts/useUserInfo";
 import { useCustomRouter } from "@/hooks/useCustomRouter";
 import { useQuizDetails, useQuizPins, useQuizAttempts } from "@/hooks/useQuizData";
 
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+
 // Define interfaces for the data
 interface QuizCourse {
     courses: {
         id: number;
         name: string;
-    };
+    } | null;
 }
 
 
@@ -38,7 +41,7 @@ interface QuizCourse {
 
 // Define component interfaces
 interface StatCardProps {
-    icon: string;
+    icon: IconName;
     value: string;
     label: string;
     color?: string;
@@ -228,7 +231,12 @@ const PrerequisiteItem: React.FC<PrerequisiteProps> = ({ prereq, isDark, index, 
         }}>
             <Pressable
                 style={[styles.prerequisiteItem, isDark && styles.cardDark]}
-                onPress={() => onPress(prereq.courses.id)}
+                onPress={() => {
+                    if (prereq.courses) {
+                        onPress(prereq.courses.id);
+                    }
+                }}
+                disabled={!prereq.courses}
                 android_ripple={{ color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
             >
                 <View style={styles.prereqIconContainer}>
@@ -240,7 +248,7 @@ const PrerequisiteItem: React.FC<PrerequisiteProps> = ({ prereq, isDark, index, 
                 </View>
 
                 <ThemedText style={styles.prerequisiteText}>
-                    {prereq.courses?.name}
+                    {prereq.courses?.name ?? "Cours"}
                 </ThemedText>
 
                 <MaterialCommunityIcons
@@ -670,8 +678,11 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
                                 : quiz.quiz_courses.slice(0, 2)
                         ).map((prereq, index) => (
                             <PrerequisiteItem
-                                key={`prereq-${prereq.courses.id}`}
-                                prereq={prereq}
+                                key={`prereq-${prereq.courses?.id ?? index}`}
+                                prereq={{ courses: prereq.courses ? {
+                                    id: prereq.courses.id,
+                                    name: prereq.courses.name ?? "Cours",
+                                } : null }}
                                 isDark={isDark}
                                 index={index}
                                 onPress={isEnrolled ? handlePrereqPress : () => {}}

@@ -1,6 +1,7 @@
 ﻿import { supabase } from "@/lib/supabase";
 import { logger } from '@/utils/logger';
 import { SecondaryProgram } from "@/types/secondary.type";
+import type { Database } from "@/types/supabase";
 
 export async function getSecondaryPrograms(): Promise<SecondaryProgram[]> {
   const { data, error } = await supabase
@@ -95,8 +96,14 @@ export async function getSecondaryProgramExercises(
   // If userId is provided, fetch pin and complete states for exercises in this page
   if (userId && data && data.length > 0) {
     const exerciseIds = data
-      .filter(item => item.exercise)
-      .map(item => item.exercise.id);
+      .filter(
+        (
+          item
+        ): item is typeof item & {
+          exercise: NonNullable<typeof item.exercise>;
+        } => item.exercise !== null
+      )
+      .map((item) => item.exercise.id);
     
     if (exerciseIds.length > 0) {
       const [pinsRes, completesRes] = await Promise.all([
@@ -247,13 +254,13 @@ export async function getSecondaryProgramContent(programId: string) {
 
 export interface SecondaryDocumentFolder {
   id: string;
-  program_id: string;
+  program_id: string | null;
   parent_folder_id: string | null;
   name: string;
   description: string | null;
-  order_index: number;
-  created_at: string;
-  updated_at: string;
+  order_index: number | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface SecondaryDocument {
@@ -269,9 +276,9 @@ export interface SecondaryDocument {
   file_url: string;
   download_url: string | null;
   file_size: number | null;
-  order_index: number;
-  created_at: string;
-  updated_at: string;
+  order_index: number | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 /**
@@ -301,7 +308,7 @@ export async function getSecondaryProgramDocuments(
   if (foldersError) throw foldersError;
 
   // Get documents at this level
-  let documents: Database["secondary_documents"][] = [];
+  let documents: Database["public"]["Tables"]["secondary_documents"]["Row"][] = [];
   
   if (folderId) {
     // Get documents in this specific folder (folder already verified to belong to program)
@@ -380,20 +387,25 @@ export async function getSecondaryDocument(documentId: string) {
 /**
  * Get breadcrumb trail for current folder
  */
-export async function getSecondaryDocumentBreadcrumb(folderId: string | null) {
+export async function getSecondaryDocumentBreadcrumb(
+  folderId: string | null
+): Promise<SecondaryDocumentFolder[]> {
   if (!folderId) return [];
 
   const breadcrumb: SecondaryDocumentFolder[] = [];
   let currentFolderId: string | null = folderId;
 
   while (currentFolderId) {
-    const { data, error } = await supabase
+    const response = await supabase
       .from("secondary_document_folders")
       .select("*")
       .eq("id", currentFolderId)
       .single();
 
+    const data = response.data as SecondaryDocumentFolder | null;
+    const error = response.error;
     if (error) throw error;
+    if (!data) break;
     breadcrumb.unshift(data);
     currentFolderId = data.parent_folder_id;
   }

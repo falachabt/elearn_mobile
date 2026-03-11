@@ -7,6 +7,32 @@ import type {
   RecordNewsInteractionParams,
   NewsStatistics,
 } from '@/types/news.type';
+import type { Json } from '@/types/supabase';
+
+type RawNews = Omit<
+  News,
+  'media_type' | 'action_type' | 'target_audience' | 'card_style' | 'status' | 'action_data'
+> & {
+  action_data: Json;
+  action_type: string | null;
+  card_style: string | null;
+  media_type: string | null;
+  status: string | null;
+  target_audience: string | null;
+};
+
+const normalizeNews = (item: RawNews): News => ({
+  ...item,
+  media_type: (item.media_type ?? 'none') as News['media_type'],
+  action_type: (item.action_type ?? 'none') as News['action_type'],
+  target_audience: (item.target_audience ?? 'all') as News['target_audience'],
+  card_style: (item.card_style ?? 'default') as News['card_style'],
+  status: (item.status ?? 'draft') as News['status'],
+  action_data:
+    item.action_data && typeof item.action_data === 'object' && !Array.isArray(item.action_data)
+      ? (item.action_data as News['action_data'])
+      : null,
+});
 
 /**
  * Récupère les actualités actives pour un utilisateur
@@ -55,7 +81,7 @@ export const getActiveNews = async (params: GetActiveNewsParams): Promise<News[]
       throw error;
     }
 
-    return data || [];
+    return (data ?? []).map((item) => normalizeNews(item as RawNews));
   } catch (error) {
     logger.error('[News Service] Exception in getActiveNews:', error);
     throw error;
@@ -78,7 +104,7 @@ export const getNewsById = async (newsId: string): Promise<News | null> => {
       throw error;
     }
 
-    return data;
+    return data ? normalizeNews(data as RawNews) : null;
   } catch (error) {
     logger.error('[News Service] Exception in getNewsById:', error);
     return null;
@@ -118,7 +144,7 @@ export const recordNewsView = async (params: RecordNewsViewParams): Promise<void
         news_id: newsId,
         user_id: userId,
         session_id: sessionId,
-        device_info: deviceInfo,
+        device_info: (deviceInfo ?? null) as Json,
         viewed_at: new Date().toISOString(),
       });
 
@@ -163,7 +189,7 @@ export const recordNewsInteraction = async (
         news_id: newsId,
         user_id: userId,
         interaction_type: interactionType,
-        metadata,
+        metadata: (metadata ?? null) as Json,
         interacted_at: new Date().toISOString(),
       });
 

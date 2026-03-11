@@ -1,5 +1,4 @@
 ﻿import React from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
+import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 
 interface WhatsAppContactProps {

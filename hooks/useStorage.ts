@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/utils/logger';
 
 interface UseStorageOptions {
     bucket: string;

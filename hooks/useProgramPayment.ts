@@ -1,22 +1,10 @@
-import { useState, useRef } from "react";
-import { logger } from '@/utils/logger';
-import useSWR, { mutate } from "swr";
+import { useState } from "react";
+import useSWR from "swr";
 
+import { logger } from '@/utils/logger';
 import { ProgramPaymentService, ProgramPayment } from "@/services/program-payment.service";
-import { NotchPayService } from "@/lib/notchpay";
 import { supabase } from "@/lib/supabase";
 import { programPaymentKeys, programKeys } from "@/constants/swr-path";
-
-interface PaymentContextData {
-    programId: string | null;
-    programName: string;
-    programPrice: number;
-    user: any;
-    hasCompletedFirstInstallment: boolean;
-    latestPayment: ProgramPayment | null;
-    allPayments: ProgramPayment[];
-    installmentPayment: any;
-}
 
 // Helper function to get program ID from pdId
 async function getProgramIdFromPdId(pdId: string | undefined): Promise<string | null> {
@@ -31,7 +19,7 @@ async function getProgramIdFromPdId(pdId: string | undefined): Promise<string | 
         return null;
     }
 
-    return data?.id || null;
+    return data?.id ? String(data.id) : null;
 }
 
 export const useProgramPayment = (pdId: string | undefined) => {
@@ -106,14 +94,14 @@ export const useProgramPayment = (pdId: string | undefined) => {
     /**
      * Check if the user has access to a program
      */
-    const checkAccess = async (programId: string) => {
+    const checkAccess = async (_programId: string) => {
         return mutateAccess();
     };
 
     /**
      * Get the active payment for a program
      */
-    const getActivePayment = async (programId: string) => {
+    const getActivePayment = async (_programId: string) => {
         return mutateActivePayment();
     };
 
@@ -128,7 +116,7 @@ export const useProgramPayment = (pdId: string | undefined) => {
     /**
      * Get all the payments for a program
      */
-    const getAllPayments = async (programId: string) => {
+    const getAllPayments = async (_programId: string) => {
         return mutateAllPayments();
     };
 
@@ -168,8 +156,7 @@ export const useProgramPayment = (pdId: string | undefined) => {
                 nextInstallmentDate
             );
 
-            // @ts-ignore
-            const pay = result.payment ? result.payment : result;
+            const pay = 'payment' in result ? result.payment : result;
             // Store the payment
             setPayment(pay);
 
@@ -194,9 +181,8 @@ export const useProgramPayment = (pdId: string | undefined) => {
             );
 
             // Store the authorization URL for fallback
-            // @ts-ignore
             if (result.needsFallback && result.authorizationUrl) {
-                setAuthorizationUrl(pay.authorizationUrl);
+                setAuthorizationUrl(result.authorizationUrl);
             }
 
             // Mutate all relevant SWR caches after initiating payment
@@ -221,8 +207,7 @@ export const useProgramPayment = (pdId: string | undefined) => {
         if (payment) {
             try {
                 await ProgramPaymentService.cancelPayment(
-                    payment.id,
-                    payment.payment_reference
+                    payment.id
                 );
                 setAuthorizationUrl(null);
                 setChargeError(null);
@@ -285,12 +270,12 @@ export const useProgramPayment = (pdId: string | undefined) => {
 
                         // For completed payments, also check access
                         if (displayStatus === "completed" || result.transaction.status === "complete") {
-                            await checkAccess(payment.program_id);
+                            await checkAccess(String(payment.program_id));
                         }
 
                         // Mutate all relevant SWR caches (only if program_id is valid)
                         if (payment.program_id) {
-                            programPaymentKeys.mutateAllForProgram(payment.program_id);
+                            programPaymentKeys.mutateAllForProgram(String(payment.program_id));
                         }
 
                         // Mutate program context by refreshing all payment-related data
@@ -332,6 +317,7 @@ export const useProgramPayment = (pdId: string | undefined) => {
         latestPaymentLoading,
         authorizationUrl,
         chargeError,
+        errorMessage: chargeError,
         hasAccess,
         accessLoading,
         allPayments,

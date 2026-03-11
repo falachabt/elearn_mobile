@@ -3,6 +3,7 @@ import { Platform, AppState, AppStateStatus } from 'react-native';
 import { useEffect, useState } from 'react';
 
 import { STORAGE_KEY_SETTINGS } from "@/constants/storage-keys";
+import { logger } from '@/utils/logger';
 
 // Platform-specific imports
 let Haptics: any = null;

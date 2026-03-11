@@ -6,6 +6,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import { SoundKey } from "@/types/soundType";
 import soundManager from "@/lib/soundManager";
 import { STORAGE_KEY_SETTINGS } from "@/constants/storage-keys";
+import { logger } from "@/utils/logger";
 
 
 interface SoundConfigs {

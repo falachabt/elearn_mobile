@@ -4,6 +4,7 @@
  */
 
 import { useMemo } from 'react';
+
 import { ProgramPayment } from '@/types/payment.types';
 import { InstallmentService } from '@/services/installment.service';
 import { INSTALLMENT_OPTIONS } from '@/constants/payment.constants';

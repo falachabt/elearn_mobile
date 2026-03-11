@@ -19,10 +19,10 @@ export const PromoCodeService = {
 
     try {
       const { data, error } = await supabase
-        .from('promo_codes')
-        .select('*')
-        .eq('code', PromoCodeService.formatPromoCode(code))
-        .eq('is_active', true)
+        .from('influencers')
+        .select('id, promo_code, discount_percentage, status')
+        .eq('promo_code', PromoCodeService.formatPromoCode(code))
+        .eq('status', 'active')
         .single();
 
       if (error) {
@@ -34,7 +34,14 @@ export const PromoCodeService = {
         throw error;
       }
 
-      return data as PromoCode;
+      return {
+        id: data.id,
+        code: data.promo_code ?? PromoCodeService.formatPromoCode(code),
+        discount_percentage: data.discount_percentage ?? 0,
+        is_active: true,
+        created_at: '',
+        updated_at: '',
+      };
     } catch (error) {
       logger.error('Error in validatePromoCode:', error);
       return null;

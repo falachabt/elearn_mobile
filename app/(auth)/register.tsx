@@ -322,7 +322,7 @@ const Register: React.FC = () => {
 
   // Countdown timer
   useEffect(() => {
-    let timer: NodeJS.Timeout | undefined;
+    let timer: ReturnType<typeof setInterval> | undefined;
     if (isOtpStep && countdown > 0) {
       timer = setInterval(() => {
         setCountdown((prev) => prev - 1);

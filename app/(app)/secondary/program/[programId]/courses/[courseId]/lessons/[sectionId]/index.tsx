@@ -1,6 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { logger } from '@/utils/logger';
-import { useLocalSearchParams } from "expo-router";
+import { Href, useLocalSearchParams } from "expo-router";
 import * as ScreenCapture from "expo-screen-capture";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -17,6 +16,7 @@ import {
 import useSWR, { mutate as globalMutate } from "swr";
 import { WebView } from "react-native-webview";
 
+import { logger } from '@/utils/logger';
 import { LessonContentViewer } from "@/components/shared/learn/LessonContentViewer";
 import { ThemedText } from "@/components/ThemedText";
 import { theme } from "@/constants/theme";
@@ -45,9 +45,22 @@ interface Course {
   courses_content: CourseSection[];
 }
 
+interface CategoryDetail {
+  id: number;
+  name: string | null;
+  order: number | null;
+  courseId: number | null;
+  courses: {
+    name: string | null;
+  } | null;
+}
+
 const SecondarySectionDetail = () => {
   const router = useCustomRouter();
   const { sectionId, courseId, programId } = useLocalSearchParams();
+  const sectionIdParam = Array.isArray(sectionId) ? sectionId[0] : sectionId;
+  const courseIdParam = Array.isArray(courseId) ? courseId[0] : courseId;
+  const secondaryProgramId = Array.isArray(programId) ? programId[0] : programId;
   const { getCoursePath, getLessonPath, getBasePath } = useNavigation();
   const { session } = useAuth();
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
@@ -56,11 +69,10 @@ const SecondarySectionDetail = () => {
   const [isWebViewLoaded, setIsWebViewLoaded] = useState(false);
   const [showSectionList, setShowSectionList] = useState(false);
   const webViewRef = useRef<WebView>(null);
-  const { user } = useAuth();
 
   // Check if user is enrolled in this program
   const { isSecondaryProgramEnrolled } = useUser();
-  const isEnrolled = isSecondaryProgramEnrolled(String(programId));
+  const isEnrolled = isSecondaryProgramEnrolled(secondaryProgramId ?? "");
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -75,29 +87,7 @@ const SecondarySectionDetail = () => {
     sectionsProgress,
     updateLastAccessed,
     refreshProgress,
-  } = useCourseProgress(Number(courseId));
-
-  useEffect(() => {
-    updateLastAccessed(Number(sectionId));
-
-    // Track lesson start event
-    if (category) {
-      trackEvent(Events.START_LESSON, {
-        lesson_id: sectionId,
-        lesson_name: category.name,
-        course_id: courseId,
-        course_name: category.courses?.name,
-        program_id: programId,
-      });
-    }
-  }, [sectionId]);
-
-  // Refresh progress when the sections list modal is opened
-  useEffect(() => {
-    if (showSectionList) {
-      refreshProgress();
-    }
-  }, [showSectionList]);
+  } = useCourseProgress(Number(courseIdParam ?? 0));
 
   // Prevent screenshots
   useEffect(() => {
@@ -125,13 +115,13 @@ const SecondarySectionDetail = () => {
     };
   }, []);
 
-  const { data: category } = useSWR(
-    sectionId ? `secondary-content-${sectionId}` : null,
+  const { data: category } = useSWR<CategoryDetail | null>(
+    sectionIdParam ? `secondary-content-${sectionIdParam}` : null,
     async () => {
       const { data } = await supabase
         .from("courses_content")
         .select("id, name, order, courseId, courses(name)")
-        .eq("id", Number(sectionId))
+        .eq("id", Number(sectionIdParam ?? 0))
         .order("order", { ascending: true })
         .single();
       return data;
@@ -139,7 +129,7 @@ const SecondarySectionDetail = () => {
   );
 
   const { data: course } = useSWR<Course | null>(
-    courseId ? `secondary-course-sections-${courseId}` : null,
+    courseIdParam ? `secondary-course-sections-${courseIdParam}` : null,
     async () => {
       const { data } = await supabase
         .from("courses")
@@ -149,14 +139,35 @@ const SecondarySectionDetail = () => {
                 courses_content(name, id, order)
             `
         )
-        .eq("id", Number(courseId))
+        .eq("id", Number(courseIdParam ?? 0))
         .single();
       return data;
     }
   );
 
+  useEffect(() => {
+    updateLastAccessed(Number(sectionIdParam ?? 0));
+
+    if (category) {
+      trackEvent(Events.START_LESSON, {
+        lesson_id: sectionIdParam ?? "",
+        lesson_name: category.name ?? "Leçon",
+        course_id: courseIdParam ?? "",
+        course_name: category.courses?.name ?? "Cours",
+        program_id: secondaryProgramId ?? "",
+      });
+    }
+  }, [category, courseIdParam, secondaryProgramId, sectionIdParam, updateLastAccessed]);
+
+  // Refresh progress when the sections list modal is opened
+  useEffect(() => {
+    if (showSectionList) {
+      refreshProgress();
+    }
+  }, [refreshProgress, showSectionList]);
+
   const progress = sectionsProgress?.find(
-    (s) => s.sectionid === Number(sectionId)
+    (s) => s.sectionid === Number(sectionIdParam ?? 0)
   );
 
   const sections =
@@ -164,7 +175,7 @@ const SecondarySectionDetail = () => {
     [];
 
   const currentIndex = sections.findIndex(
-    (section) => section.id === Number(sectionId)
+    (section) => section.id === Number(sectionIdParam ?? 0)
   );
   const previousSection = currentIndex > 0 ? sections[currentIndex - 1] : null;
   const nextSection =
@@ -182,7 +193,7 @@ const SecondarySectionDetail = () => {
 //   Handle purchase flow  TOOD: later reidrect to the payment page
   const handlePurchaseFlow = () => {
     trigger(HapticType.SELECTION);
-    router.push(getBasePath());
+    router.push(getBasePath() as Href);
   };
 
   // Preload next section data
@@ -224,16 +235,16 @@ const SecondarySectionDetail = () => {
     // Track lesson completion
     if ((progress?.progress !== 1 || progress === undefined) && category) {
       trackEvent(Events.COMPLETE_LESSON, {
-        lesson_id: sectionId,
-        lesson_name: category.name,
-        course_id: courseId,
-        course_name: category.courses?.name,
-        program_id: programId,
+        lesson_id: sectionIdParam ?? "",
+        lesson_name: category.name ?? "Leçon",
+        course_id: courseIdParam ?? "",
+        course_name: category.courses?.name ?? "Cours",
+        program_id: secondaryProgramId ?? "",
       });
     }
 
     if (progress?.progress !== 1 || progress === undefined) {
-      await markSectionComplete(Number(sectionId));
+      await markSectionComplete(Number(sectionIdParam ?? 0));
       
       // Attendre un peu pour que les mutations se propagent
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -243,12 +254,12 @@ const SecondarySectionDetail = () => {
       playNextLesson();
       trigger(HapticType.LIGHT);
       router.push(
-        getLessonPath(String(courseId), String(nextSection.id))
+        getLessonPath(String(courseIdParam ?? ""), String(nextSection.id)) as Href
       );
     } else {
       playCorrect();
       trigger(HapticType.LIGHT);
-      router.push(getCoursePath(String(courseId)));
+      router.push(getCoursePath(String(courseIdParam ?? "")) as Href);
     }
   }
 
@@ -257,7 +268,7 @@ const SecondarySectionDetail = () => {
       playNextLesson();
       trigger(HapticType.LIGHT);
       router.push(
-        getLessonPath(String(courseId), String(previousSection.id))
+        getLessonPath(String(courseIdParam ?? ""), String(previousSection.id)) as Href
       );
     }
   }
@@ -436,7 +447,7 @@ const SecondarySectionDetail = () => {
           isDark && styles.backToCourseButtonDark,
         ]}
         onPress={() =>
-          router.push(getCoursePath(String(courseId)))
+          router.push(getCoursePath(String(courseIdParam ?? "")) as Href)
         }
       >
         <ThemedText
@@ -484,12 +495,10 @@ const SecondarySectionDetail = () => {
       <View style={[styles.header, isDark && styles.headerDark]}>
         <Pressable
           style={styles.backButton}
-          onPress={() => {
-            trigger(HapticType.LIGHT);
-            router.push(
-              getCoursePath(String(courseId))
-            );
-          }}
+        onPress={() => {
+          trigger(HapticType.LIGHT);
+          router.push(getCoursePath(String(courseIdParam ?? "")) as Href);
+        }}
         >
           <MaterialCommunityIcons
             name="arrow-left"
@@ -543,7 +552,7 @@ const SecondarySectionDetail = () => {
       <View style={styles.contentArea}>
         {!isWebViewLoaded && <LoadingIndicator />}
         <LessonContentViewer
-          contentId={sectionId}
+          contentId={sectionIdParam ?? ""}
           isDark={isDark}
           baseUrl={webViewUrls?.course_url}
           session={session}
@@ -629,7 +638,7 @@ const SecondarySectionDetail = () => {
               data={sections}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item, index }) => {
-                const isCurrentSection = item.id === Number(sectionId);
+                const isCurrentSection = item.id === Number(sectionIdParam ?? 0);
                 const sectionProgress = sectionsProgress?.find(
                   (sp) => sp.sectionid === item.id
                 );
@@ -656,7 +665,7 @@ const SecondarySectionDetail = () => {
                       trigger(HapticType.LIGHT);
                       setShowSectionList(false);
                       router.push(
-                        getLessonPath(String(courseId), String(item.id))
+                        getLessonPath(String(courseIdParam ?? ""), String(item.id)) as Href
                       );
                     }}
                     disabled={isSectionLocked}

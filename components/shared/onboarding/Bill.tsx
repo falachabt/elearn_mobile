@@ -88,18 +88,20 @@ export interface PaymentPageRef {
     validateAndPay: () => Promise<boolean>;
 }
 
+type PricingPlan = typeof PRICING_PLANS[number];
+
 interface Program {
-    id: string;
+    id: number;
     price: number;
     learning_path: {
-        title: string;
-    };
+        title: string | null;
+    } | null;
     concour: {
-        name: string;
+        name: string | null;
         school: {
-            name: string;
-        };
-    };
+            name: string | null;
+        } | null;
+    } | null;
 }
 
 interface PaymentPageProps {
@@ -158,7 +160,7 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
     const [showExtendedMessage, setShowExtendedMessage] = useState(false);
     const [currentTrxReference, setCurrentTrxReference] = useState<string | null>(null);
     const [browserRedirected, setBrowserRedirected] = useState(false);
-    const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
+    const statusCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Promo code related states
     const [promoCode, setPromoCode] = useState('');
@@ -170,7 +172,7 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
     } | null>(null);
 
     // Bundle formula states
-    const [applicableFormula, setApplicableFormula] = useState<any>(null);
+    const [applicableFormula, setApplicableFormula] = useState<PricingPlan | null>(null);
     const [baseTotal, setBaseTotal] = useState(0);
     const [bundleDiscount, setBundleDiscount] = useState(0);
 
@@ -224,11 +226,11 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
 
         let formula = null;
         if (programCount >= 5) {
-            formula = PRICING_PLANS.find(plan => plan.id === 'excellence');
+            formula = PRICING_PLANS.find(plan => plan.id === 'excellence') ?? null;
         } else if (programCount === 3) {
-            formula = PRICING_PLANS.find(plan => plan.id === 'advantage');
+            formula = PRICING_PLANS.find(plan => plan.id === 'advantage') ?? null;
         } else if (programCount > 0) {
-            formula = PRICING_PLANS.find(plan => plan.id === 'essential');
+            formula = PRICING_PLANS.find(plan => plan.id === 'essential') ?? null;
         }
 
         setApplicableFormula(formula);
@@ -268,7 +270,7 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
 
     // Extended message timer effect
     useEffect(() => {
-        let timer: NodeJS.Timeout | null = null;
+        let timer: ReturnType<typeof setTimeout> | null = null;
 
         if (processingState === 'processing') {
             timer = setTimeout(() => {
@@ -440,14 +442,33 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
     // Fetch cart items and program details
     useEffect(() => {
         const fetchCartItems = async () => {
+            const cartId = currentCart?.id;
+            if (!cartId) {
+                return;
+            }
+
             const {data} = await supabase
                 .from("cart_items")
                 .select(
                     "*, program:concours_learningpaths(*, concour : concours(name, school:schools(name)), learning_path:learning_paths(*))"
                 )
-                .eq("cart_id", currentCart?.id);
+                .eq("cart_id", cartId);
 
-            const programsData = data?.map((item) => item.program) || [];
+            const programsData = (data ?? []).reduce<Program[]>((acc, item) => {
+                const program = item.program;
+                if (!program || program.price === null) {
+                    return acc;
+                }
+
+                acc.push({
+                    id: program.id,
+                    price: program.price,
+                    concour: program.concour,
+                    learning_path: program.learning_path,
+                });
+
+                return acc;
+            }, []);
             setPrograms(programsData);
 
             // Calculate and update discount information

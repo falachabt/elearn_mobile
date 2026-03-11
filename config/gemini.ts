@@ -5,6 +5,8 @@
     GenerationConfig,
 } from "@google/generative-ai";
 
+import { logger } from '@/utils/logger';
+
 const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 
 if (!apiKey) {

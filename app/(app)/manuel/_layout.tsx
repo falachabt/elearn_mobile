@@ -1,8 +1,6 @@
 import {Stack} from "expo-router";
-import {Portal} from "@gorhom/portal";
-import React, {useState} from "react";
+import React from "react";
 
-import FloatingChatButton from "@/components/shared/FloatingChatButton";
 import ChatFab from "@/components/shared/FloatingChatButton";
 import {useChatBox} from "@/contexts/chatBotContext";
 import NewChatBot from "@/components/shared/NewChatBot";
@@ -13,7 +11,7 @@ export const unstable_settings = {
 };
 
 export default function ProgramLayout() {
-    const { closeChat, isChatVisible, currentChatSessionId, initialChatSessionId, initialContextElements } = useChatBox();
+    const { closeChat, isChatVisible, currentChatSessionId, initialContextElements } = useChatBox();
 
 
     return (

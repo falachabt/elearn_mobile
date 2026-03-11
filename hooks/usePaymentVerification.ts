@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { ProgramPaymentService } from '@/services/program-payment.service';
 import { ProgramPayment, PaymentStatus } from '@/types/payment.types';
 import { 
@@ -33,7 +34,7 @@ export const usePaymentVerification = ({
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [lastStatus, setLastStatus] = useState<PaymentStatus | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const verificationCountRef = useRef(0);
   const maxVerificationAttempts = 60; // 5 minutes max (60 * 5 seconds)
 

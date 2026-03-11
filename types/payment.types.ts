@@ -9,15 +9,15 @@ export interface ProgramPaymentRow {
   user_id: string;
   program_id: number;
   amount: number;
-  payment_date: string;
+  payment_date: string | null;
   expiry_date: string;
-  payment_reference: string;
+  payment_reference: string | null;
   payment_status: string;
-  payment_provider: string;
-  phone_number: string;
+  payment_provider: string | null;
+  phone_number: string | null;
   promo_code_id?: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
   is_installment?: boolean | null;
   total_installments?: number | null;
   current_installment?: number | null;
@@ -75,6 +75,8 @@ export interface PromoCode {
   updated_at: string;
   [key: string]: unknown;
 }
+
+export type PromoCodeDetails = PromoCode;
 
 // Payment context data for UI
 export interface PaymentContextData {

@@ -1,29 +1,30 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Pressable, StyleSheet, Animated, Easing } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/constants/theme';
 import {QUIZ_CATEGORY_COLORS, QUIZ_CATEGORY_ICONS} from "@/components/shared/learn/quiz/QuizCategoryFilter";
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 // Define types for component props
 interface QuizItemProps {
     quizItem: {
         quizId: number;
-        lpId: string;
+        lpId: string | null;
         quiz: {
             id: number;
-            name: string;
+            name: string | null;
             category?: {
-                id?: number;
-                name: string;
+                id?: string | number;
+                name: string | null;
             };
             quiz_questions?: Array<{ id: number }>;
             course?: {
                 id: number;
-                name: string;
+                name: string | null;
             };
         };
         isPinned?: boolean;
@@ -35,7 +36,7 @@ interface QuizItemProps {
     index?: number;
 }
 
-const EnhancedQuizRowItem: React.FC<QuizItemProps> = ({ quizItem, pdId, baseRoute, isDark = false, index = 0 }) => {
+const EnhancedQuizRowItem: React.FC<QuizItemProps> = ({ quizItem, baseRoute, isDark = false, index = 0 }) => {
     const router = useRouter();
     const { trigger } = useHaptics();
 
@@ -51,10 +52,8 @@ const EnhancedQuizRowItem: React.FC<QuizItemProps> = ({ quizItem, pdId, baseRout
     const categoryName = quiz?.category?.name || 'default';
 
     // Get category color and icon
-    // @ts-ignore
-    const categoryColor = QUIZ_CATEGORY_COLORS[categoryName] || QUIZ_CATEGORY_COLORS.default;
-    // @ts-ignore
-    const categoryIcon = QUIZ_CATEGORY_ICONS[categoryName] || QUIZ_CATEGORY_ICONS.default;
+    const categoryColor = QUIZ_CATEGORY_COLORS[categoryName as keyof typeof QUIZ_CATEGORY_COLORS] || QUIZ_CATEGORY_COLORS.default;
+    const categoryIcon = (QUIZ_CATEGORY_ICONS[categoryName as keyof typeof QUIZ_CATEGORY_ICONS] || QUIZ_CATEGORY_ICONS.default) as IconName;
 
     // Animation effects
     useEffect(() => {
@@ -97,7 +96,7 @@ const EnhancedQuizRowItem: React.FC<QuizItemProps> = ({ quizItem, pdId, baseRout
     // Handle quiz press
     const handleQuizPress = () => {
         trigger(HapticType.SELECTION);
-        router.push(`${baseRoute}/${quiz.id}`);
+        router.push(`${baseRoute}/${quiz.id}` as Href);
     };
 
     return (
@@ -125,7 +124,7 @@ const EnhancedQuizRowItem: React.FC<QuizItemProps> = ({ quizItem, pdId, baseRout
 
                         <View style={styles.quizDetails}>
                             <ThemedText style={[styles.quizTitle, isDark && styles.quizTitleDark]} numberOfLines={1}>
-                                {quiz.name}
+                                {quiz.name ?? "Quiz"}
                             </ThemedText>
 
                             <View style={styles.quizInfoRow}>

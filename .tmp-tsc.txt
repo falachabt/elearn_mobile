@@ -1,0 +1,1235 @@
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(48,35): error TS2589: Type instantiation is excessively deep and possibly infinite.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(49,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(relation: "view" | "event" | "groups" | "payments" | "quiz" | "roles" | "courses" | "courses_content" | "exercices" | "learning_paths" | "quiz_questions" | "carts" | "concours_learningpaths" | ... 92 more ... | "year_programs"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '"view" | "event" | "groups" | "payments" | "quiz" | "roles" | "courses" | "courses_content" | "exercices" | "learning_paths" | "quiz_questions" | "carts" | "concours_learningpaths" | ... 92 more ... | "year_programs"'.
+  Overload 2 of 2, '(relation: "vw_concours_details" | "vw_schools_with_locations" | "vw_upcoming_concours" | "news_stats" | "vw_available_secondary_programs" | "notification_stats" | "vw_user_secondary_subscriptions"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '"vw_concours_details" | "vw_schools_with_locations" | "vw_upcoming_concours" | "news_stats" | "vw_available_secondary_programs" | "notification_stats" | "vw_user_secondary_subscriptions"'.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(63,27): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(79,29): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(124,23): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(129,24): error TS2345: Argument of type 'number' is not assignable to parameter of type 'SetStateAction<string | null>'.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(172,7): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '(url: string) => Promise<ResultOne | { id: number; } | null>' has no properties in common with type 'SWRConfiguration<ArchiveData, any, BareFetcher<ArchiveData>>'.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(178,7): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '(url: string) => Promise<ResultOne | { id: number; } | null>' has no properties in common with type 'SWRConfiguration<CorrectionData, any, BareFetcher<CorrectionData>>'.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(184,7): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '(url: string) => Promise<ResultOne | { id: number; } | null>' has no properties in common with type 'SWRConfiguration<CompletionData | null, any, BareFetcher<CompletionData | null>>'.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(207,31): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(219,31): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(228,33): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/[filePath]/[fileId].tsx(235,16): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { archive_id: number; completed_at?: string | null | undefined; id?: number | undefined; user_id: string; }, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'string' is not assignable to type 'number'.
+  Overload 2 of 2, '(values: { archive_id: number; completed_at?: string | null | undefined; id?: number | undefined; user_id: string; }[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'user_id' does not exist in type '{ archive_id: number; completed_at?: string | null | undefined; id?: number | undefined; user_id: string; }[]'.
+app/(app)/learn/[pdId]/anales/index.tsx(80,5): error TS2322: Type 'string | null' is not assignable to type 'number'.
+  Type 'null' is not assignable to type 'number'.
+app/(app)/learn/[pdId]/anales/index.tsx(82,3): error TS2578: Unused '@ts-expect-error' directive.
+app/(app)/learn/[pdId]/anales/index.tsx(112,3): error TS2322: Type '{ id: number; name: string; file_url: string; session: string; is_pinned: false; file_type: any; concour_id: string | null; courses_categories: { id: string; name: string | null; description: string | null; } | null; }[]' is not assignable to type 'Archive[]'.
+  Type '{ id: number; name: string; file_url: string; session: string; is_pinned: false; file_type: any; concour_id: string | null; courses_categories: { id: string; name: string | null; description: string | null; } | null; }' is not assignable to type 'Archive'.
+    Types of property 'id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/anales/index.tsx(118,21): error TS2339: Property 'file_type' does not exist on type '{ category_id: string | null; concour_id: string | null; description: string | null; duration: number | null; file_id: string | null; file_path: string | null; file_size: number | null; ... 7 more ...; courses_categories: { ...; } | null; }'.
+app/(app)/learn/[pdId]/anales/index.tsx(207,15): error TS2345: Argument of type 'string[]' is not assignable to parameter of type 'readonly (number | null)[]'.
+  Type 'string' is not assignable to type 'number'.
+app/(app)/learn/[pdId]/anales/index.tsx(209,26): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/anales/index.tsx(219,15): error TS2345: Argument of type 'string[]' is not assignable to parameter of type 'readonly number[]'.
+  Type 'string' is not assignable to type 'number'.
+app/(app)/learn/[pdId]/anales/index.tsx(221,26): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/anales/index.tsx(233,21): error TS2367: This comparison appears to be unintentional because the types 'number | null' and 'string' have no overlap.
+app/(app)/learn/[pdId]/anales/index.tsx(239,49): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/index.tsx(272,29): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/index.tsx(273,26): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/anales/index.tsx(283,31): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/index.tsx(284,28): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/anales/index.tsx(290,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { archive_id?: number | null | undefined; created_at?: string | undefined; id?: string | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'string' is not assignable to type 'number'.
+  Overload 2 of 2, '(values: { archive_id?: number | null | undefined; created_at?: string | undefined; id?: string | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'archive_id' does not exist in type '{ archive_id?: number | null | undefined; created_at?: string | undefined; id?: string | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }[]'.
+app/(app)/learn/[pdId]/anales/index.tsx(323,28): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/anales/index.tsx(324,31): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/index.tsx(332,28): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/anales/index.tsx(333,31): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/index.tsx(340,30): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/anales/index.tsx(341,33): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/anales/index.tsx(349,17): error TS2769: No overload matches this call.
+  Overload 2 of 2, '(values: { archive_id: number; completed_at?: string | null | undefined; id?: number | undefined; user_id: string; }[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'user_id' does not exist in type '{ archive_id: number; completed_at?: string | null | undefined; id?: number | undefined; user_id: string; }[]'.
+app/(app)/learn/[pdId]/anales/index.tsx(437,9): error TS2322: Type '(archiveId: string) => Promise<void>' is not assignable to type '(id: string | number) => void'.
+  Types of parameters 'archiveId' and 'id' are incompatible.
+    Type 'string | number' is not assignable to type 'string'.
+      Type 'number' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/anales/index.tsx(438,9): error TS2322: Type '(file: Archive) => Promise<void>' is not assignable to type '(file: Archive) => void'.
+  Types of parameters 'file' and 'file' are incompatible.
+    Type 'import("D:/Projets/elearn_mobile/components/ArchiveCard").Archive' is not assignable to type 'import("D:/Projets/elearn_mobile/app/(app)/learn/[pdId]/anales/index").Archive'.
+      Types of property 'id' are incompatible.
+        Type 'string | number' is not assignable to type 'string'.
+          Type 'number' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/anales/index.tsx(439,9): error TS2322: Type '(file: import("D:/Projets/elearn_mobile/app/(app)/learn/[pdId]/anales/index").Archive) => void' is not assignable to type '(file: import("D:/Projets/elearn_mobile/components/ArchiveCard").Archive) => void'.
+  Types of parameters 'file' and 'file' are incompatible.
+    Type 'import("D:/Projets/elearn_mobile/components/ArchiveCard").Archive' is not assignable to type 'import("D:/Projets/elearn_mobile/app/(app)/learn/[pdId]/anales/index").Archive'.
+      Types of property 'id' are incompatible.
+        Type 'string | number' is not assignable to type 'string'.
+          Type 'number' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/anales/index.tsx(440,9): error TS2322: Type '(archiveId: string) => Promise<void>' is not assignable to type '(id: string | number) => void'.
+  Types of parameters 'archiveId' and 'id' are incompatible.
+    Type 'string | number' is not assignable to type 'string'.
+      Type 'number' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/courses/[courseId]/index.tsx(84,59): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/courses/[courseId]/index.tsx(112,9): error TS2448: Block-scoped variable 'course' used before its declaration.
+app/(app)/learn/[pdId]/courses/[courseId]/index.tsx(117,31): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string | number'.
+  Type 'string[]' is not assignable to type 'string | number'.
+app/(app)/learn/[pdId]/courses/[courseId]/index.tsx(122,28): error TS2339: Property 'NOTIFICATION_ERROR' does not exist on type 'typeof HapticType'.
+app/(app)/learn/[pdId]/courses/[courseId]/index.tsx(210,52): error TS7006: Parameter 'attempt' implicitly has an 'any' type.
+app/(app)/learn/[pdId]/courses/[courseId]/index.tsx(212,60): error TS7006: Parameter 'attempt' implicitly has an 'any' type.
+app/(app)/learn/[pdId]/courses/[courseId]/index.tsx(503,55): error TS7006: Parameter 'quiz' implicitly has an 'any' type.
+app/(app)/learn/[pdId]/courses/[courseId]/index.tsx(503,61): error TS7006: Parameter 'index' implicitly has an 'any' type.
+app/(app)/learn/[pdId]/courses/[courseId]/lessons/[sectionId]/index.tsx(96,9): error TS2554: Expected 3 arguments, but got 4.
+app/(app)/learn/[pdId]/courses/[courseId]/lessons/[sectionId]/index.tsx(237,27): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string | number'.
+  Type 'string[]' is not assignable to type 'string | number'.
+app/(app)/learn/[pdId]/courses/[courseId]/lessons/[sectionId]/index.tsx(287,9): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+app/(app)/learn/[pdId]/courses/[courseId]/lessons/[sectionId]/index.tsx(795,11): error TS2322: Type '{ uri: string; accessToken: string | undefined; isDark: boolean; }' is not assignable to type 'IntrinsicAttributes & PreloadWebViewProps & RefAttributes<WebView<{}>>'.
+  Property 'uri' does not exist on type 'IntrinsicAttributes & PreloadWebViewProps & RefAttributes<WebView<{}>>'.
+app/(app)/learn/[pdId]/courses/index.tsx(113,23): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/courses/index.tsx(115,16): error TS2352: Conversion of type '{ id: string; title: string | null; concours_learningpaths: { concour: { name: string | null; school: { name: string | null; } | null; } | null; } | null; } | null' to type 'Program' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ id: string; title: string | null; concours_learningpaths: { concour: { name: string | null; school: { name: string | null; } | null; } | null; } | null; }' is not comparable to type 'Program'.
+    Types of property 'concours_learningpaths' are incompatible.
+      Type '{ concour: { name: string | null; school: { name: string | null; } | null; } | null; } | null' is not comparable to type '{ concour?: { name?: string | undefined; school?: { name?: string | undefined; } | undefined; } | undefined; }[] | undefined'.
+        Type '{ concour: { name: string | null; school: { name: string | null; } | null; } | null; }' is missing the following properties from type '{ concour?: { name?: string | undefined; school?: { name?: string | undefined; } | undefined; } | undefined; }[]': length, pop, push, concat, and 35 more.
+app/(app)/learn/[pdId]/courses/index.tsx(133,37): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/courses/index.tsx(150,25): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/courses/index.tsx(339,13): error TS2322: Type 'Category[]' is not assignable to type '{ created_at: string; description: string | null; icon: string | null; id: string; name: string | null; }[]'.
+  Type 'Category' is missing the following properties from type '{ created_at: string; description: string | null; icon: string | null; id: string; name: string | null; }': created_at, description
+app/(app)/learn/[pdId]/courses/index.tsx(355,17): error TS2322: Type 'CourseItem[]' is not assignable to type 'import("D:/Projets/elearn_mobile/types/course.type").CourseItem[]'.
+  Type 'CourseItem' is not assignable to type 'import("D:/Projets/elearn_mobile/types/course.type").CourseItem'.
+    Type 'CourseItem' is not assignable to type 'PrepaCourseItem'.
+      The types of 'course.category' are incompatible between these types.
+        Type 'Category | undefined' is not assignable to type '{ created_at: string; description: string | null; icon: string | null; id: string; name: string | null; } | undefined'.
+          Type 'Category' is missing the following properties from type '{ created_at: string; description: string | null; icon: string | null; id: string; name: string | null; }': created_at, description
+app/(app)/learn/[pdId]/courses/index.tsx(358,17): error TS2322: Type '(courseItem: CourseItem) => Promise<void>' is not assignable to type '(courseItem: CourseItem) => void'.
+  Types of parameters 'courseItem' and 'courseItem' are incompatible.
+    Type 'import("D:/Projets/elearn_mobile/types/course.type").CourseItem' is not assignable to type 'CourseItem'.
+      Type 'SecondaryProgramCourse' is not assignable to type 'CourseItem'.
+        Types of property 'id' are incompatible.
+          Type 'string' is not assignable to type 'number'.
+app/(app)/learn/[pdId]/courses/index.tsx(364,17): error TS2322: Type 'CourseItem[]' is not assignable to type 'import("D:/Projets/elearn_mobile/types/course.type").CourseItem[]'.
+  Type 'CourseItem' is not assignable to type 'import("D:/Projets/elearn_mobile/types/course.type").CourseItem'.
+    Type 'CourseItem' is not assignable to type 'PrepaCourseItem'.
+      The types of 'course.category' are incompatible between these types.
+        Type 'Category | undefined' is not assignable to type '{ created_at: string; description: string | null; icon: string | null; id: string; name: string | null; } | undefined'.
+          Type 'Category' is missing the following properties from type '{ created_at: string; description: string | null; icon: string | null; id: string; name: string | null; }': created_at, description
+app/(app)/learn/[pdId]/courses/index.tsx(365,17): error TS2322: Type '(courseItem: CourseItem) => Promise<void>' is not assignable to type '(courseItem: CourseItem) => void'.
+  Types of parameters 'courseItem' and 'courseItem' are incompatible.
+    Type 'import("D:/Projets/elearn_mobile/types/course.type").CourseItem' is not assignable to type 'CourseItem'.
+      Type 'SecondaryProgramCourse' is not assignable to type 'CourseItem'.
+        Types of property 'id' are incompatible.
+          Type 'string' is not assignable to type 'number'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(69,23): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(83,32): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(100,32): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(117,23): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(125,30): error TS2345: Argument of type 'number | null' is not assignable to parameter of type 'number'.
+  Type 'null' is not assignable to type 'number'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(126,24): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(142,23): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(150,30): error TS2345: Argument of type 'number | null' is not assignable to parameter of type 'number'.
+  Type 'null' is not assignable to type 'number'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(151,24): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(182,17): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(183,41): error TS2339: Property 'name' does not exist on type '{ content: Json; context: Json; correction: Json; course_id: number | null; created_at: string; description: string | null; id: string; title: string | null; course: { ...; } | null; }'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(184,17): error TS2322: Type 'number | null' is not assignable to type 'string | number | boolean'.
+  Type 'null' is not assignable to type 'string | number | boolean'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(185,17): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | boolean'.
+  Type 'undefined' is not assignable to type 'string | number | boolean'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(186,17): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(202,21): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(203,45): error TS2339: Property 'name' does not exist on type '{ content: Json; context: Json; correction: Json; course_id: number | null; created_at: string; description: string | null; id: string; title: string | null; course: { ...; } | null; }'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(204,21): error TS2322: Type 'number | null' is not assignable to type 'string | number | boolean'.
+  Type 'null' is not assignable to type 'string | number | boolean'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(205,21): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | boolean'.
+  Type 'undefined' is not assignable to type 'string | number | boolean'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(206,21): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(214,18): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { user_id: string | undefined; exercice_id: string; is_completed: boolean; }, options?: { onConflict?: string | undefined; ignoreDuplicates?: boolean | undefined; count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'string[]' is not assignable to type 'string'.
+  Overload 2 of 2, '(values: { created_at?: string | undefined; exercice_id?: string | null | undefined; id?: string | undefined; is_completed?: boolean | null | undefined; user_id?: string | null | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'user_id' does not exist in type '{ created_at?: string | undefined; exercice_id?: string | null | undefined; id?: string | undefined; is_completed?: boolean | null | undefined; user_id?: string | null | undefined; }[]'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(225,13): error TS2304: Cannot find name 'logger'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(238,18): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { created_at?: string | undefined; exercice_id?: string | null | undefined; id?: number | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'string | string[]' is not assignable to type 'string | null | undefined'.
+      Type 'string[]' is not assignable to type 'string'.
+  Overload 2 of 2, '(values: { created_at?: string | undefined; exercice_id?: string | null | undefined; id?: number | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'user_id' does not exist in type '{ created_at?: string | undefined; exercice_id?: string | null | undefined; id?: number | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }[]'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(249,13): error TS2304: Cannot find name 'logger'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(415,35): error TS2339: Property 'name' does not exist on type '{ content: Json; context: Json; correction: Json; course_id: number | null; created_at: string; description: string | null; id: string; title: string | null; course: { ...; } | null; }'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(419,30): error TS18047: 'exercise.course' is possibly 'null'.
+app/(app)/learn/[pdId]/exercices/[exerciceId].tsx(622,62): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string | number'.
+  Type 'string[]' is not assignable to type 'string | number'.
+app/(app)/learn/[pdId]/exercices/index.tsx(66,59): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/index.tsx(76,31): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string | number'.
+  Type 'string[]' is not assignable to type 'string | number'.
+app/(app)/learn/[pdId]/exercices/index.tsx(98,29): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/index.tsx(104,27): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/index.tsx(131,42): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/index.tsx(132,47): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/exercices/index.tsx(138,13): error TS2578: Unused '@ts-expect-error' directive.
+app/(app)/learn/[pdId]/exercices/index.tsx(148,34): error TS2339: Property 'id' does not exist on type '{ name: string | null; description: string | null; }'.
+app/(app)/learn/[pdId]/exercices/index.tsx(187,17): error TS2578: Unused '@ts-expect-error' directive.
+app/(app)/learn/[pdId]/exercices/index.tsx(255,17): error TS2304: Cannot find name 'logger'.
+app/(app)/learn/[pdId]/exercices/index.tsx(260,13): error TS2304: Cannot find name 'logger'.
+app/(app)/learn/[pdId]/exercices/index.tsx(302,17): error TS2304: Cannot find name 'logger'.
+app/(app)/learn/[pdId]/exercices/index.tsx(307,13): error TS2304: Cannot find name 'logger'.
+app/(app)/learn/[pdId]/exercices/index.tsx(322,9): error TS2304: Cannot find name 'logger'.
+app/(app)/learn/[pdId]/index.tsx(184,5): error TS2322: Type '{ id: string; title: string | null; description: string | null; image: Json; duration: Json[] | null; course_count: number | null; quiz_count: number | null; total_duration: number | null; course_learningpath: { ...; }[]; quiz_learningpath: { ...; }[]; concours_learningpaths: { ...; } | null; }' is not assignable to type 'ProgramData'.
+  Types of property 'title' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/index.tsx(243,27): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/index.tsx(280,30): error TS2554: Expected 0 arguments, but got 2.
+app/(app)/learn/[pdId]/index.tsx(281,34): error TS2554: Expected 0 arguments, but got 2.
+app/(app)/learn/[pdId]/index.tsx(387,32): error TS2345: Argument of type 'ProgramPayment' is not assignable to parameter of type 'SetStateAction<{ is_installment: boolean; current_installment: number; total_installments: number; amount: number; total_amount: number; next_payment_due_date?: string | undefined; expiry_date?: string | undefined; payment_status: string; } | null>'.
+  Type 'ProgramPayment' is not assignable to type '{ is_installment: boolean; current_installment: number; total_installments: number; amount: number; total_amount: number; next_payment_due_date?: string | undefined; expiry_date?: string | undefined; payment_status: string; }'.
+    Types of property 'is_installment' are incompatible.
+      Type 'boolean | undefined' is not assignable to type 'boolean'.
+        Type 'undefined' is not assignable to type 'boolean'.
+app/(app)/learn/[pdId]/installment-payment.tsx(95,31): error TS2345: Argument of type 'ProgramPayment' is not assignable to parameter of type 'SetStateAction<ProgramPayment | null>'.
+  Type 'import("D:/Projets/elearn_mobile/services/program-payment.service").ProgramPayment' is not assignable to type 'import("D:/Projets/elearn_mobile/types/payment.types").ProgramPayment'.
+    Types of property 'program_id' are incompatible.
+      Type 'string' is not assignable to type 'number'.
+app/(app)/learn/[pdId]/installment-payment.tsx(146,31): error TS2339: Property 'trxReference' does not exist on type 'ProgramPayment'.
+app/(app)/learn/[pdId]/installment-payment.tsx(192,37): error TS2345: Argument of type 'ProgramPayment | null' is not assignable to parameter of type 'SetStateAction<ProgramPayment | null>'.
+  Type 'ProgramPayment' is not assignable to type 'SetStateAction<ProgramPayment | null>'.
+    Type 'import("D:/Projets/elearn_mobile/services/program-payment.service").ProgramPayment' is not assignable to type 'import("D:/Projets/elearn_mobile/types/payment.types").ProgramPayment'.
+      Types of property 'program_id' are incompatible.
+        Type 'string' is not assignable to type 'number'.
+app/(app)/learn/[pdId]/installment-payment.tsx(344,13): error TS2322: Type '{ isDark: boolean; authorizationUrl: string | null; isVerifying: boolean; }' is not assignable to type 'IntrinsicAttributes & PaymentProcessingProps'.
+  Property 'authorizationUrl' does not exist on type 'IntrinsicAttributes & PaymentProcessingProps'.
+app/(app)/learn/[pdId]/payment-result.tsx(46,28): error TS2345: Argument of type 'ProgramPayment | null' is not assignable to parameter of type 'SetStateAction<ProgramPayment | null>'.
+  Type 'ProgramPayment' is not assignable to type 'SetStateAction<ProgramPayment | null>'.
+    Type 'import("D:/Projets/elearn_mobile/services/program-payment.service").ProgramPayment' is not assignable to type 'import("D:/Projets/elearn_mobile/types/payment.types").ProgramPayment'.
+      Types of property 'program_id' are incompatible.
+        Type 'string' is not assignable to type 'number'.
+app/(app)/learn/[pdId]/payment.tsx(23,44): error TS2305: Module '"@/types/payment.types"' has no exported member 'PromoCodeDetails'.
+app/(app)/learn/[pdId]/payment.tsx(44,5): error TS2339: Property 'errorMessage' does not exist on type '{ paymentStatus: string; loading: boolean; payment: ProgramPayment | null; latestPayment: ProgramPayment | null | undefined; latestPaymentLoading: boolean; ... 20 more ...; mutateAccess: KeyedMutator<...>; }'.
+app/(app)/learn/[pdId]/payment.tsx(185,63): error TS2352: Conversion of type 'import("D:/Projets/elearn_mobile/services/program-payment.service").ProgramPayment' to type 'import("D:/Projets/elearn_mobile/types/payment.types").ProgramPayment' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'program_id' are incompatible.
+    Type 'string' is not comparable to type 'number'.
+app/(app)/learn/[pdId]/quizzes/[quizId]/[attemptId]/index.tsx(600,18): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { answers?: Json | undefined; current_question_index?: number | null | undefined; end_time?: string | null | undefined; id?: number | undefined; last_modified_at?: string | null | undefined; ... 6 more ...; user_id?: string | ... 1 more ... | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type '{ quiz_id: string | string[]; user_id: string | undefined; start_time: string; end_time: string; status: string; answers: {}; timeSpent: number; current_question_index: number; score: null; }[]' has no properties in common with type '{ answers?: Json | undefined; current_question_index?: number | null | undefined; end_time?: string | null | undefined; id?: number | undefined; last_modified_at?: string | null | undefined; ... 6 more ...; user_id?: string | ... 1 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { answers?: Json | undefined; current_question_index?: number | null | undefined; end_time?: string | null | undefined; id?: number | undefined; last_modified_at?: string | null | undefined; ... 6 more ...; user_id?: string | ... 1 more ... | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'string | string[]' is not assignable to type 'string | null | undefined'.
+      Type 'string[]' is not assignable to type 'string'.
+app/(app)/learn/[pdId]/quizzes/[quizId]/[attemptId]/index.tsx(619,25): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+app/(app)/learn/[pdId]/quizzes/[quizId]/[attemptId]/index.tsx(619,60): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+app/(app)/learn/[pdId]/quizzes/[quizId]/[attemptId]/index.tsx(642,24): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+app/(app)/learn/generous-week.tsx(79,37): error TS2339: Property 'concour' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(80,19): error TS2339: Property 'concour' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(82,56): error TS2339: Property 'concour' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(90,44): error TS2339: Property 'concour' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(108,25): error TS2352: Conversion of type 'string | number | boolean | { [key: string]: Json | undefined; } | Json[]' to type 'Course[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Json[]' is not comparable to type 'Course[]'.
+    Type 'Json' is not comparable to type 'Course'.
+      Type 'Json[]' is missing the following properties from type 'Course': id, name
+app/(app)/learn/generous-week.tsx(206,62): error TS2339: Property 'learning_path' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(208,65): error TS2339: Property 'learning_path' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(269,25): error TS2339: Property 'concour' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(272,25): error TS2339: Property 'concour' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(295,25): error TS2339: Property 'course_count' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(306,25): error TS2339: Property 'quiz_count' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(317,25): error TS2339: Property 'exerciseCount' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(443,59): error TS2339: Property 'learning_path' does not exist on type 'Course'.
+app/(app)/learn/generous-week.tsx(444,40): error TS2339: Property 'learning_path' does not exist on type 'Course'.
+app/(app)/learn/index.tsx(160,39): error TS2345: Argument of type '(item: { id: number; price: number; isActive: boolean; learningPathId: string; concourId: string; concour: Concours; learning_path: { id: string; title: string; description: string; image: { url: string; }; duration: Record<string, unknown>[]; content: { nodes: { id: string; type: "course" | "quiz"; data: { courseId...' is not assignable to parameter of type '(value: { id: number; price: number | null; isActive: boolean | null; learningPathId: string | null; concourId: string | null; concour: { id: string; name: string | null; description: string | null; ... 4 more ...; school: { ...; } | null; } | null; learning_path: { ...; } | null; user_program_enrollments: { ...; }[...'.
+  Types of parameters 'item' and 'value' are incompatible.
+    Type '{ id: number; price: number | null; isActive: boolean | null; learningPathId: string | null; concourId: string | null; concour: { id: string; name: string | null; description: string | null; ... 4 more ...; school: { ...; } | null; } | null; learning_path: { ...; } | null; user_program_enrollments: { ...; }[]; }' is not assignable to type '{ id: number; price: number; isActive: boolean; learningPathId: string; concourId: string; concour: Concours; learning_path: { id: string; title: string; description: string; image: { url: string; }; ... 4 more ...; total_duration: number; }; user_program_enrollments: UserProgramEnrollment[] | null; }'.
+      Types of property 'price' are incompatible.
+        Type 'number | null' is not assignable to type 'number'.
+          Type 'null' is not assignable to type 'number'.
+app/(app)/learn/index.tsx(200,25): error TS2322: Type 'boolean | undefined' is not assignable to type 'boolean'.
+  Type 'undefined' is not assignable to type 'boolean'.
+app/(app)/learn/index.tsx(302,43): error TS2304: Cannot find name 'Href'.
+app/(app)/learn/index.tsx(411,25): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: FlatListProps<LearningPath>): FlatList<LearningPath>', gave the following error.
+    Type '{ data: LearningPath[]; keyExtractor: (item: LearningPath) => string; renderItem: ({ item }: ListRenderItemInfo<LearningPath>) => Element; ... 8 more ...; getItemLayout: (data: ArrayLike<...> | ... 1 more ... | undefined, index: number) => { ...; }; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<FlatList<LearningPath>> & Readonly<FlatListProps<LearningPath>>'.
+      Property 'showScrollIndicator' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<FlatList<LearningPath>> & Readonly<FlatListProps<LearningPath>>'.
+  Overload 2 of 2, '(props: FlatListProps<LearningPath>, context: any): FlatList<LearningPath>', gave the following error.
+    Type '{ data: LearningPath[]; keyExtractor: (item: LearningPath) => string; renderItem: ({ item }: ListRenderItemInfo<LearningPath>) => Element; ... 8 more ...; getItemLayout: (data: ArrayLike<...> | ... 1 more ... | undefined, index: number) => { ...; }; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<FlatList<LearningPath>> & Readonly<FlatListProps<LearningPath>>'.
+      Property 'showScrollIndicator' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<FlatList<LearningPath>> & Readonly<FlatListProps<LearningPath>>'.
+app/(app)/manuel/anciens-sujets/[competitionId]/[filePath]/[fileId].tsx(377,25): error TS2322: Type '{ file: { file_url: string; }; fileName: string; style: { flex: number; }; }' is not assignable to type 'IntrinsicAttributes & FileViewerProps'.
+  Property 'fileName' does not exist on type 'IntrinsicAttributes & FileViewerProps'.
+app/(app)/manuel/anciens-sujets/[competitionId]/[filePath]/[fileId].tsx(385,21): error TS2322: Type '{ file: { file_url: string; }; fileName: string; style: { flex: number; }; }' is not assignable to type 'IntrinsicAttributes & FileViewerProps'.
+  Property 'fileName' does not exist on type 'IntrinsicAttributes & FileViewerProps'.
+app/(app)/manuel/anciens-sujets/[competitionId]/index.tsx(18,23): error TS2440: Import declaration conflicts with local declaration of 'Archive'.
+app/(app)/manuel/anciens-sujets/[competitionId]/index.tsx(122,5): error TS2322: Type 'string' is not assignable to type 'number'.
+app/(app)/manuel/anciens-sujets/[competitionId]/index.tsx(153,3): error TS2322: Type '{ id: number; name: string; file_url: string; session: string; is_pinned: false; file_type: "pdf" | "other"; concour_id: string | null; courses_categories: { id: string; name: string | null; description: string | null; } | null; }[]' is not assignable to type 'Archive[]'.
+  Type '{ id: number; name: string; file_url: string; session: string; is_pinned: false; file_type: "pdf" | "other"; concour_id: string | null; courses_categories: { id: string; name: string | null; description: string | null; } | null; }' is not assignable to type 'Archive'.
+    Types of property 'courses_categories' are incompatible.
+      Type '{ id: string; name: string | null; description: string | null; } | null' is not assignable to type '{ id: string; name: string; description: string; } | null | undefined'.
+        Type '{ id: string; name: string | null; description: string | null; }' is not assignable to type '{ id: string; name: string; description: string; }'.
+          Types of property 'name' are incompatible.
+            Type 'string | null' is not assignable to type 'string'.
+              Type 'null' is not assignable to type 'string'.
+app/(app)/manuel/anciens-sujets/[competitionId]/index.tsx(231,40): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'number'.
+  Type 'string' is not assignable to type 'number'.
+app/(app)/manuel/anciens-sujets/[competitionId]/index.tsx(232,45): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'number'.
+  Type 'string' is not assignable to type 'number'.
+app/(app)/manuel/anciens-sujets/[competitionId]/index.tsx(291,11): error TS2322: Type 'string' is not assignable to type '"symbol" | "function" | "text" | "link" | "solid" | "contain" | "filter" | "sort" | "map" | "at" | "wrap" | "scale" | "matrix" | "head" | "email" | "image" | "alert" | "menu" | "radio" | ... 7429 more ... | undefined'.
+app/(app)/manuel/anciens-sujets/[competitionId]/index.tsx(345,25): error TS2345: Argument of type '{ is_pinned: boolean; is_completed: boolean; id: number | string; name: string; file_url: string; session: string; local_path?: string; file_type: "pdf" | "doc" | "other"; courses_categories?: { id: string; name: string; description: string; } | null; concour_id?: number | null; }' is not assignable to parameter of type 'Archive'.
+  Types of property 'id' are incompatible.
+    Type 'string | number' is not assignable to type 'string'.
+      Type 'number' is not assignable to type 'string'.
+app/(app)/manuel/anciens-sujets/[competitionId]/index.tsx(384,42): error TS2345: Argument of type 'import("D:/Projets/elearn_mobile/components/ArchiveCard").Archive' is not assignable to parameter of type 'import("D:/Projets/elearn_mobile/app/(app)/learn/[pdId]/anales/index").Archive'.
+  Types of property 'id' are incompatible.
+    Type 'string | number' is not assignable to type 'string'.
+      Type 'number' is not assignable to type 'string'.
+app/(app)/manuel/anciens-sujets/[competitionId]/index.tsx(474,9): error TS2322: Type '(archiveId: number) => Promise<void>' is not assignable to type '(id: string | number) => void'.
+  Types of parameters 'archiveId' and 'id' are incompatible.
+    Type 'string | number' is not assignable to type 'number'.
+      Type 'string' is not assignable to type 'number'.
+app/(app)/manuel/anciens-sujets/[competitionId]/index.tsx(477,9): error TS2322: Type '(archiveId: number) => Promise<void>' is not assignable to type '(id: string | number) => void'.
+  Types of parameters 'archiveId' and 'id' are incompatible.
+    Type 'string | number' is not assignable to type 'number'.
+      Type 'string' is not assignable to type 'number'.
+app/(app)/manuel/anciens-sujets/index.tsx(61,28): error TS2339: Property 'url' does not exist on type 'string | number | boolean | { [key: string]: Json | undefined; } | Json[]'.
+  Property 'url' does not exist on type 'string'.
+app/(app)/profile/editProfile.tsx(149,67): error TS2345: Argument of type '{ firstname: string; lastname: string; email: string; phone: string; address: string; city: string; country: string; school: string; schoollevel: string; gradelevel: string; preferredlanguage: string; learningstyle: string; maingoal: string; }' is not assignable to parameter of type '{ accessibilityneeds?: string | null | undefined; achievements?: string[] | null | undefined; active_trx?: string | null | undefined; address?: string | null | undefined; authId?: string | undefined; ... 50 more ...; type?: string | undefined; }'.
+  Types of property 'phone' are incompatible.
+    Type 'string' is not assignable to type 'number'.
+app/(app)/profile/editProfile.tsx(151,25): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/(app)/profile/editProfile.tsx(284,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(287,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(288,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(291,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(292,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(296,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(297,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(307,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(308,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(311,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(312,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(315,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(316,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(325,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(326,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(329,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(330,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(333,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(334,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(349,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(350,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/editProfile.tsx(353,29): error TS2322: Type 'RefObject<TextInput | null>' is not assignable to type 'RefObject<TextInput>'.
+  Type 'TextInput | null' is not assignable to type 'TextInput'.
+    Type 'null' is not assignable to type 'TextInput'.
+app/(app)/profile/index.tsx(55,73): error TS18047: 'curr.duration' is possibly 'null'.
+app/(app)/profile/paiements.tsx(86,32): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/(app)/profile/paiements.tsx(212,54): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'.
+app/(app)/profile/support.disabled/[ticketId].tsx(127,34): error TS2304: Cannot find name 'ImagePicker'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/index.tsx(71,24): error TS2339: Property 'NOTIFICATION_ERROR' does not exist on type 'typeof HapticType'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/index.tsx(132,48): error TS7006: Parameter 'attempt' implicitly has an 'any' type.
+app/(app)/secondary/program/[programId]/courses/[courseId]/index.tsx(134,56): error TS7006: Parameter 'attempt' implicitly has an 'any' type.
+app/(app)/secondary/program/[programId]/courses/[courseId]/index.tsx(189,15): error TS2322: Type 'CoursesContent' is not assignable to type '{ id: number; name: string; order?: number | undefined; }'.
+  Types of property 'name' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/index.tsx(242,13): error TS2322: Type 'CourseVideos' is not assignable to type '{ id: number; title: string; duration?: number | undefined; }'.
+  Types of property 'id' are incompatible.
+    Type 'string' is not assignable to type 'number'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/index.tsx(285,12): error TS7006: Parameter 'quiz' implicitly has an 'any' type.
+app/(app)/secondary/program/[programId]/courses/[courseId]/index.tsx(285,18): error TS7006: Parameter 'index' implicitly has an 'any' type.
+app/(app)/secondary/program/[programId]/courses/[courseId]/index.tsx(329,9): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(86,9): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(87,9): error TS2322: Type 'string | null' is not assignable to type 'string | number | boolean'.
+  Type 'null' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(88,9): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(90,9): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(185,17): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(227,9): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(228,9): error TS2322: Type 'string | null' is not assignable to type 'string | number | boolean'.
+  Type 'null' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(229,9): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(231,9): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(246,9): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(251,19): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(260,9): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(439,23): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(490,15): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/lessons/[sectionId]/index.tsx(659,25): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/summary.tsx(31,21): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/videos/[videoId].tsx(126,9): error TS2322: Type 'string | null' is not assignable to type 'string | number | boolean'.
+  Type 'null' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/videos/[videoId].tsx(127,9): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/videos/[videoId].tsx(128,9): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/videos/[videoId].tsx(136,13): error TS2367: This comparison appears to be unintentional because the types 'StatusChangeEventPayload' and 'string' have no overlap.
+app/(app)/secondary/program/[programId]/courses/[courseId]/videos/[videoId].tsx(161,19): error TS2345: Argument of type '{ course_id: number; created_at: string; description: string | null; duration: number | null; filename: string; filesize: number; id: string; is_active: boolean | null; metadata: Json; ... 8 more ...; url: string; }[]' is not assignable to parameter of type 'SetStateAction<CourseVideos[]>'.
+  Type '{ course_id: number; created_at: string; description: string | null; duration: number | null; filename: string; filesize: number; id: string; is_active: boolean | null; metadata: Json; ... 8 more ...; url: string; }[]' is not assignable to type 'CourseVideos[]'.
+    Type '{ course_id: number; created_at: string; description: string | null; duration: number | null; filename: string; filesize: number; id: string; is_active: boolean | null; metadata: Json; ... 8 more ...; url: string; }' is not assignable to type 'CourseVideos'.
+      Types of property 'created_at' are incompatible.
+        Type 'string' is not assignable to type 'Date'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/videos/[videoId].tsx(164,18): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number' have no overlap.
+app/(app)/secondary/program/[programId]/courses/[courseId]/videos/[videoId].tsx(167,27): error TS2345: Argument of type '{ course_id: number; created_at: string; description: string | null; duration: number | null; filename: string; filesize: number; id: string; is_active: boolean | null; metadata: Json; ... 8 more ...; url: string; }' is not assignable to parameter of type 'SetStateAction<CourseVideos | null>'.
+  Type '{ course_id: number; created_at: string; description: string | null; duration: number | null; filename: string; filesize: number; id: string; is_active: boolean | null; metadata: Json; ... 8 more ...; url: string; }' is not assignable to type 'CourseVideos'.
+    Types of property 'created_at' are incompatible.
+      Type 'string' is not assignable to type 'Date'.
+app/(app)/secondary/program/[programId]/courses/[courseId]/videos/[videoId].tsx(168,54): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number' have no overlap.
+app/(app)/secondary/program/[programId]/documents/[documentId].tsx(230,11): error TS2322: Type 'SecondaryDocument' is not assignable to type 'FileViewerFile'.
+  Types of property 'download_url' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+app/(app)/secondary/program/[programId]/documents/[documentId].tsx(235,11): error TS2322: Type 'SecondaryDocument' is not assignable to type 'FileViewerFile'.
+  Types of property 'download_url' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(76,32): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(93,32): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(110,23): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(118,30): error TS2345: Argument of type 'number | null' is not assignable to parameter of type 'number'.
+  Type 'null' is not assignable to type 'number'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(119,24): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(135,23): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(143,30): error TS2345: Argument of type 'number | null' is not assignable to parameter of type 'number'.
+  Type 'null' is not assignable to type 'number'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(144,24): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(175,17): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(176,41): error TS2339: Property 'name' does not exist on type '{ content: Json; context: Json; correction: Json; course_id: number | null; created_at: string; description: string | null; id: string; title: string | null; course: { ...; } | null; }'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(177,17): error TS2322: Type 'number | null' is not assignable to type 'string | number | boolean'.
+  Type 'null' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(178,17): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | boolean'.
+  Type 'undefined' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(179,17): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(195,21): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(196,45): error TS2339: Property 'name' does not exist on type '{ content: Json; context: Json; correction: Json; course_id: number | null; created_at: string; description: string | null; id: string; title: string | null; course: { ...; } | null; }'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(197,21): error TS2322: Type 'number | null' is not assignable to type 'string | number | boolean'.
+  Type 'null' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(198,21): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | boolean'.
+  Type 'undefined' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(199,21): error TS2322: Type 'string | string[]' is not assignable to type 'string | number | boolean'.
+  Type 'string[]' is not assignable to type 'string | number | boolean'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(221,13): error TS2304: Cannot find name 'logger'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(234,18): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { created_at?: string | undefined; exercice_id?: string | null | undefined; id?: number | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'string | string[]' is not assignable to type 'string | null | undefined'.
+      Type 'string[]' is not assignable to type 'string'.
+  Overload 2 of 2, '(values: { created_at?: string | undefined; exercice_id?: string | null | undefined; id?: number | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'user_id' does not exist in type '{ created_at?: string | undefined; exercice_id?: string | null | undefined; id?: number | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }[]'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(248,13): error TS2304: Cannot find name 'logger'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(402,35): error TS2339: Property 'name' does not exist on type '{ content: Json; context: Json; correction: Json; course_id: number | null; created_at: string; description: string | null; id: string; title: string | null; course: { ...; } | null; }'.
+app/(app)/secondary/program/[programId]/exercices/[exerciceId].tsx(609,62): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string | number'.
+  Type 'string[]' is not assignable to type 'string | number'.
+app/(app)/secondary/program/[programId]/exercices/index.tsx(79,5): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+app/(app)/secondary/program/[programId]/exercices/index.tsx(173,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { created_at?: string | undefined; exercice_id?: string | null | undefined; id?: number | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'number' is not assignable to type 'string'.
+  Overload 2 of 2, '(values: { created_at?: string | undefined; exercice_id?: string | null | undefined; id?: number | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'user_id' does not exist in type '{ created_at?: string | undefined; exercice_id?: string | null | undefined; id?: number | undefined; is_pinned?: boolean | null | undefined; user_id?: string | null | undefined; }[]'.
+app/(app)/secondary/program/[programId]/exercices/index.tsx(221,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { created_at?: string | undefined; exercice_id?: string | null | undefined; id?: string | undefined; is_completed?: boolean | null | undefined; user_id?: string | null | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'number' is not assignable to type 'string'.
+  Overload 2 of 2, '(values: { created_at?: string | undefined; exercice_id?: string | null | undefined; id?: string | undefined; is_completed?: boolean | null | undefined; user_id?: string | null | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'user_id' does not exist in type '{ created_at?: string | undefined; exercice_id?: string | null | undefined; id?: string | undefined; is_completed?: boolean | null | undefined; user_id?: string | null | undefined; }[]'.
+app/(app)/secondary/program/[programId]/index.tsx(218,17): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+app/(app)/secondary/program/[programId]/quizzes/index.tsx(84,68): error TS2339: Property 'courses_categories' does not exist on type 'number'.
+app/(app)/secondary/program/[programId]/quizzes/index.tsx(99,37): error TS2339: Property 'quiz_questions' does not exist on type '{ accessKey: string | null; category: string | null; course: number | null; course_content: number | null; created_at: string; description: string | null; enonce: string | null; ... 8 more ...; tags: string[] | null; }'.
+app/(app)/secondary/program/[programId]/quizzes/index.tsx(102,38): error TS2339: Property 'id' does not exist on type 'number'.
+app/(app)/secondary/program/[programId]/quizzes/index.tsx(103,40): error TS2339: Property 'name' does not exist on type 'number'.
+app/(auth)/forgot_password.tsx(321,13): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+app/(auth)/register.tsx(327,7): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+components/__tests__/SettingsItem-test.tsx(55,34): error TS2345: Argument of type 'typeof Switch' is not assignable to parameter of type 'ElementType'.
+  Type 'typeof Switch' is not assignable to type 'ComponentClass<any, any>'.
+    Types of property 'contextType' are incompatible.
+      Type 'React.Context<any> | undefined' is not assignable to type 'import("D:/Projets/elearn_mobile/node_modules/@types/react-test-renderer/node_modules/@types/react/index").Context<any> | undefined'.
+        Type 'React.Context<any>' is not assignable to type 'import("D:/Projets/elearn_mobile/node_modules/@types/react-test-renderer/node_modules/@types/react/index").Context<any>'.
+          The types returned by 'Provider(...)' are incompatible between these types.
+            Type 'React.ReactNode' is not assignable to type 'import("D:/Projets/elearn_mobile/node_modules/@types/react-test-renderer/node_modules/@types/react/index").ReactNode'.
+              Type 'bigint' is not assignable to type 'ReactNode'.
+components/GQ.tsx(27,17): error TS2345: Argument of type '(prevLogs: never[]) => { id: number; message: any; timestamp: string; type: string; }[]' is not assignable to parameter of type 'SetStateAction<never[]>'.
+  Type '(prevLogs: never[]) => { id: number; message: any; timestamp: string; type: string; }[]' is not assignable to type '(prevState: never[]) => never[]'.
+    Type '{ id: number; message: any; timestamp: string; type: string; }[]' is not assignable to type 'never[]'.
+      Type '{ id: number; message: any; timestamp: string; type: string; }' is not assignable to type 'never'.
+components/GQ.tsx(50,47): error TS18046: 'error' is of type 'unknown'.
+components/GQ.tsx(83,49): error TS18046: 'error' is of type 'unknown'.
+components/GQ.tsx(89,52): error TS7006: Parameter 'batchNumber' implicitly has an 'any' type.
+components/GQ.tsx(105,65): error TS18046: 'error' is of type 'unknown'.
+components/GQ.tsx(111,60): error TS7006: Parameter 'questionId' implicitly has an 'any' type.
+components/GQ.tsx(111,72): error TS7006: Parameter 'justification' implicitly has an 'any' type.
+components/GQ.tsx(122,62): error TS18046: 'error' is of type 'unknown'.
+components/GQ.tsx(128,48): error TS7006: Parameter 'question' implicitly has an 'any' type.
+components/GQ.tsx(149,69): error TS18046: 'error' is of type 'unknown'.
+components/GQ.tsx(155,45): error TS7006: Parameter 'batchNumber' implicitly has an 'any' type.
+components/GQ.tsx(238,38): error TS18046: 'error' is of type 'unknown'.
+components/GQ.tsx(264,49): error TS18046: 'error' is of type 'unknown'.
+components/GQ.tsx(354,40): error TS2339: Property 'id' does not exist on type 'never'.
+components/GQ.tsx(355,68): error TS2339: Property 'timestamp' does not exist on type 'never'.
+components/GQ.tsx(356,62): error TS7053: Element implicitly has an 'any' type because expression of type '`${any}Text`' can't be used to index type '{ container: { flex: number; padding: number; backgroundColor: string; }; title: { fontSize: number; fontWeight: "bold"; marginBottom: number; textAlign: "center"; }; progressContainer: { backgroundColor: string; borderRadius: number; padding: number; marginBottom: number; elevation: number; }; ... 21 more ...; info...'.
+components/GQ.tsx(356,76): error TS2339: Property 'type' does not exist on type 'never'.
+components/GQ.tsx(357,38): error TS2339: Property 'message' does not exist on type 'never'.
+components/payment/InstallmentDetails.tsx(46,28): error TS2345: Argument of type 'ProgramPayment[]' is not assignable to parameter of type 'SetStateAction<ProgramPayment[]>'.
+  Type 'import("D:/Projets/elearn_mobile/services/program-payment.service").ProgramPayment[]' is not assignable to type 'import("D:/Projets/elearn_mobile/types/payment.types").ProgramPayment[]'.
+    Type 'import("D:/Projets/elearn_mobile/services/program-payment.service").ProgramPayment' is not assignable to type 'import("D:/Projets/elearn_mobile/types/payment.types").ProgramPayment'.
+      Types of property 'program_id' are incompatible.
+        Type 'string' is not assignable to type 'number'.
+components/payment/PaymentInstructions.tsx(47,24): error TS2345: Argument of type 'ProgramPayment[]' is not assignable to parameter of type 'SetStateAction<ProgramPayment[]>'.
+  Type 'import("D:/Projets/elearn_mobile/services/program-payment.service").ProgramPayment[]' is not assignable to type 'import("D:/Projets/elearn_mobile/types/payment.types").ProgramPayment[]'.
+    Type 'import("D:/Projets/elearn_mobile/services/program-payment.service").ProgramPayment' is not assignable to type 'import("D:/Projets/elearn_mobile/types/payment.types").ProgramPayment'.
+      Types of property 'program_id' are incompatible.
+        Type 'string' is not assignable to type 'number'.
+components/performance/OnboardingWeeklyPerformance.tsx(1274,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: PanGestureHandlerProps & RefAttributes<any>, context?: any): string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | ... 4 more ... | undefined', gave the following error.
+    Type '(event: PanGestureHandlerGestureEvent) => void' is not assignable to type '(event: HandlerStateChangeEvent<Record<string, unknown>>) => void'.
+      Types of parameters 'event' and 'event' are incompatible.
+        Type 'HandlerStateChangeEvent<Record<string, unknown>>' is not assignable to type 'PanGestureHandlerGestureEvent'.
+          Types of property 'nativeEvent' are incompatible.
+            Type 'Readonly<HandlerStateChangeEventPayload & Record<string, unknown>>' is missing the following properties from type 'Readonly<GestureEventPayload & PanGestureHandlerEventPayload>': x, y, absoluteX, absoluteY, and 4 more.
+  Overload 2 of 2, '(props: PanGestureHandlerProps & RefAttributes<any>): string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | ... 4 more ... | undefined', gave the following error.
+    Type '(event: PanGestureHandlerGestureEvent) => void' is not assignable to type '(event: HandlerStateChangeEvent<Record<string, unknown>>) => void'.
+      Types of parameters 'event' and 'event' are incompatible.
+        Type 'HandlerStateChangeEvent<Record<string, unknown>>' is not assignable to type 'PanGestureHandlerGestureEvent'.
+          Types of property 'nativeEvent' are incompatible.
+            Type 'Readonly<HandlerStateChangeEventPayload & Record<string, unknown>>' is missing the following properties from type 'Readonly<GestureEventPayload & PanGestureHandlerEventPayload>': x, y, absoluteX, absoluteY, and 4 more.
+components/performance/OnboardingWeeklyPerformance.tsx(1287,23): error TS2367: This comparison appears to be unintentional because the types 'OnboardingStatus.DATA_READY | OnboardingStatus.PRESENTATION_MODE' and 'OnboardingStatus.INITIALIZING' have no overlap.
+components/performance/OnboardingWeeklyPerformance.tsx(1288,23): error TS2367: This comparison appears to be unintentional because the types 'OnboardingStatus.DATA_READY | OnboardingStatus.PRESENTATION_MODE' and 'OnboardingStatus.LOADING_DATA' have no overlap.
+components/performance/OnboardingWeeklyPerformance.tsx(1293,21): error TS2367: This comparison appears to be unintentional because the types 'OnboardingStatus.DATA_READY | OnboardingStatus.PRESENTATION_MODE' and 'OnboardingStatus.INITIALIZING' have no overlap.
+components/performance/OnboardingWeeklyPerformance.tsx(1294,21): error TS2367: This comparison appears to be unintentional because the types 'OnboardingStatus.DATA_READY | OnboardingStatus.PRESENTATION_MODE' and 'OnboardingStatus.LOADING_DATA' have no overlap.
+components/performance/OnboardingWeeklyPerformance.tsx(1300,23): error TS2367: This comparison appears to be unintentional because the types 'OnboardingStatus.DATA_READY | OnboardingStatus.PRESENTATION_MODE' and 'OnboardingStatus.INITIALIZING' have no overlap.
+components/performance/OnboardingWeeklyPerformance.tsx(1301,23): error TS2367: This comparison appears to be unintentional because the types 'OnboardingStatus.DATA_READY | OnboardingStatus.PRESENTATION_MODE' and 'OnboardingStatus.LOADING_DATA' have no overlap.
+components/performance/OnboardingWeeklyPerformance.tsx(1308,21): error TS2367: This comparison appears to be unintentional because the types 'OnboardingStatus.DATA_READY | OnboardingStatus.PRESENTATION_MODE' and 'OnboardingStatus.INITIALIZING' have no overlap.
+components/performance/OnboardingWeeklyPerformance.tsx(1309,21): error TS2367: This comparison appears to be unintentional because the types 'OnboardingStatus.DATA_READY | OnboardingStatus.PRESENTATION_MODE' and 'OnboardingStatus.LOADING_DATA' have no overlap.
+components/performance/WeeklyPerformance.tsx(164,38): error TS2339: Property 'created_at' does not exist on type '{ xp_gained: number; }'.
+components/QuizList.tsx(190,22): error TS7031: Binding element 'searchQuery' implicitly has an 'any' type.
+components/QuizList.tsx(190,35): error TS7031: Binding element 'selectedCategory' implicitly has an 'any' type.
+components/QuizList.tsx(190,53): error TS7031: Binding element 'isDark' implicitly has an 'any' type.
+components/QuizList.tsx(216,22): error TS7031: Binding element 'onRetry' implicitly has an 'any' type.
+components/QuizList.tsx(216,31): error TS7031: Binding element 'isDark' implicitly has an 'any' type.
+components/QuizList.tsx(289,27): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+components/QuizList.tsx(293,20): error TS2352: Conversion of type '{ id: string; title: string | null; concours_learningpaths: { concour: { name: string | null; school: { name: string | null; } | null; } | null; } | null; }' to type 'Program' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'concours_learningpaths' are incompatible.
+    Type '{ concour: { name: string | null; school: { name: string | null; } | null; } | null; } | null' is not comparable to type '{ concour?: { name?: string | undefined; school?: { name?: string | undefined; } | undefined; } | undefined; }[] | undefined'.
+      Type '{ concour: { name: string | null; school: { name: string | null; } | null; } | null; }' is missing the following properties from type '{ concour?: { name?: string | undefined; school?: { name?: string | undefined; } | undefined; } | undefined; }[]': length, pop, push, concat, and 35 more.
+components/QuizList.tsx(312,29): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+components/QuizList.tsx(317,20): error TS2352: Conversion of type '{ created_at: string; id: string; lpId: string | null; quizId: string | null; quiz: { accessKey: string | null; category: (string & { created_at: string; description: string | null; icon: string | null; id: string; name: string | null; }) | null; ... 14 more ...; quiz_questions: { ...; }[]; } | null; }[]' to type 'QuizItem[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ created_at: string; id: string; lpId: string | null; quizId: string | null; quiz: { accessKey: string | null; category: (string & { created_at: string; description: string | null; icon: string | null; id: string; name: string | null; }) | null; ... 14 more ...; quiz_questions: { ...; }[]; } | null; }' is not comparable to type 'QuizItem'.
+    Types of property 'quizId' are incompatible.
+      Type 'string | null' is not comparable to type 'number'.
+        Type 'string' is not comparable to type 'number'.
+components/QuizList.tsx(424,31): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string | number'.
+  Type 'string[]' is not assignable to type 'string | number'.
+components/QuizList.tsx(506,25): error TS2322: Type '(string | undefined)[]' is not assignable to type 'string[]'.
+  Type 'string | undefined' is not assignable to type 'string'.
+    Type 'undefined' is not assignable to type 'string'.
+components/QuizList.tsx(516,55): error TS2367: This comparison appears to be unintentional because the types '0' and '1' have no overlap.
+components/QuizList.tsx(516,107): error TS2367: This comparison appears to be unintentional because the types '0' and '1' have no overlap.
+components/QuizList.tsx(615,21): error TS2322: Type '(string | undefined)[]' is not assignable to type 'string[]'.
+  Type 'string | undefined' is not assignable to type 'string'.
+    Type 'undefined' is not assignable to type 'string'.
+components/RatingModal.tsx(23,19): error TS2322: Type '{ hasRated: true; generousWeek?: { duration: number; selectedAt: Date; programId: number; }; expoPushToken?: string; }' is not assignable to type 'Json | undefined'.
+  Type '{ hasRated: true; generousWeek?: { duration: number; selectedAt: Date; programId: number; }; expoPushToken?: string; }' is not assignable to type 'undefined'.
+components/shared/CourseRowItem.tsx(32,29): error TS2345: Argument of type '`${string}/${any}`' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+components/shared/learn/anales/FileViewer/FileViewer.native.tsx(64,17): error TS2304: Cannot find name 'logger'.
+components/shared/learn/anales/FileViewer/FileViewer.native.tsx(76,21): error TS2304: Cannot find name 'logger'.
+components/shared/learn/anales/FileViewer/FileViewer.native.tsx(95,21): error TS2304: Cannot find name 'logger'.
+components/shared/learn/exercices/ExerciseListView.tsx(105,5): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+components/shared/learn/quiz/QuizAttempList.tsx(218,48): error TS2769: No overload matches this call.
+  Overload 1 of 12, '(key: StrictKey, fetcher: ((arg: ArgumentsTuple) => FetcherResponse<QuizAttempt[]>) | ((arg: ArgumentsTuple) => FetcherResponse<...>) | null, config: SWRConfiguration<...> | undefined): SWRResponse<...>', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'StrictKey'.
+      Type 'string' is not assignable to type 'StrictKey'.
+  Overload 2 of 12, '(key: Key, fetcher: BareFetcher<QuizAttempt[]> | null, config: SWRConfiguration<QuizAttempt[], any, BareFetcher<QuizAttempt[]>> | undefined): SWRResponse<...>', gave the following error.
+    Argument of type '() => Promise<{ answers: Json | null; current_question_index: number | null; end_time: string | null; id: number; last_modified_at: string | null; quiz_id: string | null; score: number | null; ... 5 more ...; quiz: { ...; } | null; }[]>' is not assignable to parameter of type 'BareFetcher<QuizAttempt[]>'.
+      Type 'Promise<{ answers: Json; current_question_index: number | null; end_time: string | null; id: number; last_modified_at: string | null; quiz_id: string | null; score: number | null; ... 5 more ...; quiz: { ...; } | null; }[]>' is not assignable to type 'FetcherResponse<QuizAttempt[]>'.
+        Type 'Promise<{ answers: Json; current_question_index: number | null; end_time: string | null; id: number; last_modified_at: string | null; quiz_id: string | null; score: number | null; ... 5 more ...; quiz: { ...; } | null; }[]>' is not assignable to type 'Promise<QuizAttempt[]>'.
+          Type '{ answers: Json; current_question_index: number | null; end_time: string | null; id: number; last_modified_at: string | null; quiz_id: string | null; score: number | null; selected_answers: string[] | null; ... 4 more ...; quiz: { ...; } | null; }[]' is not assignable to type 'QuizAttempt[]'.
+            Type '{ answers: Json; current_question_index: number | null; end_time: string | null; id: number; last_modified_at: string | null; quiz_id: string | null; score: number | null; selected_answers: string[] | null; ... 4 more ...; quiz: { ...; } | null; }' is not assignable to type 'QuizAttempt'.
+              Types of property 'id' are incompatible.
+                Type 'number' is not assignable to type 'string'.
+components/shared/learn/quiz/QuizAttempList.tsx(225,32): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/shared/learn/quiz/QuizCard.tsx(99,21): error TS2345: Argument of type '`${string}/${number}`' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+components/shared/learn/quiz/QuizCard.tsx(126,37): error TS2322: Type 'string' is not assignable to type '"symbol" | "function" | "text" | "link" | "solid" | "contain" | "filter" | "sort" | "map" | "at" | "wrap" | "scale" | "matrix" | "head" | "email" | "image" | "alert" | "menu" | "radio" | ... 7429 more ... | undefined'.
+components/shared/learn/quiz/QuizCard.tsx(157,29): error TS2322: Type 'string' is not assignable to type '"symbol" | "function" | "text" | "link" | "solid" | "contain" | "filter" | "sort" | "map" | "at" | "wrap" | "scale" | "matrix" | "head" | "email" | "image" | "alert" | "menu" | "radio" | ... 7429 more ... | undefined'.
+components/shared/learn/quiz/QuizDetailView.tsx(190,17): error TS2322: Type 'string' is not assignable to type '"symbol" | "function" | "text" | "link" | "solid" | "contain" | "filter" | "sort" | "map" | "at" | "wrap" | "scale" | "matrix" | "head" | "email" | "image" | "alert" | "menu" | "radio" | ... 7429 more ... | undefined'.
+components/shared/learn/quiz/QuizDetailView.tsx(381,87): error TS2304: Cannot find name 'Href'.
+components/shared/learn/quiz/QuizDetailView.tsx(465,71): error TS2304: Cannot find name 'Href'.
+components/shared/learn/quiz/QuizDetailView.tsx(673,48): error TS18047: 'prereq.courses' is possibly 'null'.
+components/shared/learn/quiz/QuizDetailView.tsx(674,33): error TS2322: Type '{ courses: { id: number; name: string; } | null; }' is not assignable to type 'QuizCourse'.
+  Types of property 'courses' are incompatible.
+    Type '{ id: number; name: string; } | null' is not assignable to type '{ id: number; name: string; }'.
+      Type 'null' is not assignable to type '{ id: number; name: string; }'.
+components/shared/learn/quiz/QuizDetailView.tsx(756,97): error TS2304: Cannot find name 'Href'.
+components/shared/learn/quiz/QuizListView.tsx(109,5): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+components/shared/learn/quiz/QuizResultDisplay.tsx(162,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '{ width: number; minHeight: number; overflow: "auto"; }' is not assignable to type 'StyleProp<ViewStyle>'.
+      Types of property 'overflow' are incompatible.
+        Type '"auto"' is not assignable to type '"visible" | "hidden" | "scroll" | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '{ width: number; minHeight: number; overflow: "auto"; }' is not assignable to type 'StyleProp<ViewStyle>'.
+      Types of property 'overflow' are incompatible.
+        Type '"auto"' is not assignable to type '"visible" | "hidden" | "scroll" | undefined'.
+components/shared/learn/quiz/QuizResultDisplay.tsx(251,28): error TS7006: Parameter 'optionId' implicitly has an 'any' type.
+components/shared/learn/quiz/QuizResultDisplay.tsx(252,24): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{}'.
+  No index signature with a parameter of type 'number' was found on type '{}'.
+components/shared/learn/quiz/QuizResultDisplay.tsx(257,30): error TS7006: Parameter 'optionId' implicitly has an 'any' type.
+components/shared/learn/quiz/QuizResultDisplay.tsx(258,24): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
+components/shared/learn/quiz/QuizResultDisplay.tsx(306,28): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{}'.
+  No index signature with a parameter of type 'number' was found on type '{}'.
+components/shared/learn/quiz/QuizResultDisplay.tsx(337,25): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{}'.
+  No index signature with a parameter of type 'number' was found on type '{}'.
+components/shared/learn/quiz/QuizRowItem.tsx(100,21): error TS2345: Argument of type '`${string}/${number}`' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+components/shared/NewChatBot.tsx(663,52): error TS7006: Parameter 'course' implicitly has an 'any' type.
+components/shared/NewChatBot.tsx(676,50): error TS7006: Parameter 'lesson' implicitly has an 'any' type.
+components/shared/NewChatBot.tsx(676,58): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/shared/NewChatBot.tsx(696,53): error TS7006: Parameter 'resource' implicitly has an 'any' type.
+components/shared/NewChatBot.tsx(711,43): error TS7006: Parameter 'hint' implicitly has an 'any' type.
+components/shared/NewChatBot.tsx(711,49): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/shared/NewChatBot.tsx(728,42): error TS7006: Parameter 'q' implicitly has an 'any' type.
+components/shared/NewChatBot.tsx(728,45): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/shared/NewChatBot.tsx(765,36): error TS7006: Parameter 'chapter' implicitly has an 'any' type.
+components/shared/NewChatBot.tsx(765,45): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/shared/NewChatBot.tsx(769,51): error TS7006: Parameter 'resource' implicitly has an 'any' type.
+components/shared/onboarding/Bill.tsx(191,9): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+components/shared/onboarding/Bill.tsx(274,13): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+components/shared/onboarding/Bill.tsx(448,32): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/shared/onboarding/Bill.tsx(451,25): error TS2345: Argument of type '({ concourId: string | null; created_at: string; id: number; isActive: boolean | null; learningPathId: string | null; metadata: Json; price: number | null; concour: { name: string | null; school: { ...; } | null; } | null; learning_path: { ...; } | null; } | null)[]' is not assignable to parameter of type 'SetStateAction<Program[]>'.
+  Type '({ concourId: string | null; created_at: string; id: number; isActive: boolean | null; learningPathId: string | null; metadata: Json; price: number | null; concour: { name: string | null; school: { ...; } | null; } | null; learning_path: { ...; } | null; } | null)[]' is not assignable to type 'Program[]'.
+    Type '{ concourId: string | null; created_at: string; id: number; isActive: boolean | null; learningPathId: string | null; metadata: Json; price: number | null; concour: { name: string | null; school: { ...; } | null; } | null; learning_path: { ...; } | null; } | null' is not assignable to type 'Program'.
+      Type 'null' is not assignable to type 'Program'.
+components/shared/onboarding/Bill.tsx(454,76): error TS18047: 'item' is possibly 'null'.
+components/shared/onboarding/Bill.tsx(454,76): error TS18047: 'item.price' is possibly 'null'.
+components/shared/onboarding/Programs.tsx(128,17): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '{ width: string; backgroundColor: string; }' is not assignable to type 'Falsy | ViewStyle | RegisteredStyle<ViewStyle> | RecursiveArray<Falsy | ViewStyle | RegisteredStyle<ViewStyle>> | readonly (Falsy | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Types of property 'width' are incompatible.
+        Type 'string' is not assignable to type 'DimensionValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '{ width: string; backgroundColor: string; }' is not assignable to type 'Falsy | ViewStyle | RegisteredStyle<ViewStyle> | RecursiveArray<Falsy | ViewStyle | RegisteredStyle<ViewStyle>> | readonly (Falsy | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Types of property 'width' are incompatible.
+        Type 'string' is not assignable to type 'DimensionValue | undefined'.
+components/shared/onboarding/Programs.tsx(203,35): error TS18047: 'program.concour' is possibly 'null'.
+components/shared/onboarding/Programs.tsx(203,35): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+components/shared/onboarding/Programs.tsx(210,22): error TS18047: 'program.learning_path' is possibly 'null'.
+components/shared/onboarding/Programs.tsx(211,27): error TS18047: 'program.concour' is possibly 'null'.
+components/shared/onboarding/Programs.tsx(217,23): error TS18047: 'program.concour' is possibly 'null'.
+components/shared/onboarding/Programs.tsx(217,23): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+components/shared/onboarding/Programs.tsx(221,9): error TS18047: 'program.concour' is possibly 'null'.
+components/shared/onboarding/Programs.tsx(221,25): error TS2339: Property 'school' does not exist on type '{ id: string; name: string | null; school_id: string | null; image: Json; city_id: string | null; cycle_id: string | null; nextDate: string | null; }'.
+components/shared/onboarding/Programs.tsx(296,38): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+components/shared/onboarding/Programs.tsx(330,9): error TS7034: Variable 'exercisesData' implicitly has type 'any[]' in some locations where its type cannot be determined.
+components/shared/onboarding/Programs.tsx(335,28): error TS2345: Argument of type '(number | undefined)[]' is not assignable to parameter of type 'readonly (number | null)[]'.
+  Type 'number | undefined' is not assignable to type 'number | null'.
+    Type 'undefined' is not assignable to type 'number | null'.
+components/shared/onboarding/Programs.tsx(349,18): error TS7005: Variable 'exercisesData' implicitly has an 'any[]' type.
+components/shared/onboarding/Programs.tsx(389,34): error TS7031: Binding element 'isDark' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(503,11): error TS2339: Property 'filter' does not exist on type 'string | number | true | { [key: string]: Json | undefined; } | Json[] | ({ id: number; price: number | null; concour: { id: string; name: string | null; school_id: string | null; image: Json; city_id: string | null; cycle_id: string | null; nextDate: string | null; } | null; learning_path: { ...; } | null; } | { .....'.
+  Property 'filter' does not exist on type 'string'.
+components/shared/onboarding/Programs.tsx(503,18): error TS7006: Parameter 'program' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(504,14): error TS7006: Parameter 'program' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(506,66): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(506,71): error TS7006: Parameter 'price' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(637,45): error TS2345: Argument of type 'string | number | true | { [key: string]: Json | undefined; } | Json[] | ({ id: number; price: number | null; concour: { id: string; name: string | null; school_id: string | null; image: Json; city_id: string | null; cycle_id: string | null; nextDate: string | null; } | null; learning_path: { ...; } | null; } | { .....' is not assignable to parameter of type 'Program[]'.
+  Type 'string' is not assignable to type 'Program[]'.
+components/shared/onboarding/Programs.tsx(641,38): error TS2339: Property 'length' does not exist on type 'string | number | true | { [key: string]: Json | undefined; } | Json[] | ({ id: number; price: number | null; concour: { id: string; name: string | null; school_id: string | null; image: Json; city_id: string | null; cycle_id: string | null; nextDate: string | null; } | null; learning_path: { ...; } | null; } | { .....'.
+  Property 'length' does not exist on type 'number'.
+components/shared/onboarding/Programs.tsx(668,31): error TS2339: Property 'length' does not exist on type 'string | number | true | { [key: string]: Json | undefined; } | Json[] | ({ id: number; price: number | null; concour: { id: string; name: string | null; school_id: string | null; image: Json; city_id: string | null; cycle_id: string | null; nextDate: string | null; } | null; learning_path: { ...; } | null; } | { .....'.
+  Property 'length' does not exist on type 'number'.
+components/shared/onboarding/Programs.tsx(669,23): error TS2345: Argument of type 'string | number | true | { [key: string]: Json | undefined; } | Json[] | ({ id: number; price: number | null; concour: { id: string; name: string | null; school_id: string | null; image: Json; city_id: string | null; cycle_id: string | null; nextDate: string | null; } | null; learning_path: { ...; } | null; } | { .....' is not assignable to parameter of type 'SetStateAction<never[]>'.
+  Type 'string' is not assignable to type 'SetStateAction<never[]>'.
+components/shared/onboarding/Programs.tsx(750,45): error TS7031: Binding element 'item' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(750,51): error TS7031: Binding element 'selected' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(750,61): error TS7031: Binding element 'onSelect' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(1039,11): error TS2339: Property 'filter' does not exist on type 'string | number | true | { [key: string]: Json | undefined; } | Json[] | ({ id: number; price: number | null; concour: { id: string; name: string | null; school_id: string | null; image: Json; city_id: string | null; cycle_id: string | null; nextDate: string | null; } | null; learning_path: { ...; } | null; } | { .....'.
+  Property 'filter' does not exist on type 'string'.
+components/shared/onboarding/Programs.tsx(1039,18): error TS7006: Parameter 'program' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(1040,18): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(1040,23): error TS7006: Parameter 'program' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(1269,11): error TS2339: Property 'filter' does not exist on type 'string | number | true | { [key: string]: Json | undefined; } | Json[] | ({ id: number; price: number | null; concour: { id: string; name: string | null; school_id: string | null; image: Json; city_id: string | null; cycle_id: string | null; nextDate: string | null; } | null; learning_path: { ...; } | null; } | { .....'.
+  Property 'filter' does not exist on type 'string'.
+components/shared/onboarding/Programs.tsx(1269,18): error TS7006: Parameter 'program' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(1271,57): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(1271,62): error TS7006: Parameter 'program' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(1319,52): error TS7006: Parameter 'program' implicitly has an 'any' type.
+components/shared/onboarding/Programs.tsx(1642,39): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{}'.
+  No index signature with a parameter of type 'number' was found on type '{}'.
+components/shared/onboarding/Programs.tsx(1667,47): error TS2339: Property 'length' does not exist on type 'string | number | true | { [key: string]: Json | undefined; } | Json[] | ({ id: number; price: number | null; concour: { id: string; name: string | null; school_id: string | null; image: Json; city_id: string | null; cycle_id: string | null; nextDate: string | null; } | null; learning_path: { ...; } | null; } | { .....'.
+  Property 'length' does not exist on type 'number'.
+components/shared/onboarding/Programs.tsx(1680,46): error TS2339: Property 'length' does not exist on type 'string | number | true | { [key: string]: Json | undefined; } | Json[] | ({ id: number; price: number | null; concour: { id: string; name: string | null; school_id: string | null; image: Json; city_id: string | null; cycle_id: string | null; nextDate: string | null; } | null; learning_path: { ...; } | null; } | { .....'.
+  Property 'length' does not exist on type 'number'.
+components/shared/Profile/DownloadBill.tsx(32,9): error TS2304: Cannot find name 'logger'.
+components/shared/Profile/DownloadBill.tsx(43,13): error TS2304: Cannot find name 'logger'.
+components/shared/ProgramDetails.tsx(35,53): error TS2339: Property 'concour' does not exist on type 'Course'.
+components/shared/ProgramDetails.tsx(39,53): error TS2339: Property 'concour' does not exist on type 'Course'.
+components/shared/ProgramDetails.tsx(46,22): error TS2339: Property 'learning_path' does not exist on type 'Course'.
+components/shared/ProgramDetails.tsx(84,24): error TS2339: Property 'learning_path' does not exist on type 'Course'.
+components/shared/ProgramDetails.tsx(93,47): error TS2339: Property 'price' does not exist on type 'Course'.
+components/shared/ScreenTracker.tsx(32,50): error TS2345: Argument of type '{ [x: string]: string | string[]; }' is not assignable to parameter of type 'Record<string, string>'.
+  'string' index signatures are incompatible.
+    Type 'string | string[]' is not assignable to type 'string'.
+      Type 'string[]' is not assignable to type 'string'.
+components/shared/UserActivity.tsx(49,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { created_at?: string | null | undefined; device_type: "web" | "mobile"; duration?: number | null | undefined; id?: string | undefined; last_heartbeat?: string | null | undefined; session_start?: string | ... 1 more ... | undefined; status?: "active" | ... 2 more ... | undefined; user_id?: string | ... 1 more ... | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'Date' is not assignable to type 'string'.
+  Overload 2 of 2, '(values: { created_at?: string | null | undefined; device_type: "web" | "mobile"; duration?: number | null | undefined; id?: string | undefined; last_heartbeat?: string | null | undefined; session_start?: string | ... 1 more ... | undefined; status?: "active" | ... 2 more ... | undefined; user_id?: string | ... 1 more ... | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'user_id' does not exist in type '{ created_at?: string | null | undefined; device_type: "web" | "mobile"; duration?: number | null | undefined; id?: string | undefined; last_heartbeat?: string | null | undefined; session_start?: string | ... 1 more ... | undefined; status?: "active" | ... 2 more ... | undefined; user_id?: string | ... 1 more ... | ...'.
+components/shared/UserActivity.tsx(61,26): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SetStateAction<number | null>'.
+components/shared/UserActivity.tsx(71,21): error TS2322: Type 'Date' is not assignable to type 'string'.
+components/shared/UserActivity.tsx(73,27): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+components/shared/UserActivity.tsx(90,27): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+components/TestNotifications.tsx(9,37): error TS2322: Type 'Promise<{ shouldShowAlert: true; shouldPlaySound: true; shouldSetBadge: true; }>' is not assignable to type 'Promise<NotificationBehavior>'.
+  Type '{ shouldShowAlert: true; shouldPlaySound: true; shouldSetBadge: true; }' is missing the following properties from type 'NotificationBehavior': shouldShowBanner, shouldShowList
+components/TestNotifications.tsx(22,34): error TS2554: Expected 1 arguments, but got 0.
+components/TestNotifications.tsx(23,30): error TS2554: Expected 1 arguments, but got 0.
+components/TestNotifications.tsx(41,27): error TS2339: Property 'removeNotificationSubscription' does not exist on type 'typeof import("D:/Projets/elearn_mobile/node_modules/expo-notifications/build/index")'.
+components/TestNotifications.tsx(43,27): error TS2339: Property 'removeNotificationSubscription' does not exist on type 'typeof import("D:/Projets/elearn_mobile/node_modules/expo-notifications/build/index")'.
+components/ui/OTPInput.tsx(128,17): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps): TextInput', gave the following error.
+    Type '(ref: TextInput | null) => TextInput | null' is not assignable to type 'Ref<TextInput> | undefined'.
+      Type '(ref: TextInput | null) => TextInput | null' is not assignable to type '(instance: TextInput | null) => void | (() => VoidOrUndefinedOnly)'.
+        Type 'TextInput | null' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+          Type 'null' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+  Overload 2 of 2, '(props: TextInputProps, context: any): TextInput', gave the following error.
+    Type '(ref: TextInput | null) => TextInput | null' is not assignable to type 'Ref<TextInput> | undefined'.
+      Type '(ref: TextInput | null) => TextInput | null' is not assignable to type '(instance: TextInput | null) => void | (() => VoidOrUndefinedOnly)'.
+        Type 'TextInput | null' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+          Type 'null' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+config/gemini.ts(37,9): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(90,16): error TS2352: Conversion of type '{ user_program_enrollments: { created_at: string | null; expiry_date: string; id: number; program_id: number & { concourId: string | null; created_at: string; id: number; isActive: boolean | null; learningPathId: string | null; metadata: Json | null; price: number | null; }; user_id: string; }[]; ... 57 more ...; us...' to type 'Account' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'image' are incompatible.
+    Type 'Json' is not comparable to type '{ url: string; }'.
+      Property 'url' is missing in type 'Json[]' but required in type '{ url: string; }'.
+contexts/auth.tsx(95,9): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(127,21): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(178,13): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(207,11): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(255,13): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(277,11): error TS2322: Type 'string' is not assignable to type '"student" | "admin" | undefined'.
+contexts/auth.tsx(294,13): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(374,17): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(387,13): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(436,21): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(441,13): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(509,61): error TS2345: Argument of type '"phone"' is not assignable to parameter of type '"email" | "oauth"'.
+contexts/auth.tsx(511,25): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(520,21): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(525,17): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(531,13): error TS2304: Cannot find name 'logger'.
+contexts/auth.tsx(572,39): error TS2322: Type '{ user: Account | null; session: Session | null; isLoading: boolean; signIn: (phone: string, password: string) => Promise<void>; signOut: () => Promise<void>; ... 4 more ...; setIsAccountCreating: React.Dispatch<...>; }' is not assignable to type 'AuthContextType'.
+  The types returned by 'checkStreak()' are incompatible between these types.
+    Type 'Promise<Json | undefined>' is not assignable to type 'Promise<void>'.
+      Type 'Json | undefined' is not assignable to type 'void'.
+        Type 'null' is not assignable to type 'void'.
+contexts/NotificationContext.tsx(91,33): error TS2345: Argument of type '"/(app)/"' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+contexts/NotificationContext.tsx(110,29): error TS2345: Argument of type '"/(app)/"' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+contexts/NotificationContext.tsx(117,33): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/auth" | `/auth?${string}` | `/auth#${string}` | "/concours-blanc-register" | `/concours-blanc-register?${string}` | `/concours-blanc-register#${string}` | "/_sitemap" | ... 460 more ... | { ...; }'.
+contexts/quizContext.tsx(257,25): error TS2322: Type '{}' is not assignable to type 'Record<string, { selectedOptions: string[]; isCorrect: boolean; timeSpent: number; }>'.
+  Index signature for type 'string' is missing in type '{}'.
+contexts/quizContext.tsx(263,29): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+contexts/quizContext.tsx(264,53): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+contexts/quizContext.tsx(306,25): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+contexts/quizContext.tsx(307,49): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+contexts/quizContext.tsx(410,32): error TS2554: Expected 4 arguments, but got 3.
+contexts/quizContext.tsx(425,52): error TS2740: Type 'QuizResults' is missing the following properties from type 'Attempt': user_answers, id, user_id, quiz_id, and 6 more.
+contexts/quizContext.tsx(430,55): error TS2339: Property 'passing_score' does not exist on type '{ accessKey: string | null; category: string | null; course: number | null; course_content: number | null; created_at: string; description: string | null; enonce: string | null; ... 8 more ...; tags: string[] | null; }'.
+contexts/quizContext.tsx(517,31): error TS2739: Type '{ attempt: QuizAttemptState; currentQuestion: QuizQuestion; totalQuestions: number; handleAnswerSelect: (answer: string) => void; handleNextQuestion: () => Promise<...>; ... 9 more ...; isNewlyCompleted: boolean; }' is missing the following properties from type 'QuizContextType': quizId, attemptId, pdId
+contexts/UpdatesContext.tsx(101,5): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+contexts/UpdatesContext.tsx(120,9): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+contexts/useUserInfo.tsx(56,41): error TS2304: Cannot find name 'ProgramAccessMap'.
+contexts/useUserInfo.tsx(84,10): error TS2352: Conversion of type '{ accessibilityneeds: string | null; achievements: string[] | null; active_trx: string | null; address: string | null; authId: string; birthdate: string | null; city: string | null; ... 52 more ...; xp_history: { ...; }[]; }' to type 'Account' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'created_at' are incompatible.
+    Type 'string' is not comparable to type 'Date'.
+contexts/useUserInfo.tsx(112,22): error TS2352: Conversion of type '{ accessKey: string | null; category: string | null; created_at: string; description: string | null; goals: string[] | null; groups: string[] | null; id: number; image: Json; learners: string[] | null; ... 4 more ...; course_progress_summary: { ...; }[]; }' to type 'Courses & { course_learningpath?: { learning_paths: LearningPaths; }[] | undefined; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ accessKey: string | null; category: string | null; created_at: string; description: string | null; goals: string[] | null; groups: string[] | null; id: number; image: Json; learners: string[] | null; ... 4 more ...; course_progress_summary: { ...; }[]; }' is not comparable to type 'Courses'.
+    Types of property 'created_at' are incompatible.
+      Type 'string' is not comparable to type 'Date'.
+contexts/useUserInfo.tsx(118,5): error TS2322: Type 'number | null' is not assignable to type 'number | undefined'.
+  Type 'null' is not assignable to type 'number | undefined'.
+contexts/useUserInfo.tsx(119,5): error TS2322: Type 'string | null' is not assignable to type 'Date | undefined'.
+  Type 'null' is not assignable to type 'Date | undefined'.
+contexts/useUserInfo.tsx(120,5): error TS2322: Type 'number | null' is not assignable to type 'number | undefined'.
+  Type 'null' is not assignable to type 'number | undefined'.
+contexts/useUserInfo.tsx(121,5): error TS2322: Type '{ order: number | null; }' is not assignable to type '{ order: number; }'.
+  Types of property 'order' are incompatible.
+    Type 'number | null' is not assignable to type 'number'.
+      Type 'null' is not assignable to type 'number'.
+contexts/useUserInfo.tsx(164,28): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'.
+contexts/useUserInfo.tsx(165,26): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'.
+contexts/useUserInfo.tsx(266,25): error TS2677: A type predicate's type must be assignable to its parameter's type.
+  Type 'LearningPaths' is not assignable to type '{ concours_learningpaths: { id: number; learningPathId: string | null; }; id: string; title: string | null; description: string | null; image: Json; duration: Json[] | null; ... 5 more ...; groups: string[] | null; }'.
+    Types of property 'concours_learningpaths' are incompatible.
+      Type '{ id: string | number; } | undefined' is not assignable to type '{ id: number; learningPathId: string | null; }'.
+        Type 'undefined' is not assignable to type '{ id: number; learningPathId: string | null; }'.
+contexts/useUserInfo.tsx(311,62): error TS2769: No overload matches this call.
+  Overload 1 of 12, '(key: StrictKey, fetcher: ((arg: ArgumentsTuple) => FetcherResponse<LearningPaths[]>) | ((arg: ArgumentsTuple) => FetcherResponse<...>) | null, config: SWRConfiguration<...> | undefined): SWRResponse<...>', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'StrictKey'.
+      Type 'string' is not assignable to type 'StrictKey'.
+  Overload 2 of 12, '(key: Key, fetcher: BareFetcher<LearningPaths[]> | null, config: SWRConfiguration<LearningPaths[], any, BareFetcher<LearningPaths[]>> | undefined): SWRResponse<...>', gave the following error.
+    Argument of type '() => Promise<({ concours_learningpaths: { id: number; learningPathId: string | null; }; id: string; title: string | null; description: string | null; image: Json; duration: Json[] | null; ... 5 more ...; groups: string[] | null; } | null)[]>' is not assignable to parameter of type 'BareFetcher<LearningPaths[]>'.
+      Type 'Promise<({ concours_learningpaths: { id: number; learningPathId: string | null; }; id: string; title: string | null; description: string | null; image: Json; duration: Json[] | null; ... 5 more ...; groups: string[] | null; } | null)[]>' is not assignable to type 'FetcherResponse<LearningPaths[]>'.
+        Type 'Promise<({ concours_learningpaths: { id: number; learningPathId: string | null; }; id: string; title: string | null; description: string | null; image: Json; duration: Json[] | null; ... 5 more ...; groups: string[] | null; } | null)[]>' is not assignable to type 'Promise<LearningPaths[]>'.
+          Type '({ concours_learningpaths: { id: number; learningPathId: string | null; }; id: string; title: string | null; description: string | null; image: Json; duration: Json[] | null; ... 5 more ...; groups: string[] | null; } | null)[]' is not assignable to type 'LearningPaths[]'.
+            Type '{ concours_learningpaths: { id: number; learningPathId: string | null; }; id: string; title: string | null; description: string | null; image: Json; duration: Json[] | null; ... 5 more ...; groups: string[] | null; } | null' is not assignable to type 'LearningPaths'.
+              Type 'null' is not assignable to type 'LearningPaths'.
+contexts/useUserInfo.tsx(321,66): error TS2339: Property 'length' does not exist on type 'NonNullable<Data>'.
+contexts/useUserInfo.tsx(408,5): error TS2322: Type 'string | number | undefined' is not assignable to type 'string | undefined'.
+  Type 'number' is not assignable to type 'string'.
+hooks/secondary/useSecondaryProgramProgress.ts(102,17): error TS18047: 'course.progress_percentage' is possibly 'null'.
+hooks/secondary/useSecondaryProgramProgress.ts(135,7): error TS2322: Type '{ exercice_id: string | null; }[]' is not assignable to type '{ exercice_id: string; }[]'.
+  Type '{ exercice_id: string | null; }' is not assignable to type '{ exercice_id: string; }'.
+    Types of property 'exercice_id' are incompatible.
+      Type 'string | null' is not assignable to type 'string'.
+        Type 'null' is not assignable to type 'string'.
+hooks/useCart.ts(24,74): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '() => Promise<{ created_at: string | null; id: string; status: string | null; total_amount: number | null; updated_at: string | null; user_id: string | null; } | null>' has no properties in common with type 'SWRConfiguration<Cart, any, BareFetcher<Cart>>'.
+hooks/useCart.ts(91,9): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | boolean'.
+  Type 'undefined' is not assignable to type 'string | number | boolean'.
+hooks/useCart.ts(127,9): error TS2322: Type 'number | undefined' is not assignable to type 'string | number | boolean'.
+  Type 'undefined' is not assignable to type 'string | number | boolean'.
+hooks/useCart.ts(129,9): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | boolean'.
+  Type 'undefined' is not assignable to type 'string | number | boolean'.
+hooks/useCourseProgress.ts(43,13): error TS2769: No overload matches this call.
+  Overload 1 of 12, '(key: StrictKey, fetcher: ((arg: ArgumentsTuple) => FetcherResponse<CourseProgress | null>) | ((arg: ArgumentsTuple) => FetcherResponse<...>) | null, config: SWRConfiguration<...> | undefined): SWRResponse<...>', gave the following error.
+    Argument of type '() => Promise<{ completed_sections: number; course_id: number; id: number; is_completed: boolean | null; last_updated: string; progress_percentage: number | null; total_sections: number; user_id: string; } | null>' is not assignable to parameter of type '((arg: ArgumentsTuple) => FetcherResponse<CourseProgress | null>) | ((arg: ArgumentsTuple) => FetcherResponse<CourseProgress | null>) | null'.
+      Type '() => Promise<{ completed_sections: number; course_id: number; id: number; is_completed: boolean | null; last_updated: string; progress_percentage: number | null; total_sections: number; user_id: string; } | null>' is not assignable to type '(arg: ArgumentsTuple) => FetcherResponse<CourseProgress | null>'.
+        Type 'Promise<{ completed_sections: number; course_id: number; id: number; is_completed: boolean | null; last_updated: string; progress_percentage: number | null; total_sections: number; user_id: string; } | null>' is not assignable to type 'FetcherResponse<CourseProgress | null>'.
+          Type 'Promise<{ completed_sections: number; course_id: number; id: number; is_completed: boolean | null; last_updated: string; progress_percentage: number | null; total_sections: number; user_id: string; } | null>' is not assignable to type 'Promise<CourseProgress | null>'.
+            Type '{ completed_sections: number; course_id: number; id: number; is_completed: boolean | null; last_updated: string; progress_percentage: number | null; total_sections: number; user_id: string; } | null' is not assignable to type 'CourseProgress | null'.
+              Type '{ completed_sections: number; course_id: number; id: number; is_completed: boolean | null; last_updated: string; progress_percentage: number | null; total_sections: number; user_id: string; }' is not assignable to type 'CourseProgress'.
+                Types of property 'progress_percentage' are incompatible.
+                  Type 'number | null' is not assignable to type 'number'.
+                    Type 'null' is not assignable to type 'number'.
+  Overload 2 of 12, '(key: Key, fetcher: BareFetcher<CourseProgress | null> | null, config: SWRConfiguration<CourseProgress | null, any, BareFetcher<CourseProgress | null>> | undefined): SWRResponse<...>', gave the following error.
+    Argument of type '() => Promise<{ completed_sections: number; course_id: number; id: number; is_completed: boolean | null; last_updated: string; progress_percentage: number | null; total_sections: number; user_id: string; } | null>' is not assignable to parameter of type 'BareFetcher<CourseProgress | null>'.
+      Type 'Promise<{ completed_sections: number; course_id: number; id: number; is_completed: boolean | null; last_updated: string; progress_percentage: number | null; total_sections: number; user_id: string; } | null>' is not assignable to type 'FetcherResponse<CourseProgress | null>'.
+        Type 'Promise<{ completed_sections: number; course_id: number; id: number; is_completed: boolean | null; last_updated: string; progress_percentage: number | null; total_sections: number; user_id: string; } | null>' is not assignable to type 'Promise<CourseProgress | null>'.
+          Type '{ completed_sections: number; course_id: number; id: number; is_completed: boolean | null; last_updated: string; progress_percentage: number | null; total_sections: number; user_id: string; } | null' is not assignable to type 'CourseProgress | null'.
+            Type '{ completed_sections: number; course_id: number; id: number; is_completed: boolean | null; last_updated: string; progress_percentage: number | null; total_sections: number; user_id: string; }' is not assignable to type 'CourseProgress'.
+              Types of property 'progress_percentage' are incompatible.
+                Type 'number | null' is not assignable to type 'number'.
+                  Type 'null' is not assignable to type 'number'.
+hooks/useCourseProgress.ts(53,13): error TS2769: No overload matches this call.
+  Overload 1 of 12, '(key: StrictKey, fetcher: ((arg: ArgumentsTuple) => FetcherResponse<SectionProgress[] | null>) | ((arg: ArgumentsTuple) => FetcherResponse<...>) | null, config: SWRConfiguration<...> | undefined): SWRResponse<...>', gave the following error.
+    Argument of type '() => Promise<{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }[] | null>' is not assignable to parameter of type '((arg: ArgumentsTuple) => FetcherResponse<SectionProgress[] | null>) | ((arg: ArgumentsTuple) => FetcherResponse<SectionProgress[] | null>) | null'.
+      Type '() => Promise<{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }[] | null>' is not assignable to type '(arg: ArgumentsTuple) => FetcherResponse<SectionProgress[] | null>'.
+        Type 'Promise<{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }[] | null>' is not assignable to type 'FetcherResponse<SectionProgress[] | null>'.
+          Type 'Promise<{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }[] | null>' is not assignable to type 'Promise<SectionProgress[] | null>'.
+            Type '{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }[] | null' is not assignable to type 'SectionProgress[] | null'.
+              Type '{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }[]' is not assignable to type 'SectionProgress[]'.
+                Type '{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }' is missing the following properties from type 'SectionProgress': total, completed
+  Overload 2 of 12, '(key: Key, fetcher: BareFetcher<SectionProgress[] | null> | null, config: SWRConfiguration<SectionProgress[] | null, any, BareFetcher<SectionProgress[] | null>> | undefined): SWRResponse<...>', gave the following error.
+    Argument of type '() => Promise<{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }[] | null>' is not assignable to parameter of type 'BareFetcher<SectionProgress[] | null>'.
+      Type 'Promise<{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }[] | null>' is not assignable to type 'FetcherResponse<SectionProgress[] | null>'.
+        Type 'Promise<{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }[] | null>' is not assignable to type 'Promise<SectionProgress[] | null>'.
+          Type '{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }[] | null' is not assignable to type 'SectionProgress[] | null'.
+            Type '{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }[]' is not assignable to type 'SectionProgress[]'.
+              Type '{ courseid: number; enrollmentdate: string; id: number; lastaccessed: string | null; progress: number | null; sectionid: number | null; userid: string; }' is missing the following properties from type 'SectionProgress': total, completed
+hooks/useHaptics.ts(121,13): error TS2304: Cannot find name 'logger'.
+hooks/usePayment.ts(33,18): error TS2345: Argument of type '{ amount: number; cart_id: string | null; created_at: string | null; id: string; payment_provider: string | null; payment_reference: string | null; phone_number: string; promo_code_id: string | null; status: string | null; trx_reference: string; updated_at: string | null; user_id: string | null; }' is not assignable to parameter of type 'SetStateAction<Payments | undefined>'.
+  Type '{ amount: number; cart_id: string | null; created_at: string | null; id: string; payment_provider: string | null; payment_reference: string | null; phone_number: string; promo_code_id: string | null; status: string | null; trx_reference: string; updated_at: string | null; user_id: string | null; }' is not assignable to type 'Payments'.
+    Types of property 'created_at' are incompatible.
+      Type 'string | null' is not assignable to type 'Date | null'.
+        Type 'string' is not assignable to type 'Date'.
+hooks/usePayment.ts(107,20): error TS2345: Argument of type '{ amount: number; cart_id: string | null; created_at: string | null; id: string; payment_provider: string | null; payment_reference: string | null; phone_number: string; promo_code_id: string | null; status: string | null; trx_reference: string; updated_at: string | null; user_id: string | null; }' is not assignable to parameter of type 'SetStateAction<Payments | undefined>'.
+  Type '{ amount: number; cart_id: string | null; created_at: string | null; id: string; payment_provider: string | null; payment_reference: string | null; phone_number: string; promo_code_id: string | null; status: string | null; trx_reference: string; updated_at: string | null; user_id: string | null; }' is not assignable to type 'Payments'.
+    Types of property 'created_at' are incompatible.
+      Type 'string | null' is not assignable to type 'Date | null'.
+        Type 'string' is not assignable to type 'Date'.
+hooks/usePayment.ts(129,20): error TS2345: Argument of type '{ amount: number; cart_id: string | null; created_at: string | null; id: string; payment_provider: string | null; payment_reference: string | null; phone_number: string; promo_code_id: string | null; status: string | null; trx_reference: string; updated_at: string | null; user_id: string | null; }' is not assignable to parameter of type 'SetStateAction<Payments | undefined>'.
+  Type '{ amount: number; cart_id: string | null; created_at: string | null; id: string; payment_provider: string | null; payment_reference: string | null; phone_number: string; promo_code_id: string | null; status: string | null; trx_reference: string; updated_at: string | null; user_id: string | null; }' is not assignable to type 'Payments'.
+    Types of property 'created_at' are incompatible.
+      Type 'string | null' is not assignable to type 'Date | null'.
+        Type 'string' is not assignable to type 'Date'.
+hooks/usePaymentVerification.ts(81,28): error TS2345: Argument of type 'import("D:/Projets/elearn_mobile/services/program-payment.service").ProgramPayment' is not assignable to parameter of type 'import("D:/Projets/elearn_mobile/types/payment.types").ProgramPayment'.
+  Types of property 'program_id' are incompatible.
+    Type 'string' is not assignable to type 'number'.
+hooks/usePaymentVerification.ts(83,26): error TS2345: Argument of type 'import("D:/Projets/elearn_mobile/services/program-payment.service").ProgramPayment' is not assignable to parameter of type 'import("D:/Projets/elearn_mobile/types/payment.types").ProgramPayment'.
+  Types of property 'program_id' are incompatible.
+    Type 'string' is not assignable to type 'number'.
+hooks/usePaymentVerification.ts(132,5): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+hooks/useProgramPayment.ts(34,5): error TS2322: Type 'number | null' is not assignable to type 'string | null'.
+  Type 'number' is not assignable to type 'string'.
+hooks/useProgramPayment.ts(225,21): error TS2554: Expected 1 arguments, but got 2.
+hooks/useProgramProgress.ts(335,23): error TS2352: Conversion of type '{ course_id: number; progress_percentage: number | null; }[]' to type 'CourseProgress[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ course_id: number; progress_percentage: number | null; }' is not comparable to type 'CourseProgress'.
+    Types of property 'course_id' are incompatible.
+      Type 'number' is not comparable to type 'string'.
+hooks/useProgramProgress.ts(360,15): error TS2345: Argument of type 'string[]' is not assignable to parameter of type 'readonly number[]'.
+  Type 'string' is not assignable to type 'number'.
+hooks/useProgramProgress.ts(367,23): error TS2352: Conversion of type '{ id: number; }[]' to type 'ArchiveComplete[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ id: number; }' is not comparable to type 'ArchiveComplete'.
+    Types of property 'id' are incompatible.
+      Type 'number' is not comparable to type 'string'.
+hooks/useQuiz.ts(50,9): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '() => Promise<{ accessKey: string | null; category: string | null; course: number | null; course_content: number | null; created_at: string; description: string | null; enonce: string | null; ... 12 more ...; quiz_courses: { ...; }[]; }>' has no properties in common with type 'SWRConfiguration<Quiz, any, BareFetcher<Quiz>>'.
+hooks/useQuiz.ts(60,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+hooks/useQuiz.ts(99,9): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '() => Promise<{ content: Json; correct: string[] | null; created_at: string; details: Json[] | null; hasDetails: boolean | null; hasEditor: boolean | null; hasImg: boolean | null; ... 10 more ...; type: string | null; }[]>' has no properties in common with type 'SWRConfiguration<QuizQuestion[], any, BareFetcher<QuizQuestion[]>>'.
+hooks/useQuiz.ts(103,31): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+hooks/useQuiz.ts(142,9): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '() => Promise<{ answers: Json; current_question_index: number | null; end_time: string | null; id: number; last_modified_at: string | null; quiz_id: string | null; score: number | null; ... 5 more ...; user_answers: { ...; }[]; }>' has no properties in common with type 'SWRConfiguration<Attempt, any, BareFetcher<Attempt>>'.
+hooks/useQuiz.ts(146,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+hooks/useQuiz.ts(189,9): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '() => Promise<{ attempts: { answers: Json; current_question_index: number | null; end_time: string | null; id: number; last_modified_at: string | null; quiz_id: string | null; score: number | null; ... 4 more ...; user_id: string | null; }[]; totalAttempts: number; bestScore: number; averageScore: number; lastAttemp...' has no properties in common with type 'SWRConfiguration<QuizProgress, any, BareFetcher<QuizProgress>>'.
+hooks/useQuiz.ts(194,32): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+hooks/useQuiz.ts(195,32): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+hooks/useQuiz.ts(248,9): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '() => Promise<{ attemptId: string | undefined; attempt: { answers: Json; current_question_index: number | null; end_time: string | null; id: number; last_modified_at: string | null; quiz_id: string | null; ... 7 more ...; quiz: { ...; } | null; }; ... 19 more ...; quiz: { ...; } | null; }>' has no properties in common with type 'SWRConfiguration<QuizResults, any, BareFetcher<QuizResults>>'.
+hooks/useQuiz.ts(261,27): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+hooks/useQuiz.ts(269,59): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: { attempt_id: number | null; id: number; is_correct: boolean | null; question_id: number | null; selected_options: string[] | null; submitted_at: string | null; time_taken: number | null; }, index: number, array: { ...; }[]) => value is { ...; }, thisArg?: any): { ...; }[]', gave the following error.
+    Argument of type '(a: UserAnswers) => boolean | null' is not assignable to parameter of type '(value: { attempt_id: number | null; id: number; is_correct: boolean | null; question_id: number | null; selected_options: string[] | null; submitted_at: string | null; time_taken: number | null; }, index: number, array: { ...; }[]) => value is { ...; }'.
+      Types of parameters 'a' and 'value' are incompatible.
+        Type '{ attempt_id: number | null; id: number; is_correct: boolean | null; question_id: number | null; selected_options: string[] | null; submitted_at: string | null; time_taken: number | null; }' is not assignable to type 'UserAnswers'.
+          Types of property 'submitted_at' are incompatible.
+            Type 'string | null' is not assignable to type 'Date | null'.
+              Type 'string' is not assignable to type 'Date'.
+  Overload 2 of 2, '(predicate: (value: { attempt_id: number | null; id: number; is_correct: boolean | null; question_id: number | null; selected_options: string[] | null; submitted_at: string | null; time_taken: number | null; }, index: number, array: { ...; }[]) => unknown, thisArg?: any): { ...; }[]', gave the following error.
+    Argument of type '(a: UserAnswers) => boolean | null' is not assignable to parameter of type '(value: { attempt_id: number | null; id: number; is_correct: boolean | null; question_id: number | null; selected_options: string[] | null; submitted_at: string | null; time_taken: number | null; }, index: number, array: { ...; }[]) => unknown'.
+      Types of parameters 'a' and 'value' are incompatible.
+        Type '{ attempt_id: number | null; id: number; is_correct: boolean | null; question_id: number | null; selected_options: string[] | null; submitted_at: string | null; time_taken: number | null; }' is not assignable to type 'UserAnswers'.
+          Types of property 'submitted_at' are incompatible.
+            Type 'string | null' is not assignable to type 'Date | null'.
+              Type 'string' is not assignable to type 'Date'.
+hooks/useQuiz.ts(271,79): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'.
+hooks/useQuiz.ts(316,28): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+hooks/useQuiz.ts(325,19): error TS18047: 'entry.user' is possibly 'null'.
+hooks/useQuiz.ts(325,19): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type '{ id: string; firstname: string | null; lastname: string | null; image: Json; }'.
+  Property '0' does not exist on type '{ id: string; firstname: string | null; lastname: string | null; image: Json; }'.
+hooks/useQuiz.ts(327,77): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'.
+hooks/useQuiz.ts(332,37): error TS2769: No overload matches this call.
+  Overload 1 of 12, '(key: StrictKey, fetcher: ((arg: ArgumentsTuple) => FetcherResponse<LeaderboardEntry[]>) | ((arg: ArgumentsTuple) => FetcherResponse<...>) | null, config: SWRConfiguration<...> | undefined): SWRResponse<...>', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'StrictKey'.
+      Type 'string' is not assignable to type 'StrictKey'.
+  Overload 2 of 12, '(key: Key, fetcher: BareFetcher<LeaderboardEntry[]> | null, config: SWRConfiguration<LeaderboardEntry[], any, BareFetcher<LeaderboardEntry[]>> | undefined): SWRResponse<...>', gave the following error.
+    Argument of type '() => Promise<{ user: any; timeSpent: number; id: number; score: number | null; start_time: string | null; end_time: string | null; }[]>' is not assignable to parameter of type 'BareFetcher<LeaderboardEntry[]>'.
+      Type 'Promise<{ user: any; timeSpent: number; id: number; score: number | null; start_time: string | null; end_time: string | null; }[]>' is not assignable to type 'FetcherResponse<LeaderboardEntry[]>'.
+        Type 'Promise<{ user: any; timeSpent: number; id: number; score: number | null; start_time: string | null; end_time: string | null; }[]>' is not assignable to type 'Promise<LeaderboardEntry[]>'.
+          Type '{ user: any; timeSpent: number; id: number; score: number | null; start_time: string | null; end_time: string | null; }[]' is not assignable to type 'LeaderboardEntry[]'.
+            Type '{ user: any; timeSpent: number; id: number; score: number | null; start_time: string | null; end_time: string | null; }' is not assignable to type 'LeaderboardEntry'.
+              Types of property 'id' are incompatible.
+                Type 'number' is not assignable to type 'string'.
+hooks/useSound.ts(50,13): error TS2304: Cannot find name 'logger'.
+hooks/useSound.ts(80,17): error TS2304: Cannot find name 'logger'.
+hooks/useSound.ts(105,13): error TS2304: Cannot find name 'logger'.
+hooks/useStorage.ts(102,17): error TS2304: Cannot find name 'logger'.
+hooks/useStorage.ts(122,13): error TS2304: Cannot find name 'logger'.
+hooks/useStorage.ts(139,13): error TS2304: Cannot find name 'logger'.
+hooks/useStorage.ts(156,13): error TS2304: Cannot find name 'logger'.
+hooks/useSupportTicket.ts(36,23): error TS2345: Argument of type '{ agent_id: string | null; created_at: string | null; id: string; last_reply_at: string | null; status: string | null; title: string | null; updated_at: string | null; user_id: string; }' is not assignable to parameter of type 'SetStateAction<Ticket | null>'.
+  Property 'unread_count' is missing in type '{ agent_id: string | null; created_at: string | null; id: string; last_reply_at: string | null; status: string | null; title: string | null; updated_at: string | null; user_id: string; }' but required in type 'Ticket'.
+hooks/useSupportTicket.ts(50,25): error TS2345: Argument of type '{ content: string | null; created_at: string | null; id: string; image_path: string | null; image_url: string | null; message_type: string | null; read_at: string | null; sender_id: string | null; ticket_id: string | null; }[]' is not assignable to parameter of type 'SetStateAction<Message[]>'.
+  Type '{ content: string | null; created_at: string | null; id: string; image_path: string | null; image_url: string | null; message_type: string | null; read_at: string | null; sender_id: string | null; ticket_id: string | null; }[]' is not assignable to type 'Message[]'.
+    Type '{ content: string | null; created_at: string | null; id: string; image_path: string | null; image_url: string | null; message_type: string | null; read_at: string | null; sender_id: string | null; ticket_id: string | null; }' is not assignable to type 'Message'.
+      Types of property 'created_at' are incompatible.
+        Type 'string | null' is not assignable to type 'string'.
+          Type 'null' is not assignable to type 'string'.
+hooks/useSupportTicket.ts(91,35): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+hooks/useTicketList.ts(37,32): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+hooks/useTicketList.ts(50,24): error TS2345: Argument of type '{ last_message: { content: string | null; created_at: string | null; read_at: string | null; }; unread_count: number; agent_id: string | null; created_at: string | null; id: string; last_reply_at: string | null; ... 4 more ...; tickets_messages: { ...; }[]; }[]' is not assignable to parameter of type 'SetStateAction<Ticket[]>'.
+  Type '{ last_message: { content: string | null; created_at: string | null; read_at: string | null; }; unread_count: number; agent_id: string | null; created_at: string | null; id: string; last_reply_at: string | null; ... 4 more ...; tickets_messages: { ...; }[]; }[]' is not assignable to type 'Ticket[]'.
+    Type '{ last_message: { content: string | null; created_at: string | null; read_at: string | null; }; unread_count: number; agent_id: string | null; created_at: string | null; id: string; ... 5 more ...; tickets_messages: { content: string | null; created_at: string | null; read_at: string | null; }[]; }' is not assignable to type 'Ticket'.
+      Types of property 'created_at' are incompatible.
+        Type 'string | null' is not assignable to type 'string'.
+          Type 'null' is not assignable to type 'string'.
+providers/index.tsx(418,18): error TS2322: Type '({ error }: { error: Error; componentStack?: string; }) => React.JSX.Element' is not assignable to type 'ReactNode | FunctionComponent<PostHogErrorBoundaryFallbackProps>'.
+  Type '({ error }: { error: Error; componentStack?: string; }) => React.JSX.Element' is not assignable to type 'FunctionComponent<PostHogErrorBoundaryFallbackProps>'.
+    Types of parameters '__0' and 'props' are incompatible.
+      Type 'PostHogErrorBoundaryFallbackProps' is not assignable to type '{ error: Error; componentStack?: string | undefined; }'.
+        Types of property 'error' are incompatible.
+          Type 'unknown' is not assignable to type 'Error'.
+services/cart.service.ts(9,32): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+services/cart.service.ts(28,42): error TS2531: Object is possibly 'null'.
+services/cart.service.ts(37,43): error TS2531: Object is possibly 'null'.
+services/competition-payment.service.ts(47,8): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { amount: number; authorizationurl?: string | null | undefined; competition_id: string; created_at?: string | null | undefined; expiry_date: string; has_seen_results?: boolean | null | undefined; ... 8 more ...; user_id: string; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(values: { amount: number; authorizationurl?: string | null | undefined; competition_id: string; created_at?: string | null | undefined; expiry_date: string; has_seen_results?: boolean | null | undefined; ... 8 more ...; user_id: string; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'competition_id' does not exist in type '{ amount: number; authorizationurl?: string | null | undefined; competition_id: string; created_at?: string | null | undefined; expiry_date: string; has_seen_results?: boolean | null | undefined; ... 8 more ...; user_id: string; }[]'.
+services/competition-payment.service.ts(65,5): error TS2322: Type '{ amount: number; authorizationurl: string | null; competition_id: string; created_at: string | null; expiry_date: string; has_seen_results: boolean | null; id: string; payment_date: string | null; ... 6 more ...; user_id: string; }' is not assignable to type 'CompetitionPayment'.
+  Types of property 'payment_date' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+services/competition-payment.service.ts(124,29): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+services/competition-payment.service.ts(140,5): error TS2322: Type '{ amount: number; authorizationurl: string | null; competition_id: string; created_at: string | null; expiry_date: string; has_seen_results: boolean | null; id: string; payment_date: string | null; ... 6 more ...; user_id: string; }' is not assignable to type 'CompetitionPayment'.
+  Types of property 'payment_date' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+services/competition-payment.service.ts(165,5): error TS2322: Type '{ amount: number; authorizationurl: string | null; competition_id: string; created_at: string | null; expiry_date: string; has_seen_results: boolean | null; id: string; payment_date: string | null; ... 6 more ...; user_id: string; }' is not assignable to type 'CompetitionPayment'.
+  Types of property 'payment_date' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+services/news.service.ts(58,5): error TS2322: Type '{ action_data: Json; action_type: string | null; author_id: string | null; background_color: string | null; badge_color: string | null; badge_text: string | null; card_style: string | null; ... 31 more ...; view_count: number | null; }[]' is not assignable to type 'News[]'.
+  Type '{ action_data: Json; action_type: string | null; author_id: string | null; background_color: string | null; badge_color: string | null; badge_text: string | null; card_style: string | null; ... 31 more ...; view_count: number | null; }' is not assignable to type 'News'.
+    Types of property 'subtitle' are incompatible.
+      Type 'string | null' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
+services/news.service.ts(81,5): error TS2322: Type '{ action_data: Json; action_type: string | null; author_id: string | null; background_color: string | null; badge_color: string | null; badge_text: string | null; card_style: string | null; ... 31 more ...; view_count: number | null; }' is not assignable to type 'News'.
+  Types of property 'subtitle' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+services/program-payment.service.ts(104,9): error TS2345: Argument of type 'null' is not assignable to parameter of type 'string | undefined'.
+services/program-payment.service.ts(156,5): error TS2322: Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }[]' is not assignable to type 'ProgramPayment[]'.
+  Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }' is not assignable to type 'ProgramPayment'.
+    Types of property 'program_id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+services/program-payment.service.ts(197,34): error TS18047: 'parentPayment.total_installments' is possibly 'null'.
+services/program-payment.service.ts(206,7): error TS2554: Expected 2 arguments, but got 3.
+services/program-payment.service.ts(231,7): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+services/program-payment.service.ts(357,8): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { amount: number; created_at?: string | null | undefined; current_installment?: number | null | undefined; expiry_date: string; has_seen_result?: boolean | null | undefined; id?: string | undefined; ... 13 more ...; user_id: string; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(values: { amount: number; created_at?: string | null | undefined; current_installment?: number | null | undefined; expiry_date: string; has_seen_result?: boolean | null | undefined; id?: string | undefined; ... 13 more ...; user_id: string; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'program_id' does not exist in type '{ amount: number; created_at?: string | null | undefined; current_installment?: number | null | undefined; expiry_date: string; has_seen_result?: boolean | null | undefined; id?: string | undefined; ... 13 more ...; user_id: string; }[]'.
+services/program-payment.service.ts(391,5): error TS2322: Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }' is not assignable to type 'ProgramPayment'.
+  Types of property 'program_id' are incompatible.
+    Type 'number' is not assignable to type 'string'.
+services/program-payment.service.ts(413,9): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '"postgres_changes"' is not assignable to parameter of type '"system"'.
+services/program-payment.service.ts(504,36): error TS18047: 'payment.current_installment' is possibly 'null'.
+services/program-payment.service.ts(504,66): error TS18047: 'payment.total_installments' is possibly 'null'.
+services/program-payment.service.ts(547,5): error TS2322: Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }' is not assignable to type 'ProgramPayment'.
+  Types of property 'program_id' are incompatible.
+    Type 'number' is not assignable to type 'string'.
+services/program-payment.service.ts(583,5): error TS2322: Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }' is not assignable to type 'ProgramPayment'.
+  Types of property 'program_id' are incompatible.
+    Type 'number' is not assignable to type 'string'.
+services/program-payment.service.ts(607,5): error TS2322: Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }' is not assignable to type 'ProgramPayment'.
+  Types of property 'program_id' are incompatible.
+    Type 'number' is not assignable to type 'string'.
+services/program-payment.service.ts(635,5): error TS2322: Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }[]' is not assignable to type 'ProgramPayment[]'.
+  Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }' is not assignable to type 'ProgramPayment'.
+    Types of property 'program_id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+services/program-payment.service.ts(661,5): error TS2322: Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }[]' is not assignable to type 'ProgramPayment[]'.
+  Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }' is not assignable to type 'ProgramPayment'.
+    Types of property 'program_id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+services/program-payment.service.ts(696,7): error TS2322: Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }[]' is not assignable to type 'ProgramPayment[]'.
+  Type '{ amount: number; created_at: string | null; current_installment: number | null; expiry_date: string; has_seen_result: boolean | null; id: string; is_installment: boolean | null; next_payment_due_date: string | null; ... 11 more ...; user_id: string; }' is not assignable to type 'ProgramPayment'.
+    Types of property 'program_id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+services/program-payment.service.ts(843,15): error TS2304: Cannot find name 'phoneNumber'.
+services/program-payment.service.ts(862,19): error TS18047: 'payment.current_installment' is possibly 'null'.
+services/program-payment.service.ts(862,49): error TS18047: 'payment.total_installments' is possibly 'null'.
+services/promo-code.service.ts(21,37): error TS2589: Type instantiation is excessively deep and possibly infinite.
+services/promo-code.service.ts(22,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(relation: "view" | "event" | "groups" | "payments" | "quiz" | "roles" | "courses" | "courses_content" | "exercices" | "learning_paths" | "quiz_questions" | "carts" | "concours_learningpaths" | ... 92 more ... | "year_programs"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"promo_codes"' is not assignable to parameter of type '"view" | "event" | "groups" | "payments" | "quiz" | "roles" | "courses" | "courses_content" | "exercices" | "learning_paths" | "quiz_questions" | "carts" | "concours_learningpaths" | ... 92 more ... | "year_programs"'.
+  Overload 2 of 2, '(relation: "vw_concours_details" | "vw_schools_with_locations" | "vw_upcoming_concours" | "news_stats" | "vw_available_secondary_programs" | "notification_stats" | "vw_user_secondary_subscriptions"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"promo_codes"' is not assignable to parameter of type '"vw_concours_details" | "vw_schools_with_locations" | "vw_upcoming_concours" | "news_stats" | "vw_available_secondary_programs" | "notification_stats" | "vw_user_secondary_subscriptions"'.
+services/quiz.service.ts(46,9): error TS2322: Type '{ answers: Json; current_question_index: number | null; end_time: string | null; id: number; last_modified_at: string | null; quiz_id: string | null; score: number | null; selected_answers: string[] | null; start_time: string | null; status: string | null; timeSpent: number | null; user_id: string | null; }' is not assignable to type 'QuizAttempt'.
+  Types of property 'user_id' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+services/quiz.service.ts(87,17): error TS2698: Spread types may only be created from object types.
+services/quiz.service.ts(99,45): error TS18047: 'attempt.current_question_index' is possibly 'null'.
+services/quiz.service.ts(141,27): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+services/quiz.service.ts(145,43): error TS18047: 'attempt' is possibly 'null'.
+services/quiz.service.ts(145,43): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(o: { [s: string]: string | number | boolean | { [key: string]: Json | undefined; } | Json[] | null | undefined; } | ArrayLike<string | number | boolean | { [key: string]: Json | undefined; } | Json[] | null | undefined>): (string | ... 5 more ... | undefined)[]', gave the following error.
+    Argument of type 'Json' is not assignable to parameter of type '{ [s: string]: string | number | boolean | { [key: string]: Json | undefined; } | Json[] | null | undefined; } | ArrayLike<string | number | boolean | { [key: string]: Json | undefined; } | Json[] | null | undefined>'.
+      Type 'null' is not assignable to type '{ [s: string]: string | number | boolean | { [key: string]: Json | undefined; } | Json[] | null | undefined; } | ArrayLike<string | number | boolean | { [key: string]: Json | undefined; } | Json[] | null | undefined>'.
+  Overload 2 of 2, '(o: {}): any[]', gave the following error.
+    Argument of type 'Json' is not assignable to parameter of type '{}'.
+      Type 'null' is not assignable to type '{}'.
+services/quiz.service.ts(153,48): error TS18047: 'attempt' is possibly 'null'.
+services/quiz.service.ts(153,48): error TS18047: 'attempt.timeSpent' is possibly 'null'.
+services/quiz.service.ts(164,27): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+services/quiz.service.ts(172,21): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { created_at?: string | null | undefined; id?: number | undefined; quiz_id?: string | null | undefined; source_id?: string | null | undefined; source_type: string; userid: string; xp_gained: number; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+  Overload 2 of 2, '(values: { created_at?: string | null | undefined; id?: number | undefined; quiz_id?: string | null | undefined; source_id?: string | null | undefined; source_type: string; userid: string; xp_gained: number; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'userid' does not exist in type '{ created_at?: string | null | undefined; id?: number | undefined; quiz_id?: string | null | undefined; source_id?: string | null | undefined; source_type: string; userid: string; xp_gained: number; }[]'.
+services/quiz.service.ts(172,29): error TS18047: 'attempt' is possibly 'null'.
+services/quiz.service.ts(175,32): error TS18047: 'attempt' is possibly 'null'.
+services/quiz.service.ts(176,30): error TS18047: 'attempt' is possibly 'null'.
+services/quiz.service.ts(183,17): error TS2322: Type '{ answers: Json; current_question_index: number | null; end_time: string | null; id: number; last_modified_at: string | null; quiz_id: string | null; score: number | null; ... 5 more ...; user_answers: { ...; }[]; } | null' is not assignable to type 'QuizAttempt'.
+  Type 'null' is not assignable to type 'QuizAttempt'.
+services/quiz.service.ts(184,17): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+services/quiz.service.ts(184,25): error TS18047: 'attempt' is possibly 'null'.
+services/quiz.service.ts(185,17): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+services/quiz.service.ts(185,25): error TS18047: 'attempt' is possibly 'null'.
+services/quiz.service.ts(189,17): error TS2322: Type 'number | null' is not assignable to type 'number'.
+  Type 'null' is not assignable to type 'number'.
+services/quiz.service.ts(189,28): error TS18047: 'attempt' is possibly 'null'.
+services/quiz.service.ts(226,32): error TS18047: 'data.quiz' is possibly 'null'.
+services/quiz.service.ts(226,60): error TS2339: Property 'count' does not exist on type 'string'.
+services/quiz.service.ts(292,59): error TS2561: Object literal may only specify known properties, but 'justification' does not exist in type '{ content?: Json | undefined; correct?: string[] | null | undefined; created_at?: string | undefined; details?: Json[] | null | undefined; hasDetails?: boolean | null | undefined; ... 12 more ...; type?: string | ... 1 more ... | undefined; }'. Did you mean to write 'justificatif'?
+services/secondary/program.service.ts(11,3): error TS2322: Type '{ class_id: string | null; course_count: number | null; created_at: string | null; description: string | null; document_count: number | null; duration: unknown; exercise_count: number | null; ... 9 more ...; serie: { ...; } | null; }[]' is not assignable to type 'SecondaryProgram[]'.
+  Type '{ class_id: string | null; course_count: number | null; created_at: string | null; description: string | null; document_count: number | null; duration: unknown; exercise_count: number | null; ... 9 more ...; serie: { ...; } | null; }' is not assignable to type 'SecondaryProgram'.
+    Type '{ class_id: string | null; course_count: number | null; created_at: string | null; description: string | null; document_count: number | null; duration: unknown; exercise_count: number | null; ... 9 more ...; serie: { ...; } | null; }' is not assignable to type '{ document_count: number; class?: { created_at: string | null; description: string | null; id: string; level: number; name: string; updated_at: string | null; } | null | undefined; serie?: { ...; } | ... 1 more ... | undefined; }'.
+      Types of property 'document_count' are incompatible.
+        Type 'number | null' is not assignable to type 'number'.
+          Type 'null' is not assignable to type 'number'.
+services/secondary/program.service.ts(23,3): error TS2322: Type '{ class_id: string | null; course_count: number | null; created_at: string | null; description: string | null; document_count: number | null; duration: unknown; exercise_count: number | null; ... 9 more ...; serie: { ...; } | null; }' is not assignable to type 'SecondaryProgram'.
+  Type '{ class_id: string | null; course_count: number | null; created_at: string | null; description: string | null; document_count: number | null; duration: unknown; exercise_count: number | null; ... 9 more ...; serie: { ...; } | null; }' is not assignable to type '{ document_count: number; class?: { created_at: string | null; description: string | null; id: string; level: number; name: string; updated_at: string | null; } | null | undefined; serie?: { ...; } | ... 1 more ... | undefined; }'.
+    Types of property 'document_count' are incompatible.
+      Type 'number | null' is not assignable to type 'number'.
+        Type 'null' is not assignable to type 'number'.
+services/secondary/program.service.ts(99,20): error TS18047: 'item.exercise' is possibly 'null'.
+services/secondary/program.service.ts(304,18): error TS2304: Cannot find name 'Database'.
+services/secondary/program.service.ts(390,13): error TS7022: 'data' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+services/secondary/program.service.ts(397,24): error TS2345: Argument of type '{ created_at: string | null; description: string | null; id: string; name: string; order_index: number | null; parent_folder_id: string | null; program_id: string | null; updated_at: string | null; }' is not assignable to parameter of type 'SecondaryDocumentFolder'.
+  Types of property 'program_id' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+utils/posthogService.ts(40,30): error TS2345: Argument of type 'PostHogUserProperties | undefined' is not assignable to parameter of type 'PostHogEventProperties | undefined'.
+  Type 'PostHogUserProperties' is not assignable to type 'PostHogEventProperties'.
+    Index signature for type 'string' is missing in type 'PostHogUserProperties'.
+utils/pushNotifications.ts(89,7): error TS2698: Spread types may only be created from object types.
+utils/pushNotifications.ts(113,37): error TS2322: Type 'Promise<{ shouldShowAlert: true; shouldPlaySound: true; shouldSetBadge: true; }>' is not assignable to type 'Promise<NotificationBehavior>'.
+  Type '{ shouldShowAlert: true; shouldPlaySound: true; shouldSetBadge: true; }' is missing the following properties from type 'NotificationBehavior': shouldShowBanner, shouldShowList

@@ -17,11 +17,12 @@ import useSWR from "swr";
 import { theme } from "@/constants/theme";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { supabase } from "@/lib/supabase";
+import type { Json } from "@/types/supabase";
 
 // Interface for competition data
 interface Competition {
   city: string;
-  id: number;
+  id: string;
   name: string;
   description?: string;
   image_url?: string;
@@ -31,6 +32,24 @@ interface Competition {
     sigle: string;
   };
 }
+
+interface CompetitionRow {
+  id: string;
+  name: string | null;
+  description: string | null;
+  image: Json | { url?: string | null } | null;
+  concours_archives?: Array<{ count?: number | null }> | null;
+  cities?: { name?: string | null } | null;
+  schools?: { name?: string | null; sigle?: string | null } | null;
+}
+
+const getImageUrl = (image: CompetitionRow["image"]): string => {
+  if (!image || typeof image !== "object" || Array.isArray(image)) {
+    return "";
+  }
+
+  return "url" in image && typeof image.url === "string" ? image.url : "";
+};
 
 // Fetcher function for SWR
 const fetchCompetitions = async (): Promise<Competition[]> => {
@@ -52,21 +71,17 @@ const fetchCompetitions = async (): Promise<Competition[]> => {
 
   if (!data) return [];
 
-  // Transform data to include has_archives flag
-  // @ts-ignore
-  return data.map((item) => ({
-    id: item.id,
+  const competitionRows = data as unknown as CompetitionRow[];
+
+  return competitionRows.map((item) => ({
+    id: String(item.id),
     name: item.name || "",
     description: item.description || "",
-    image_url: item.image?.url || "",
-  // @ts-ignore
+    image_url: getImageUrl(item.image),
     city: item.cities?.name || "",
-    // @ts-ignore - count is available in the response
-    has_archives: item.concours_archives[0].count > 0,
+    has_archives: (item.concours_archives?.[0]?.count || 0) > 0,
     school: {
-  // @ts-ignore
       name: item.schools?.name || "",
-  // @ts-ignore
       sigle: item.schools?.sigle || ""
     }
   })).filter(item => item.has_archives); // Only include competitions with archives
@@ -81,7 +96,7 @@ const AnciensujetsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   // Fetch competitions data
-  const { data: competitions, error, isLoading } = useSWR<Competition[]>(
+  const { data: competitions, error, isLoading, mutate } = useSWR<Competition[]>(
     "competitions-with-archives",
     fetchCompetitions
   );
@@ -91,7 +106,7 @@ const AnciensujetsScreen = () => {
     router.back();
   };
 
-  const handleCompetitionPress = (competitionId: number) => {
+  const handleCompetitionPress = (competitionId: string) => {
     trigger(HapticType.SELECTION);
     router.push(`/manuel/anciens-sujets/${competitionId}`);
   };
@@ -211,7 +226,7 @@ const AnciensujetsScreen = () => {
           refreshing={refreshing}
           onRefresh={async () => {
             setRefreshing(true);
-            await fetchCompetitions();
+            await mutate();
             setRefreshing(false);
           }}
           ListEmptyComponent={

@@ -1,8 +1,16 @@
 ﻿import { useLocalSearchParams } from "expo-router";
-import { logger } from '@/utils/logger';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
+import {
+  ActivityIndicator,
+  Pressable,
+  useColorScheme,
+  View,
+  StyleSheet,
+} from "react-native";
+import { useEffect, useState } from "react";
 
+import { logger } from '@/utils/logger';
 import { supabase } from "@/lib/supabase";
 import { ThemedText } from "@/components/ThemedText";
 import type { CourseVideos } from "@/types/type";
@@ -13,28 +21,65 @@ import { useUser } from "@/contexts/useUserInfo";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { trackEvent, Events } from "@/utils/analytics";
 import { useCustomRouter } from "@/hooks/useCustomRouter";
-import {
-  ActivityIndicator,
-  Pressable,
-  useColorScheme,
-  View,
-  StyleSheet,
-} from "react-native";
-import { useCallback, useEffect, useState } from "react";
+import type { Json } from "@/types/supabase";
+
+const getParamValue = (value: string | string[] | undefined): string | undefined =>
+  Array.isArray(value) ? value[0] : value;
+
+interface CourseVideoRow {
+  id: string;
+  course_id: number;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+  title: string | null;
+  description: string | null;
+  filename: string;
+  filesize: number;
+  duration: number | null;
+  url: string;
+  uploadthing_id: string | null;
+  status: string | null;
+  mime_type: string | null;
+  metadata: Json;
+  is_active: boolean | null;
+  mux_asset_id: string | null;
+  mux_playback_id: string | null;
+}
+
+const normalizeCourseVideo = (
+  video: CourseVideoRow
+): CourseVideos => ({
+  ...video,
+  id: video.id,
+  course_id: video.course_id,
+  order_index: video.order_index,
+  created_at: new Date(video.created_at),
+  updated_at: new Date(video.updated_at),
+  filename: video.filename,
+  filesize: video.filesize,
+  url: video.url,
+  title: video.title ?? null,
+  description: video.description ?? null,
+  duration: video.duration ?? null,
+  uploadthing_id: video.uploadthing_id ?? null,
+  status: video.status ?? null,
+  mime_type: video.mime_type ?? null,
+  metadata: video.metadata ?? null,
+  is_active: video.is_active ?? null,
+  mux_asset_id: video.mux_asset_id ?? null,
+  mux_playback_id: video.mux_playback_id ?? null,
+});
 
 // Locked Content Component
 const LockedContent = ({
   isDarkMode,
   onPurchase,
   onBack,
-  programId,
-  courseId,
 }: {
   isDarkMode: boolean;
   onPurchase: () => void;
   onBack: () => void;
-  programId: string;
-  courseId: string;
 }) => (
   <View
     style={[styles.lockedContainer, isDarkMode && styles.lockedContainerDark]}
@@ -88,6 +133,9 @@ const LockedContent = ({
 
 const SecondaryVideoPlayerScreen = () => {
   const { videoId, courseId, programId } = useLocalSearchParams();
+  const videoIdParam = getParamValue(videoId);
+  const courseIdParam = getParamValue(courseId);
+  const programIdParam = getParamValue(programId);
   const router = useCustomRouter();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -102,15 +150,17 @@ const SecondaryVideoPlayerScreen = () => {
   const { isSecondaryProgramEnrolled } = useUser();
 
   // Check if user is enrolled in this program
-  const isEnrolled = isSecondaryProgramEnrolled(String(programId));
+  const isEnrolled = isSecondaryProgramEnrolled(programIdParam ?? "");
 
   // Handle purchase flow
   const handlePurchaseFlow = () => {
     trigger(HapticType.SELECTION);
-    router.push(`/(app)/secondary/program/${programId}`);
+    if (programIdParam) {
+      router.push(`/(app)/secondary/program/${programIdParam}`);
+    }
   };
 
-  const videoSource = currentVideo
+  const videoSource = currentVideo?.mux_playback_id
     ? `https://stream.mux.com/${currentVideo.mux_playback_id}.m3u8`
     : "";
 
@@ -122,16 +172,16 @@ const SecondaryVideoPlayerScreen = () => {
     if (currentVideo) {
       trackEvent(Events.START_VIDEO, {
         video_id: currentVideo.id,
-        video_title: currentVideo.title,
-        course_id: courseId,
-        program_id: programId,
+        video_title: currentVideo.title ?? "",
+        course_id: courseIdParam ?? "",
+        program_id: programIdParam ?? "",
       });
     }
   });
 
   useEffect(() => {
     if (player && currentVideo) {
-      const subscription = player.addListener("statusChange", (status) => {
+      const subscription = player.addListener("statusChange", ({ status }) => {
         if (status === "readyToPlay" && !isVideoDone) {
           setIsVideoDone(false);
         }
@@ -152,19 +202,25 @@ const SecondaryVideoPlayerScreen = () => {
         const { data: videosData, error: videosError } = await supabase
           .from("course_videos")
           .select("*")
-          .eq("course", courseId)
-          .order("order", { ascending: true });
+          .eq("course_id", Number(courseIdParam))
+          .order("order_index", { ascending: true });
 
         if (videosError) throw videosError;
 
-        setVideos(videosData || []);
+        const normalizedVideos = (videosData || []).map((video) =>
+          normalizeCourseVideo(video)
+        );
 
-        const currentVideoData = videosData?.find(
-          (v) => v.id === Number(videoId)
+        setVideos(normalizedVideos);
+
+        const currentVideoData = normalizedVideos.find(
+          (video) => video.id === videoIdParam
         );
         if (currentVideoData) {
           setCurrentVideo(currentVideoData);
-          const index = videosData?.findIndex((v) => v.id === Number(videoId));
+          const index = normalizedVideos.findIndex(
+            (video) => video.id === videoIdParam
+          );
           setCurrentVideoIndex(index ?? -1);
         }
       } catch (err) {
@@ -175,10 +231,10 @@ const SecondaryVideoPlayerScreen = () => {
       }
     };
 
-    if (courseId && videoId) {
+    if (courseIdParam && videoIdParam) {
       fetchVideos();
     }
-  }, [courseId, videoId]);
+  }, [courseIdParam, videoIdParam]);
 
   useEffect(() => {
     return () => {
@@ -187,21 +243,7 @@ const SecondaryVideoPlayerScreen = () => {
         player.release();
       }
     };
-  }, [courseId, videoId]);
-
-  const playNextVideo = useCallback(() => {
-    if (currentVideoIndex < videos.length - 1) {
-      playClick();
-      const nextVideo = videos[currentVideoIndex + 1];
-      if (player) {
-        player.pause();
-      }
-      setIsVideoDone(false);
-      router.push(
-        `/(app)/secondary/program/${programId}/courses/${courseId}/videos/${nextVideo.id}`
-      );
-    }
-  }, [currentVideoIndex, videos, player, programId, courseId]);
+  }, [player]);
 
   const handleVideoSelect = async (video: CourseVideos) => {
     playClick();
@@ -209,9 +251,11 @@ const SecondaryVideoPlayerScreen = () => {
       player.pause();
     }
     setIsVideoDone(false);
-    router.push(
-      `/(app)/secondary/program/${programId}/courses/${courseId}/videos/${video.id}`
-    );
+    if (programIdParam && courseIdParam) {
+      router.push(
+        `/(app)/secondary/program/${programIdParam}/courses/${courseIdParam}/videos/${video.id}`
+      );
+    }
   };
 
   if (isLoading) {
@@ -263,11 +307,11 @@ const SecondaryVideoPlayerScreen = () => {
       <LockedContent
         isDarkMode={isDarkMode}
         onPurchase={handlePurchaseFlow}
-        onBack={() =>
-          router.push(`/(app)/secondary/program/${programId}/courses/${courseId}`)
-        }
-        programId={String(programId)}
-        courseId={String(courseId)}
+        onBack={() => {
+          if (programIdParam && courseIdParam) {
+            router.push(`/(app)/secondary/program/${programIdParam}/courses/${courseIdParam}`);
+          }
+        }}
       />
     );
   }
@@ -282,9 +326,11 @@ const SecondaryVideoPlayerScreen = () => {
             if (player) {
               player.pause();
             }
-            router.push(
-              `/(app)/secondary/program/${programId}/courses/${courseId}`
-            );
+            if (programIdParam && courseIdParam) {
+              router.push(
+                `/(app)/secondary/program/${programIdParam}/courses/${courseIdParam}`
+              );
+            }
           }}
         >
           <MaterialCommunityIcons

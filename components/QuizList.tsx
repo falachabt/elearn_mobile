@@ -20,7 +20,6 @@ import {ThemedText} from '@/components/ThemedText';
 import {HapticType, useHaptics} from '@/hooks/useHaptics';
 import {theme} from '@/constants/theme';
 import {supabase} from '@/lib/supabase';
-import {useAuth} from '@/contexts/auth';
 import EnhancedQuizCard from '@/components/shared/learn/quiz/QuizCard';
 import EnhancedQuizRowItem from '@/components/shared/learn/quiz/QuizRowItem';
 import EnhancedQuizCategoryFilter from '@/components/shared/learn/quiz/QuizCategoryFilter';
@@ -34,7 +33,7 @@ import { useNavigation } from '@/contexts/NavigationContext';
 // ==========================
 
 interface Category {
-    id?: number;
+    id?: string | number;
     name: string;
 }
 
@@ -65,15 +64,26 @@ interface QuizItem {
 
 interface Program {
     id: string;
-    title: string;
+    title: string | null;
     concours_learningpaths?: Array<{
         concour?: {
-            name?: string;
+            name?: string | null;
             school?: {
-                name?: string;
-            }
-        }
+                name?: string | null;
+            } | null;
+        } | null;
     }>;
+}
+
+interface EmptyStateProps {
+    searchQuery: string;
+    selectedCategory: string;
+    isDark: boolean;
+}
+
+interface ErrorStateProps {
+    onRetry: () => void;
+    isDark: boolean;
 }
 
 // ==========================
@@ -187,7 +197,7 @@ const QuizSkeleton = ({isDark}: { isDark: boolean }) => {
 // Empty State Component
 // ==========================
 
-const EmptyState = ({searchQuery, selectedCategory, isDark}) => {
+const EmptyState = ({searchQuery, selectedCategory, isDark}: EmptyStateProps) => {
     return (
         <View style={styles.emptyState}>
             <MaterialCommunityIcons
@@ -213,7 +223,7 @@ const EmptyState = ({searchQuery, selectedCategory, isDark}) => {
 // Error State Component
 // ==========================
 
-const ErrorState = ({onRetry, isDark}) => {
+const ErrorState = ({onRetry, isDark}: ErrorStateProps) => {
     return (
         <View style={[styles.centerContent, isDark && {backgroundColor: "#111827"}]}>
             <MaterialCommunityIcons
@@ -245,11 +255,11 @@ const ErrorState = ({onRetry, isDark}) => {
 const EnhancedQuizScreen = () => {
     const router = useCustomRouter();
     const {pdId} = useLocalSearchParams();
+    const pdIdParam = Array.isArray(pdId) ? pdId[0] : pdId;
     const { getQuizzesPath } = useNavigation();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list'); // Add view mode toggle
-    const {user} = useAuth();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const {trigger} = useHaptics();
@@ -258,25 +268,23 @@ const EnhancedQuizScreen = () => {
 
     // Check enrollment asynchronously
     useEffect(() => {
-        if (!pdId) return;
+        if (!pdIdParam) return;
         const checkEnrollment = async () => {
-            const enrolled = await isLearningPathEnrolled(pdId as string);
+            const enrolled = await isLearningPathEnrolled(pdIdParam);
             setIsEnrolled(enrolled);
         };
         checkEnrollment();
-    }, [pdId, isLearningPathEnrolled]);
+    }, [pdIdParam, isLearningPathEnrolled]);
 
 
     // Animation refs
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
     // Fetch program data
-    const {data: program, isLoading: programLoading, error: programError, mutate: reloadProgram} = useSWR(
-        pdId ? `program-quizzes-${pdId}` : null,
-        async () => {
-            const {data, error} = await supabase
-                .from("learning_paths")
-                .select(`
+    const programFetcher = async (): Promise<Program | null> => {
+        const {data, error} = await supabase
+            .from("learning_paths")
+            .select(`
           id, 
           title,
           concours_learningpaths(
@@ -286,21 +294,46 @@ const EnhancedQuizScreen = () => {
             )
           )
         `)
-                .eq("id", pdId)
-                .single();
+            .eq("id", pdIdParam ?? "")
+            .single();
 
-            if (error) throw error;
-            return data as Program;
-        }
+        if (error) throw error;
+        if (!data) return null;
+
+        const concoursLearningpaths = Array.isArray(data.concours_learningpaths)
+            ? data.concours_learningpaths
+            : data.concours_learningpaths
+                ? [data.concours_learningpaths]
+                : undefined;
+
+        return {
+            id: data.id,
+            title: data.title,
+            concours_learningpaths: concoursLearningpaths?.map((entry) => ({
+                concour: entry.concour
+                    ? {
+                        name: entry.concour.name,
+                        school: entry.concour.school
+                            ? {
+                                name: entry.concour.school.name,
+                            }
+                            : null,
+                    }
+                    : null,
+            })),
+        };
+    };
+
+    const {data: program, isLoading: programLoading, error: programError, mutate: reloadProgram} = useSWR<Program | null>(
+        pdIdParam ? `program-quizzes-${pdIdParam}` : null,
+        programFetcher
     );
 
     // Fetch quizzes data
-    const {data: quizzes, isLoading: quizzesLoading, error: quizzesError, mutate: reloadQuizzes} = useSWR(
-        pdId ? `quizzes-${pdId}` : null,
-        async () => {
-            const {data, error} = await supabase
-                .from("quiz_learningpath")
-                .select(`
+    const quizzesFetcher = async (): Promise<QuizItem[]> => {
+        const {data, error} = await supabase
+            .from("quiz_learningpath")
+            .select(`
           *,
           quiz:quiz(
             *,
@@ -309,13 +342,45 @@ const EnhancedQuizScreen = () => {
             course(*)
           )
         `)
-                .eq("lpId", pdId);
+            .eq("lpId", pdIdParam ?? "");
 
-            if (error) throw error;
-            if (!data || data.length === 0) return [];
+        if (error) throw error;
+        if (!data || data.length === 0) return [];
 
-            return data as QuizItem[];
-        }
+        return data.reduce<QuizItem[]>((items, item) => {
+            if (!item.quiz || !item.quiz.id) {
+                return items;
+            }
+
+            items.push({
+                quizId: Number(item.quizId ?? item.quiz.id),
+                lpId: item.lpId ?? "",
+                quiz: {
+                    id: Number(item.quiz.id),
+                    name: item.quiz.name ?? "Quiz",
+                    category: item.quiz.category
+                        ? {
+                            id: item.quiz.category.id,
+                            name: item.quiz.category.name ?? "Autre",
+                        }
+                        : undefined,
+                    quiz_questions: item.quiz.quiz_questions?.map((question) => ({ id: question.id })) ?? [],
+                    course: item.quiz.course
+                        ? {
+                            id: item.quiz.course.id,
+                            name: item.quiz.course.name ?? "Sans cours",
+                        }
+                        : undefined,
+                },
+            });
+
+            return items;
+        }, []);
+    };
+
+    const {data: quizzes, isLoading: quizzesLoading, error: quizzesError, mutate: reloadQuizzes} = useSWR<QuizItem[]>(
+        pdIdParam ? `quizzes-${pdIdParam}` : null,
+        quizzesFetcher
     );
 
     // Get quiz IDs for fetching pins and attempts
@@ -359,10 +424,10 @@ const EnhancedQuizScreen = () => {
     // Extract unique categories from quizzes
     const categories = useMemo(() => {
         if (!quizzesWithProgress) return [];
-        const uniqueCategories = new Set(
+        const uniqueCategories = new Set<string>(
             quizzesWithProgress
                 .map((quiz) => quiz.quiz?.category?.name)
-                .filter(Boolean)
+                .filter((categoryName): categoryName is string => Boolean(categoryName))
         );
         return Array.from(uniqueCategories);
     }, [quizzesWithProgress]);
@@ -421,7 +486,7 @@ const EnhancedQuizScreen = () => {
     // Handle purchase flow
     const handlePurchaseFlow = () => {
         trigger(HapticType.SELECTION);
-        router.navigateToShop(pdId);
+        router.navigateToShop(pdIdParam ?? "");
     };
 
 
@@ -502,9 +567,9 @@ const EnhancedQuizScreen = () => {
 
                 {/* Categories */}
                 <View style={{height: 56}}>
-                    <EnhancedQuizCategoryFilter
-                        categories={categories}
-                        selectedCategory={selectedCategory}
+                        <EnhancedQuizCategoryFilter
+                            categories={categories}
+                            selectedCategory={selectedCategory}
                         onSelectCategory={setSelectedCategory}
                         isDark={isDark}
                     />
@@ -513,7 +578,7 @@ const EnhancedQuizScreen = () => {
                 {/* Quiz count */}
                 <View style={[styles.quizCountContainer, isDark && styles.quizCountContainerDark]}>
                     <ThemedText style={[styles.quizCountText, isDark && styles.quizCountTextDark]}>
-                        {filteredQuizzes.length} quiz{filteredQuizzes.length !== 1 ? 's' : ''} disponible{filteredQuizzes.length !== 1 ? 's' : ''}
+                        0 quiz disponible
                     </ThemedText>
                 </View>
 
@@ -673,7 +738,7 @@ const EnhancedQuizScreen = () => {
                         renderItem={({item, index}) => (
                             <EnhancedQuizRowItem
                                 quizItem={item}
-                                pdId={String(pdId)}
+                                pdId={pdIdParam ?? ""}
                                 baseRoute={getQuizzesPath()}
                                 isDark={isDark}
                                 index={index}
@@ -690,7 +755,7 @@ const EnhancedQuizScreen = () => {
                         renderItem={({item, index}) => (
                             <EnhancedQuizCard
                                 quizItem={item}
-                                pdId={String(pdId)}
+                                pdId={pdIdParam ?? ""}
                                 baseRoute={getQuizzesPath()}
                                 isDark={isDark}
                                 index={index}

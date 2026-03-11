@@ -22,6 +22,7 @@ import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useUser} from "@/contexts/useUserInfo";
 import ExerciseCard from "@/components/shared/learn/exercices/ExerciceCard";
 import {useCustomRouter} from "@/hooks/useCustomRouter";
+import { logger } from "@/utils/logger";
 
 // Types
 interface Exercise {
@@ -36,6 +37,7 @@ interface Exercise {
         name: string;
         category: string;
         courses_categories?: {
+            id?: string;
             name: string;
             description: string;
         };
@@ -46,7 +48,8 @@ type FilterType = "all" | "pinned" | "uncompleted";
 
 export const ExercisesList = () => {
     const params = useLocalSearchParams();
-    const pdId = params["pdId"];
+    const pdIdParam = params["pdId"];
+    const pdId = Array.isArray(pdIdParam) ? pdIdParam[0] : pdIdParam;
     const router = useCustomRouter();
     const {user} = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
@@ -55,7 +58,7 @@ export const ExercisesList = () => {
     const {trigger} = useHaptics();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
-    const [isEnrolled, setIsEnrolled] = useState(false);
+    const [, setIsEnrolled] = useState(false);
     const [isPreviewMode, setIsPreviewMode] = useState<boolean>(true);
     const { isLearningPathEnrolled } = useUser();
 
@@ -120,6 +123,7 @@ export const ExercisesList = () => {
           name,
           category,
           courses_categories (
+              id,
               name,
               description
           )
@@ -128,14 +132,13 @@ export const ExercisesList = () => {
       exercices_complete (is_completed)
     `)
             .in("course_id", courseIds)
-            .eq("exercices_pin.user_id", user?.id)
-            .eq("exercices_complete.user_id", user?.id);
+            .eq("exercices_pin.user_id", user?.id ?? "")
+            .eq("exercices_complete.user_id", user?.id ?? "");
 
         if (exerciseRes.error) throw exerciseRes.error;
 
         // Process categories
         const allCategories = exerciseRes.data
-            // @ts-expect-error
             .map((exercise) => exercise.course?.courses_categories)
             .filter(Boolean);
 
@@ -184,7 +187,6 @@ export const ExercisesList = () => {
             const matchesCategory =
                 !selectedCategory ||
                 selectedCategory === "all" ||
-                // @ts-expect-error
                 exercise.course?.courses_categories?.name === selectedCategory;
 
             const matchesFilter =
@@ -214,8 +216,9 @@ export const ExercisesList = () => {
         });
     };
 
-    const handlePin = async (exercise: Exercise, e: any) => {
+    const handlePin = async (exercise: Exercise, e: { stopPropagation: () => void }) => {
         e.stopPropagation();
+        if (!user?.id) return;
         const newPinState = !exercise.is_pinned;
 
         // Optimistic update
@@ -238,13 +241,11 @@ export const ExercisesList = () => {
         trigger(HapticType.SUCCESS);
 
         try {
-            const userId = user?.id;
-
             const {error} = await supabase
                 .from("exercices_pin")
                 .upsert(
                     {
-                        user_id: userId,
+                        user_id: user.id,
                         exercice_id: exercise.id,
                         is_pinned: newPinState,
                     },
@@ -261,8 +262,9 @@ export const ExercisesList = () => {
         }
     };
 
-    const handleComplete = async (exercise: Exercise, e: any) => {
+    const handleComplete = async (exercise: Exercise, e: { stopPropagation: () => void }) => {
         e.stopPropagation();
+        if (!user?.id) return;
         const newCompletionState = !exercise.is_completed;
 
         // Optimistic update
@@ -285,13 +287,11 @@ export const ExercisesList = () => {
         trigger(HapticType.SUCCESS);
 
         try {
-            const userId = user?.id;
-
             const {error} = await supabase
                 .from("exercices_complete")
                 .upsert(
                     {
-                        user_id: userId,
+                        user_id: user.id,
                         exercice_id: exercise.id,
                         is_completed: newCompletionState,
                     },

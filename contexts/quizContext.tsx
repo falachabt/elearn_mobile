@@ -1,17 +1,48 @@
 ﻿// contexts/QuizContext.tsx
 import React, {createContext, useContext, useReducer, useEffect, useRef} from 'react';
 import {Alert} from 'react-native';
-import {useGlobalSearchParams, useLocalSearchParams, useRouter} from "expo-router";
+import {Href, useGlobalSearchParams, useLocalSearchParams, useRouter} from "expo-router";
 import useSWR from "swr";
 
 import {useQuizQuestions, useQuizAttempt, Attempt} from '@/hooks/useQuiz';
-import {QuizAttempt, QuizOption, QuizProgress, QuizQuestion, QuizResults} from '@/types/quiz.type';
+import {QuizAnswerState, QuizQuestion, QuizResults} from '@/types/quiz.type';
 import {QuizService} from '@/services/quiz.service';
 import {Quiz} from "@/types/type";
 import { useNavigation } from '@/contexts/NavigationContext';
 import { posthogService } from '@/utils/posthogService';
 import { logger } from '@/utils/logger';
 
+type QuizAnswerMap = Record<string, QuizAnswerState>;
+
+type QuizWithPassingScore = Quiz & {
+    passing_score?: number | null;
+};
+
+const isQuizAnswerState = (value: unknown): value is QuizAnswerState => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false;
+    }
+
+    const candidate = value as Partial<QuizAnswerState>;
+    return (
+        Array.isArray(candidate.selectedOptions) &&
+        typeof candidate.isCorrect === 'boolean' &&
+        typeof candidate.timeSpent === 'number'
+    );
+};
+
+const parseAttemptAnswers = (value: unknown): QuizAnswerMap => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return {};
+    }
+
+    return Object.entries(value).reduce<QuizAnswerMap>((acc, [questionId, answer]) => {
+        if (isQuizAnswerState(answer)) {
+            acc[questionId] = answer;
+        }
+        return acc;
+    }, {});
+};
 
 type QuizAction =
     | { type: 'SELECT_ANSWER'; payload: string }
@@ -28,8 +59,9 @@ type QuizAction =
     | { type: 'SET_RESULTS'; payload: Attempt }
     | {
     type: 'LOAD_SAVED_ANSWERS';
-    payload: Record<string, { selectedOptions: string[]; isCorrect: boolean; timeSpent: number }>
+    payload: QuizAnswerMap
 }
+    | { type: 'SET_SELECTED_ANSWERS'; payload: string[] }
     | { type: 'RESET_SELECTED_ANSWERS' }
     | { type: 'MARK_NEWLY_COMPLETED' }
     | { type: 'RESET_STATE' };
@@ -40,7 +72,7 @@ export interface QuizAttemptState {
     questions: QuizQuestion[];
     timeSpent: number;
     // Use question ID (string) as key to match database structure
-    answers: Record<string, { selectedOptions: string[]; isCorrect: boolean; timeSpent: number }>;
+    answers: QuizAnswerMap;
     status: 'in_progress' | 'completed';
     isSubmitting: boolean;
     newlyCompleted: boolean; // Track if the quiz was just completed
@@ -52,7 +84,7 @@ interface QuizContextType {
     quizId: string;
     attemptId: string;
     pdId: string;
-    quiz: Quiz;
+    quiz: QuizWithPassingScore | null | undefined;
     totalQuestions: number;
     handleAnswerSelect: (answer: string) => void;
     handleNextQuestion: () => Promise<QuizResults | void>;
@@ -167,6 +199,12 @@ function quizReducer(state: QuizAttemptState, action: QuizAction): QuizAttemptSt
                 answers: action.payload,
             };
 
+        case 'SET_SELECTED_ANSWERS':
+            return {
+                ...state,
+                selectedAnswers: action.payload,
+            };
+
         case 'UPDATE_ATTEMPT_STATUS':
             // If transitioning from in_progress to completed, set newlyCompleted to true
             const newlyCompleted = state.status === 'in_progress' && action.payload === 'completed';
@@ -225,15 +263,15 @@ export function QuizProvider({
     const pdId = programId; // Keep pdId as alias for backward compatibility
     const quizId = String(params.quizId);
     const [state, dispatch] = useReducer(quizReducer, initialState);
+    const [results, setResults] = React.useState<Attempt | undefined>(undefined);
     const {questions, isLoading: questionsLoading} = useQuizQuestions(quizId);
     const {attempt, isLoading: attemptLoading} = useQuizAttempt(attemptId);
     const prevAttemptStatus = useRef<'in_progress' | 'completed' | null>(null);
     const router = useRouter();
-    const {data: quiz, error: quizError} = useSWR(`/api/quizzes/${quizId}`, async () => {
-        return await QuizService.getQuizById(String(quizId));
+    const {data: quiz} = useSWR<QuizWithPassingScore | null>(`/api/quizzes/${quizId}`, async () => {
+        return await QuizService.getQuizById(String(quizId)) as QuizWithPassingScore | null;
     });
-
-
+    const savedAnswers = parseAttemptAnswers(attempt?.answers);
 
     useEffect(() => {
         if (attempt) {
@@ -249,19 +287,22 @@ export function QuizProvider({
             prevAttemptStatus.current = attempt.status as 'in_progress' | 'completed';
 
             // Load saved answers from attempt for reviewing completed quiz
-            if (attempt.status === 'completed' && attempt.answers) {
+            if (attempt.status === 'completed') {
                 try {
-                    // Convert to our expected format if needed
+                    setResults(attempt);
                     dispatch({
                         type: 'LOAD_SAVED_ANSWERS',
-                        payload: attempt.answers
+                        payload: savedAnswers
                     });
 
                     // If there's a current question, load its saved answers
                     if (state.currentQuestionIndex >= 0 && questions && questions[state.currentQuestionIndex]) {
                         const currentQuestionId = questions[state.currentQuestionIndex].id.toString();
-                        if (attempt.answers[currentQuestionId]) {
-                            state.selectedAnswers = attempt.answers[currentQuestionId].selectedOptions || [];
+                        if (savedAnswers[currentQuestionId]) {
+                            dispatch({
+                                type: 'SET_SELECTED_ANSWERS',
+                                payload: savedAnswers[currentQuestionId].selectedOptions || [],
+                            });
                         }
                     }
                 } catch (error) {
@@ -269,7 +310,7 @@ export function QuizProvider({
                 }
             }
         }
-    }, [attempt?.status, attempt?.answers, questions]);
+    }, [attempt, questions, savedAnswers, state.currentQuestionIndex]);
 
     // Timer effect - only run if status is in_progress
     useEffect(() => {
@@ -299,17 +340,20 @@ export function QuizProvider({
             }
 
             // If there are questions and we're in completed state, load the answers for the current question
-            if (state.status === 'completed' && attempt?.answers && questions.length > 0) {
+            if (state.status === 'completed' && questions.length > 0) {
                 const currentQuestion = questions[state.currentQuestionIndex];
                 if (currentQuestion) {
                     const questionId = currentQuestion.id.toString();
-                    if (attempt.answers[questionId]) {
-                        state.selectedAnswers = attempt.answers[questionId].selectedOptions || [];
+                    if (savedAnswers[questionId]) {
+                        dispatch({
+                            type: 'SET_SELECTED_ANSWERS',
+                            payload: savedAnswers[questionId].selectedOptions || [],
+                        });
                     }
                 }
             }
         }
-    }, [questions]);
+    }, [attempt?.status, questions, savedAnswers, state.currentQuestionIndex, state.status, quiz, quizId]);
 
     // Update progress in database effect
     useEffect(() => {
@@ -349,7 +393,7 @@ export function QuizProvider({
         // Allow navigation through questions when completed
         if (isCompleted) {
             if (state.currentQuestionIndex == totalQuestions - 1) {
-                router.replace(navigation.getQuizPath(String(quizId)) as any);
+                router.replace(navigation.getQuizPath(String(quizId)) as Href);
             } else {
                 dispatch({type: 'NEXT_QUESTION'});
             }
@@ -409,8 +453,9 @@ export function QuizProvider({
                 // Track question answered
                 posthogService.trackQuizQuestionAnswered(
                     quizId,
-                    currentQuestion.id,
-                    isCorrect
+                    String(currentQuestion.id),
+                    isCorrect,
+                    state.timeSpent
                 );
             } catch (error) {
                 logger.error('Error saving answer:', error);
@@ -420,13 +465,26 @@ export function QuizProvider({
             // If this is the last question, finish the quiz
             if (isFinishing) {
                 try {
-                    const results = await QuizService.finishQuiz(attemptId);
+                    const quizResults = await QuizService.finishQuiz(attemptId);
+                    const completedAttempt = attempt ? ({
+                        ...attempt,
+                        status: 'completed',
+                        score: quizResults.score,
+                        end_time: quizResults.completedAt,
+                        timeSpent: quizResults.timeSpent,
+                        current_question_index: state.currentQuestionIndex,
+                        answers: state.answers,
+                    } as unknown as Attempt) : undefined;
+
                     dispatch({type: 'UPDATE_ATTEMPT_STATUS', payload: 'completed'});
-                    dispatch({type: 'SET_RESULTS', payload: results});
+                    if (completedAttempt) {
+                        setResults(completedAttempt);
+                        dispatch({type: 'SET_RESULTS', payload: completedAttempt});
+                    }
 
                     // Track quiz completed
                     if (quiz) {
-                        const score = results.score || 0;
+                        const score = quizResults.score || 0;
                         const passed = score >= (quiz.passing_score || 50);
                         posthogService.trackQuizCompleted(
                             quizId,
@@ -437,7 +495,7 @@ export function QuizProvider({
                         );
                     }
 
-                    return results;
+                    return quizResults;
                 } catch (error) {
                     logger.error('Error finishing quiz:', error);
                     Alert.alert('Error', 'Failed to submit quiz. Please try again.');
@@ -502,8 +560,11 @@ export function QuizProvider({
         isLastQuestion: state.currentQuestionIndex === totalQuestions - 1,
         isFirstQuestion: state.currentQuestionIndex === 0,
         progress: ((state.currentQuestionIndex + 1) / totalQuestions) * 100,
-        results: attempt,
+        results,
         resetQuiz,
+        quizId,
+        attemptId,
+        pdId,
         quiz,
         isCompleted,
         isNewlyCompleted,

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import useSWR from 'swr';
+import type { Json } from '@/types/supabase';
 
 import {ThemedText} from '@/components/ThemedText';
 import {theme} from '@/constants/theme';
@@ -30,6 +31,30 @@ interface QuizAttempt {
     }>;
     quiz: { quiz_questions: { count: number }[] }
 }
+
+const parseAnswers = (value: Json | null): QuizAttempt['answers'] => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return {};
+    }
+
+    return Object.entries(value).reduce<QuizAttempt['answers']>((acc, [key, answer]) => {
+        if (!answer || typeof answer !== 'object' || Array.isArray(answer)) {
+            return acc;
+        }
+
+        const answerRecord = answer as Record<string, Json | undefined>;
+        acc[Number(key)] = {
+            questionId: typeof answerRecord.questionId === 'number' ? answerRecord.questionId : 0,
+            selectedOptions: Array.isArray(answerRecord.selectedOptions)
+                ? answerRecord.selectedOptions.filter((option): option is string => typeof option === 'string')
+                : [],
+            isCorrect: answerRecord.isCorrect === true,
+            timeSpent: typeof answerRecord.timeSpent === 'number' ? answerRecord.timeSpent : 0,
+        };
+
+        return acc;
+    }, {});
+};
 
 interface QuizAttemptsListProps {
     quizId: string;
@@ -216,18 +241,30 @@ const AttemptCard = ({attempt, isDark, onPress, isLast}: {
 const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({quizId, isDark, onAttemptPress}) => {
     const {user} = useAuth();
     const {data: attempts, error, isLoading} = useSWR<QuizAttempt[]>(
-        quizId ? `quiz-attemptsss-${quizId}` : null,
+        quizId && user?.id ? ['quiz-attempts', quizId, user.id] : null,
         async () => {
             const {data, error} = await supabase
                 .from('quiz_attempts')
                 .select('*, quiz(quiz_questions(count))')
                 .eq('quiz_id', quizId)
-                .eq('user_id', user?.id)
+                .eq('user_id', user?.id ?? '')
                 .order('start_time', {ascending: false});
 
             if (error) throw error;
 
-            return data;
+            return (data ?? []).map((attempt) => ({
+                id: String(attempt.id),
+                quiz_id: attempt.quiz_id ?? '',
+                start_time: attempt.start_time ?? '',
+                status: attempt.status === 'completed' || attempt.status === 'failed' ? attempt.status : 'in_progress',
+                timeSpent: attempt.timeSpent ?? 0,
+                score: attempt.score ?? 0,
+                current_question_index: attempt.current_question_index ?? 0,
+                answers: parseAnswers(attempt.answers),
+                quiz: {
+                    quiz_questions: attempt.quiz?.quiz_questions ?? [],
+                },
+            }));
         },
         {
             refreshInterval: 5000,

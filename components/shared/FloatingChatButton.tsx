@@ -2,11 +2,10 @@ import React, { useEffect, useState } from 'react';
 import {
     TouchableOpacity,
     StyleSheet,
-    View,
     useColorScheme,
     Animated,
     Easing,
-    Text, Platform
+    Platform
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
@@ -237,11 +236,6 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         borderColor: '#FFFFFF',
     },
-    contextBadgeText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: 'bold',
-    }
 });
 
 export default ChatFab;

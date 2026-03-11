@@ -3,12 +3,14 @@ import {RealtimeChannel, Session} from '@supabase/supabase-js'
 import axios from 'axios'
 import useSWR from 'swr'
 
+import { useAppConfig } from './useAppConfig'
+
 import {supabase} from '@/lib/supabase'
 import {Accounts, tables, UserXp} from '@/types/type'
 import { trackEvent, Events, setUserId, resetPostHogUser } from '@/utils/analytics'
 import { registerForPushNotificationsAsync, setupNotifications } from '@/utils/pushNotifications'
-import { useAppConfig } from './useAppConfig'
 import { posthogService } from '@/utils/posthogService'
+import { logger } from '@/utils/logger'
 
 interface UserStreak {
     id: string
@@ -89,7 +91,7 @@ const userDataFetcher = async (authId: string) => {
         return {
             ...userData,
             user_program_enrollments: enrollments || []
-        } as Account;
+        } as unknown as Account;
     } catch (error) {
         logger.error("Error fetching user data:", error);
         throw error;
@@ -172,7 +174,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // Revalidate user data to get updated streak
             await mutateUser();
 
-            return data;
+            void data;
+            return;
         } catch (error) {
             logger.error('Error checking streak:', error);
             // Reset streak checked flag on error so it can be tried again
@@ -273,7 +276,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         // Identify user with user properties
         posthogService.identify(user.id, {
           email: user.email,
-          user_type: user.type || 'student',
+          user_type: user.type === 'admin' ? 'admin' : 'student',
           total_courses_enrolled: user.coursesenrolled?.length || 0,
           courses_completed: user.coursescompleted?.length || 0,
           total_points: user.user_xp?.total_xp || 0,
@@ -554,7 +557,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     };
 
     // Provide auth context
-    const value = {
+    const value: AuthContextType = {
         user: user || null,
         session,
         isLoading,
@@ -562,7 +565,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         signOut,
         signUp,
         verifyOtp,
-        mutateUser,
+        mutateUser: async () => await mutateUser(),
         checkStreak,
         setIsAccountCreating,
     };

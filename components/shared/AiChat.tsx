@@ -1,5 +1,4 @@
 ﻿import React, { useState, useRef, useCallback } from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -27,6 +26,7 @@ import Animated, {
     withTiming,
 } from 'react-native-reanimated';
 
+import { logger } from '@/utils/logger';
 import {theme} from "@/constants/theme";
 
 // Initialize Gemini

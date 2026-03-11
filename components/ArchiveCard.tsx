@@ -24,10 +24,10 @@ export interface Archive {
   file_type: "pdf" | "doc" | "other";
   courses_categories?: {
     id: string;
-    name: string;
-    description: string;
+    name: string | null;
+    description: string | null;
   } | null;
-  concour_id?: number | null;
+  concour_id?: string | number | null;
 }
 
 interface ArchiveCardProps {

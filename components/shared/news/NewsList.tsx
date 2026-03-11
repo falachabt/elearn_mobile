@@ -10,9 +10,10 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import NewsItem from './NewsItem';
+
 import type { News } from '@/types/news.type';
 import { theme } from '@/constants/theme';
-import NewsItem from './NewsItem';
 
 interface NewsListProps {
   news: News[];

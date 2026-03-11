@@ -4,10 +4,23 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
 import { theme } from '@/constants/theme';
-import { Course } from '@/types/course.type';
+
+interface Program {
+  price: number;
+  concour: {
+    name: string | null;
+    school: {
+      name: string | null;
+    } | null;
+  } | null;
+  learning_path: {
+    title: string | null;
+    description: string | null;
+  };
+}
 
 interface ProgramDetailsProps {
-  program: Course;
+  program: Program;
   isInCart: boolean;
   onAddToCart: () => void;
   isDark: boolean;
@@ -32,11 +45,11 @@ export const ProgramDetails: React.FC<ProgramDetailsProps> = ({
           <View style={styles.tags}>
             <View style={styles.tag}>
               <MaterialCommunityIcons name="school" size={16} color={theme.color.primary[500]} />
-              <Text style={styles.tagText}>{program.concour.name}</Text>
+              <Text style={styles.tagText}>{program.concour?.name ?? 'Concours'}</Text>
             </View>
             <View style={styles.tag}>
               <MaterialCommunityIcons name="office-building" size={16} color={theme.color.primary[500]} />
-              <Text style={styles.tagText}>{program.concour.school.name}</Text>
+              <Text style={styles.tagText}>{program.concour?.school?.name ?? 'École'}</Text>
             </View>
           </View>
         </View>

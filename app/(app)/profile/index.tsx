@@ -1,5 +1,4 @@
 ﻿import React, {useState} from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -15,6 +14,7 @@ import {MaterialCommunityIcons, Ionicons, MaterialIcons, FontAwesome5} from '@ex
 import {Link, router} from 'expo-router';
 import useSWR from "swr";
 
+import { logger } from '@/utils/logger';
 import TopBar from '@/components/TopBar';
 import {theme} from '@/constants/theme';
 import {useAuth} from '@/contexts/auth';
@@ -52,7 +52,7 @@ const fetcher = async (key: string): Promise<{
     }
 
     return {
-        total_time_in_second: user_activty?.reduce((acc, curr) => acc + curr.duration, 0) || 0,
+        total_time_in_second: user_activty?.reduce((acc, curr) => acc + (curr.duration ?? 0), 0) || 0,
         completed_courses: completed_courses_count,
         streaks: data?.max_streak || 0,
     }

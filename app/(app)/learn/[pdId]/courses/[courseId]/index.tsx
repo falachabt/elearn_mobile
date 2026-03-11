@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {ActivityIndicator, Pressable, ScrollView, StyleSheet, View,} from "react-native";
 import React, {useState, useEffect} from "react";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
@@ -18,10 +17,41 @@ import {useUser} from "@/contexts/useUserInfo";
 import {useCustomRouter} from "@/hooks/useCustomRouter";
 import {posthogService} from "@/utils/posthogService";
 
-interface Course extends Courses {
-    course_category: CoursesCategories;
+type Course = Omit<Courses, "category"> & {
+    category: CoursesCategories | null;
     courses_content: CoursesContent[];
     course_videos: CourseVideos[];
+};
+
+interface CourseSummary {
+    course_id: number;
+    source_content_count: number | null;
+}
+
+interface CourseQuiz {
+    id: string;
+    name: string | null;
+    questions?: { id: number }[] | null;
+    estimated_time?: number | null;
+}
+
+interface QuizCourseRow {
+    quiz: CourseQuiz | null;
+}
+
+interface QuizProgressAttempt {
+    id: number;
+    status: string | null;
+    score: number | null;
+    quiz_id: string | null;
+}
+
+interface UntypedCourseSummaryQuery {
+    select: (columns: string) => {
+        eq: (column: string, value: number) => {
+            maybeSingle: () => Promise<{ data: CourseSummary | null }>;
+        };
+    };
 }
 
 type ViewType = "content" | "videos" | "quizzes";
@@ -66,8 +96,10 @@ const EmptyState = ({type, isDark}: { type: ViewType; isDark: boolean; }) => {
 const CourseDetail = () => {
     const router = useCustomRouter();
     const {courseId, pdId} = useLocalSearchParams();
+    const courseIdParam = Array.isArray(courseId) ? courseId[0] : courseId;
+    const pdIdParam = Array.isArray(pdId) ? pdId[0] : pdId;
     const [selectedView, setSelectedView] = useState<ViewType>("content");
-    const {sectionsProgress, refreshProgress} = useCourseProgress(Number(courseId));
+    const {sectionsProgress, refreshProgress} = useCourseProgress(Number(courseIdParam ?? 0));
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const {user} = useAuth();
@@ -79,13 +111,13 @@ const CourseDetail = () => {
 
     // Check enrollment asynchronously
     useEffect(() => {
-        if (!pdId) return;
+        if (!pdIdParam) return;
         const checkEnrollment = async () => {
-            const enrolled = await isLearningPathEnrolled(pdId);
+            const enrolled = await isLearningPathEnrolled(pdIdParam);
             setIsEnrolled(enrolled);
         };
         checkEnrollment();
-    }, [pdId, isLearningPathEnrolled]);
+    }, [pdIdParam, isLearningPathEnrolled]);
 
     // Set preview mode based on enrollment status
     const [isPreviewMode, setIsPreviewMode] = useState<boolean>(!isEnrolled);
@@ -93,33 +125,22 @@ const CourseDetail = () => {
     // Refresh progress when navigating to this page
     useEffect(() => {
         refreshProgress();
-    }, [courseId]);
+    }, [courseIdParam, refreshProgress]);
 
     // Update preview mode when enrollment status changes
     useEffect(() => {
         setIsPreviewMode(!isEnrolled);
     }, [isEnrolled]);
 
-    // Track course viewed when course data is loaded
-    useEffect(() => {
-        if (course) {
-            posthogService.trackCourseViewed(
-                String(courseId),
-                course.name,
-                isEnrolled
-            );
-        }
-    }, [course, isEnrolled]);
-
     // Handle purchase or enrollment flow
     const handlePurchaseFlow = () => {
         trigger(HapticType.SELECTION);
-        router.navigateToShop(pdId);
+        router.navigateToShop(pdIdParam ?? "");
     };
 
     // Handle locked content access attempts
     const handleLockedContentAccess = () => {
-        trigger(HapticType.NOTIFICATION_ERROR);
+        trigger(HapticType.ERROR);
         // Show alert or navigate to purchase
         // Alert.alert(
         //     "Contenu verrouillé",
@@ -155,8 +176,8 @@ const CourseDetail = () => {
         error: courseError,
         isLoading: courseLoading,
         mutate: mutateCourse,
-    } = useSWR<Course>(courseId ? `course-${courseId}` : null, async () => {
-        const {data} = await (supabase as any)
+    } = useSWR<Course | null>(courseIdParam ? `course-${courseIdParam}` : null, async () => {
+        const {data} = await supabase
             .from("courses")
             .select(
                 `
@@ -166,50 +187,77 @@ const CourseDetail = () => {
             course_videos(*)
           `
             )
-            .eq("id", courseId)
+            .eq("id", Number(courseIdParam))
             .single();
-        return data;
+
+        return (data as unknown as Course | null) ?? null;
     });
 
-    const {data: courseSummary} = useSWR(
-        courseId ? `course-summary-${courseId}` : null,
+    const {data: courseSummary} = useSWR<CourseSummary | null>(
+        courseIdParam ? `course-summary-${courseIdParam}` : null,
         async () => {
-            const { data } = await (supabase as any)
-                .from("course_summaries")
+            const courseSummaryQuery = supabase.from("course_summaries" as never) as unknown as UntypedCourseSummaryQuery;
+            const { data } = await courseSummaryQuery
                 .select("course_id, source_content_count")
-                .eq("course_id", Number(courseId))
+                .eq("course_id", Number(courseIdParam))
                 .maybeSingle();
-            return data;
+            return data ?? null;
         }
     );
 
-    const {data: quizzes} = useSWR(
-        courseId ? `quizzes-${courseId}` : null,
+    const {data: quizzes} = useSWR<CourseQuiz[]>(
+        courseIdParam ? `quizzes-${courseIdParam}` : null,
         async () => {
-            const {data} = await (supabase as any)
+            const {data} = await supabase
                 .from("quiz_courses")
                 .select("quiz(id, name  , questions:quiz_questions(id))")
-                .eq("courseId", courseId)
-            return data?.map((d: {quiz: unknown}) => d.quiz);
+                .eq("courseId", Number(courseIdParam));
+
+            return (
+                (data as unknown as QuizCourseRow[] | null)?.flatMap((row) =>
+                    row.quiz ? [row.quiz] : []
+                ) ?? []
+            );
         }
     );
 
-    const {data: quizProgress} = useSWR(
-        user ? [`quiz-progress-${user.id}`, courseId, quizzes] : null,
+    const {data: quizProgress} = useSWR<QuizProgressAttempt[]>(
+        user && courseIdParam ? [`quiz-progress-${user.id}`, courseIdParam, quizzes] : null,
         async () => {
-            const {data} = await (supabase as any)
+            if (!user?.id) {
+                return [];
+            }
+
+            const quizIds = quizzes?.map((quiz) => quiz.id).filter(Boolean) ?? [];
+
+            if (quizIds.length === 0) {
+                return [];
+            }
+
+            const {data} = await supabase
                 .from("quiz_attempts")
                 .select("id, status, score, quiz_id")
-                .eq("user_id", user?.id)
-                .in("quiz_id", quizzes?.map((q: {id: number}) => q.id) || [])
-            return data;
-        }
-    )
+                .eq("user_id", user.id)
+                .in("quiz_id", quizIds);
 
-    const getHighestScore = (quizId: number) => {
-        const quizAttempts = quizProgress?.filter((attempt) => attempt.quiz_id === quizId);
+            return (data as QuizProgressAttempt[] | null) ?? [];
+        }
+    );
+
+    useEffect(() => {
+        if (course && courseIdParam) {
+            posthogService.trackCourseViewed(
+                courseIdParam,
+                course.name,
+                isEnrolled
+            );
+        }
+    }, [course, courseIdParam, isEnrolled]);
+
+    const getHighestScore = (quizId: string) => {
+        const quizAttempts = quizProgress?.filter((attempt: QuizProgressAttempt) => attempt.quiz_id === quizId);
         if (!quizAttempts || quizAttempts.length === 0) return 0;
-        const highestScore = Math.max(...quizAttempts.map((attempt) => attempt.score));
+        const highestScore = Math.max(...quizAttempts.map((attempt: QuizProgressAttempt) => attempt.score ?? 0));
         return highestScore || 0;
     };
 
@@ -275,7 +323,7 @@ const CourseDetail = () => {
                         sourceContentCount={courseSummary?.source_content_count}
                         onPress={() => {
                             trigger(HapticType.SELECTION);
-                            router.push(`/(app)/learn/${pdId}/courses/${courseId}/summary`);
+                            router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}/summary`);
                         }}
                     />
                 );
@@ -309,7 +357,7 @@ const CourseDetail = () => {
                                 }
                                 trigger(HapticType.SELECTION);
                                 router.push(
-                                    `/(app)/learn/${pdId}/courses/${courseId}/lessons/${section.id}`
+                                    `/(app)/learn/${pdIdParam}/courses/${courseIdParam}/lessons/${section.id}`
                                 );
                             }}
                         >
@@ -419,7 +467,7 @@ const CourseDetail = () => {
                             }
                             trigger(HapticType.SELECTION);
                             router.push(
-                                `/(app)/learn/${pdId}/courses/${courseId}/videos/${video.id}`
+                                `/(app)/learn/${pdIdParam}/courses/${courseIdParam}/videos/${video.id}`
                             );
                         }}
                     >
@@ -500,7 +548,7 @@ const CourseDetail = () => {
                 // En mode aperçu, afficher uniquement le premier quiz
                 const visibleQuizzes = isPreviewMode ? quizzes.slice(0, 1) : quizzes;
 
-                const quizItems = visibleQuizzes.map((quiz, index) => quiz?.id && (
+                const quizItems = visibleQuizzes.map((quiz: CourseQuiz, index: number) => quiz?.id && (
                     <Pressable
                         key={quiz.id + index}
                         style={[styles.quizItem, isDark && styles.quizItemDark]}
@@ -510,7 +558,7 @@ const CourseDetail = () => {
                                 return;
                             }
                             trigger(HapticType.SELECTION);
-                            router.push(`/(app)/learn/${pdId}/quizzes/${quiz.id}`)
+                            router.push(`/(app)/learn/${pdIdParam}/quizzes/${quiz.id}`)
                         }}
                     >
                         <View style={[
@@ -625,7 +673,7 @@ const CourseDetail = () => {
                     onPress={() =>
                     {
                         trigger(HapticType.LIGHT);
-                        router.push(`/(app)/learn/${pdId}/courses`)}
+                        router.push(`/(app)/learn/${pdIdParam}/courses`)}
                     }
                 >
                     <MaterialCommunityIcons
@@ -647,7 +695,7 @@ const CourseDetail = () => {
                     <ThemedText
                         style={[styles.courseInfo, isDark && styles.courseInfoDark]}
                     >
-                        {course?.course_category?.name} • {sections.length} sections •{" "}
+                        {course?.category?.name} • {sections.length} sections •{" "}
                         {videos.length} vidéos
                     </ThemedText>
                 </View>

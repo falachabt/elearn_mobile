@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1773220515423" clover="3.2.0">
+  <project timestamp="1773220515423" name="All files">
+    <metrics statements="76" coveredstatements="63" conditionals="103" coveredconditionals="63" methods="16" coveredmethods="14" elements="195" coveredelements="140" complexity="0" loc="76" ncloc="76" packages="5" files="7" classes="7"/>
+    <package name="components">
+      <metrics statements="3" coveredstatements="3" conditionals="11" coveredconditionals="6" methods="1" coveredmethods="1"/>
+      <file name="ThemedText.tsx" path="D:\Projets\elearn_mobile\components\ThemedText.tsx">
+        <metrics statements="3" coveredstatements="3" conditionals="11" coveredconditionals="6" methods="1" coveredmethods="1"/>
+        <line num="19" count="1" type="stmt"/>
+        <line num="21" count="1" type="stmt"/>
+        <line num="37" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="components.settings">
+      <metrics statements="8" coveredstatements="8" conditionals="26" coveredconditionals="15" methods="2" coveredmethods="2"/>
+      <file name="SettingsItem.tsx" path="D:\Projets\elearn_mobile\components\settings\SettingsItem.tsx">
+        <metrics statements="8" coveredstatements="8" conditionals="26" coveredconditionals="15" methods="2" coveredmethods="2"/>
+        <line num="23" count="1" type="stmt"/>
+        <line num="33" count="2" type="stmt"/>
+        <line num="36" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="37" count="1" type="stmt"/>
+        <line num="59" count="1" type="stmt"/>
+        <line num="63" count="1" type="stmt"/>
+        <line num="64" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="87" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="constants">
+      <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      <file name="Colors.ts" path="D:\Projets\elearn_mobile\constants\Colors.ts">
+        <metrics statements="3" coveredstatements="3" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="6" count="1" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="9" count="1" type="stmt"/>
+      </file>
+      <file name="theme.ts" path="D:\Projets\elearn_mobile\constants\theme.ts">
+        <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="4" count="2" type="stmt"/>
+      </file>
+    </package>
+    <package name="hooks">
+      <metrics statements="5" coveredstatements="4" conditionals="4" coveredconditionals="2" methods="1" coveredmethods="1"/>
+      <file name="useColorScheme.ts" path="D:\Projets\elearn_mobile\hooks\useColorScheme.ts">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="useThemeColor.ts" path="D:\Projets\elearn_mobile\hooks\useThemeColor.ts">
+        <metrics statements="5" coveredstatements="4" conditionals="4" coveredconditionals="2" methods="1" coveredmethods="1"/>
+        <line num="13" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="14" count="1" type="stmt"/>
+        <line num="16" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="17" count="0" type="stmt"/>
+        <line num="19" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="utils">
+      <metrics statements="56" coveredstatements="44" conditionals="62" coveredconditionals="40" methods="12" coveredmethods="10"/>
+      <file name="pricing.ts" path="D:\Projets\elearn_mobile\utils\pricing.ts">
+        <metrics statements="56" coveredstatements="44" conditionals="62" coveredconditionals="40" methods="12" coveredmethods="10"/>
+        <line num="41" count="1" type="stmt"/>
+        <line num="51" count="1" type="stmt"/>
+        <line num="53" count="0" type="stmt"/>
+        <line num="55" count="0" type="stmt"/>
+        <line num="61" count="0" type="stmt"/>
+        <line num="127" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="131" count="0" type="stmt"/>
+        <line num="189" count="0" type="stmt"/>
+        <line num="212" count="1" type="stmt"/>
+        <line num="213" count="2" type="stmt"/>
+        <line num="219" count="1" type="stmt"/>
+        <line num="224" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="226" count="10" type="cond" truecount="2" falsecount="0"/>
+        <line num="227" count="9" type="cond" truecount="1" falsecount="1"/>
+        <line num="228" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="229" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="230" count="5" type="cond" truecount="2" falsecount="0"/>
+        <line num="231" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="234" count="1" type="stmt"/>
+        <line num="240" count="1" type="stmt"/>
+        <line num="245" count="5" type="cond" truecount="2" falsecount="0"/>
+        <line num="246" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="248" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="249" count="2" type="stmt"/>
+        <line num="250" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="251" count="1" type="stmt"/>
+        <line num="253" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="254" count="3" type="stmt"/>
+        <line num="255" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="256" count="1" type="stmt"/>
+        <line num="260" count="1" type="stmt"/>
+        <line num="266" count="1" type="stmt"/>
+        <line num="275" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="277" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="278" count="1" type="stmt"/>
+        <line num="281" count="5" type="cond" truecount="2" falsecount="0"/>
+        <line num="282" count="1" type="stmt"/>
+        <line num="285" count="4" type="stmt"/>
+        <line num="287" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="289" count="4" type="cond" truecount="3" falsecount="1"/>
+        <line num="291" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="293" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="294" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="296" count="0" type="stmt"/>
+        <line num="297" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="298" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="299" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="300" count="0" type="stmt"/>
+        <line num="303" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="304" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="305" count="2" type="stmt"/>
+        <line num="307" count="0" type="stmt"/>
+        <line num="314" count="1" type="stmt"/>
+        <line num="321" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="322" count="1" type="stmt"/>
+        <line num="324" count="2" type="cond" truecount="2" falsecount="0"/>
+      </file>
+    </package>
+  </project>
+</coverage>

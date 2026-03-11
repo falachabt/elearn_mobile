@@ -1,5 +1,4 @@
 ﻿import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import { logger } from '@/utils/logger';
 import {
     ActivityIndicator,
     Animated,
@@ -16,6 +15,7 @@ import {MaterialCommunityIcons} from '@expo/vector-icons';
 import Markdown, {RenderImageFunction} from 'react-native-markdown-display';
 import FitImage from "react-native-fit-image";
 
+import { logger } from '@/utils/logger';
 import {ThemedText} from '@/components/ThemedText';
 import {theme} from '@/constants/theme';
 import {supabase} from '@/lib/supabase';

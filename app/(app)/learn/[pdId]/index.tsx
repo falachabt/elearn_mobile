@@ -53,7 +53,7 @@ interface ProgramData {
   total_duration?: number;
   course_learningpath?: Array<{ id: string }>;
   quiz_learningpath?: Array<{ id: string }>;
-  concours_learningpaths?: Array<{
+  concours_learningpaths?: {
     id: string;
     price?: number;
     isActive?: boolean;
@@ -76,7 +76,7 @@ interface ProgramData {
       };
       concours_archives?: Array<{ id: string }>;
     };
-  }>;
+  };
 }
 
 interface ProgramLinkData {
@@ -181,7 +181,50 @@ const ProgramDetails = () => {
       logger.error("[ProgramDetails] Erreur dans fetchProgramData:", error);
       throw error;
     }
-    return data;
+    return {
+      ...data,
+      title: data.title ?? "Programme",
+      description: data.description ?? undefined,
+      image: undefined,
+      duration: undefined,
+      course_count: data.course_count ?? undefined,
+      quiz_count: data.quiz_count ?? undefined,
+      total_duration: data.total_duration ?? undefined,
+      concours_learningpaths: data.concours_learningpaths
+        ? {
+            id: String(data.concours_learningpaths.id),
+            price: data.concours_learningpaths.price ?? undefined,
+            isActive: data.concours_learningpaths.isActive ?? undefined,
+            concour: data.concours_learningpaths.concour
+              ? {
+                  id: data.concours_learningpaths.concour.id,
+                  name: data.concours_learningpaths.concour.name ?? undefined,
+                  description: data.concours_learningpaths.concour.description ?? undefined,
+                  dates: undefined,
+                  nextDate: data.concours_learningpaths.concour.nextDate ?? undefined,
+                  study_cycles: data.concours_learningpaths.concour.study_cycles
+                    ? {
+                        level: data.concours_learningpaths.concour.study_cycles.level ?? undefined,
+                      }
+                    : undefined,
+                  school_id: data.concours_learningpaths.concour.school_id ?? undefined,
+                  school: data.concours_learningpaths.concour.school
+                    ? {
+                        id: data.concours_learningpaths.concour.school.id,
+                        name: data.concours_learningpaths.concour.school.name ?? undefined,
+                        imageUrl: data.concours_learningpaths.concour.school.imageUrl ?? undefined,
+                        sigle: data.concours_learningpaths.concour.school.sigle ?? undefined,
+                        localisation: data.concours_learningpaths.concour.school.localisation ?? undefined,
+                      }
+                    : undefined,
+                  concours_archives: data.concours_learningpaths.concour.concours_archives?.map((archive) => ({
+                    id: String(archive.id),
+                  })),
+                }
+              : undefined,
+          }
+        : undefined,
+    };
   };
 
   // Always fetch program data
@@ -240,7 +283,7 @@ const ProgramDetails = () => {
       const { count, error } = await supabase
         .from("concours_archives")
         .select("*", { count: "exact", head: true })
-        .eq("concour_id", programLink!.concourId);
+        .eq("concour_id", String(programLink!.concourId));
 
       if (error) {
         logger.error("[ProgramDetails] Erreur lors du comptage des archives:", error);
@@ -277,8 +320,8 @@ const ProgramDetails = () => {
       const revalidateAfterPayment = async () => {
         await Promise.all([
           mutateProgram(undefined, { revalidate: true }),
-          mutateUserPrograms(undefined, { revalidate: true }),
-          mutateProgramAccessMap(undefined, { revalidate: true }), // CRUCIAL : Revalide le statut d'accès
+          mutateUserPrograms(),
+          mutateProgramAccessMap(), // CRUCIAL : Revalide le statut d'accès
         ]);
         
         logger.log('[ProgramDetails] Revalidation complete - Access status updated');
@@ -384,7 +427,16 @@ const ProgramDetails = () => {
         // Ne fetch que si l'utilisateur est inscrit
         const payment = await ProgramPaymentService.getLatestPayment(programId);
         if (payment && payment.is_installment) {
-          setActiveInstallment(payment);
+          setActiveInstallment({
+            is_installment: payment.is_installment ?? false,
+            current_installment: payment.current_installment ?? 0,
+            total_installments: payment.total_installments ?? 0,
+            amount: payment.amount ?? 0,
+            total_amount: payment.total_amount ?? 0,
+            next_payment_due_date: payment.next_payment_due_date ?? undefined,
+            expiry_date: payment.expiry_date ?? undefined,
+            payment_status: payment.payment_status,
+          });
         } else {
           setActiveInstallment(null);
         }

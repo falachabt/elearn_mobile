@@ -1,5 +1,4 @@
 ﻿import React, { useRef, useEffect, useState } from 'react';
-import { logger } from '@/utils/logger';
 import {
   View,
   TextInput,
@@ -9,9 +8,9 @@ import {
   Platform,
   ViewStyle,
   TextStyle,
-  Clipboard,
 } from 'react-native';
 
+import { logger } from '@/utils/logger';
 import {theme} from "@/constants/theme";
 
 interface OTPInputProps {
@@ -125,7 +124,9 @@ const OTPInput: React.FC<OTPInputProps> = ({
         {localValue.map((digit, index) => (
             <TextInput
                 key={index}
-                ref={ref => (inputRefs.current[index] = ref)}
+                ref={(ref) => {
+                  inputRefs.current[index] = ref;
+                }}
                 style={[
                   styles.input,
                   inputStyle,

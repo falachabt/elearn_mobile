@@ -1,108 +1,87 @@
 ﻿// FileViewerScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import useSWR from 'swr';
+import useSWR, { type Fetcher } from 'swr';
 import * as ScreenCapture from 'expo-screen-capture';
-
-import { Archive } from '..';
 
 import { theme } from '@/constants/theme';
 import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
-import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
-import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+import { FileViewer } from "@/components/shared/learn/anales/FileViewer/FileViewer";
 
 
 // Define TypeScript interfaces for our data
 interface ArchiveData {
-  id: string;
+  id: number;
   name: string;
   file_url: string;
   has_correction: boolean;
 }
 
 interface CorrectionData {
-  id: string;
+  id: number;
   file_url: string;
-  archive_id: string;
+  archive_id: number;
 }
 
 
 interface CompletionData {
-  id: string;
+  id: number;
 }
 
-// Custom fetcher for SWR with Supabase
-const fetcher = async (url: string) => {
-  // Parse the URL to extract table and query parameters
-  const [_, table, method, ...params] = url.split('/');
+const fetchArchive: Fetcher<ArchiveData, string> = async (id) => {
+  const { data, error } = await supabase
+    .from('concours_archives')
+    .select('id, name, file_url, has_correction')
+    .eq('id', Number(id))
+    .single();
 
-  if (!table) throw new Error('No table specified');
+  if (error) throw error;
+  return {
+    id: data.id,
+    name: data.name ?? '',
+    file_url: data.file_url,
+    has_correction: data.has_correction ?? false,
+  };
+};
 
-  if (method === 'get') {
-    const id = params[0];
-    const { data, error } = await supabase
-        .from(table)
-        .select('*')
-        .eq('id', id)
-        .single();
+const fetchCorrection: Fetcher<CorrectionData, string> = async (archiveId) => {
+  const { data, error } = await supabase
+    .from('concours_corrections')
+    .select('id, file_url, archive_id')
+    .eq('archive_id', Number(archiveId))
+    .single();
 
-    if (error) throw error;
-    return data;
-  }
+  if (error) throw error;
+  return data;
+};
 
-  if (method === 'getCorrection') {
-    const archiveId = params[0];
-    const { data, error } = await supabase
-        .from('concours_corrections')
-        .select('id, file_url, archive_id')
-        .eq('archive_id', archiveId)
-        .single();
+const fetchCompletion: Fetcher<CompletionData | null, readonly [string, number]> = async ([userId, archiveId]) => {
+  const { data, error } = await supabase
+    .from('user_completed_archives')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('archive_id', archiveId)
+    .single();
 
-    if (error) throw error;
-    return data;
-  }
-
-  if (method === 'getCompletion') {
-    const userId = params[0];
-    const archiveId = params[1];
-
-    try {
-      const { data, error } = await supabase
-          .from('user_completed_archives')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('archive_id', archiveId)
-          .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Not found is expected and OK
-          return null;
-        }
-        throw error;
-      }
-
-      return data;
-    } catch (error) {
-      // Handle error gracefully and return null to indicate not completed
-      logger.error('Error fetching completion status:', error);
+  if (error) {
+    if (error.code === 'PGRST116') {
       return null;
     }
+    throw error;
   }
 
-  throw new Error(`Unsupported method: ${method}`);
+  return data;
 };
 
 export const FileViewerScreen = () => {
   const params = useLocalSearchParams();
-  const fileId = params.fileId as string;
-  const filePath = params.filePath as string;
-  const pdId = params.pdId as string;
+  const fileIdParam = params.fileId;
+  const fileId = typeof fileIdParam === 'string' ? Number(fileIdParam) : Number(fileIdParam?.[0]);
 
   const router = useRouter();
   const scheme = useColorScheme();
@@ -110,15 +89,15 @@ export const FileViewerScreen = () => {
   const { user } = useAuth();
   const [isViewingCorrection, setIsViewingCorrection] = useState(false);
   const [completedLoading, setCompletedLoading] = useState(false);
-  const [archiveId, setArchiveId] = useState<string | null>(null);
+  const [archiveId, setArchiveId] = useState<number | null>(null);
 
   // First check if we're viewing a correction directly
   useEffect(() => {
     const checkIfCorrection = async () => {
-      if (!fileId) return;
+      if (!Number.isFinite(fileId)) return;
 
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
             .from('concours_corrections')
             .select('id, file_url, archive_id')
             .eq('id', fileId)
@@ -130,7 +109,7 @@ export const FileViewerScreen = () => {
         } else {
           setArchiveId(fileId);
         }
-      } catch (error) {
+      } catch {
         // Not a correction, so fileId is the archive ID
         setArchiveId(fileId);
       }
@@ -167,21 +146,21 @@ export const FileViewerScreen = () => {
   }, []);
 
   // Fetch archive data
-  const { data: archiveData, error: archiveError, isLoading: archiveLoading } = useSWR<ArchiveData>(
-      archiveId ? `/concours_archives/get/${archiveId}` : null,
-      fetcher
+  const { data: archiveData, isLoading: archiveLoading } = useSWR(
+      archiveId ? String(archiveId) : null,
+      fetchArchive
   );
 
   // Fetch correction data if available
-  const { data: correctionData, error: correctionError, isLoading: correctionLoading } = useSWR<CorrectionData>(
-      archiveData?.has_correction ? `/concours_archives/getCorrection/${archiveData.id}` : null,
-      fetcher
+  const { data: correctionData, isLoading: correctionLoading } = useSWR(
+      archiveData?.has_correction ? String(archiveData.id) : null,
+      fetchCorrection
   );
 
   // Fetch completion status
-  const { data: completionData, error: completionError, isLoading: completionLoading, mutate } = useSWR<CompletionData | null>(
-      user?.id && archiveData?.id ? `/user_completed_archives/getCompletion/${user.id}/${archiveData.id}` : null,
-      fetcher
+  const { data: completionData, isLoading: completionLoading, mutate } = useSWR(
+      user?.id && archiveData?.id ? [user.id, archiveData.id] as const : null,
+      fetchCompletion
   );
 
   const toggleView = () => {
@@ -242,16 +221,19 @@ export const FileViewerScreen = () => {
         }
 
         // Update local state optimistically
-        mutate({ id: 'temp-id' }, false);
+        mutate({ id: -1 }, false);
       }
 
       // Properly refresh data after operation
       mutate();
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Impossible de mettre à jour le statut de complétion. Veuillez réessayer.';
       logger.error('Error toggling completion status:', error);
       Alert.alert(
           'Erreur',
-          error.message || 'Impossible de mettre à jour le statut de complétion. Veuillez réessayer.'
+          message
       );
     } finally {
       setCompletedLoading(false);
@@ -351,28 +333,12 @@ export const FileViewerScreen = () => {
          :
             currentFile ?
 
-                // Use the appropriate FileViewer component based on the platform
-                Platform.OS === 'web' ?
-                    <FileViewer
-                        file={{
-                            id: currentFile.id + new Date().toISOString(),
-                            file_url: currentFile.file_url,
-                            file_type: typeof currentFile.file_url === 'string' &&
-                            currentFile.file_url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'other'
-                        } as Archive}
-                        style={viewerStyles.viewer}
-                    />
-                :
-                <FileViewerNative
+                <FileViewer
                     file={{
-                      id: currentFile.id+ new Date().toISOString(),
                       file_url: currentFile.file_url,
-                      file_type: typeof currentFile.file_url === 'string' &&
-                      currentFile.file_url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'other'
-                    } as Archive}
+                    }}
                     style={viewerStyles.viewer}
                 />
-
                 : null
 
         }

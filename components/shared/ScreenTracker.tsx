@@ -19,7 +19,18 @@
 
 import { useEffect } from 'react';
 import { usePathname, useGlobalSearchParams } from 'expo-router';
+
 import { posthogService } from '@/utils/posthogService';
+
+const normalizeParams = (
+  params: Record<string, string | string[]>
+): Record<string, string> =>
+  Object.fromEntries(
+    Object.entries(params).map(([key, value]) => [
+      key,
+      Array.isArray(value) ? value.join(',') : value,
+    ])
+  );
 
 export default function ScreenTracker() {
   const pathname = usePathname();
@@ -29,7 +40,7 @@ export default function ScreenTracker() {
     if (pathname) {
       // Track screen view with pathname and route params
       posthogService.trackScreenViewed(pathname, {
-        ...params,
+        ...normalizeParams(params),
       });
     }
   }, [pathname]);
@@ -60,7 +71,7 @@ export function useScreenTracking(
   useEffect(() => {
     posthogService.trackScreenViewed(screenName, {
       path: pathname,
-      ...params,
+      ...normalizeParams(params),
       ...properties,
     });
   }, [screenName, pathname]);

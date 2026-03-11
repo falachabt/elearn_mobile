@@ -1,6 +1,6 @@
 import useSWR from 'swr';
-import { logger } from '@/utils/logger';
 
+import { logger } from '@/utils/logger';
 import { supabase } from '@/lib/supabase';
 
 interface ProgressData {
@@ -99,7 +99,7 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
 
     // Compter les cours complétés (progression >= 100%)
     const completedCourses = courseProgressData?.filter(
-      course => course.progress_percentage >= 100
+      course => (course.progress_percentage ?? 0) >= 100
     ) || [];
 
     // 6. Récupérer les quiz complétés (table partagée avec Learn)
@@ -134,7 +134,12 @@ const fetchSecondaryProgramProgress = async (programId: string, userId: string) 
       const exerciseResults = await Promise.all(exercisePromises);
       completedExercises = exerciseResults
         .filter(result => !result.error)
-        .flatMap(result => result.data || []);
+        .flatMap(result =>
+          (result.data ?? []).filter(
+            (exercise): exercise is { exercice_id: string } =>
+              typeof exercise.exercice_id === 'string'
+          )
+        );
     }
 
     // Dédupliquer les exercice_id (même logique que pour les quiz)

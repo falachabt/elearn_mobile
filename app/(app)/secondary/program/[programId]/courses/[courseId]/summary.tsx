@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { Href, useLocalSearchParams } from 'expo-router';
 
 import { CourseSummaryScreen } from '@/components/shared/courses/CourseSummaryScreen';
 import { useNavigation } from '@/contexts/NavigationContext';
@@ -28,7 +28,7 @@ const SecondaryCourseSummary = () => {
       isEnrolled={!!isEnrolled}
       onBack={() => {
         trigger(HapticType.LIGHT);
-        router.push(getCoursePath(String(courseId)));
+        router.push(getCoursePath(String(courseId)) as Href);
       }}
     />
   );

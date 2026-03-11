@@ -1,5 +1,4 @@
 ﻿import React, { useState, useRef } from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     StyleSheet,
@@ -13,7 +12,9 @@ import { WebView } from 'react-native-webview';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { WebViewErrorEvent, WebViewHttpErrorEvent, WebViewProgressEvent } from 'react-native-webview/lib/WebViewTypes';
 
+import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/auth';
 import { theme } from '@/constants/theme';
 
@@ -31,7 +32,7 @@ const ConcoursBlancRegisterScreen = () => {
     const WEBVIEW_URL = 'https://elearnbac.ezadrive.com/';
 
     // Handle WebView loading error
-    const handleError = (event: any) => {
+    const handleError = (event: WebViewErrorEvent) => {
         const { nativeEvent } = event;
         logger.error('WebView error:', nativeEvent);
         
@@ -55,7 +56,7 @@ const ConcoursBlancRegisterScreen = () => {
     };
 
     // Handle WebView HTTP error
-    const handleHttpError = (event: any) => {
+    const handleHttpError = (event: WebViewHttpErrorEvent) => {
         const { nativeEvent } = event;
         logger.error('WebView HTTP error:', nativeEvent);
         
@@ -88,7 +89,7 @@ const ConcoursBlancRegisterScreen = () => {
     };
 
     // Handle WebView load progress
-    const handleLoadProgress = (event: any) => {
+    const handleLoadProgress = (event: WebViewProgressEvent) => {
         setLoadingProgress(event.nativeEvent.progress);
     };
 
@@ -184,7 +185,7 @@ const ConcoursBlancRegisterScreen = () => {
                     onLoadProgress={handleLoadProgress}
                     onError={handleError}
                     onHttpError={handleHttpError}
-                    renderError={(errorName) => (
+                    renderError={() => (
                         <View style={styles.errorContainer}>
                             <MaterialCommunityIcons
                                 name="wifi-off"

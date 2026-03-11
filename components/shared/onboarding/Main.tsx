@@ -1,5 +1,4 @@
 ﻿import React, { useState, useRef, useEffect } from "react";
-import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -25,6 +24,7 @@ import Programs from "./Programs";
 import UserInfoForm from "./UserForm";
 import PaymentPage, { PaymentPageRef } from "./Bill";
 
+import { logger } from '@/utils/logger';
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import { AccountsInput } from "@/types/type";

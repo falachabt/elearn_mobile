@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'expo-router';
 import { mutate } from 'swr';
+
 import { logger } from '@/utils/logger';
 
 interface RouteRevalidationOptions {

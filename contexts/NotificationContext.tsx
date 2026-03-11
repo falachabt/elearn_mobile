@@ -7,7 +7,7 @@ import React, {
     ReactNode,
 } from "react";
 import * as Notifications from "expo-notifications";
-import { router } from "expo-router";
+import { Href, router } from "expo-router";
 
 import { logger } from "@/utils/logger";
 import {registerForPushNotificationsAsync} from "@/components/TestNotifications";
@@ -62,11 +62,11 @@ const handleNotificationNavigation = (data: Record<string, unknown>) => {
                 const courseId = data?.courseId as string;
                 
                 if (programId && courseId) {
-                    router.push(`/(app)/secondary/program/${programId}/courses/${courseId}`);
+                    router.push(`/(app)/secondary/program/${programId}/courses/${courseId}` as Href);
                     logger.log('✅ Navigation vers le cours secondary:', courseId);
                 } else if (id) {
                     // Fallback vers learn si pas de programId
-                    router.push(`/(app)/learn/${id}`);
+                    router.push(`/(app)/learn/${id}` as Href);
                     logger.log('✅ Navigation vers learn:', id);
                 }
                 break;
@@ -77,18 +77,18 @@ const handleNotificationNavigation = (data: Record<string, unknown>) => {
                 const quizId = data?.quizId || id;
                 
                 if (quizProgramId && quizId) {
-                    router.push(`/(app)/secondary/program/${quizProgramId}/quizzes/${quizId}`);
+                    router.push(`/(app)/secondary/program/${quizProgramId}/quizzes/${quizId}` as Href);
                     logger.log('✅ Navigation vers le quiz:', quizId);
                 }
                 break;
                 
             case 'news':
                 if (id) {
-                    router.push(`/(modals)/news/${id}`);
+                    router.push(`/(modals)/news/${id}` as Href);
                     logger.log('✅ Navigation vers la news:', id);
                 } else {
                     // Si pas d'ID, aller à l'accueil où les news sont affichées
-                    router.push('/(app)/');
+                    router.push('/(app)/' as Href);
                     logger.log('✅ Navigation vers l\'accueil (section news)');
                 }
                 break;
@@ -100,21 +100,21 @@ const handleNotificationNavigation = (data: Record<string, unknown>) => {
                 break;
                 
             case 'profile':
-                router.push('/(app)/profile');
+                router.push('/(app)/profile' as Href);
                 logger.log('✅ Navigation vers le profil');
                 break;
                 
             case 'home':
             case 'reminder':
                 // Rappel d'apprentissage → accueil
-                router.push('/(app)/');
+                router.push('/(app)/' as Href);
                 logger.log('✅ Navigation vers l\'accueil');
                 break;
                 
             default:
                 // Navigation vers un écran spécifique si fourni
                 if (screen) {
-                    router.push(screen);
+                    router.push(screen as Href);
                     logger.log('✅ Navigation vers:', screen);
                 } else {
                     logger.warn('⚠️ Type de notification inconnu:', type);

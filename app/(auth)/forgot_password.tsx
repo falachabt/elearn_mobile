@@ -316,7 +316,7 @@ const ResetPassword: React.FC = () => {
 
     // Countdown timer
     useEffect(() => {
-        let timer: NodeJS.Timeout | undefined;
+        let timer: ReturnType<typeof setInterval> | undefined;
         if (currentStep === 2 && countdown > 0) {
             timer = setInterval(() => {
                 setCountdown(prev => prev - 1);
@@ -399,7 +399,8 @@ const ResetPassword: React.FC = () => {
                 type: "success",
                 action: null
             });
-        } catch (error: any) {
+        } catch (error: unknown ) {
+            console.error("Error sending reset email:", error);
             shakeError();
             trigger(HapticType.ERROR)
 
@@ -437,7 +438,8 @@ const ResetPassword: React.FC = () => {
             // Move to new password step
             setCurrentStep(3);
             trigger(HapticType.LIGHT)
-        } catch (error) {
+        } catch (error: unknown) {
+            console.error("OTP verification error:", error);
             shakeError();
             trigger(HapticType.ERROR)
 
@@ -492,9 +494,15 @@ const ResetPassword: React.FC = () => {
 
             // Reset form after successful password reset
             setTimeout(() => {
-                b.get('come_from') === "mobile" ? router.push("com.ezadrive.elearn://login") : router.push("/login");
+                if (b.get('come_from') === "mobile") {
+                  router.push("com.ezadrive.elearn://login");
+                } else {
+                  router.push("/login");
+                }
             }, 2000);
         }  catch (error: unknown) {
+            console.error("Error resetting password:", error);
+
             if (error instanceof Error) {
                 setToast({
                     visible: true,
@@ -535,7 +543,8 @@ const ResetPassword: React.FC = () => {
                 type: "success",
                 action: null
             });
-        } catch (error) {
+        } catch (error : unknown) {
+            console.error("Error sending reset email:", error);
             setToast({
                 visible: true,
                 message: "Échec de l'envoi du code",

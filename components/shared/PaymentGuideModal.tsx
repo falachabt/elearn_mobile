@@ -1,5 +1,4 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -12,7 +11,9 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width, height } = Dimensions.get('window');
+import { logger } from '@/utils/logger';
+
+const { height } = Dimensions.get('window');
 
 // Composants d'icônes simples (vous pouvez remplacer par react-native-vector-icons)
 const CloseIcon = () => (

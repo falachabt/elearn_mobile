@@ -1,5 +1,4 @@
 ﻿import React, {useState, useEffect, useCallback, useMemo, memo} from "react";
-import { logger } from '@/utils/logger';
 import {
     View,
     StyleSheet,
@@ -13,10 +12,11 @@ import {
     Image,
     Text, DimensionValue,
 } from "react-native";
-import {useRouter, useLocalSearchParams} from "expo-router";
+import {Href, useRouter, useLocalSearchParams} from "expo-router";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import Katex from 'react-native-katex';
 
+import { logger } from '@/utils/logger';
 import {ThemedText} from "@/components/ThemedText";
 import {useColorScheme} from "@/hooks/useColorScheme";
 import {theme} from "@/constants/theme";
@@ -28,12 +28,25 @@ import {QuizResultDialog} from "@/components/shared/learn/quiz/ResultModal";
 import {supabase} from "@/lib/supabase";
 import {useAuth} from "@/contexts/auth";
 import QuizResultsDisplay from "@/components/shared/learn/quiz/QuizResultDisplay";
-import BlockNoteContent from "@/components/shared/BlockNoteContent";
+import BlockNoteContent, { type Block } from "@/components/shared/BlockNoteContent";
 import ExerciseInstructionsDrawer from "@/components/shared/learn/quiz/ExerciseInstructionsDrawer";
 import MathLiveTextRenderer from "@/components/shared/learn/quiz/MathLiveTextRender";
 import { useNavigation } from "@/contexts/NavigationContext";
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
+
+const getImageUrl = (value: unknown): string | null => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return null;
+    }
+
+    const image = value as { url?: unknown };
+    return typeof image.url === "string" ? image.url : null;
+};
+
+const getBlocks = (value: unknown): Block[] => {
+    return Array.isArray(value) ? (value as Block[]) : [];
+};
 
 // Define TypeScript interfaces for component props
 type MixedContentRendererProps = {
@@ -384,7 +397,7 @@ const QuestionContent = memo(({isDark}: QuestionContentProps) => {
             {currentQuestion.hasImg && currentQuestion.image && (
                 <View style={styles.imageContainer}>
                     <Image
-                        source={{uri: (currentQuestion.image).url}}
+                        source={{uri: getImageUrl(currentQuestion.image) ?? ""}}
                         style={styles.questionImage}
                         resizeMode="contain"
                     />
@@ -416,7 +429,7 @@ const QuestionContent = memo(({isDark}: QuestionContentProps) => {
                 ))}
             </View>
 
-            <BlockNoteContent blocks={currentQuestion.details || []}/>
+            <BlockNoteContent blocks={getBlocks(currentQuestion.details)}/>
         </View>
     );
 });
@@ -428,6 +441,7 @@ const QuizFooter = memo(({
                          }: QuizFooterProps) => {
     const router = useRouter();
     const {quizId, attemptId, pdId} = useLocalSearchParams();
+    const quizIdParam = Array.isArray(quizId) ? quizId[0] : quizId;
     const {
         attempt: {selectedAnswers, status},
         results,
@@ -578,11 +592,12 @@ const QuizContent = () => {
     const isDark = colorScheme === "dark";
     const router = useRouter();
     const { quizId, pdId } = useLocalSearchParams();
+    const quizIdParam = Array.isArray(quizId) ? quizId[0] : quizId;
     const { getQuizzesPath, getQuizAttemptPath } = useNavigation();
     const {currentQuestion, isCompleted, isNewlyCompleted, results} = useQuizContext();
     const [showResult, setShowResult] = useState(false);
     const [quizResults, setQuizResults] = useState<any>(null);
-    const {quiz} = useQuiz(String(quizId));
+    const {quiz} = useQuiz(String(quizIdParam));
     const {user} = useAuth();
 
     // Effect to show results automatically ONLY when quiz is newly completed
@@ -599,7 +614,7 @@ const QuizContent = () => {
                 .from("quiz_attempts")
                 .insert([
                     {
-                        quiz_id: quizId,
+                        quiz_id: quizIdParam ?? null,
                         user_id: user?.id, // Get current user ID
                         start_time: new Date().toISOString(),
                         end_time: new Date(Date.now() + 30 * 60000).toISOString(),
@@ -616,7 +631,7 @@ const QuizContent = () => {
             if (error) throw error;
 
             // Navigate to the quiz play page with new attempt ID
-            router.push(getQuizAttemptPath(String(quizId), attempt.id));
+            router.push(getQuizAttemptPath(String(quizIdParam), String(attempt.id)) as Href);
         } catch (error) {
             logger.error("Error creating quiz attempt:", error);
             Alert.alert("Error", "Failed to create new quiz attempt. Please try again.");
@@ -639,7 +654,7 @@ const QuizContent = () => {
 
     const handleContinue = useCallback(async () => {
         setShowResult(false);
-        router.replace(getQuizzesPath());
+        router.replace(getQuizzesPath() as Href);
     }, [router, getQuizzesPath]);
 
     if (!currentQuestion) {

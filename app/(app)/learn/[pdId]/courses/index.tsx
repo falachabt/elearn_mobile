@@ -21,15 +21,10 @@ import CategoryFilter from '@/components/shared/learn/CategoryFilter';
 import {CourseGridByCategory} from "@/components/shared/learn/CourseGrid";
 import CourseList from "@/components/CourseList";
 import {useUser} from "@/contexts/useUserInfo";
+import type { Category as SharedCategory, CourseItem as SharedCourseItem, PrepaCourseItem } from "@/types/course.type";
 // import CourseGridByCategory from '@/components/shared/learn/CourseGrid';
 
 // TypeScript interfaces
-interface Category {
-  id?: number;
-  name: string;
-  icon?: string;
-}
-
 interface CourseContent {
   id: number;
   name: string;
@@ -42,30 +37,30 @@ interface CourseVideo {
 
 interface Course {
   id: number;
-  name: string;
-  category?: Category;
+  name: string | null;
+  category?: SharedCategory | null;
   courses_content?: CourseContent[];
   course_videos?: CourseVideo[];
-  goals?: string[];
+  goals?: string[] | null;
 }
 
-interface CourseItem {
+interface RawCourseItem {
   id?: number;
   lpId?: string;
-  course: Course;
+  course: Course | null;
   order_index?: number;
 }
 
 interface Program {
   id: string;
-  title: string;
+  title: string | null;
   concours_learningpaths?: Array<{
     concour?: {
-      name?: string;
+      name?: string | null;
       school?: {
-        name?: string;
-      }
-    }
+        name?: string | null;
+      } | null;
+    } | null;
   }>;
 }
 
@@ -75,6 +70,7 @@ const CourseScreen: React.FC<null> = () => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { pdId} = useLocalSearchParams();
+  const pdIdParam = Array.isArray(pdId) ? pdId[0] : pdId;
   const { trigger } = useHaptics();
 
   // State
@@ -86,17 +82,17 @@ const CourseScreen: React.FC<null> = () => {
 
   // Check enrollment asynchronously
   useEffect(() => {
-    if (!pdId) return;
+    if (!pdIdParam) return;
     const checkEnrollment = async () => {
-      const enrolled = await isLearningPathEnrolled(String(pdId));
+      const enrolled = await isLearningPathEnrolled(pdIdParam);
       setIsEnrolled(enrolled);
     };
     checkEnrollment();
-  }, [pdId, isLearningPathEnrolled]);
+  }, [pdIdParam, isLearningPathEnrolled]);
 
   // Fetch program data
-  const { data: program, isLoading: isLoadingProgram } = useSWR<Program>(
-      pdId ? `program-index-${pdId}` : null,
+  const { data: program, isLoading: isLoadingProgram } = useSWR<Program | null>(
+      pdIdParam ? `program-index-${pdIdParam}` : null,
       async () => {
         const { data } = await supabase
             .from('learning_paths')
@@ -110,16 +106,16 @@ const CourseScreen: React.FC<null> = () => {
             )
           )
         `)
-            .eq('id', pdId)
+            .eq('id', pdIdParam ?? "")
             .single();
-        return data as Program;
+        return data as Program | null;
       }
   );
 
 
   // Fetch courses data
-  const { data: courses, isLoading: isLoadingCourses } = useSWR<CourseItem[]>(
-      pdId ? `program-courses-${pdId}` : null,
+  const { data: courses, isLoading: isLoadingCourses } = useSWR<PrepaCourseItem[]>(
+      pdIdParam ? `program-courses-${pdIdParam}` : null,
       async () => {
         // First try to get courses with their order from learning_path_course_order
         const { data: orderedCourses } = await supabase
@@ -130,7 +126,7 @@ const CourseScreen: React.FC<null> = () => {
               course_id,
               order_index
             `)
-            .eq('learning_path_id', pdId);
+            .eq('learning_path_id', pdIdParam ?? "");
 
         // Then get all courses from course_learningpath (this ensures we get all courses even if they don't have an order)
         const { data: allCourses } = await supabase
@@ -147,20 +143,34 @@ const CourseScreen: React.FC<null> = () => {
                 course_videos(id)
               )
             `)
-            .eq('lpId', pdId);
+            .eq('lpId', pdIdParam ?? "");
 
         // Combine the data - add order_index to each course if available
-        const coursesWithOrder = allCourses?.map(courseItem => {
-          // @ts-ignore
-          const orderInfo = orderedCourses?.find(oc => oc.course_id === courseItem.course.id);
-          return {
-            ...courseItem,
-            order_index: orderInfo?.order_index
-          };
-        });
+        const coursesWithOrder = ((allCourses as RawCourseItem[] | null) ?? []).reduce<PrepaCourseItem[]>(
+          (items, courseItem) => {
+            if (!courseItem.course?.id || !courseItem.course.name) {
+              return items;
+            }
 
-        // @ts-ignore
-        return coursesWithOrder as CourseItem[];
+            const orderInfo = orderedCourses?.find((orderedCourse) => orderedCourse.course_id === courseItem.course?.id);
+            items.push({
+              id: courseItem.id,
+              lpId: courseItem.lpId ?? undefined,
+              course: {
+                ...courseItem.course,
+                name: courseItem.course.name,
+                category: courseItem.course.category ?? undefined,
+                goals: courseItem.course.goals ?? undefined,
+              },
+              order_index: orderInfo?.order_index ?? undefined,
+            });
+
+            return items;
+          },
+          []
+        );
+
+        return coursesWithOrder ?? [];
       }
   );
 
@@ -170,12 +180,13 @@ const CourseScreen: React.FC<null> = () => {
   const categories = useCallback(() => {
     if (!courses) return [];
 
-    const categoriesMap = new Map<string, Category>();
+    const categoriesMap = new Map<string, SharedCategory>();
 
     courses.forEach(courseItem => {
       const category = courseItem.course?.category;
-      if (category && !categoriesMap.has(category.name)) {
-        categoriesMap.set(category.name, category);
+      const categoryName = category?.name;
+      if (category && categoryName && !categoriesMap.has(categoryName)) {
+        categoriesMap.set(categoryName, category);
       }
 
     });
@@ -193,7 +204,7 @@ const CourseScreen: React.FC<null> = () => {
 
       // Filter by search query
       const matchesSearch =
-          course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          course.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (course.goals || []).some(goal =>
               goal.toLowerCase().includes(searchQuery.toLowerCase())
           );
@@ -213,9 +224,17 @@ const CourseScreen: React.FC<null> = () => {
   };
 
   // Handle course press
-  const handleCoursePress = async (courseItem: CourseItem) => {
-    await trigger(HapticType.LIGHT);
-    router.push(`/learn/${pdId}/course/${courseItem.course.id}`);
+  const handleCoursePress = (courseItem: SharedCourseItem) => {
+    if (typeof courseItem.id === "string" || !courseItem.course?.id) return;
+
+    trigger(HapticType.LIGHT);
+    router.push({
+      pathname: "/(app)/learn/[pdId]/courses/[courseId]",
+      params: {
+        pdId: pdIdParam ?? "",
+        courseId: String(courseItem.course.id),
+      },
+    });
   };
 
   // Toggle view mode between grid and list
@@ -235,8 +254,7 @@ const CourseScreen: React.FC<null> = () => {
     //   return { title: 'Programme', school: '' };
     // }
 
-    // @ts-ignore
-    const concours = program?.concours_learningpaths?.concour;
+    const concours = program?.concours_learningpaths?.[0]?.concour;
     const title = program?.title || 'Programme';
     const school = concours?.school?.name || '';
     const concoursName = concours?.name || '';
@@ -267,7 +285,10 @@ const CourseScreen: React.FC<null> = () => {
               style={styles.headerIcon}
               onPress={() => {
                 trigger(HapticType.LIGHT);
-                router.push(`/(app)/learn/${pdId}`);
+                router.push({
+                  pathname: "/(app)/learn/[pdId]",
+                  params: { pdId: pdIdParam ?? "" },
+                });
               }}
           >
             <MaterialCommunityIcons
@@ -353,14 +374,14 @@ const CourseScreen: React.FC<null> = () => {
         {viewMode === 'grid' ? (
             <CourseGridByCategory
                 courses={filteredCourses()}
-                pdId={String(pdId)}
+                pdId={pdIdParam ?? ""}
                 selectedCategory={selectedCategory}
                 onCoursePress={handleCoursePress}
                 isEnrolled={isEnrolled}
             />
         ) : (
             <CourseList 
-                pdId={String(pdId)} 
+                pdId={pdIdParam ?? ""} 
                 courses={filteredCourses()} 
                 onCoursePress={handleCoursePress}
                 isEnrolled={isEnrolled}

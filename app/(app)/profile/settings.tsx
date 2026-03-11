@@ -1,5 +1,4 @@
 ﻿import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -20,6 +19,7 @@ import Constants from 'expo-constants';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 
+import { logger } from '@/utils/logger';
 import {theme} from '@/constants/theme';
 import {useAuth} from '@/contexts/auth';
 import {HapticType, useHaptics} from "@/hooks/useHaptics";

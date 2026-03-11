@@ -1,5 +1,4 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -23,6 +22,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
+import { logger } from '@/utils/logger';
 import {theme} from "@/constants/theme";
 
 // Types

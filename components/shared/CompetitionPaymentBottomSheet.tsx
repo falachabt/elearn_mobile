@@ -1,5 +1,4 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -11,7 +10,6 @@ import {
   Linking,
   Platform,
   ScrollView,
-  KeyboardAvoidingView,
   Dimensions,
   Keyboard
 } from 'react-native';
@@ -19,6 +17,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Modal from 'react-native-modal';
 import LottieView from 'lottie-react-native';
 
+import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 import { useCompetitionPayment } from '@/hooks/useCompetitionPayment';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
@@ -53,7 +52,7 @@ export const CompetitionPaymentBottomSheet = ({
   const [processingState, setProcessingState] = useState<'idle' | 'processing' | 'verifying' | 'success' | 'failed' | 'canceled' | 'existing_payment'>('idle');
   const [currentTrxReference, setCurrentTrxReference] = useState<string | null>(null);
   const [isStatusCheckActive, setIsStatusCheckActive] = useState(false);
-  const [statusCheckInterval, setStatusCheckInterval] = useState<NodeJS.Timeout | null>(null);
+  const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [shouldIgnoreOldStatus, setShouldIgnoreOldStatus] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -74,9 +73,10 @@ export const CompetitionPaymentBottomSheet = ({
     initiateDirectPayment,
     cancelPayment,
     verifyPaymentStatus,
-    checkAccess,
     invalidateAccessCache
   } = useCompetitionPayment();
+  void promoCode;
+  void latestPaymentLoading;
 
 
   useEffect(() => {
@@ -102,7 +102,7 @@ export const CompetitionPaymentBottomSheet = ({
               setProcessingState('idle');
               // Pre-fill phone number from previous payment for convenience
               if (payment.phone_number) {
-                setPhoneNumber(payment.phone_number);
+                setPhoneNumber(payment.phone_number ?? '');
               }
             }
             // If payment is not in a final status, set up for verification
@@ -112,7 +112,7 @@ export const CompetitionPaymentBottomSheet = ({
               setIsStatusCheckActive(true);
 
               // Pre-fill phone number from existing payment
-              setPhoneNumber(payment.phone_number);
+              setPhoneNumber(payment.phone_number ?? '');
             }
             // If payment is in a final status and not yet seen, show the result
             else {
@@ -211,7 +211,7 @@ export const CompetitionPaymentBottomSheet = ({
         }
       }, 5000); // Check every 5 seconds
 
-      setStatusCheckInterval(interval as any);
+      setStatusCheckInterval(interval);
 
       return () => {
         clearInterval(interval);
@@ -447,7 +447,7 @@ export const CompetitionPaymentBottomSheet = ({
                 Date:
               </Text>
               <Text style={[styles.paymentInfoValue, isDark && styles.paymentInfoValueDark]}>
-                {new Date(latestPayment.created_at).toLocaleDateString()}
+                {latestPayment.created_at ? new Date(latestPayment.created_at).toLocaleDateString() : '--'}
               </Text>
             </View>
 

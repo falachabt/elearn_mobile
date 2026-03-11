@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as amplitude from "@amplitude/analytics-react-native";
 import { PostHogProvider, PostHogErrorBoundary } from "posthog-react-native";
+import type { PostHogErrorBoundaryFallbackProps } from 'posthog-react-native';
 import React from "react";
 
 import { AuthProvider } from "@/contexts/auth";
@@ -348,7 +349,9 @@ const BackHandlerManager = React.memo(
  * Fallback component for PostHogErrorBoundary
  * Displayed when a React error occurs
  */
-const ErrorFallback = ({ error }: { error: Error; componentStack?: string }) => {
+const ErrorFallback = ({ error }: PostHogErrorBoundaryFallbackProps) => {
+  const errorMessage = error instanceof Error ? error.message : String(error ?? "Unknown error");
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={{ 
@@ -378,7 +381,7 @@ const ErrorFallback = ({ error }: { error: Error; componentStack?: string }) => 
             Nous sommes désolés pour ce désagrément. L'erreur a été signalée et nous travaillons à la corriger.
           </Text>
           
-          {__DEV__ && error && (
+          {__DEV__ && error != null ? (
             <View style={{ 
               width: '100%', 
               padding: 16, 
@@ -390,10 +393,10 @@ const ErrorFallback = ({ error }: { error: Error; componentStack?: string }) => 
                 Détails de l'erreur:
               </Text>
               <Text style={{ fontSize: 12, color: '#d32f2f' }}>
-                {error instanceof Error ? error.message : String(error)}
+                {errorMessage}
               </Text>
             </View>
-          )}
+          ) : null}
         </View>
       </View>
     </GestureHandlerRootView>

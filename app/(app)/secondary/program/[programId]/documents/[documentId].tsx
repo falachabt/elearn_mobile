@@ -1,5 +1,4 @@
 ﻿import React, { useState, useEffect } from "react";
-import { logger } from '@/utils/logger';
 import {
   View,
   StyleSheet,
@@ -12,11 +11,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ScreenCapture from "expo-screen-capture";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+import { logger } from '@/utils/logger';
 import { theme } from "@/constants/theme";
 import { ThemedText } from "@/components/ThemedText";
 import { useSecondaryDocument } from "@/hooks/secondary/useSecondaryDocuments";
-import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
-import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+import {
+  FileViewer,
+  type FileViewerFile,
+} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
 import { useSecondaryProgram } from "@/hooks/secondary/useSecondaryPrograms";
 import { useDocumentActions } from "@/hooks/secondary/useDocumentActions";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
@@ -99,6 +101,10 @@ const DocumentViewerScreen = () => {
   }
 
   const activeDocument = isViewingCorrection && hasCorrection && correction ? correction : document;
+  const viewerFile: FileViewerFile = {
+    ...activeDocument,
+    download_url: activeDocument.download_url ?? undefined,
+  };
 
   // Vérifier que le document actif a un download_url
   if (!activeDocument.download_url) {
@@ -226,15 +232,9 @@ const DocumentViewerScreen = () => {
       </View>
 
       {Platform.OS === "web" ? (
-        <FileViewer 
-          file={activeDocument}
-          fileName={activeDocument.name}
-        />
+        <FileViewer file={viewerFile} />
       ) : (
-        <FileViewerNative 
-          file={activeDocument}
-          fileName={activeDocument.name}
-        />
+        <FileViewer file={viewerFile} />
       )}
     </View>
   );

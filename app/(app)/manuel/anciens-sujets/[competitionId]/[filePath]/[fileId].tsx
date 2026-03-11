@@ -374,7 +374,6 @@ export const FileViewerScreen = () => {
                         file={{
                             file_url: currentFile.file_url
                         }}
-                        fileName={archiveData?.name || ''}
                         style={viewerStyles.viewer}
                     />
                 :
@@ -382,7 +381,6 @@ export const FileViewerScreen = () => {
                     file={{
                       file_url: currentFile.file_url
                     }}
-                    fileName={archiveData?.name || ''}
                     style={viewerStyles.viewer}
                 />
 

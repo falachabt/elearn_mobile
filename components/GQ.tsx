@@ -4,33 +4,53 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/lib/supabase';
 import {CorrectionService} from "@/services/correrction.service"; // Adjust import path as needed
+import { Database } from '@/types/supabase';
+import { QuizQuestion } from '@/types/quiz.type';
 
 const BATCH_SIZE = 50; // Number of questions to process in one batch
 const ASYNC_STORAGE_KEY = 'quiz_justification_progress';
 const RATE_LIMIT_DELAY = 2000; // 2 seconds delay between operations to avoid rate limits
+type QuizQuestionRow = Database["public"]["Tables"]["quiz_questions"]["Row"];
+type LogType = 'info' | 'success' | 'error';
+
+interface LogEntry {
+    id: number;
+    message: string;
+    timestamp: string;
+    type: LogType;
+}
+
+interface ProcessingStats {
+    success: number;
+    error: number;
+    skipped: number;
+}
+
+const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    return String(error);
+};
 
 const JustificationGenerator = () => {
     const [totalQuestions, setTotalQuestions] = useState(0);
     const [processedQuestions, setProcessedQuestions] = useState(0);
     const [currentBatch, setCurrentBatch] = useState(0);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [logs, setLogs] = useState([]);
-    const [stats, setStats] = useState({
+    const [logs, setLogs] = useState<LogEntry[]>([]);
+    const [stats, setStats] = useState<ProcessingStats>({
         success: 0,
         error: 0,
         skipped: 0,
     });
 
     // Add a log entry with timestamp
-    const addLog = useCallback((message: any, type = 'info') => {
+    const addLog = useCallback((message: string, type: LogType = 'info') => {
         const timestamp = new Date().toLocaleTimeString();
         setLogs(prevLogs => [
-            {id: Date.now(), message, timestamp, type} as {
-                id: number;
-                message: any;
-                timestamp: string;
-                type: string;
-            },
+            {id: Date.now(), message, timestamp, type},
             ...prevLogs
         ]);
     }, []);
@@ -47,12 +67,12 @@ const JustificationGenerator = () => {
                 addLog(`Loaded previous progress: ${processedQuestions} questions processed`, 'info');
             }
         } catch (error) {
-            addLog(`Error loading progress: ${error.message}`, 'error');
+            addLog(`Error loading progress: ${getErrorMessage(error)}`, 'error');
         }
     }, [addLog]);
 
     // Save progress to AsyncStorage
-    const saveProgress = useCallback(async (processed: any, batch: any, currentStats: any) => {
+    const saveProgress = useCallback(async (processed: number, batch: number, currentStats: ProcessingStats) => {
         try {
             await AsyncStorage.setItem(ASYNC_STORAGE_KEY, JSON.stringify({
                 processedQuestions: processed,
@@ -60,8 +80,7 @@ const JustificationGenerator = () => {
                 stats: currentStats
             }));
         } catch (error) {
-            // @ts-ignore
-            addLog(`Error saving progress: ${error.message}`, 'error');
+            addLog(`Error saving progress: ${getErrorMessage(error)}`, 'error');
         }
     }, [addLog]);
 
@@ -80,13 +99,13 @@ const JustificationGenerator = () => {
             addLog(`Found ${count} questions without justification`, 'info');
             return count;
         } catch (error) {
-            addLog(`Error counting questions: ${error.message}`, 'error');
+            addLog(`Error counting questions: ${getErrorMessage(error)}`, 'error');
             return 0;
         }
     }, [addLog]);
 
     // Fetch a batch of questions from Supabase
-    const fetchQuestionsBatch = useCallback(async (batchNumber) => {
+    const fetchQuestionsBatch = useCallback(async (batchNumber: number): Promise<QuizQuestionRow[]> => {
         try {
             addLog(`Fetching batch #${batchNumber + 1}...`, 'info');
 
@@ -99,16 +118,16 @@ const JustificationGenerator = () => {
 
             if (error) throw error;
 
-            addLog(`Fetched ${data.length} questions in batch #${batchNumber + 1}`, 'success');
-            return data;
+            addLog(`Fetched ${data?.length ?? 0} questions in batch #${batchNumber + 1}`, 'success');
+            return data ?? [];
         } catch (error) {
-            addLog(`Error fetching batch #${batchNumber + 1}: ${error.message}`, 'error');
+            addLog(`Error fetching batch #${batchNumber + 1}: ${getErrorMessage(error)}`, 'error');
             return [];
         }
     }, [addLog]);
 
     // Update a single question with generated justification
-    const updateQuestionJustification = useCallback(async (questionId, justification) => {
+    const updateQuestionJustification = useCallback(async (questionId: number, justification: string) => {
         try {
             const { error } = await supabase
                 .from('quiz_questions')
@@ -119,18 +138,18 @@ const JustificationGenerator = () => {
 
             return true;
         } catch (error) {
-            addLog(`Error updating question ${questionId}: ${error.message}`, 'error');
+            addLog(`Error updating question ${questionId}: ${getErrorMessage(error)}`, 'error');
             return false;
         }
     }, [addLog]);
 
     // Process a single question
-    const processQuestion = useCallback(async (question) => {
+    const processQuestion = useCallback(async (question: QuizQuestionRow): Promise<'success' | 'error'> => {
         try {
             addLog(`Processing question ID: ${question.id} - ${question.title?.substring(0, 30)}...`, 'info');
 
             // Generate justification
-            const justification = await CorrectionService.generateAnswer(question);
+            const justification = await CorrectionService.generateAnswer(question as unknown as QuizQuestion);
 
             // Small delay to avoid hitting rate limits
             await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
@@ -146,13 +165,13 @@ const JustificationGenerator = () => {
                 return 'error';
             }
         } catch (error) {
-            addLog(`Error processing question ID: ${question.id}: ${error.message}`, 'error');
+            addLog(`Error processing question ID: ${question.id}: ${getErrorMessage(error)}`, 'error');
             return 'error';
         }
     }, [addLog, updateQuestionJustification]);
 
     // Process a batch of questions
-    const processBatch = useCallback(async (batchNumber) => {
+    const processBatch = useCallback(async (batchNumber: number): Promise<boolean> => {
         // Fetch batch of questions
         const questions = await fetchQuestionsBatch(batchNumber);
 
@@ -163,7 +182,7 @@ const JustificationGenerator = () => {
 
         addLog(`Starting to process ${questions.length} questions in batch #${batchNumber + 1}`, 'info');
 
-        const localStats = { ...stats };
+        const localStats: ProcessingStats = { ...stats };
 
         // Process each question in the batch
         for (let i = 0; i < questions.length; i++) {
@@ -235,7 +254,7 @@ const JustificationGenerator = () => {
 
             addLog('All questions processed successfully!', 'success');
         } catch (error) {
-            addLog(`Process error: ${error.message}`, 'error');
+            addLog(`Process error: ${getErrorMessage(error)}`, 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -261,7 +280,7 @@ const JustificationGenerator = () => {
             setLogs([]);
             addLog('Progress reset successfully', 'info');
         } catch (error) {
-            addLog(`Error resetting progress: ${error.message}`, 'error');
+            addLog(`Error resetting progress: ${getErrorMessage(error)}`, 'error');
         }
     }, [addLog]);
 
@@ -353,7 +372,7 @@ const JustificationGenerator = () => {
                     {logs.map(log => (
                         <View key={log.id} style={styles.logEntry}>
                             <Text style={styles.logTimestamp}>{log.timestamp}</Text>
-                            <Text style={[styles.logMessage, styles[`${log.type}Text`]]}>
+                            <Text style={[styles.logMessage, log.type === 'success' ? styles.successText : log.type === 'error' ? styles.errorText : styles.infoText]}>
                                 {log.message}
                             </Text>
                         </View>

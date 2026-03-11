@@ -1,0 +1,454 @@
+
+> elearn_mobile@1.0.0 lint
+> expo lint
+
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_NOTCHPAY_API_KEY DATABASE_URL EXPO_PUBLIC_GEMINI_API_KEY EXPO_PUBLIC_POSTHOG_API_KEY
+Using legacy ESLint config. Consider upgrading to flat config.
+
+D:\Projets\elearn_mobile\app\(app)\learn\[pdId]\anales\[filePath]\[fileId].tsx
+   42:10  error  '_' is assigned a value but never used                @typescript-eslint/no-unused-vars
+  104:9   error  'filePath' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  105:9   error  'pdId' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  121:23  error  'error' is assigned a value but never used            @typescript-eslint/no-unused-vars
+  133:16  error  'error' is defined but never used                     @typescript-eslint/no-unused-vars
+  170:37  error  'archiveError' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  176:40  error  'correctionError' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  182:40  error  'completionError' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  250:21  error  Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\app\(app)\learn\[pdId]\anales\index.tsx
+  139:10  error  'isEnrolled' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\learn\[pdId]\courses\[courseId]\_layout.tsx
+   1:17  error  'Tabs' is defined but never used                @typescript-eslint/no-unused-vars
+   2:10  error  'Redirect' is defined but never used            @typescript-eslint/no-unused-vars
+   6:10  error  'useColorScheme' is defined but never used      @typescript-eslint/no-unused-vars
+  10:11  error  'session' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  10:20  error  'isLoading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  10:31  error  'user' is assigned a value but never used       @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\learn\[pdId]\courses\[courseId]\lessons\[sectionId]\_layout.tsx
+   2:17  error  'Tabs' is defined but never used                @typescript-eslint/no-unused-vars
+   3:10  error  'Redirect' is defined but never used            @typescript-eslint/no-unused-vars
+   7:10  error  'useColorScheme' is defined but never used      @typescript-eslint/no-unused-vars
+  11:11  error  'session' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  11:20  error  'isLoading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  11:31  error  'user' is assigned a value but never used       @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\learn\[pdId]\courses\[courseId]\lessons\layout.tsx
+   1:17  error  'Tabs' is defined but never used                @typescript-eslint/no-unused-vars
+   2:10  error  'Redirect' is defined but never used            @typescript-eslint/no-unused-vars
+   6:10  error  'useColorScheme' is defined but never used      @typescript-eslint/no-unused-vars
+  10:11  error  'session' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  10:20  error  'isLoading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  10:31  error  'user' is assigned a value but never used       @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\learn\[pdId]\courses\index.tsx
+  154:11  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  162:9   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  238:5   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+D:\Projets\elearn_mobile\app\(app)\learn\[pdId]\exercices\index.tsx
+   58:12  error  'isEnrolled' is assigned a value but never used                                                                                                                @typescript-eslint/no-unused-vars
+  138:13  error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer  @typescript-eslint/ban-ts-comment
+  187:17  error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer  @typescript-eslint/ban-ts-comment
+  217:53  error  Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+  264:58  error  Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\app\(app)\learn\[pdId]\flashcards\index.tsx
+    1:35  error  'useEffect' is defined but never used                                  @typescript-eslint/no-unused-vars
+   39:17  error  'setCards' is assigned a value but never used                          @typescript-eslint/no-unused-vars
+  132:11  error  'item' is assigned a value but never used                              @typescript-eslint/no-unused-vars
+  133:5   error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  274:45  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\app\(app)\learn\[pdId]\payment.tsx
+  44:19  error  'hookErrorMessage' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  50:5   error  'mutateLatestPayment' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\learn\[pdId]\quizzes\[quizId]\[attemptId]\index.tsx
+    1:26  error  'useEffect' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+   41:12  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   69:22  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  120:15  error  'fontSize' is assigned a value but never used                                                                        @typescript-eslint/no-unused-vars
+  367:17  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  429:11  error  'router' is assigned a value but never used                                                                          @typescript-eslint/no-unused-vars
+  430:20  error  'attemptId' is assigned a value but never used                                                                       @typescript-eslint/no-unused-vars
+  430:31  error  'pdId' is assigned a value but never used                                                                            @typescript-eslint/no-unused-vars
+  432:36  error  'status' is assigned a value but never used                                                                          @typescript-eslint/no-unused-vars
+  440:29  error  'quizLoading' is assigned a value but never used                                                                     @typescript-eslint/no-unused-vars
+  580:21  error  'pdId' is assigned a value but never used                                                                            @typescript-eslint/no-unused-vars
+  582:29  error  'isCompleted' is assigned a value but never used                                                                     @typescript-eslint/no-unused-vars
+  582:42  error  'isNewlyCompleted' is assigned a value but never used                                                                @typescript-eslint/no-unused-vars
+  582:60  error  'results' is assigned a value but never used                                                                         @typescript-eslint/no-unused-vars
+  584:52  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  626:45  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\app\(app)\learn\[pdId]\quizzes\[quizId]\layout.tsx
+  1:17  error  'Tabs' is defined but never used            @typescript-eslint/no-unused-vars
+  2:10  error  'Redirect' is defined but never used        @typescript-eslint/no-unused-vars
+  5:10  error  'useAuth' is defined but never used         @typescript-eslint/no-unused-vars
+  6:10  error  'useColorScheme' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\learn\generous-week.tsx
+  111:18  error  'rpcError' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\learn\index.tsx
+  6:5  error  'ScrollView' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\manuel\_layout.tsx
+   2:9   error  'Portal' is defined but never used                         @typescript-eslint/no-unused-vars
+   3:16  error  'useState' is defined but never used                       @typescript-eslint/no-unused-vars
+   5:8   error  'FloatingChatButton' is defined but never used             @typescript-eslint/no-unused-vars
+  16:61  error  'initialChatSessionId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\manuel\anciens-sujets\index.tsx
+  56:3  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  62:3  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  64:5  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  67:3  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  69:3  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+D:\Projets\elearn_mobile\app\(app)\manuel\index.tsx
+  25:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  79:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\app\(app)\profile\delete-account.tsx
+  41:13  error  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\profile\editProfile.tsx
+    6:5   error  'ScrollView' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+   25:9   error  'width' is assigned a value but never used                                                                           @typescript-eslint/no-unused-vars
+   53:31  error  'isLoading' is assigned a value but never used                                                                       @typescript-eslint/no-unused-vars
+   53:42  error  'error' is assigned a value but never used                                                                           @typescript-eslint/no-unused-vars
+  167:11  error  'headerHeight' is assigned a value but never used                                                                    @typescript-eslint/no-unused-vars
+  173:11  error  'headerTitleOpacity' is assigned a value but never used                                                              @typescript-eslint/no-unused-vars
+  199:17  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  282:29  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+D:\Projets\elearn_mobile\app\(app)\profile\index.tsx
+   32:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\app\(app)\profile\paiements.tsx
+    6:5   error  'ActivityIndicator' is defined but never used  @typescript-eslint/no-unused-vars
+   95:37  error  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  108:36  error  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  239:67  error  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\app\(app)\profile\settings.tsx
+    1:46  error  'useCallback' is defined but never used                  @typescript-eslint/no-unused-vars
+   33:8   error  'ReminderModal' is defined but never used                @typescript-eslint/no-unused-vars
+   48:11  error  'router' is assigned a value but never used              @typescript-eslint/no-unused-vars
+   54:35  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+   68:35  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+   72:49  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  118:29  error  'setDarkModeEnabled' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  331:34  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\app\(app)\profile\support.disabled\[ticketId].tsx
+   25:10  error  'useRoute' is defined but never used             @typescript-eslint/no-unused-vars
+  161:11  error  'handleCall' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\profile\whatsapp-support.tsx
+  68:26  error  'webError' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\secondary\program\[programId]\courses\[courseId]\lessons\[sectionId]\index.tsx
+  59:11  error  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\secondary\program\[programId]\courses\[courseId]\videos\[videoId].tsx
+   31:3  error  'programId' is defined but never used               @typescript-eslint/no-unused-vars
+   32:3  error  'courseId' is defined but never used                @typescript-eslint/no-unused-vars
+  193:9  error  'playNextVideo' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\secondary\program\[programId]\documents\index.tsx
+  392:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\app\(app)\secondary\program\[programId]\exercices\index.tsx
+   18:52  error  Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+  149:13  error  'updatedExercises' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\secondary\program\[programId]\index.tsx
+  54:16  error  'isProgressLoading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\secondary\program\[programId]\quizzes\[quizId]\[attemptId]\index.tsx
+  1:8  error  'React' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\secondary\program\[programId]\quizzes\[quizId]\[attemptId]\temp.tsx
+  1:8   error  'React' is defined but never used                 @typescript-eslint/no-unused-vars
+  2:10  error  'useLocalSearchParams' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(app)\secondary\program\[programId]\quizzes\index.tsx
+  25:5  error  'mutate' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(auth)\_layout.tsx
+  47:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\app\(auth)\forgot_password.tsx
+  402:18  error  'error' is defined but never used                                      @typescript-eslint/no-unused-vars
+  402:25  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  440:18  error  'error' is defined but never used                                      @typescript-eslint/no-unused-vars
+  495:17  error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  538:18  error  'error' is defined but never used                                      @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(auth)\index.tsx
+  409:3  error  'isDark' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\app\(auth)\register.tsx
+  138:10  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  172:17  error  'setEmail' is assigned a value but never used                                                                        @typescript-eslint/no-unused-vars
+  344:9   error  'validateEmail' is assigned a value but never used                                                                   @typescript-eslint/no-unused-vars
+  446:21  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  504:14  error  'error' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+  533:14  error  'error' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+  924:76  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\app\concours-blanc-register.tsx
+   34:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   58:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   91:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:35  error  'errorName' is defined but never used     @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\AppleLogin.tsx
+   1:19  error  'TouchableOpacity' is defined but never used                                                                         @typescript-eslint/no-unused-vars
+   1:37  error  'Text' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+   7:9   error  'ThemedText' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+  11:34  error  'signOut' is assigned a value but never used                                                                         @typescript-eslint/no-unused-vars
+  34:40  error  'user' is assigned a value but never used                                                                            @typescript-eslint/no-unused-vars
+  62:25  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  64:25  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+D:\Projets\elearn_mobile\components\ExternalLink.tsx
+  14:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\components\GQ.tsx
+  25:42  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  30:26  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  55:56  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  55:68  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  55:87  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  63:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+D:\Projets\elearn_mobile\components\QuizList.tsx
+  252:12  error  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\RatingModal.tsx
+  21:15  error  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\TestNotifications.tsx
+   35:90  error  'response' is defined but never used                                   @typescript-eslint/no-unused-vars
+   40:13  error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   42:13  error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  109:13  error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+D:\Projets\elearn_mobile\components\TopBar.tsx
+  16:51  error  'streaks' is defined but never used          @typescript-eslint/no-unused-vars
+  16:60  error  'xp' is defined but never used               @typescript-eslint/no-unused-vars
+  16:64  error  'onChangeProgram' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\WhatsappSupport.tsx
+   3:5   error  'View' is defined but never used          @typescript-eslint/no-unused-vars
+  19:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\components\performance\OnboardingWeeklyPerformance.tsx
+     1:38  error  'useRef' is defined but never used                                     @typescript-eslint/no-unused-vars
+    23:3   error  'interpolate' is defined but never used                                @typescript-eslint/no-unused-vars
+    24:3   error  'SharedValue' is defined but never used                                @typescript-eslint/no-unused-vars
+    35:10  error  'ThemedView' is defined but never used                                 @typescript-eslint/no-unused-vars
+    36:10  error  'ThemedText' is defined but never used                                 @typescript-eslint/no-unused-vars
+    37:10  error  'supabase' is defined but never used                                   @typescript-eslint/no-unused-vars
+    40:38  error  'SCREEN_HEIGHT' is assigned a value but never used                     @typescript-eslint/no-unused-vars
+   136:11  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   152:11  error  'GestureContext' is defined but never used                             @typescript-eslint/no-unused-vars
+   252:3   error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   400:11  error  'user' is assigned a value but never used                              @typescript-eslint/no-unused-vars
+   416:10  error  'achievements' is assigned a value but never used                      @typescript-eslint/no-unused-vars
+   416:24  error  'setAchievements' is assigned a value but never used                   @typescript-eslint/no-unused-vars
+   439:35  error  'activeDays' is assigned a value but never used                        @typescript-eslint/no-unused-vars
+   636:14  error  'error' is defined but never used                                      @typescript-eslint/no-unused-vars
+   940:38  error  'index' is defined but never used                                      @typescript-eslint/no-unused-vars
+  1119:46  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\components\performance\WeeklyPerformance.tsx
+   2:16  error  'Text' is defined but never used          @typescript-eslint/no-unused-vars
+   2:46  error  'Dimensions' is defined but never used    @typescript-eslint/no-unused-vars
+   8:3   error  'withSequence' is defined but never used  @typescript-eslint/no-unused-vars
+  10:3   error  'Easing' is defined but never used        @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\settings\ReminderModal.tsx
+   7:10  error  'HapticType' is defined but never used        @typescript-eslint/no-unused-vars
+  32:13  error  'trigger' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  41:34  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\components\shared\AiChat.tsx
+   20:13  error  'FileSystem' is defined but never used       @typescript-eslint/no-unused-vars
+   49:11  error  'Chat' is defined but never used             @typescript-eslint/no-unused-vars
+   58:21  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+   59:22  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+   60:24  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+   69:59  error  'handleBackPress' is defined but never used  @typescript-eslint/no-unused-vars
+   80:52  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  252:53  error  'index' is defined but never used            @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\shared\BlockNoteContent.tsx
+  102:68  error  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  299:3   error  'style' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\shared\ChatBot.tsx
+    1:58  error  'RefObject' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+    8:5   error  'ScrollView' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+   27:10  error  'ThemedText' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+   37:11  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  332:35  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  390:43  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  639:17  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+D:\Projets\elearn_mobile\components\shared\CompetitionPaymentBottomSheet.tsx
+   13:3   error  'KeyboardAvoidingView' is defined but never used           @typescript-eslint/no-unused-vars
+   52:10  error  'promoCode' is assigned a value but never used             @typescript-eslint/no-unused-vars
+   69:5   error  'latestPaymentLoading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   77:5   error  'checkAccess' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  214:42  error  Unexpected any. Specify a different type                   @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\components\shared\CourseRowItem.tsx
+  12:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:67  error  'pdId' is defined but never used          @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\shared\FloatingChatButton.tsx
+  5:5  error  'View' is defined but never used  @typescript-eslint/no-unused-vars
+  9:5  error  'Text' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\shared\GeminiChatBot.tsx
+  17:5   error  'ScrollView' is defined but never used    @typescript-eslint/no-unused-vars
+  63:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  64:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\components\shared\NewChatBot.tsx
+   40:11  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  576:43  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  979:25  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+D:\Projets\elearn_mobile\components\shared\PaymentGuideModal.tsx
+  16:9  error  'width' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\shared\Profile\DownloadBill.tsx
+  31:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\components\shared\Profile\TicketsList.tsx
+  12:11  error  'router' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\shared\ProgramCard.tsx
+  33:28  error  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  53:59  error  'duration' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  66:59  error  'features' is defined but never used           @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\shared\learn\LearningPathCard.tsx
+   29:8  error  'width' is assigned a value but never used                                                                           @typescript-eslint/no-unused-vars
+  108:9  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  118:9  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+D:\Projets\elearn_mobile\components\shared\learn\exercices\ExerciceCard.tsx
+  33:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\components\shared\learn\quiz\ExerciseInstructionsDrawer.tsx
+   15:19  error  'RenderImageFunction' is defined but never used                                                                      @typescript-eslint/no-unused-vars
+  210:7   error  'MarkdownImage' is assigned a value but never used                                                                   @typescript-eslint/no-unused-vars
+  250:22  error  'error' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+  415:36  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  415:46  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  416:19  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  417:17  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  418:37  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  419:56  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  419:64  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  419:78  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  419:90  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  452:9   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  615:70  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  618:49  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+D:\Projets\elearn_mobile\components\shared\learn\quiz\QuizAttempList.tsx
+   40:15  error  'SCREEN_WIDTH' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  116:11  error  'progress' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  130:42  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\components\shared\learn\quiz\QuizCategoryFilter.tsx
+    2:10  error  'View' is defined but never used          @typescript-eslint/no-unused-vars
+  163:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\components\shared\learn\quiz\QuizResultDisplay.tsx
+    6:3   error  'Pressable' is defined but never used                         @typescript-eslint/no-unused-vars
+   18:10  error  'QuizAttempt' is defined but never used                       @typescript-eslint/no-unused-vars
+   18:37  error  'QuizResults' is defined but never used                       @typescript-eslint/no-unused-vars
+   34:11  error  Unexpected any. Specify a different type                      @typescript-eslint/no-explicit-any
+  194:10  error  'isExplanationVisible' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  194:32  error  'setIsExplanationVisible' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  195:11  error  'handleSaveJustification' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  258:66  error  Unexpected any. Specify a different type                      @typescript-eslint/no-explicit-any
+
+D:\Projets\elearn_mobile\components\shared\learn\quiz\QuizRowItem.tsx
+  38:67  error  'pdId' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  54:5   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  56:5   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+D:\Projets\elearn_mobile\components\shared\news\NewsCardConcoursBlanc1.tsx
+  11:10  error  'MaterialCommunityIcons' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\shared\news\NewsCardExam.tsx
+  11:10  error  'MaterialCommunityIcons' is defined but never used  @typescript-eslint/no-unused-vars
+  22:11  error  'router' is assigned a value but never used         @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\shared\onboarding\Bill.tsx
+   36:9   error  'NotchPayService' is defined but never used                            @typescript-eslint/no-unused-vars
+   37:9   error  'CartService' is defined but never used                                @typescript-eslint/no-unused-vars
+   44:7   error  'isSmallDevice' is assigned a value but never used                     @typescript-eslint/no-unused-vars
+   45:7   error  'isTablet' is assigned a value but never used                          @typescript-eslint/no-unused-vars
+  123:12  error  'orientation' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+  145:32  error  'cartLoading' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+  148:9   error  'initiatePayment' is assigned a value but never used                   @typescript-eslint/no-unused-vars
+  156:12  error  'user' is assigned a value but never used                              @typescript-eslint/no-unused-vars
+  173:64  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  174:12  error  'baseTotal' is assigned a value but never used                         @typescript-eslint/no-unused-vars
+  175:12  error  'bundleDiscount' is assigned a value but never used                    @typescript-eslint/no-unused-vars
+  177:14  error  'shouldUsePaymentStatus' is defined but never used                     @typescript-eslint/no-unused-vars
+  182:9   error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+D:\Projets\elearn_mobile\components\shared\onboarding\Main.tsx
+   37:7   error  'isSmallDevice' is assigned a value but never used     @typescript-eslint/no-unused-vars
+   38:7   error  'isLargeDevice' is assigned a value but never used     @typescript-eslint/no-unused-vars
+   51:7   error  'STATUSBAR_HEIGHT' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   60:17  error  'signOut' is assigned a value but never used           @typescript-eslint/no-unused-vars
+   80:62  error  Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+  243:15  error  'data' is assigned a value but never used              @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\shared\onboarding\Programs.tsx
+   12:3   error  'Pressable' is defined but never used                        @typescript-eslint/no-unused-vars
+   25:8   error  'Animated' is defined but never used                         @typescript-eslint/no-unused-vars
+   70:11  error  'FilterOption' is defined but never used                     @typescript-eslint/no-unused-vars
+  112:30  error  'planId' is defined but never used                           @typescript-eslint/no-unused-vars
+  156:14  error  'rpcErr' is defined but never used                           @typescript-eslint/no-unused-vars
+  280:14  error  'procErr' is defined but never used                          @typescript-eslint/no-unused-vars
+  451:54  error  Unexpected any. Specify a different type                     @typescript-eslint/no-explicit-any
+  478:21  error  'data' is defined but never used                             @typescript-eslint/no-unused-vars
+  487:39  error  'filterOptionsError' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  506:11  error  'cartTotalBeforeFormula' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  664:10  error  'prevPrograms' is assigned a value but never used            @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\shared\onboarding\UserForm.tsx
+  55:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  59:12  error  'convertDate' is defined but never used   @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\ui\IconSymbol.tsx
+  6:49  error  'ViewStyle' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projets\elearn_mobile\components\ui\OTPInput.tsx
+  11:3  error  'Clipboard' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 296 problems (296 errors, 0 warnings)
+

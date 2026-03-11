@@ -19,7 +19,7 @@ const isTransientNetworkError = (error: unknown) => {
 };
 
 const UserActivityTracker: React.FC = () => {
-    const [sessionId, setSessionId] = useState<number | null>(null);
+    const [sessionId, setSessionId] = useState<string | null>(null);
     const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null);
     const pathname = usePathname();
     const { user } = useAuth();
@@ -48,7 +48,7 @@ const UserActivityTracker: React.FC = () => {
             .from('user_activity')
             .insert({
                 user_id: user?.id,
-                session_start: new Date(),
+                session_start: new Date().toISOString(),
                 status: 'active',
                 device_type: "mobile"
             })
@@ -68,7 +68,7 @@ const UserActivityTracker: React.FC = () => {
             const { error } = await supabase
                 .from('user_activity')
                 .update({
-                    last_heartbeat: new Date(),
+                    last_heartbeat: new Date().toISOString(),
                 })
                 .eq('id', sessionId);
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { logger } from '@/utils/logger';
 import useSWR from "swr";
 
+import { logger } from '@/utils/logger';
 import { supabase } from "@/lib/supabase";
 import { programProgressKeys } from "@/constants/swr-path";
 
@@ -23,7 +23,7 @@ interface Concours {
 }
 
 interface ArchiveComplete {
-  id: string;
+  id: number;
 }
 
 interface ConcoursLearningPath {
@@ -63,7 +63,7 @@ interface LearningPath {
 }
 
 interface CourseProgress {
-  course_id: string;
+  course_id: number;
   progress_percentage: number;
 }
 
@@ -332,7 +332,7 @@ export const useProgramProgress = (
               if (error) {
                 throw error;
               }
-              return (data as CourseProgress[]) || [];
+              return (data as unknown as CourseProgress[]) || [];
             }),
 
           // Fetch only relevant quiz attempts
@@ -357,14 +357,16 @@ export const useProgramProgress = (
             .eq("user_id", userId)
             .in(
               "archive_id",
-              relevantArchivesIds.length ? relevantArchivesIds : []
+              relevantArchivesIds.length
+                ? relevantArchivesIds.map((id) => Number(id))
+                : []
             ) // Ajout d'une condition pour ne pas faire une requête IN vide
             .then(({ data, error }) => {
               if (error) {
                 // Non-blocking error: logging for debugging purposes only
                 return [];
               }
-              return (data as ArchiveComplete[]) || [];
+              return (data as unknown as ArchiveComplete[]) || [];
             }),
         ]);
 

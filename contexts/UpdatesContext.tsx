@@ -29,8 +29,8 @@ export function UpdatesProvider({ children }: UpdatesProviderProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const backgroundCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const backgroundCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastCheckTimeRef = useRef<number>(0);
 
   const checkForUpdates = useCallback(async () => {

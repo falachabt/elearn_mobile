@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Href, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -94,7 +94,7 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [filterType, setFilterType] = useState<FilterType>("all");
-  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Handle search debouncing - notify parent after user stops typing
   React.useEffect(() => {
@@ -494,7 +494,7 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
               }}
               onPress={() => {
                 trigger(HapticType.LIGHT);
-                router.push(`${baseRoute}/${item.exercise.id}` as never);
+                router.push(`${baseRoute}/${item.exercise.id}` as Href);
               }}
               onPinPress={async (e) => {
                 e?.stopPropagation();

@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/auth';
 import { Colors } from '@/constants/Colors';
 import { logger } from '@/utils/logger';
 import {theme} from "@/constants/theme";
+import type { Json } from '@/types/supabase';
 
 const RatingModal = () => {
   const [modalVisible, setModalVisible] = useState(true);
@@ -18,9 +19,9 @@ const RatingModal = () => {
 
   const handleRateNow = async () => {
     if (user) {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('accounts')
-        .update({ metadata: { ...user.metadata, hasRated: true } })
+        .update({ metadata: { ...user.metadata, hasRated: true } as unknown as Json })
         .eq('id', user.id);
 
       if (error) {

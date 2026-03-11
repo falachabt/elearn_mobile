@@ -9,7 +9,9 @@
   Modal,
   FlatList,
   ActivityIndicator,
-  Pressable
+  Pressable,
+  type DimensionValue,
+  type ViewStyle
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -33,39 +35,50 @@ import { logger } from '@/utils/logger';
 
 interface Program {
   id: number;
-  price: number;
+  price: number | null;
   learning_path: {
     id: string;
-    title: string;
-    description: string;
-    course_count: number;
-    quiz_count: number;
-    status: string;
-    duration: string;
+    title: string | null;
+    description: string | null;
+    course_count: number | null;
+    quiz_count: number | null;
+    status: string | null;
+    duration: string | null;
     image: {
       src: string;
-    };
-  };
+    } | null;
+  } | null;
   concour: {
     id: string;
-    name: string;
+    name: string | null;
     image: {
       url: string;
-    };
-    schoolId: string;
-    city_id: string;
-    cycle_id: string;
-    nextDate: string;
-  };
+    } | null;
+    schoolId: string | null;
+    city_id: string | null;
+    cycle_id: string | null;
+    nextDate: string | null;
+    school?: {
+      id: string;
+      name: string | null;
+    } | null;
+  } | null;
   exerciseCount?: number;
   archiveCount?: number;
   programDetails?: {
     courses: { id: number; name: string }[];
     quizzes: { id: string; name: string }[];
     exercises: { id: string; title: string }[];
-    archives: { id: number; name: string; session: string }[];
+    archives: { id: string; name: string; session: string }[];
   };
 }
+
+type ProgramDetails = NonNullable<Program['programDetails']>;
+type FilterOptions = {
+  cycles: FilterOption[];
+  cities: FilterOption[];
+  schools: FilterOption[];
+};
 
 interface FilterOption {
   id: string;
@@ -115,6 +128,10 @@ const FormulaProgressBar = ({planId, currentCount, threshold, color, isDark}: {p
 
   // Dynamic width for progress bar
   const progressWidth = `${progress * 100}%`;
+  const progressFillStyle: ViewStyle = {
+    width: progressWidth as DimensionValue,
+    backgroundColor: color,
+  };
 
   return (
       <View style={styles.progressBarContainer}>
@@ -125,7 +142,7 @@ const FormulaProgressBar = ({planId, currentCount, threshold, color, isDark}: {p
           <View
               style={[
                 styles.progressBarFill,
-                { width: progressWidth, backgroundColor: color }
+                progressFillStyle
               ]}
           />
         </View>
@@ -142,31 +159,19 @@ const FormulaProgressBar = ({planId, currentCount, threshold, color, isDark}: {p
 };
 
 // Optimized fetcher for programs
-const optimizedProgramsFetcher = async () => {
+const optimizedProgramsFetcher = async (): Promise<Program[]> => {
   try {
-    // Try using the stored procedure first
-    try {
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_available_programs', {
-        p_user_id: '00000000-0000-0000-0000-000000000000' // Default user ID if none provided
-      });
-
-      if (!rpcError && rpcData) {
-        return rpcData;
-      }
-    } catch (rpcErr) {
-      // Fallback to standard query
-    }
-
-    // Fallback to standard query with corrected filter for active schools
+    // Standard query with corrected filter for active schools
     // First, get all active schools
     const { data: activeSchools, error: schoolsError } = await supabase
         .from("schools")
-        .select("id")
-        .eq("isActive", true);
+        .select("id, isActive");
 
     if (schoolsError) throw schoolsError;
 
-    const activeSchoolIds = activeSchools.map(school => school.id);
+    const activeSchoolIds = (activeSchools ?? [])
+      .filter((school) => school.isActive)
+      .map((school) => school.id);
 
     // Get all programs with active schools
     const { data, error } = await supabase
@@ -174,6 +179,7 @@ const optimizedProgramsFetcher = async () => {
         .select(`
         id, 
         price, 
+        isActive,
         concour:concourId(
           id, 
           name, 
@@ -193,32 +199,42 @@ const optimizedProgramsFetcher = async () => {
           duration, 
           image
         )
-      `)
-        .eq("isActive", true);
+      `);
 
     if (error) throw error;
 
     // Filter programs by active schools
-    const activePrograms = data.filter(program =>
-        activeSchoolIds?.includes(program.concour.school_id)
+    const typedPrograms = (data ?? []) as unknown as Array<
+      Program & { isActive?: boolean | null; concour: Program['concour'] & { school_id?: string | null } }
+    >;
+
+    const activePrograms = typedPrograms.filter(program =>
+        program.isActive && activeSchoolIds.includes(program.concour?.school_id ?? "")
     );
 
     // Process data with additional counts (exercises and archives)
     const processedData = await Promise.all(activePrograms.map(async program => {
       try {
         // Get learning path ID and concour ID
-        const lpId = program.learning_path.id;
-        const concourId = program.concour.id;
+        const lpId = program.learning_path?.id;
+        const concourId = program.concour?.id;
+
+        if (!lpId || !concourId || !program.concour?.school_id) {
+          return program;
+        }
 
         // Get school data for each program
+        const schoolId = program.concour.school_id;
         const { data: schoolData } = await supabase
             .from("schools")
             .select("id, name")
-            .eq("id", program.concour.school_id)
+            .eq("id", schoolId)
             .single();
 
         // Enrich with school data
-        program.concour.school = schoolData;
+        if (program.concour) {
+          program.concour.school = schoolData ?? null;
+        }
 
         // Get course IDs
         const { data: coursesData } = await supabase
@@ -264,24 +280,10 @@ const optimizedProgramsFetcher = async () => {
 };
 
 // Fetcher for program details
-const loadProgramDetails = async (programId: number) => {
+const loadProgramDetails = async (programId: number): Promise<ProgramDetails | null> => {
   if (!programId) return null;
 
   try {
-    // Try to use the stored procedure first
-    try {
-      const { data: procData, error: procError } = await supabase.rpc('get_program_details', {
-        p_program_id: programId
-      });
-
-      if (!procError && procData) {
-        return procData;
-      }
-    } catch (procErr) {
-      // Fallback to standard query
-    }
-
-    // Fallback to standard implementation
     // Get learning path and concour IDs for this program
     const { data: programData } = await supabase
         .from("concours_learningpaths")
@@ -292,6 +294,9 @@ const loadProgramDetails = async (programId: number) => {
     if (!programData) throw new Error("Program not found");
     const lpId = programData.learningPathId;
     const concourId = programData.concourId;
+    if (!lpId || !concourId) {
+      throw new Error("Program links are incomplete");
+    }
 
     return await fetchProgramDetails(lpId, concourId);
   } catch (error) {
@@ -301,7 +306,7 @@ const loadProgramDetails = async (programId: number) => {
 };
 
 // Original fetchProgramDetails function (used as fallback)
-const fetchProgramDetails = async (lpId: string, concourId: string) => {
+const fetchProgramDetails = async (lpId: string, concourId: string): Promise<ProgramDetails> => {
   try {
     // Fetch courses
     const { data: coursesData } = await supabase
@@ -326,15 +331,20 @@ const fetchProgramDetails = async (lpId: string, concourId: string) => {
         .eq("lpId", lpId);
 
     // Fetch exercises (indirectly through courses)
-    const courseIds = coursesData?.map(item => item.course?.id).filter(Boolean) || [];
-    let exercisesData = [];
+    const courseIds = coursesData
+      ?.map((item) => item.course?.id)
+      .filter((id): id is number => typeof id === "number") || [];
+    let exercisesData: ProgramDetails['exercises'] = [];
     if (courseIds.length > 0) {
       const { data: exercisesResult } = await supabase
           .from("exercices")
           .select("id, title")
           .in("course_id", courseIds);
 
-      exercisesData = exercisesResult || [];
+      exercisesData = (exercisesResult || []).map((exercise) => ({
+        id: exercise.id,
+        title: exercise.title ?? "Exercice",
+      }));
     }
 
     // Fetch archives
@@ -344,10 +354,25 @@ const fetchProgramDetails = async (lpId: string, concourId: string) => {
         .eq("concour_id", concourId);
 
     return {
-      courses: coursesData?.map(item => item.course) || [],
-      quizzes: quizzesData?.map(item => item.quiz) || [],
-      exercises: exercisesData || [],
-      archives: archivesData || []
+      courses:
+        coursesData
+          ?.map((item) => item.course)
+          .filter((course): course is NonNullable<typeof course> => Boolean(course))
+          .map((course) => ({ id: course.id, name: course.name ?? "Cours" })) || [],
+      quizzes:
+        quizzesData
+          ?.map((item) => item.quiz)
+          .filter((quiz): quiz is NonNullable<typeof quiz> => Boolean(quiz))
+          .map((quiz) => ({ id: quiz.id, name: quiz.name ?? "Quiz" })) || [],
+      exercises: exercisesData.map((exercise) => ({
+        id: exercise.id,
+        title: exercise.title ?? "Exercice",
+      })),
+      archives: (archivesData || []).map((archive) => ({
+        id: String(archive.id),
+        name: archive.name ?? "Archive",
+        session: archive.session ?? "",
+      }))
     };
   } catch (error) {
     logger.error("Error fetching program details:", error);
@@ -361,7 +386,7 @@ const fetchProgramDetails = async (lpId: string, concourId: string) => {
 };
 
 // Prefetch filter options
-const prefetchFilterOptions = async () => {
+const prefetchFilterOptions = async (): Promise<FilterOptions> => {
   try {
     // Fetch all filter options in parallel
     const [cyclesResponse, citiesResponse, schoolsResponse] = await Promise.all([
@@ -371,9 +396,9 @@ const prefetchFilterOptions = async () => {
     ]);
 
     return {
-      cycles: cyclesResponse.data || [],
-      cities: citiesResponse.data || [],
-      schools: schoolsResponse.data || []
+      cycles: (cyclesResponse.data || []).map((item) => ({ id: item.id, name: item.name ?? "" })),
+      cities: (citiesResponse.data || []).map((item) => ({ id: item.id, name: item.name ?? "" })),
+      schools: (schoolsResponse.data || []).map((item) => ({ id: item.id, name: item.name ?? "" }))
     };
   } catch (error) {
     logger.error("Error prefetching filter options:", error);
@@ -386,7 +411,7 @@ const prefetchFilterOptions = async () => {
 };
 
 // Skeleton loader component
-function ProgramSkeletonScreen({ isDark }) {
+function ProgramSkeletonScreen({ isDark }: { isDark: boolean }) {
   return (
       <View style={[styles.container, isDark && styles.containerDark]}>
         <View style={styles.searchContainer}>
@@ -428,8 +453,8 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
   const { addToCart, removeFromCart } = useCart();
 
   // Program details cache
-  const programDetailsCache = useRef(new Map());
-  const [programDetailsMap, setProgramDetailsMap] = useState({});
+  const programDetailsCache = useRef<Map<number, ProgramDetails | null>>(new Map());
+  const [programDetailsMap, setProgramDetailsMap] = useState<Record<number, ProgramDetails | null>>({});
 
   // Filter states
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -448,7 +473,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
   const ITEMS_PER_PAGE = 10;
 
   // Formula sheet states
-  const [suggestedPlan, setSuggestedPlan] = useState<any>(null);
+  const [suggestedPlan, setSuggestedPlan] = useState<(typeof PRICING_PLANS)[number] | null>(null);
   const formulaDetailsRef = useRef<BottomSheetModal>(null);
   const formulaProgressRef = useRef<BottomSheetModal>(null);
   const cartCheckoutRef = useRef<BottomSheetModal>(null);
@@ -465,7 +490,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
   }), [searchQuery, selectedCycle, selectedCity, selectedSchool, sortBy, priceRange]);
 
   // 1. Fetch programs with optimized SWR configuration
-  const { data: programs, error: programsError, isLoading: programsLoading } = useSWR(
+  const { data: programs, error: programsError, isLoading: programsLoading } = useSWR<Program[]>(
       'programss',
       optimizedProgramsFetcher,
       {
@@ -484,7 +509,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
   );
 
   // 2. Prefetch filter options in the background
-  const { data: filterOptions, error: filterOptionsError } = useSWR(
+  const { data: filterOptions, error: filterOptionsError } = useSWR<FilterOptions>(
       'filterOptions',
       prefetchFilterOptions,
       {
@@ -501,7 +526,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
     // Find prices for selected programs
     const selectedProgramPrices = programs
         ?.filter(program => selectedPrograms?.includes(program.id))
-        .map(program => program.price) || [];
+        .map(program => program.price ?? 0) || [];
 
     const cartTotalBeforeFormula = selectedProgramPrices.reduce((sum, price) => sum + price, 0);
 
@@ -598,21 +623,21 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
 
     // Apply price range filter
     filtered = filtered.filter(program =>
-        program?.price >= priceRange[0] && program?.price <= priceRange[1]
+        (program?.price ?? 0) >= priceRange[0] && (program?.price ?? 0) <= priceRange[1]
     );
 
     // Apply sorting
     switch(sortBy) {
       case 'price-asc':
-        filtered.sort((a, b) => a.price - b.price);
+        filtered.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
         break;
       case 'price-desc':
-        filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
         break;
       case 'date':
         filtered.sort((a, b) => {
-          const dateA = a.concour.nextDate ? new Date(a.concour.nextDate) : new Date();
-          const dateB = b.concour.nextDate ? new Date(b.concour.nextDate) : new Date();
+          const dateA = a.concour?.nextDate ? new Date(a.concour.nextDate) : new Date();
+          const dateB = b.concour?.nextDate ? new Date(b.concour.nextDate) : new Date();
           return dateA.getTime() - dateB.getTime();
         });
         break;
@@ -661,7 +686,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
       [filteredPrograms, getPaginatedResults]);
 
   // Persist programs between renders
-  const [prevPrograms, setPrevPrograms] = useState([]);
+  const [prevPrograms, setPrevPrograms] = useState<Program[]>([]);
 
   // Keep previous data until new data arrives
   useEffect(() => {
@@ -676,9 +701,9 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
     if (programDetailsCache.current.has(programId)) {
       const cachedDetails = programDetailsCache.current.get(programId);
       // Update state so component re-renders
-      setProgramDetailsMap(prev => ({
+      setProgramDetailsMap((prev) => ({
         ...prev,
-        [programId]: cachedDetails
+        [programId]: cachedDetails ?? null
       }));
       return cachedDetails;
     }
@@ -691,9 +716,9 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
         programDetailsCache.current.set(programId, details);
 
         // Update state so component re-renders with details
-        setProgramDetailsMap(prev => ({
+        setProgramDetailsMap((prev) => ({
           ...prev,
-          [programId]: details
+          [programId]: details as ProgramDetails
         }));
 
         return details;
@@ -747,7 +772,15 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
     cartCheckoutRef.current?.present();
   }, []);
 
-  const renderFilterOption = useCallback(({ item, selected, onSelect }) => (
+  const renderFilterOption = useCallback(({
+    item,
+    selected,
+    onSelect,
+  }: {
+    item: FilterOption;
+    selected: boolean;
+    onSelect: () => void;
+  }) => (
       <TouchableOpacity
           style={[
             styles.filterOption,
@@ -1037,7 +1070,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
     // Calculate current total and with formulas
     const currentTotal = programs
         ?.filter(program => selectedPrograms?.includes(program.id))
-        .reduce((sum, program) => sum + program.price, 0) || 0;
+        .reduce((sum, program) => sum + (program.price ?? 0), 0) || 0;
 
     const formulaPrice = calculateTotalPrice();
     const savings = Math.max(0, currentTotal - formulaPrice);
@@ -1268,7 +1301,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
     const selectedProgramDetails = programs
         ?.filter(program => selectedPrograms?.includes(program.id)) || [];
 
-    const currentTotal = selectedProgramDetails.reduce((sum, program) => sum + program.price, 0) || 0;
+    const currentTotal = selectedProgramDetails.reduce((sum, program) => sum + (program.price ?? 0), 0) || 0;
     const formulaPrice = calculateTotalPrice();
     const savings = Math.max(0, currentTotal - formulaPrice);
     const applicableFormula = getApplicableFormula();
@@ -1320,15 +1353,15 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
                           <View key={`cart-item-${program.id}`} style={styles.cartItemRow}>
                             <View style={styles.cartItemInfo}>
                               <Text style={[styles.cartItemTitle, isDark && styles.cartItemTitleDark]} numberOfLines={1}>
-                                {program.learning_path.title}
+                                {program.learning_path?.title ?? "Programme"}
                               </Text>
                               <Text style={[styles.cartItemSchool, isDark && styles.cartItemSchoolDark]} numberOfLines={1}>
-                                {program.concour.name}
+                                {program.concour?.name ?? "Concours"}
                               </Text>
                             </View>
                             <View style={styles.cartItemPrice}>
                               <Text style={[styles.cartItemPriceText, isDark && styles.cartItemPriceTextDark]}>
-                                {program.price.toLocaleString('fr-FR')} FCFA
+                                {(program.price ?? 0).toLocaleString('fr-FR')} FCFA
                               </Text>
                               <TouchableOpacity
                                   style={styles.removeItemButton}
@@ -1618,28 +1651,28 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
               renderItem={({ item }) => (
                   <ProgramCard
                       key={`program-${item.id}`}
-                      title={item.learning_path.title}
-                      description={item.learning_path.description}
-                      price={item.price}
+                      title={item.learning_path?.title ?? "Programme"}
+                      description={item.learning_path?.description ?? ""}
+                      price={item.price ?? 0}
                       features={[
-                        `Cours: ${item.learning_path.course_count}`,
-                        `Quiz: ${item.learning_path.quiz_count}`,
+                        `Cours: ${item.learning_path?.course_count ?? 0}`,
+                        `Quiz: ${item.learning_path?.quiz_count ?? 0}`,
                         `Exercices: ${item.exerciseCount || 0}`,
                         `Archives: ${item.archiveCount || 0}`,
                       ]}
-                      level={item.learning_path.status}
-                      duration={item.learning_path.duration}
-                      image={item.concour.image?.url}
-                      courseCount={item.learning_path.course_count}
-                      quizCount={item.learning_path.quiz_count}
+                      level={item.learning_path?.status ?? ""}
+                      duration={item.learning_path?.duration ?? undefined}
+                      image={item.concour?.image?.url}
+                      courseCount={item.learning_path?.course_count ?? 0}
+                      quizCount={item.learning_path?.quiz_count ?? 0}
                       exerciseCount={item.exerciseCount || 0}
                       archiveCount={item.archiveCount || 0}
-                      concoursName={item.concour.name}
-                      schoolName={item.concour.schoolId}
+                      concoursName={item.concour?.name ?? "Concours"}
+                      schoolName={item.concour?.schoolId ?? ""}
                       isSelected={selectedPrograms?.includes(item.id) || false}
                       onSelect={() => handleProgramSelect(item)}
                       isDark={isDark}
-                      programDetails={programDetailsMap[item.id]}
+                      programDetails={programDetailsMap[item.id] ?? undefined}
                       onExpand={() => handleProgramExpand(item.id)}
                   />
               )}
@@ -1664,7 +1697,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
                   </View>
               )}
               ListEmptyComponent={
-                programsLoading && !programs?.length ?
+                programsLoading && (programs?.length ?? 0) === 0 ?
                     <ActivityIndicator size="large" color={theme.color.primary[500]} style={{marginTop: 40}} /> :
                     renderEmptyState()
               }
@@ -1677,7 +1710,7 @@ const Programs: React.FC<ProgramsProps> = ({ knowsProgram, selectedPrograms, set
               }
               onEndReachedThreshold={0.5}
               ListFooterComponent={
-                programsLoading && programs?.length > 0 ? (
+                programsLoading && (programs?.length ?? 0) > 0 ? (
                     <ActivityIndicator size="small" color={theme.color.primary[500]} style={{marginVertical: 20}} />
                 ) : displayedPrograms?.length < filteredPrograms?.length ? (
                     <TouchableOpacity

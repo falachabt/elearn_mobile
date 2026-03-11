@@ -1,5 +1,4 @@
 import {ActivityIndicator, FlatList, TouchableOpacity, useColorScheme, View, StyleSheet, Platform, Text} from "react-native";
-import {useRouter} from "expo-router";
 import {MaterialIcons} from "@expo/vector-icons";
 
 import {theme} from "@/constants/theme";
@@ -9,7 +8,6 @@ const TicketsList = () => {
     const { tickets, loading, error } = useTickets();
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
-    const router = useRouter();
 
     if (loading) {
         return (

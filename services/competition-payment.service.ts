@@ -1,23 +1,9 @@
 ﻿import { supabase } from '@/lib/supabase';
 import { logger } from '@/utils/logger';
 import { NotchPayService } from '@/lib/notchpay';
+import type { Database } from '@/types/supabase';
 
-export interface CompetitionPayment {
-  id: string;
-  user_id: string;
-  competition_id: string;
-  amount: number;
-  payment_date: string;
-  expiry_date: string;
-  payment_reference: string;
-  payment_status: string;
-  payment_provider: string;
-  phone_number: string;
-  promo_code_id?: string;
-  has_seen_results?: boolean;
-  created_at: string;
-  updated_at: string;
-}
+export type CompetitionPayment = Database['public']['Tables']['user_competition_payments']['Row'];
 
 export const CompetitionPaymentService = {
   // Mark the payment result as seen by the user
@@ -42,12 +28,18 @@ export const CompetitionPaymentService = {
     trx_reference: string,
     promoCodeId?: string
   ): Promise<CompetitionPayment> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user?.id) {
+      throw new Error('User not authenticated');
+    }
+
     const { data: payment, error } = await supabase
       .from('user_competition_payments')
       .insert({
         competition_id: competitionId,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        user_id: user.id,
         amount,
+        expiry_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         payment_status: 'pending',
         phone_number: phoneNumber,
         payment_provider: phoneNumber.startsWith('655') ? 'orange' : 'mtn',
@@ -62,7 +54,7 @@ export const CompetitionPaymentService = {
       throw new Error(error.message);
     }
 
-    return payment;
+    return payment as CompetitionPayment;
   },
 
   async setStatus(paymentId: string, status: string) {
@@ -84,14 +76,17 @@ export const CompetitionPaymentService = {
     return supabase
       .channel('competition_payments')
       .on(
-        'postgres_changes' as any,
+        'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'user_competition_payments',
           filter: `id=eq.${paymentId}`
         },
-        (payload: { new: { payment_status: string } }) => callback(payload.new.payment_status, payload.new as CompetitionPayment)
+        (payload) => callback(
+          (payload.new as { payment_status: string }).payment_status,
+          payload.new as CompetitionPayment
+        )
       )
       .subscribe();
   },
@@ -121,7 +116,7 @@ export const CompetitionPaymentService = {
       .from('user_competition_payments')
       .select('*')
       .eq('user_id', user.id)
-      .eq('competition_id', competitionId)
+      .eq('competition_id', String(competitionId))
       .eq('payment_status', 'completed')
       .gt('expiry_date', new Date().toISOString())
       .order('created_at', { ascending: false })
@@ -137,7 +132,7 @@ export const CompetitionPaymentService = {
       throw new Error(error.message);
     }
 
-    return data;
+    return data as CompetitionPayment;
   },
 
   async getLatestPayment(competitionId: string): Promise<CompetitionPayment | null> {
@@ -162,7 +157,7 @@ export const CompetitionPaymentService = {
       throw new Error(error.message);
     }
 
-    return data;
+    return data as CompetitionPayment;
   },
 
   // Check if a payment status is final (completed or canceled)

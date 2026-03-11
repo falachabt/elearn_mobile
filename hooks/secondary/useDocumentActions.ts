@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { logger } from '@/utils/logger';
 import useSWR, { mutate as globalMutate } from 'swr';
 
+import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/auth';
 import {
   markDocumentAsComplete,

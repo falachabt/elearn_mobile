@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { logger } from '@/utils/logger';
 import useSWR from 'swr';
 
+import { logger } from '@/utils/logger';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
 

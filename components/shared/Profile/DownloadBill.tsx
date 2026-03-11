@@ -4,6 +4,7 @@ import {Pressable, StyleSheet, Text} from 'react-native';
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 import {theme} from "@/constants/theme";
+import { logger } from '@/utils/logger';
 
 const downloadInvoice = async (paymentId: { paymentId: string }) => {
     try {
@@ -28,7 +29,7 @@ const downloadInvoice = async (paymentId: { paymentId: string }) => {
                 dialogTitle: 'Votre facture',
             });
         }
-    } catch (err: any) {
+    } catch (err: unknown) {
         logger.error('Error downloading invoice:', err);
         throw err;
     }
@@ -39,8 +40,8 @@ export const DownloadBill = (paymentId: { paymentId: string }) => {
     const handleDownload = async () => {
         try {
             await downloadInvoice(paymentId);
-        } catch (err: any) {
-            logger.error('Error during downloading:', err.message);
+        } catch (err: unknown) {
+            logger.error('Error during downloading:', err);
             // Handle error (show alert, etc.)
         }
     };

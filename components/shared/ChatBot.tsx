@@ -1,5 +1,4 @@
 ﻿import React, {useState, useRef, useEffect, useCallback, RefObject} from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -23,6 +22,7 @@ import { usePathname } from 'expo-router';
 import { useSWRConfig } from 'swr';
 import Markdown from 'react-native-markdown-display';
 
+import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 import { ThemedText } from '@/components/ThemedText';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';

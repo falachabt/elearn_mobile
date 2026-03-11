@@ -4,6 +4,7 @@ import Pdf from 'react-native-pdf';
 import * as ScreenCapture from 'expo-screen-capture';
 
 import {theme} from "@/constants/theme";
+import { logger } from '@/utils/logger';
 
 // Interface minimale commune aux fichiers (anales + secondary_documents)
 export interface FileViewerFile {

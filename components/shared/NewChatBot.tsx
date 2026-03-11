@@ -1,5 +1,4 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -24,6 +23,7 @@ import { usePathname } from 'expo-router';
 import { useSWRConfig } from 'swr';
 import Markdown from 'react-native-markdown-display';
 
+import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 import { ThemedText } from '@/components/ThemedText';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
@@ -37,7 +37,71 @@ export interface ContextElement {
     id: string;
     type: 'program' | 'course' | 'lesson' | 'exercise' | 'quiz' | 'archive' | 'video';
     title: string;
-    data: any; // Actual data from SWR cache
+    data: ContextElementData | null;
+}
+
+interface ContextElementData {
+    title?: string | null;
+    name?: string | null;
+    description?: string | null;
+    course_count?: number | null;
+    course_learningpath?: ProgramCourseSummary[];
+    concours_learningpaths?: {
+        concour?: {
+            name?: string | null;
+            school?: {
+                name?: string | null;
+            } | null;
+        } | null;
+    } | null;
+    level?: string | null;
+    duration?: number | string | null;
+    category?: {
+        name?: string | null;
+    } | null;
+    goals?: string[] | string | null;
+    courses_content?: LessonSummary[];
+    prerequisites?: string | null;
+    quiz_count?: number | null;
+    exercise_count?: number | null;
+    order?: number | null;
+    courses?: {
+        name?: string | null;
+    } | null;
+    content?: string | null;
+    has_quiz?: boolean | null;
+    has_exercises?: boolean | null;
+    keywords?: string[] | null;
+    resources?: ResourceSummary[] | null;
+    course?: {
+        name?: string | null;
+    } | null;
+    lesson?: {
+        name?: string | null;
+    } | null;
+    instructions?: string | null;
+    difficulty?: string | null;
+    points?: number | null;
+    tags?: string[] | null;
+    hints?: Array<HintSummary | string> | null;
+    solution?: unknown;
+    quiz_questions?: QuizQuestionSummary[] | null;
+    passing_score?: number | null;
+    time_limit?: number | null;
+    session?: string | null;
+    file_type?: string | null;
+    year?: number | string | null;
+    subject?: string | null;
+    school?: string | null;
+    concours?: string | null;
+    author?: string | null;
+    size?: number | null;
+    download_count?: number | null;
+    transcript?: string | null;
+    view_count?: number | null;
+    quality?: string | null;
+    chapters?: VideoChapterSummary[] | null;
+    related_resources?: ResourceSummary[] | null;
 }
 
 interface Message {
@@ -62,6 +126,47 @@ interface ChatBoxProps {
     initialContextElements?: ContextElement[];
     initialChatSessionId?: string;
 }
+
+interface ProgramCourseSummary {
+    name?: string | null;
+    title?: string | null;
+}
+
+interface LessonSummary {
+    name?: string | null;
+}
+
+interface ResourceSummary {
+    title?: string | null;
+    name?: string | null;
+}
+
+interface HintSummary {
+    text?: string | null;
+}
+
+interface QuizQuestionSummary {
+    question_text?: string | null;
+    question_type?: string | null;
+}
+
+interface VideoChapterSummary {
+    title?: string | null;
+    start_time?: number | null;
+}
+
+const CONTEXT_ELEMENT_TYPES: ContextElement['type'][] = [
+    'program',
+    'course',
+    'lesson',
+    'exercise',
+    'quiz',
+    'archive',
+    'video',
+];
+
+const isContextElementType = (value: string): value is ContextElement['type'] =>
+    CONTEXT_ELEMENT_TYPES.includes(value as ContextElement['type']);
 
 const NewChatBot: React.FC<ChatBoxProps> = ({
                                                 visible,
@@ -365,7 +470,7 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
                                 id: `courses-${pdId}`,
                                 type: 'course',
                                 title: `Tous les cours du programme (${coursesData.length})`,
-                                data: coursesData
+                                data: null
                             });
                         }
                     }
@@ -527,8 +632,12 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
                         // Parse the element ID to get the type and actual ID
                         const [type, id] = elementId.split('-');
 
+                        if (!isContextElementType(type)) {
+                            continue;
+                        }
+
                         // Try to find the corresponding data in SWR cache
-                        let data = null;
+                        let data: ContextElementData | null = null;
                         let cacheKey = '';
                         let title = 'Élément de contexte';
 
@@ -573,7 +682,7 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
                         // Add the element to the list
                         rehydratedContextElements.push({
                             id: elementId,
-                            type: type as any,
+                            type,
                             title: title,
                             data: data || {}
                         });
@@ -660,7 +769,7 @@ Nombre de cours: ${data?.course_count || data?.course_learningpath?.length || 'N
 ${data?.concours_learningpaths?.concour?.name ? `Concours: ${data.concours_learningpaths.concour.name}` : ''}
 ${data?.concours_learningpaths?.concour?.school?.name ? `École: ${data.concours_learningpaths.concour.school.name}` : ''}
 ${data?.course_learningpath && data.course_learningpath.length > 0 ? 
-  `Liste des cours: ${data.course_learningpath.map(course => course.name || course.title).join(', ')}` : ''}
+  `Liste des cours: ${data.course_learningpath.map((course: ProgramCourseSummary) => course.name || course.title).join(', ')}` : ''}
 ${data?.level ? `Niveau: ${data.level}` : ''}
 ${data?.duration ? `Durée estimée: ${data.duration}` : ''}
 `;
@@ -673,7 +782,7 @@ ${data?.description ? `Description: ${data.description}` : ''}
 ${data?.goals ? `Objectifs: ${Array.isArray(data.goals) ? data.goals.join(', ') : data.goals}` : ''}
 Nombre de leçons: ${data?.courses_content?.length || 'Non disponible'}
 ${data?.courses_content && data.courses_content.length > 0 ? 
-  `Liste des leçons: ${data.courses_content.map((lesson, index) => `${index + 1}. ${lesson.name}`).join('\n')}` : ''}
+  `Liste des leçons: ${data.courses_content.map((lesson: LessonSummary, index: number) => `${index + 1}. ${lesson.name}`).join('\n')}` : ''}
 ${data?.level ? `Niveau: ${data.level}` : ''}
 ${data?.duration ? `Durée estimée: ${data.duration}` : ''}
 ${data?.prerequisites ? `Prérequis: ${data.prerequisites}` : ''}
@@ -684,7 +793,7 @@ ${data?.exercise_count ? `Nombre d\'exercices: ${data.exercise_count}` : ''}
                 case 'lesson':
                     return `
 Leçon: ${data?.name || 'Non disponible'}
-Ordre: ${data?.order !== undefined ? data.order + 1 : 'Non disponible'}
+Ordre: ${typeof data?.order === 'number' ? data.order + 1 : 'Non disponible'}
 Cours parent: ${data?.courses?.name || 'Non disponible'}
 ${data?.description ? `Description: ${data.description}` : ''}
 ${data?.content ? `Contenu: ${data.content.replace(/<[^>]*>/g, '')}` : ''}
@@ -693,7 +802,7 @@ ${data?.has_quiz ? `Contient des quiz: Oui` : ''}
 ${data?.has_exercises ? `Contient des exercices: Oui` : ''}
 ${data?.keywords && data.keywords.length > 0 ? `Mots-clés: ${data.keywords.join(', ')}` : ''}
 ${data?.resources && data.resources.length > 0 ? 
-  `Ressources supplémentaires: ${data.resources.map(resource => resource.title || resource.name).join(', ')}` : ''}
+  `Ressources supplémentaires: ${data.resources.map((resource: ResourceSummary) => resource.title || resource.name).join(', ')}` : ''}
 `;
 
                 case 'exercise':
@@ -708,7 +817,7 @@ ${data?.duration ? `Durée estimée: ${data.duration}` : ''}
 ${data?.points ? `Points: ${data.points}` : ''}
 ${data?.tags && data.tags.length > 0 ? `Tags: ${data.tags.join(', ')}` : ''}
 ${data?.hints && data.hints.length > 0 ? 
-  `Indices disponibles: ${data.hints.map((hint, index) => `${index + 1}. ${hint.text || hint}`).join('\n')}` : ''}
+  `Indices disponibles: ${data.hints.map((hint: HintSummary | string, index: number) => `${index + 1}. ${typeof hint === 'string' ? hint : hint.text || ''}`).join('\n')}` : ''}
 ${data?.solution ? `Solution disponible: Oui` : ''}
 `;
 
@@ -725,7 +834,7 @@ ${data?.duration ? `Durée estimée: ${data.duration} minutes` : ''}
 ${data?.passing_score ? `Score de réussite: ${data.passing_score}%` : ''}
 ${data?.time_limit ? `Temps limite: ${data.time_limit} minutes` : ''}
 ${data?.quiz_questions && data.quiz_questions.length > 0 ? 
-  `Questions: ${data.quiz_questions.map((q, index) => 
+  `Questions: ${data.quiz_questions.map((q: QuizQuestionSummary, index: number) => 
     `${index + 1}. ${q.question_text?.replace(/<[^>]*>/g, '')} ${ 
       q.question_type ? `(Type: ${q.question_type})` : ''
     }`
@@ -752,7 +861,7 @@ ${data?.download_count ? `Nombre de téléchargements: ${data.download_count}` :
                     return `
 Vidéo: ${data?.title || 'Non disponible'}
 ${data?.description ? `Description: ${data.description}` : ''}
-Durée: ${data?.duration ? `${Math.floor(data.duration / 60)} minutes ${data.duration % 60} secondes` : 'Non disponible'}
+Durée: ${typeof data?.duration === 'number' ? `${Math.floor(data.duration / 60)} minutes ${data.duration % 60} secondes` : 'Non disponible'}
 ${data?.course?.name ? `Cours: ${data.course.name}` : ''}
 ${data?.lesson?.name ? `Leçon: ${data.lesson.name}` : ''}
 ${data?.author ? `Auteur/Présentateur: ${data.author}` : ''}
@@ -762,11 +871,11 @@ ${data?.tags && data.tags.length > 0 ? `Tags: ${data.tags.join(', ')}` : ''}
 ${data?.view_count ? `Nombre de vues: ${data.view_count}` : ''}
 ${data?.quality ? `Qualité: ${data.quality}` : ''}
 ${data?.chapters && data.chapters.length > 0 ? 
-  `Chapitres: ${data.chapters.map((chapter, index) => 
-    `${index + 1}. ${chapter.title} (${Math.floor(chapter.start_time / 60)}:${String(chapter.start_time % 60).padStart(2, '0')})`
+  `Chapitres: ${data.chapters.map((chapter: VideoChapterSummary, index: number) => 
+    `${index + 1}. ${chapter.title} (${Math.floor((chapter.start_time || 0) / 60)}:${String((chapter.start_time || 0) % 60).padStart(2, '0')})`
   ).join('\n')}` : ''}
 ${data?.related_resources && data.related_resources.length > 0 ? 
-  `Ressources liées: ${data.related_resources.map(resource => resource.title || resource.name).join(', ')}` : ''}
+  `Ressources liées: ${data.related_resources.map((resource: ResourceSummary) => resource.title || resource.name).join(', ')}` : ''}
 `;
 
                 default:
@@ -976,7 +1085,7 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                 ) : (
                     // Message de l'assistant - Markdown
                     <Markdown
-                        /* @ts-ignore */
+                        /* @ts-expect-error react-native-markdown-display style typing is incomplete */
                         style={markdownStyles}
                     >
                         {message.text}

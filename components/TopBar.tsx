@@ -16,6 +16,9 @@ interface TopBarProps {
 const TopBar: React.FC<TopBarProps> = ({userName, streaks, xp, onChangeProgram}) => {
     const {user,} = useAuth();
     const router = useRouter();
+    void streaks;
+    void xp;
+    void onChangeProgram;
 
     return (
         <View style={styles.container}>

@@ -6,7 +6,7 @@ import {
   View,
 } from "react-native";
 import React, { useMemo } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Href, useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -50,8 +50,7 @@ const SecondaryProgramDetails = () => {
     courseProgress, 
     quizProgress, 
     exercisesProgress, 
-    documentsProgress,
-    isLoading: isProgressLoading 
+    documentsProgress
   } = useSecondaryProgramProgress(programId, user?.id);
 
   // Vérifier si l'utilisateur est inscrit (à améliorer avec une vraie vérification)
@@ -215,7 +214,7 @@ const SecondaryProgramDetails = () => {
 
   const handleCardPress = (card: ActionCard) => {
     trigger(HapticType.LIGHT);
-    router.push(card.route);
+    router.push(card.route as Href);
   };
 
   if (isLoading) {

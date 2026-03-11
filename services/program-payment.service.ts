@@ -3,30 +3,11 @@ import { NotchPayService } from '@/lib/notchpay';
 import { PURCHASE_VALIDITY_DAYS } from '@/utils/pricing';
 import { logger } from '@/utils/logger';
 import { posthogService } from '@/utils/posthogService';
+import type { ProgramPayment as ProgramPaymentRecord } from '@/types/payment.types';
+import type { Database } from '@/types/supabase';
 
-export interface ProgramPayment {
-  id: string;
-  user_id: string;
-  program_id: string;
-  amount: number;
-  payment_date: string;
-  expiry_date: string;
-  payment_reference: string;
-  payment_status: string;
-  payment_provider: string;
-  phone_number: string;
-  promo_code_id?: string;
-  created_at: string;
-  updated_at: string;
-  is_installment?: boolean;
-  total_installments?: number;
-  current_installment?: number;
-  next_payment_due_date?: string;
-  authorizationUrl?: string;
-  total_amount?: number;
-  parent_payment_id?: string;
-  has_seen_result?: boolean;
-}
+export type ProgramPayment = ProgramPaymentRecord;
+type ProgramPaymentUpdate = Database['public']['Tables']['user_program_payments']['Update'];
 
 export const ProgramPaymentService = {
   // Mark the payment result as seen by the user
@@ -45,13 +26,14 @@ export const ProgramPaymentService = {
   },
 
   // Calculate installment amount based on total price and number of installments
-  calculateInstallmentAmount(totalAmount: number, totalInstallments: number): number {
+  calculateInstallmentAmount(totalAmount: number, totalInstallments: number, currentInstallment?: number): number {
     // Ensure we have valid numbers to avoid NaN
     if (!totalAmount || isNaN(totalAmount) || !totalInstallments || isNaN(totalInstallments) || totalInstallments <= 0) {
       return 0;
     }
 
     if (totalInstallments <= 1) return totalAmount;
+    void currentInstallment;
 
     // For the first installment, we might want to charge a different amount
     // For simplicity, we'll divide equally for now
@@ -64,7 +46,7 @@ export const ProgramPaymentService = {
     phoneNumber: string,
     totalAmount: number,
     totalInstallments: number,
-    promoCodeId?: string,
+    promoCodeId?: string | null,
     currentInstallment: number = 1,
     nextInstallmentDate?: Date
   ): Promise<ProgramPayment> {
@@ -101,7 +83,7 @@ export const ProgramPaymentService = {
         totalInstallments,
         currentInstallment, // currentInstallment
         totalAmount,
-        null,
+        undefined,
         nextInstallmentDate
       );
 
@@ -144,7 +126,6 @@ export const ProgramPaymentService = {
       .eq('user_id', user.id)
       .eq('program_id', numericProgramId)
       .eq('is_installment', true)
-      .lt('current_installment', 'total_installments')
       .eq('payment_status', 'completed')
       .order('created_at', { ascending: false });
 
@@ -153,7 +134,9 @@ export const ProgramPaymentService = {
       return [];
     }
 
-    return data || [];
+    return (data ?? []).filter(
+      (payment) => (payment.current_installment ?? 0) < (payment.total_installments ?? 0)
+    );
   },
 
   // Process the next installment payment
@@ -194,15 +177,16 @@ export const ProgramPaymentService = {
     ).length;
 
     // Check if all installments are already paid
-    if (completedInstallments >= parentPayment.total_installments) {
+    const totalInstallments = parentPayment.total_installments ?? 0;
+    if (completedInstallments >= totalInstallments) {
       throw new Error('All installments are already paid');
     }
 
     // Next installment number is based on completed payments, not current_installment
     const nextInstallmentNumber = completedInstallments + 1;
     const nextInstallmentAmount = this.calculateInstallmentAmount(
-      parentPayment.total_amount,
-      parentPayment.total_installments,
+      parentPayment.total_amount ?? parentPayment.amount,
+      totalInstallments,
       nextInstallmentNumber
     );
 
@@ -230,9 +214,9 @@ export const ProgramPaymentService = {
       result.initResponse.transaction.reference,
       parentPayment.promo_code_id,
       true, // isInstallment
-      parentPayment.total_installments,
+      totalInstallments,
       nextInstallmentNumber,
-      parentPayment.total_amount,
+      parentPayment.total_amount ?? parentPayment.amount,
       trueParentId  // Use the TRUE parent ID, not the payment passed in
     );
 
@@ -278,7 +262,7 @@ export const ProgramPaymentService = {
     ).length;
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: ProgramPaymentUpdate = {
       current_installment: completedInstallments,
       updated_at: new Date().toISOString()
     };
@@ -305,7 +289,7 @@ export const ProgramPaymentService = {
     phoneNumber: string,
     amount: number = 2500,
     trx_reference: string,
-    promoCodeId?: string,
+    promoCodeId?: string | null,
     isInstallment: boolean = false,
     totalInstallments?: number,
     currentInstallment?: number,
@@ -315,10 +299,16 @@ export const ProgramPaymentService = {
   ): Promise<ProgramPayment> {
     // Convert programId to a number if it's a string
     const numericProgramId = parseInt(programId, 10);
+    const authUser = (await supabase.auth.getUser()).data.user;
 
     if (isNaN(numericProgramId)) {
       throw new Error(`Invalid program ID: ${programId}. Expected a numeric ID.`);
     }
+    if (!authUser) {
+      throw new Error('User not authenticated');
+    }
+
+    const userId = authUser.id;
 
     // Calcul de la date de paiement
     const paymentDate = new Date();
@@ -356,7 +346,7 @@ export const ProgramPaymentService = {
       .from('user_program_payments')
       .insert({
         program_id: numericProgramId,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        user_id: userId,
         amount,
         payment_status: 'pending',
         phone_number: phoneNumber,
@@ -407,8 +397,20 @@ export const ProgramPaymentService = {
   },
 
   subscribeToPaymentStatus(paymentId: string, callback: (status: string, payment: ProgramPayment) => void) {
-    return supabase
-      .channel('program_payments')
+    const channel = supabase.channel('program_payments') as unknown as {
+      on: (
+        event: 'postgres_changes',
+        filter: {
+          event: '*';
+          schema: 'public';
+          table: 'user_program_payments';
+          filter: string;
+        },
+        handler: (payload: { new: ProgramPayment }) => void
+      ) => { subscribe: () => unknown };
+    };
+
+    return channel
       .on(
         'postgres_changes',
         {
@@ -417,7 +419,7 @@ export const ProgramPaymentService = {
           table: 'user_program_payments',
           filter: `id=eq.${paymentId}`
         },
-        (payload: { new: { payment_status: string } }) => callback(payload.new.payment_status, payload.new as ProgramPayment)
+        (payload) => callback(payload.new.payment_status, payload.new)
       )
       .subscribe();
   },
@@ -501,7 +503,10 @@ export const ProgramPaymentService = {
       const gracePeriodDate = new Date(nextPaymentDueDate);
       gracePeriodDate.setDate(gracePeriodDate.getDate() + gracePeriod);
 
-      if (now > gracePeriodDate && payment.current_installment < payment.total_installments) {
+      if (
+        now > gracePeriodDate &&
+        (payment.current_installment ?? 0) < (payment.total_installments ?? 0)
+      ) {
         logger.info(`[checkProgramAccess] Installment payment overdue for program ${programId}`);
         return false;
       }
@@ -840,7 +845,7 @@ export const ProgramPaymentService = {
               'program',
               String(payment.program_id),
               payment.amount,
-              phoneNumber.startsWith('655') ? 'orange' : 'mtn'
+              (payment.phone_number ?? '').startsWith('655') ? 'orange' : 'mtn'
             );
             // If this is an installment payment, update the parent payment
             if (payment.is_installment) {
@@ -859,7 +864,9 @@ export const ProgramPaymentService = {
                 .single();
               parentPayment = parent;
               
-              if (payment.current_installment < payment.total_installments) {
+              if (
+                (payment.current_installment ?? 0) < (payment.total_installments ?? 0)
+              ) {
                 // Use parent's next_payment_due_date if available, otherwise use current payment's
                 const currentDueDate = parentPayment?.next_payment_due_date
                   ? new Date(parentPayment.next_payment_due_date)
@@ -893,7 +900,7 @@ export const ProgramPaymentService = {
                 ).length;
                 
                 // Update the parent with completed count and next due date
-                const updateData: any = {
+                const updateData: ProgramPaymentUpdate = {
                   current_installment: completedInstallments,
                   updated_at: new Date().toISOString()
                 };

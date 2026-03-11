@@ -11,7 +11,7 @@
     "ios": "node ./scripts/switch-platform.js native && expo start --ios",
     "web": "node ./scripts/switch-platform.js web && expo start --web",
     "build:web": "node ./scripts/switch-platform.js web && expo export --platform web",
-    "build:native": "node ./scripts/switch-platform.js native && expo export",
+    "build:native": "node ./scripts/switch-platform.js native && expo export --platform ios && expo export --platform android",
     "build:development": "node ./scripts/switch-platform.js native eas build --profile development --platform android",
     "build:ios-simulator": "node ./scripts/switch-platform.js native eas build --profile ios-simulator --platform ios",
     "build:preview": "node ./scripts/switch-platform.js native eas build --profile preview --platform android",
@@ -19,7 +19,9 @@
     "submit:production": "node ./scripts/switch-platform.js native eas submit --platform android",
     "deploy:web": "eas deploy",
     "deploy:web:prod": "eas deploy --prod",
-    "test": "jest --watchAll",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:ci": "jest --runInBand --ci --coverage",
     "lint": "expo lint"
   },
   "jest": {
@@ -117,7 +119,7 @@
     "globals": "^15.8.0",
     "jest": "^29.2.1",
     "jest-expo": "~54.0.13",
-    "react-test-renderer": "18.3.1",
+    "react-test-renderer": "19.1.0",
     "supabase": "^2.6.8",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.40.0"

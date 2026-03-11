@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/utils/logger';
+import type { Json } from '@/types/supabase';
 
 /**
  * Registers the device for push notifications and stores the token in the user's metadata
@@ -84,7 +85,10 @@ export async function updateUserPushToken(userId: string, token: string): Promis
     }
 
     // Prepare the updated metadata
-    const currentMetadata = userData?.metadata || {};
+    const currentMetadata =
+      userData?.metadata && typeof userData.metadata === 'object' && !Array.isArray(userData.metadata)
+        ? userData.metadata as Record<string, Json | undefined>
+        : {};
     const updatedMetadata = {
       ...currentMetadata,
       expoPushToken: token
@@ -112,6 +116,8 @@ export function setupNotifications(): void {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
     }),

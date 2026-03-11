@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Pressable, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { ThemedText } from '@/components/ThemedText';
@@ -11,23 +11,24 @@ import {QUIZ_CATEGORY_COLORS, QUIZ_CATEGORY_ICONS} from "@/components/shared/lea
 // Get screen width to calculate ideal card width
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width / 2 - 24; // Two cards per row with padding
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 // Define types for component props
 interface QuizCardProps {
     quizItem: {
         quizId: number;
-        lpId: string;
+        lpId: string | null;
         quiz: {
             id: number;
-            name: string;
+            name: string | null;
             category?: {
-                id?: number;
-                name: string;
+                id?: string | number;
+                name: string | null;
             };
             quiz_questions?: Array<{ id: number }>;
             course?: {
                 id: number;
-                name: string;
+                name: string | null;
             };
         };
         isPinned?: boolean;
@@ -55,7 +56,7 @@ const EnhancedQuizCard: React.FC<QuizCardProps> = ({ quizItem, baseRoute, isDark
 
     // Get category color and icon
    const categoryColor = QUIZ_CATEGORY_COLORS[categoryName as keyof typeof QUIZ_CATEGORY_COLORS] || QUIZ_CATEGORY_COLORS.default;
-   const categoryIcon = QUIZ_CATEGORY_ICONS[categoryName as keyof typeof QUIZ_CATEGORY_ICONS] || QUIZ_CATEGORY_ICONS.default;
+   const categoryIcon = (QUIZ_CATEGORY_ICONS[categoryName as keyof typeof QUIZ_CATEGORY_ICONS] || QUIZ_CATEGORY_ICONS.default) as IconName;
     // Animation effects
     useEffect(() => {
         // Delay based on index for staggered entrance
@@ -96,7 +97,7 @@ const EnhancedQuizCard: React.FC<QuizCardProps> = ({ quizItem, baseRoute, isDark
     // Handle quiz press
     const handleQuizPress = () => {
         trigger(HapticType.SELECTION);
-        router.push(`${baseRoute}/${quiz.id}`);
+        router.push(`${baseRoute}/${quiz.id}` as Href);
     };
 
     return (
@@ -165,7 +166,7 @@ const EnhancedQuizCard: React.FC<QuizCardProps> = ({ quizItem, baseRoute, isDark
                         style={[styles.title, isDark && styles.titleDark]}
                         numberOfLines={2}
                     >
-                        {quiz.name}
+                        {quiz.name ?? "Quiz"}
                     </ThemedText>
 
                     {/* Question Count */}

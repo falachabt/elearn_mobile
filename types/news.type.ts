@@ -9,7 +9,7 @@ export type NewsInteractionType = 'click' | 'share' | 'dismiss' | 'like' | 'book
 
 export interface NewsActionData {
   route?: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
   url?: string;
   deepLink?: string;
   label?: string; // Texte du bouton d'action
@@ -18,23 +18,23 @@ export interface NewsActionData {
 export interface News {
   id: string;
   title: string;
-  subtitle?: string;
-  description?: string;
-  content?: string;
+  subtitle?: string | null;
+  description?: string | null;
+  content?: string | null;
   
   // Média
   media_type: NewsMediaType;
-  media_url?: string;
-  thumbnail_url?: string;
-  media_alt_text?: string;
-  video_duration?: number;
+  media_url?: string | null;
+  thumbnail_url?: string | null;
+  media_alt_text?: string | null;
+  video_duration?: number | null;
   
   // Dates
   start_date: string;
-  end_date?: string;
+  end_date?: string | null;
   created_at: string;
   updated_at: string;
-  published_at?: string;
+  published_at?: string | null;
   
   // Priorité et ordre
   priority: number;
@@ -45,28 +45,28 @@ export interface News {
   
   // Action au clic
   action_type: NewsActionType;
-  action_data?: NewsActionData;
+  action_data?: NewsActionData | null;
   
   // Ciblage
   target_audience: NewsTargetAudience;
-  target_programs?: string[];
-  target_user_types?: string[];
+  target_programs?: string[] | null;
+  target_user_types?: string[] | null;
   
   // Affichage
   is_featured: boolean;
   show_badge: boolean;
-  badge_text?: string;
-  badge_color?: string;
+  badge_text?: string | null;
+  badge_color?: string | null;
   
   // Style
-  background_color?: string;
-  text_color?: string;
+  background_color?: string | null;
+  text_color?: string | null;
   card_style: NewsCardStyle;
   
   // Métadonnées
-  author_id?: string;
-  category?: string;
-  tags?: string[];
+  author_id?: string | null;
+  category?: string | null;
+  tags?: string[] | null;
   
   // Statistiques
   view_count: number;
@@ -76,12 +76,12 @@ export interface News {
   // Options avancées
   require_authentication: boolean;
   show_for_new_users_only: boolean;
-  max_display_count?: number;
+  max_display_count?: number | null;
   
   // Données utilisateur (retournées par la fonction get_active_news_for_user)
-  has_viewed?: boolean;
-  user_view_count?: number;
-  has_clicked?: boolean;
+  has_viewed?: boolean | null;
+  user_view_count?: number | null;
+  has_clicked?: boolean | null;
 }
 
 export interface NewsView {
@@ -90,7 +90,7 @@ export interface NewsView {
   user_id: string;
   viewed_at: string;
   session_id?: string;
-  device_info?: Record<string, any>;
+  device_info?: Record<string, unknown>;
 }
 
 export interface NewsInteraction {
@@ -99,7 +99,7 @@ export interface NewsInteraction {
   user_id: string;
   interaction_type: NewsInteractionType;
   interacted_at: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface NewsStatistics {
@@ -113,7 +113,7 @@ export interface NewsStatistics {
   likes_count: number;
   bookmarks_count: number;
   click_rate_percentage: number;
-  last_interaction_at?: string;
+  last_interaction_at?: string | null;
 }
 
 export interface GetActiveNewsParams {
@@ -128,12 +128,12 @@ export interface RecordNewsViewParams {
   newsId: string;
   userId: string;
   sessionId?: string;
-  deviceInfo?: Record<string, any>;
+  deviceInfo?: Record<string, unknown>;
 }
 
 export interface RecordNewsInteractionParams {
   newsId: string;
   userId: string;
   interactionType: NewsInteractionType;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }

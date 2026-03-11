@@ -26,10 +26,23 @@ import {
 } from "@/components/shared/courses";
 import { useCourseProgress } from "@/hooks/useCourseProgress";
 
-interface Course extends Courses {
-  course_category: CoursesCategories;
+interface Course extends Omit<Courses, "category"> {
+  category: CoursesCategories | null;
   courses_content: CoursesContent[];
   course_videos: CourseVideos[];
+}
+
+interface QuizAttemptProgress {
+  id: number;
+  status: string | null;
+  score: number | null;
+  quiz_id: number | null;
+}
+
+interface SecondaryQuizItem {
+  id: number;
+  name: string;
+  questions: { id: number }[];
 }
 
 const SecondaryCourseDetail = () => {
@@ -68,7 +81,7 @@ const SecondaryCourseDetail = () => {
 
   // Handle locked content access attempts
   const handleLockedContentAccess = () => {
-    trigger(HapticType.NOTIFICATION_ERROR);
+    trigger(HapticType.ERROR);
     handlePurchaseFlow();
   };
 
@@ -105,18 +118,25 @@ const SecondaryCourseDetail = () => {
     }
   );
 
-  const { data: quizzes } = useSWR(
+  const { data: quizzes } = useSWR<SecondaryQuizItem[]>(
     courseId ? `secondary-quizzes-${courseId}` : null,
     async () => {
       const { data } = await (supabase as any)
         .from("quiz_courses")
-        .select("quiz(id, name, questions:quiz_questions(id))")
+        .select("quiz(id, name)")
         .eq("courseId", courseId);
-      return data?.map((d: { quiz: unknown }) => d.quiz);
+      return (data ?? [])
+        .map((d: { quiz: { id: number; name: string | null } | null }) => d.quiz)
+        .filter((quiz: { id: number; name: string | null } | null): quiz is { id: number; name: string | null } => quiz !== null)
+        .map((quiz: { id: number; name: string | null }) => ({
+          id: quiz.id,
+          name: quiz.name ?? "Quiz sans titre",
+          questions: [],
+        }));
     }
   );
 
-  const { data: quizProgress } = useSWR(
+  const { data: quizProgress } = useSWR<QuizAttemptProgress[]>(
     user ? [`secondary-quiz-progress-${user.id}`, courseId, quizzes] : null,
     async () => {
       const { data } = await (supabase as any)
@@ -129,9 +149,9 @@ const SecondaryCourseDetail = () => {
   );
 
   const getHighestScore = (quizId: number) => {
-    const quizAttempts = quizProgress?.filter((attempt) => attempt.quiz_id === quizId);
+    const quizAttempts = quizProgress?.filter((attempt: QuizAttemptProgress) => attempt.quiz_id === quizId);
     if (!quizAttempts || quizAttempts.length === 0) return 0;
-    const highestScore = Math.max(...quizAttempts.map((attempt) => attempt.score));
+    const highestScore = Math.max(...quizAttempts.map((attempt: QuizAttemptProgress) => attempt.score ?? 0));
     return highestScore || 0;
   };
 
@@ -149,8 +169,19 @@ const SecondaryCourseDetail = () => {
   }
 
   const sections =
-    course?.courses_content?.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) || [];
-  const videos = course?.course_videos || [];
+    course?.courses_content
+      ?.map((section) => ({
+        id: section.id,
+        name: section.name ?? "Section sans titre",
+        order: section.order ?? undefined,
+      }))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) || [];
+  const videos =
+    course?.course_videos?.map((video, index) => ({
+      id: Number(video.id),
+      title: video.title ?? `Video ${index + 1}`,
+      duration: video.duration ?? undefined,
+    })) || [];
 
   const renderContent = () => {
     switch (selectedView) {
@@ -282,7 +313,7 @@ const SecondaryCourseDetail = () => {
         const visibleQuizzes = isPreviewMode ? quizzes.slice(0, 1) : quizzes;
 
         const quizItems = visibleQuizzes.map(
-          (quiz, index) =>
+          (quiz: SecondaryQuizItem, index: number) =>
             quiz?.id && (
               <QuizItem
                 key={quiz.id + index}
@@ -326,7 +357,7 @@ const SecondaryCourseDetail = () => {
     <View style={[styles.container, isDark && styles.containerDark]}>
       <CourseHeader
         courseName={course?.name || ""}
-        categoryName={course?.course_category?.name}
+        categoryName={course?.category?.name ?? undefined}
         sectionsCount={sections.length}
         videosCount={videos.length}
         isEnrolled={isEnrolled}

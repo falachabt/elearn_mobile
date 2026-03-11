@@ -143,7 +143,11 @@ const InstallmentPaymentPage = () => {
 
       // Start checking payment status
       setCurrentState(PaymentFlowState.NEXT_PAYMENT_VERIFYING);
-      startStatusCheck(result.trxReference || result.payment_reference);
+      const paymentReference = result.trxReference ?? result.payment_reference;
+      if (!paymentReference) {
+        throw new Error("Référence de paiement introuvable");
+      }
+      startStatusCheck(paymentReference);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Erreur lors du traitement du paiement";
       logger.error("Error processing next installment:", error);
@@ -340,9 +344,18 @@ const InstallmentPaymentPage = () => {
       case PaymentFlowState.NEXT_PAYMENT_VERIFYING:
         return (
           <PaymentProcessing
+            state={
+              currentState === PaymentFlowState.NEXT_PAYMENT_VERIFYING
+                ? "verifying"
+                : "processing"
+            }
             isDark={isDark}
-            authorizationUrl={authorizationUrl}
-            isVerifying={currentState === PaymentFlowState.NEXT_PAYMENT_VERIFYING}
+            currentMessage={
+              currentState === PaymentFlowState.NEXT_PAYMENT_VERIFYING && authorizationUrl
+                ? "Validation en cours. Si besoin, terminez l'autorisation ouverte sur votre téléphone."
+                : undefined
+            }
+            onCancel={handleBack}
           />
         );
 

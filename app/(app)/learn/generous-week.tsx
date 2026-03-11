@@ -1,5 +1,4 @@
 ﻿import React, { useEffect, useState, useMemo } from "react";
-import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -16,12 +15,12 @@ import {
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+import { logger } from '@/utils/logger';
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
 import { useUser } from "@/contexts/useUserInfo";
 import { useAppConfig } from "@/contexts/useAppConfig";
 import { theme } from "@/constants/theme";
-import { Course } from "@/types/course.type";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 interface FilterState {
@@ -29,6 +28,75 @@ interface FilterState {
   difficulty: string;
   duration: string;
 }
+
+interface GenerousWeekProgram {
+  id: number;
+  concour: {
+    id: number | null;
+    name: string;
+    school: {
+      id: number | null;
+      name: string | null;
+    } | null;
+  };
+  learning_path: {
+    id: string;
+    title: string | null;
+  } | null;
+  course_count: number | null;
+  quiz_count: number | null;
+  exerciseCount: number | null;
+}
+
+interface GenerousWeekMetadata {
+  generousWeek?: {
+    programId: number;
+  };
+}
+
+type RawProgram = {
+  id: number | string;
+  concour?: {
+    id?: number | null;
+    name?: string | null;
+    school?: {
+      id?: number | null;
+      name?: string | null;
+    } | null;
+  } | null;
+  learning_path?: {
+    id?: string | number | null;
+    title?: string | null;
+    course_count?: number | null;
+    quiz_count?: number | null;
+  } | null;
+  course_count?: number | null;
+  quiz_count?: number | null;
+  exerciseCount?: number | null;
+};
+
+const normalizeProgram = (program: RawProgram): GenerousWeekProgram => ({
+  id: Number(program.id),
+  concour: {
+    id: program.concour?.id ?? null,
+    name: program.concour?.name ?? "Programme",
+    school: program.concour?.school
+      ? {
+          id: program.concour.school.id ?? null,
+          name: program.concour.school.name ?? null,
+        }
+      : null,
+  },
+  learning_path: program.learning_path?.id
+    ? {
+        id: String(program.learning_path.id),
+        title: program.learning_path.title ?? null,
+      }
+    : null,
+  course_count: program.course_count ?? program.learning_path?.course_count ?? null,
+  quiz_count: program.quiz_count ?? program.learning_path?.quiz_count ?? null,
+  exerciseCount: program.exerciseCount ?? null,
+});
 
 const GenerousWeekPage = () => {
   const router = useRouter();
@@ -39,7 +107,7 @@ const GenerousWeekPage = () => {
   // State management
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [programs, setPrograms] = useState<Course[]>([]);
+  const [programs, setPrograms] = useState<GenerousWeekProgram[]>([]);
   const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
   const [, setSavingChoice] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,7 +145,7 @@ const GenerousWeekPage = () => {
   const filteredPrograms = useMemo(() => {
     return programs.filter(program => {
       const matchesSearch = program.concour.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          program.concour.school?.name.toLowerCase().includes(searchQuery.toLowerCase());
+          (program.concour.school?.name ?? "").toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesSchool = !filters.school || program.concour.school?.name === filters.school;
 
@@ -87,7 +155,7 @@ const GenerousWeekPage = () => {
 
   // Get unique schools for filter
   const uniqueSchools = useMemo(() => {
-    return [...new Set(programs.map(p => p.concour.school?.name).filter(Boolean))];
+    return [...new Set(programs.map(p => p.concour.school?.name).filter((school): school is string => Boolean(school)))];
   }, [programs]);
 
   // Fetch available programs
@@ -104,11 +172,11 @@ const GenerousWeekPage = () => {
             p_user_id: authUser.id
           });
 
-          if (!error && data) {
-            setPrograms(data as Course[]);
+          if (!error && Array.isArray(data)) {
+            setPrograms((data as RawProgram[]).map(normalizeProgram));
             return;
           }
-        } catch (rpcError) {
+        } catch {
           // Fallback to standard query
         }
 
@@ -143,7 +211,7 @@ const GenerousWeekPage = () => {
           return;
         }
 
-        setPrograms(fallbackData as unknown as Course[]);
+        setPrograms(((fallbackData as RawProgram[] | null) ?? []).map(normalizeProgram));
       } catch (error) {
         logger.error("Error in fetchPrograms:", error);
       } finally {
@@ -248,7 +316,7 @@ const GenerousWeekPage = () => {
   };
 
   // Render program item with better design
-  const renderProgramItem = ({ item }: { item: Course }) => {
+  const renderProgramItem = ({ item }: { item: GenerousWeekProgram }) => {
     const isSelected = selectedProgram === item.id;
 
     return (
@@ -433,7 +501,7 @@ const GenerousWeekPage = () => {
 
   if (hasGenerousWeekConfig) {
     // Extract the programId from user metadata
-    const metadata = user?.metadata as { generousWeek?: { programId: number } };
+    const metadata = user?.metadata as GenerousWeekMetadata | undefined;
     const programId = metadata?.generousWeek?.programId;
 
     // Find the program details if programs are loaded

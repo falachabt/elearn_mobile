@@ -1,5 +1,4 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -23,12 +22,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 // 2. Remove image upload functionality OR implement alternative without READ_MEDIA permissions
 // 3. Consult Google Play Photo & Video Permissions policy
 // import * as ImagePicker from 'expo-image-picker';
-import { useRoute } from '@react-navigation/native';
 import {useLocalSearchParams} from "expo-router";
 
+import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';
-import { useSupportStorage } from '@/hooks/useStorage';
 import {useTicketMessages} from "@/hooks/useSupportTicket";
 import { Message } from '@/hooks/useSupportTicket';
 // Types
@@ -73,7 +71,7 @@ const CustomerService: React.FC = () => {
 
     // State
     const [newMessage, setNewMessage] = useState('');
-    const [isUploading, setIsUploading] = useState(false);
+    const isUploading = false;
     const [showContactInfo, setShowContactInfo] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
@@ -83,7 +81,6 @@ const CustomerService: React.FC = () => {
     const scrollViewRef = useRef<ScrollView>(null);
 
     // Hooks
-    const { uploadFile } = useSupportStorage();
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
 
@@ -123,45 +120,11 @@ const CustomerService: React.FC = () => {
     };
 
     const pickImage = async () => {
-        try {
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ["images"],
-                allowsEditing: true,
-                aspect: [4, 3],
-                quality: 0.8,
-            });
-
-            if (!result.canceled && result.assets[0]) {
-                setIsUploading(true);
-                try {
-                    const upload_result = await uploadFile(
-                        result.assets[0].uri,
-                        result.assets[0].mimeType
-                    );
-                    if (upload_result?.url) {
-                        setSelectedImage(upload_result.url);
-                        setSelectedImagePath(upload_result.filePath);
-                    }
-                } catch (error) {
-                    logger.error('Error uploading image:', error);
-                    Alert.alert(
-                        'Upload Error',
-                        'Failed to upload image. Please try again.'
-                    );
-                }
-            }
-        } catch (error) {
-            logger.error('Image picker error:', error);
-            Alert.alert('Error', 'Failed to pick image. Please try again.');
-        } finally {
-            setIsUploading(false);
-        }
+        Alert.alert(
+            'Indisponible',
+            "L'envoi d'image est temporairement désactivé sur cette version."
+        );
     };
-
-    const handleCall = (number: string) => {
-        Linking.openURL(`tel:${number}`);
-    };
-
 
     // Sub-components
     const MessageBubble: React.FC<{ message: Message; isUserMessage: boolean; isDarkMode: boolean }> =

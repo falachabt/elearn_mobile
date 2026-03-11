@@ -15,7 +15,7 @@ import useSWR, { mutate } from "swr";
 
 import { theme } from "@/constants/theme";
 import { useFileDownload } from "@/hooks/useFileDownload";
-import { ArchiveCard, Archive } from "@/components/ArchiveCard";
+import { ArchiveCard, type Archive as ArchiveCardItem } from "@/components/ArchiveCard";
 import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { supabase } from "@/lib/supabase";
@@ -71,29 +71,26 @@ const PaymentOverlay = ({
 };
 
 // Reuse the Archive interface from the anales section
-export interface Archive {
+type Archive = Omit<ArchiveCardItem, "id" | "courses_categories" | "concour_id"> & {
   id: number;
-  name: string;
-  file_url: string;
-  session: string;
-  is_pinned: boolean;
-  is_completed?: boolean;
-  local_path?: string;
-  file_type: "pdf" | "doc" | "other";
   courses_categories?: {
     id: string;
-    name: string;
-    description: string;
+    name: string | null;
+    description: string | null;
   } | null;
-  concour_id?: number | null;
-}
+  concour_id?: string | number | null;
+};
 
 interface CompetitionData {
-  id: number;
+  id: string;
   name: string;
 }
 
-
+type FilterButton = {
+  id: FilterType;
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  label: string;
+};
 
 type FilterType = "all" | "pinned" | "completed" | "incomplete";
 
@@ -119,7 +116,7 @@ const fetchCompetitionData = async (url: string): Promise<CompetitionData> => {
   if (!data) throw new Error("No data returned from API");
 
   return {
-    id: data.id,
+    id: String(data.id),
     name: data.name || "",
   };
 };
@@ -249,7 +246,7 @@ export const ArchivesList = () => {
 
   // Memoize filter buttons data and render function
   const filterButtonsData = useMemo(
-    () => [
+    (): FilterButton[] => [
       {
         id: "all",
         icon: "format-list-bulleted",
@@ -275,7 +272,7 @@ export const ArchivesList = () => {
   );
 
   const renderFilterButton = useCallback(
-    ({ item }: { item: { id: string; icon: string; label: string } }) => (
+    ({ item }: { item: FilterButton }) => (
       <TouchableOpacity
         style={[
           styles.filterButton,
@@ -355,31 +352,33 @@ export const ArchivesList = () => {
 
   // Handle pinning an archive
   const handlePin = useCallback(
-    async (archiveId: number) => {
+    async (archiveId: number | string) => {
       trigger(HapticType.LIGHT);
-      const archive = archives.find((a) => a.id === archiveId);
+      const numericArchiveId = Number(archiveId);
+      const archive = archives.find((a) => a.id === numericArchiveId);
       if (!archive) return;
       
-      await togglePin(archiveId, archive.is_pinned);
+      await togglePin(numericArchiveId, archive.is_pinned);
     },
     [trigger, archives, togglePin]
   );
 
   // Handle toggling completion status
   const handleToggleComplete = useCallback(
-    async (archiveId: number) => {
+    async (archiveId: number | string) => {
       trigger(HapticType.SUCCESS);
-      const archive = archives.find((a) => a.id === archiveId);
+      const numericArchiveId = Number(archiveId);
+      const archive = archives.find((a) => a.id === numericArchiveId);
       if (!archive) return;
       
-      await toggleCompleted(archiveId, archive.is_completed || false);
+      await toggleCompleted(numericArchiveId, archive.is_completed || false);
     },
     [trigger, archives, toggleCompleted]
   );
 
   // Handle downloading an archive
   const handleDownload = useCallback(
-    async (file: Archive) => {
+    async (file: ArchiveCardItem) => {
       trigger(HapticType.MEDIUM);
       const success = await downloadFile(file);
       if (success) {
@@ -391,7 +390,7 @@ export const ArchivesList = () => {
 
   // Handle viewing an archive
   const handleView = useCallback(
-    (file: Archive) => {
+    (file: ArchiveCardItem) => {
       trigger(HapticType.SELECTION);
 
       // If user doesn't have access, show payment sheet

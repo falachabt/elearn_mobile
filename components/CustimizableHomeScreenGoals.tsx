@@ -1,5 +1,4 @@
 ﻿import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { logger } from '@/utils/logger';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import {
@@ -13,6 +12,7 @@ import {
     View
 } from "react-native";
 
+import { logger } from '@/utils/logger';
 import { MaterialIconName } from "@/constants/iconNames";
 import { STORAGE_KEY_CUSTOM_GOALS } from "@/constants/storage-keys";
 import { theme } from "@/constants/theme";

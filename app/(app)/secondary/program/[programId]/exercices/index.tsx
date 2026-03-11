@@ -1,7 +1,7 @@
 ﻿import { useLocalSearchParams } from "expo-router";
-import { logger } from '@/utils/logger';
 import React, { useMemo, useState, useCallback, useRef } from "react";
 
+import { logger } from '@/utils/logger';
 import {
   useSecondaryProgram,
   useSecondaryProgramExercises,
@@ -11,13 +11,33 @@ import { ExerciseListView } from "@/components/shared/learn/exercices/ExerciseLi
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
 
+interface ExerciseRow {
+  exercise: {
+    id: string;
+    title: string | null;
+    description: string | null;
+    course: {
+      id: number;
+      name: string | null;
+      category: string | null;
+      courses_categories: {
+        id: string;
+        name: string;
+        description: string | null;
+      } | null;
+    } | null;
+    exercices_pin?: Array<{ is_pinned?: boolean | null }>;
+    exercices_complete?: Array<{ is_completed?: boolean | null }>;
+  } | null;
+}
+
 export default function ExercisesList() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
   const { user } = useAuth();
   const [page, setPage] = useState(0);
-  const [allExercises, setAllExercises] = useState<any[]>([]);
+  const [allExercises, setAllExercises] = useState<ExerciseRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch data
   const { program, isLoading: isLoadingProgram } = useSecondaryProgram(programId);
@@ -47,9 +67,9 @@ export default function ExercisesList() {
   React.useEffect(() => {
     if (exercises && exercises.length > 0) {
       if (page === 0) {
-        setAllExercises(exercises);
+        setAllExercises(exercises as ExerciseRow[]);
       } else {
-        setAllExercises(prev => [...prev, ...exercises]);
+        setAllExercises(prev => [...prev, ...(exercises as ExerciseRow[])]);
       }
     }
   }, [exercises, page]);
@@ -93,11 +113,11 @@ export default function ExercisesList() {
       const isCompleted = item.exercise.exercices_complete?.[0]?.is_completed || false;
 
       return {
-        exerciseId: item.exercise.id,
+        exerciseId: Number(item.exercise.id),
         lpId: programId,
         exercise: {
-          id: item.exercise.id,
-          title: item.exercise.title,
+          id: Number(item.exercise.id),
+          title: item.exercise.title ?? "Exercice sans titre",
           description: item.exercise.description,
           course: item.exercise.course
             ? {
@@ -145,37 +165,15 @@ export default function ExercisesList() {
       const currentPinState = exercise?.isPinned || false;
       const newPinState = !currentPinState;
 
-      // Optimistic update
-      const updatedExercises = exercisesWithDetails.map((ex) => {
-        if (ex?.exercise?.id === exerciseId) {
-          return { ...ex, isPinned: newPinState };
-        }
-        return ex;
-      });
-
-      // Update local state
-      setAllExercises(prev => prev.map((item) => {
-        if (item.exercise?.id === exerciseId) {
-          return {
-            ...item,
-            exercise: {
-              ...item.exercise,
-              exercices_pin: [{ is_pinned: newPinState, user_id: user.id }],
-            },
-          };
-        }
-        return item;
-      }));
-
       // Update database
       const { error } = await supabase
         .from("exercices_pin")
         .upsert(
-          {
+          [{
             user_id: user.id,
-            exercice_id: exerciseId,
+            exercice_id: String(exerciseId),
             is_pinned: newPinState,
-          },
+          }],
           { onConflict: "user_id,exercice_id" }
         );
 
@@ -201,29 +199,15 @@ export default function ExercisesList() {
       const currentCompletionState = exercise?.isCompleted || false;
       const newCompletionState = !currentCompletionState;
 
-      // Optimistic update
-      setAllExercises(prev => prev.map((item) => {
-        if (item.exercise?.id === exerciseId) {
-          return {
-            ...item,
-            exercise: {
-              ...item.exercise,
-              exercices_complete: [{ is_completed: newCompletionState, user_id: user.id }],
-            },
-          };
-        }
-        return item;
-      }));
-
       // Update database
       const { error } = await supabase
         .from("exercices_complete")
         .upsert(
-          {
+          [{
             user_id: user.id,
-            exercice_id: exerciseId,
+            exercice_id: String(exerciseId),
             is_completed: newCompletionState,
-          },
+          }],
           { onConflict: "user_id,exercice_id" }
         );
 

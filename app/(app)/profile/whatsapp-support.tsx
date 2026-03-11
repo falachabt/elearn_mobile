@@ -1,5 +1,4 @@
 ﻿import React from 'react';
-import { logger } from '@/utils/logger';
 import {
     View,
     Text,
@@ -14,6 +13,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
+import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 
 interface ContactInfo {
@@ -65,7 +65,7 @@ const WhatsAppSupportScreen = () => {
                 const webUrl = `https://wa.me/${phoneNumber}?text=${message}`;
                 try {
                     await Linking.openURL(webUrl);
-                } catch (webError) {
+                } catch {
                     Alert.alert('Erreur', WHATSAPP_CONFIG.errorMessages.cannotOpen);
                 }
             }

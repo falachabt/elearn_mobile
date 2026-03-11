@@ -28,13 +28,34 @@ interface Account extends Accounts {
 }
 
 interface EnhancedCourse extends Courses {
-  current_section?: number;
-  last_accessed?: Date;
-  user_progress?: number;
+  current_section?: number | null;
+  last_accessed?: string | null;
+  user_progress?: number | null;
   learning_path?: LearningPaths;
-  courses_content?: { order: number };
+  courses_content?: { order: number | null };
   course_progress_summary?: CourseProgressSummary[];
 }
+
+type ProgramAccessMap = Record<string, ProgramAccessStatus>;
+
+interface CourseWithLearningPath extends Courses {
+  course_learningpath?: { learning_paths: LearningPaths }[];
+}
+
+interface UserProgramRow {
+  id: number | string;
+  learningPathId: string | null;
+  learning_paths: LearningPaths | LearningPaths[] | null;
+}
+
+type RealtimeChannel = {
+  on: (
+    event: "postgres_changes",
+    config: { event: "*"; schema: "public"; table: string; filter: string },
+    callback: () => void | Promise<void>
+  ) => RealtimeChannel;
+  subscribe: () => { unsubscribe: () => void };
+};
 
 type UserContextType = {
   user: Account | null;
@@ -81,7 +102,7 @@ const fetchUserData = async (userId: string) => {
 
   if (error) throw error;
 
-  return data as Account;
+  return data as unknown as Account;
 };
 
 const fetchLastCourse = async (userId: string) => {
@@ -109,9 +130,7 @@ const fetchLastCourse = async (userId: string) => {
   if (!data?.courses) return null;
   if (Array.isArray(data.courses)) return null;
 
-  const courseData = data.courses as Courses & {
-    course_learningpath?: { learning_paths: LearningPaths }[];
-  };
+  const courseData = data.courses as unknown as CourseWithLearningPath;
 
   const enhancedCourse: EnhancedCourse = {
     ...courseData,
@@ -161,6 +180,10 @@ const calculateTodayTime = async (userId: string) => {
   if (error) return 0;
 
   return data.reduce((sum, record) => {
+    if (!record.session_start || !record.last_heartbeat) {
+      return sum;
+    }
+
     const start = new Date(record.session_start);
     const end = new Date(record.last_heartbeat);
 
@@ -248,22 +271,22 @@ const fetchUserPrograms = async (userId: string) => {
   }
 
   // Transformer les données
-  const learningPaths = data
-    ?.map((concoursLearningPath) => {
+  const learningPaths = ((data as UserProgramRow[] | null) ?? []).reduce<LearningPaths[]>(
+    (acc, concoursLearningPath) => {
       const learningPath = concoursLearningPath.learning_paths;
       
       if (learningPath && typeof learningPath === "object" && !Array.isArray(learningPath)) {
-        return {
-          ...learningPath,
+        acc.push({
+          ...(learningPath as LearningPaths),
           concours_learningpaths: {
             id: concoursLearningPath.id,
-            learningPathId: concoursLearningPath.learningPathId,
           },
-        };
+        });
       }
-      return null;
-    })
-    .filter((lp): lp is LearningPaths => lp !== null);
+      return acc;
+    },
+    []
+  );
   
   logger.log('[UserContext] fetchUserPrograms - Enrollments:', enrollments?.length, 'Unique programs loaded:', learningPaths?.length || 0);
   
@@ -327,14 +350,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const programIds =
     userPrograms
-      ?.map((p) => p?.concours_learningpaths?.id)
+      ?.map((p) => p?.concours_learningpaths?.id?.toString())
       .filter((id): id is string => !!id) || [];
 
   // Mapping d'accès aux programmes via SWR - Optimisé avec enrollments
   // ✨ IMPORTANT: Indépendant de programIds pour éviter les race conditions
   // Charge TOUS les enrollments de l'utilisateur, pas seulement ceux dans programIds
   const { data: programAccessMap, mutate: mutateProgramAccessMap } = useSWR<
-    Record<string, ProgramAccessStatus>
+    ProgramAccessMap
   >(
     authUser?.id ? `program-access-map-${authUser.id}` : null,
     async () => {
@@ -405,7 +428,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     logger.log(`[UserContext] getProgramAccessStatus - userProgram from userPrograms:`, userProgram);
 
-    programId = userProgram?.concours_learningpaths?.id;
+    programId = userProgram?.concours_learningpaths?.id?.toString();
     
 
     logger.log(`[UserContext] getProgramAccessStatus - initial programId: ${programId}`);
@@ -518,11 +541,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [mutateUser, mutateLastCourse, mutateTodayXp, mutateTodayExercises, mutateTodayTime, mutateUserPrograms, mutateProgramAccessMap]);
 
   useEffect(() => {
-    let subscription: ReturnType<typeof supabase.channel>;
+    let subscription: { unsubscribe: () => void } | undefined;
 
     if (authUser?.id) {
-      subscription = supabase
-        .channel("user_changes")
+      subscription = (supabase.channel("user_changes") as unknown as RealtimeChannel)
         .on(
           "postgres_changes",
           {
@@ -531,7 +553,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             table: "accounts",
             filter: `id=eq.${authUser.id}`,
           },
-          () => mutateUserRef.current()
+          () => {
+            void mutateUserRef.current();
+          }
         )
         .on(
           "postgres_changes",
@@ -541,7 +565,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             table: "user_xp",
             filter: `userid=eq.${authUser.id}`,
           },
-          () => mutateUserRef.current()
+          () => {
+            void mutateUserRef.current();
+          }
         )
         .on(
           "postgres_changes",
@@ -551,7 +577,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             table: "user_activity",
             filter: `user_id=eq.${authUser.id}`,
           },
-          () => mutateTodayTimeRef.current()
+          () => {
+            void mutateTodayTimeRef.current();
+          }
         )
         .on(
           "postgres_changes",
@@ -561,7 +589,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             table: "user_streaks",
             filter: `user_id=eq.${authUser.id}`,
           },
-          () => mutateUserRef.current()
+          () => {
+            void mutateUserRef.current();
+          }
         )
         .on(
           "postgres_changes",

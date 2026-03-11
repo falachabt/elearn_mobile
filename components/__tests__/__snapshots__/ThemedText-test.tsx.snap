@@ -8,8 +8,8 @@ exports[`renders correctly 1`] = `
         "color": "#11181C",
       },
       {
-        "fontFamily : theme.typography.fontFamily,
-fontSize": 16,
+        "fontFamily": "PlusJakartaSans",
+        "fontSize": 16,
         "lineHeight": 24,
       },
       undefined,

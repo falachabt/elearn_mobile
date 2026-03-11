@@ -47,8 +47,8 @@ const ProgramPaymentPage = () => {
     cancelPayment,
     verifyPaymentStatus,
     isFinalStatus,
-    mutateLatestPayment,
   } = useProgramPayment(pdId);
+  void hookErrorMessage;
 
   // State management
   const [currentState, setCurrentState] = useState<PaymentFlowState>(PaymentFlowState.LOADING);

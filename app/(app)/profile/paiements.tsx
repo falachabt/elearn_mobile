@@ -83,7 +83,7 @@ const PaymentHistory = () => {
             )
           )
         `)
-                .eq("user_id", user?.id)
+                .eq("user_id", user?.id ?? "")
                 .order("created_at", {ascending: false});
 
             if (error) throw error;
@@ -209,7 +209,9 @@ const PaymentHistory = () => {
                                     {formatAmount(payment.amount)}
                                 </ThemedText>
                                 <ThemedText style={styles.paymentDate}>
-                                    {format(new Date(payment.created_at), "d MMMM yyyy", {locale: fr})}
+                                    {payment.created_at
+                                        ? format(new Date(payment.created_at), "d MMMM yyyy", {locale: fr})
+                                        : "--"}
                                 </ThemedText>
                             </View>
                             <View

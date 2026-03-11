@@ -22,6 +22,12 @@ export interface PostHogUserProperties {
   has_payment?: boolean;
 }
 
+type PostHogProperties = Record<string, string | number | boolean | undefined>;
+type IdentifyProperties = Parameters<typeof posthog.identify>[1];
+type CaptureProperties = Parameters<typeof posthog.capture>[1];
+type ExceptionProperties = Parameters<typeof posthog.captureException>[1];
+type PersonProperties = Parameters<typeof posthog.setPersonProperties>[0];
+
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 function isPostHogReady(): boolean {
@@ -37,7 +43,7 @@ export const posthogService = {
    */
   identify(userId: string, properties?: PostHogUserProperties): void {
     if (!isPostHogReady()) return;
-    posthog.identify(userId, properties);
+    posthog.identify(userId, properties as IdentifyProperties);
   },
 
   /**
@@ -52,19 +58,17 @@ export const posthogService = {
   /**
    * Capture a custom event with optional properties.
    */
-  capture(eventName: string, properties?: Record<string, string | number | boolean>): void {
+  capture(eventName: string, properties?: PostHogProperties): void {
     if (!isPostHogReady()) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    posthog.capture(eventName, properties as any);
+    posthog.capture(eventName, properties as CaptureProperties);
   },
 
   /**
    * Capture an exception (error tracking).
    */
-  captureException(error: Error, context?: Record<string, string | number | boolean>): void {
+  captureException(error: Error, context?: PostHogProperties): void {
     if (!isPostHogReady()) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    posthog.captureException(error, context as any);
+    posthog.captureException(error, context as ExceptionProperties);
   },
 
   /**
@@ -72,8 +76,7 @@ export const posthogService = {
    */
   setPersonProperties(properties: PostHogUserProperties): void {
     if (!isPostHogReady()) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    posthog.setPersonProperties(properties as any);
+    posthog.setPersonProperties(properties as PersonProperties);
   },
 
   // ─── Auth Events ─────────────────────────────────────────────────
@@ -86,11 +89,11 @@ export const posthogService = {
     this.capture('auth_login_failed', { error });
   },
 
-  trackSignupStarted(method: 'email' | 'oauth'): void {
+  trackSignupStarted(method: 'email' | 'oauth' | 'phone'): void {
     this.capture('auth_signup_started', { method });
   },
 
-  trackSignupCompleted(method: 'email' | 'oauth'): void {
+  trackSignupCompleted(method: 'email' | 'oauth' | 'phone'): void {
     this.capture('auth_signup_completed', { method });
   },
 
@@ -140,20 +143,37 @@ export const posthogService = {
     });
   },
 
-  trackLessonStarted(lessonId: string, lessonName: string, courseId: string): void {
+  trackLessonStarted(
+    lessonId: string,
+    lessonName: string,
+    courseId: string,
+    courseName?: string
+  ): void {
     this.capture('learning_lesson_started', {
       lesson_id: lessonId,
       lesson_name: lessonName,
       course_id: courseId,
+      course_name: courseName,
     });
   },
 
-  trackLessonCompleted(lessonId: string, lessonName: string, courseId: string, duration: number): void {
+  trackLessonCompleted(
+    lessonId: string,
+    lessonName: string,
+    courseId: string,
+    durationOrCourseName: number | string,
+    durationSeconds?: number
+  ): void {
     this.capture('learning_lesson_completed', {
       lesson_id: lessonId,
       lesson_name: lessonName,
       course_id: courseId,
-      duration_seconds: duration,
+      course_name:
+        typeof durationOrCourseName === 'string' ? durationOrCourseName : undefined,
+      duration_seconds:
+        typeof durationOrCourseName === 'number'
+          ? durationOrCourseName
+          : (durationSeconds ?? 0),
     });
   },
 

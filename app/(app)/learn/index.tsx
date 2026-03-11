@@ -3,7 +3,6 @@ import {
     FlatList,
     Pressable,
     RefreshControl,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -13,7 +12,7 @@ import {
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import useSWR from 'swr'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useRouter, useFocusEffect } from 'expo-router'
+import { Href, useRouter, useFocusEffect } from 'expo-router'
 
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth'
@@ -25,10 +24,10 @@ import { logger } from '@/utils/logger'
 
 interface School {
     id: string
-    name: string
-    imageUrl?: string
-    sigle: string
-    localisation: string
+    name: string | null
+    imageUrl?: string | null
+    sigle: string | null
+    localisation: string | null
 }
 
 interface StudyCycle {
@@ -37,13 +36,13 @@ interface StudyCycle {
 
 interface Concours {
     id: string
-    name: string
-    description: string
-    schoolId: string
-    school: School
-    study_cycles: StudyCycle
-    dates: { start: string; end: string }
-    nextDate: Date
+    name: string | null
+    description: string | null
+    schoolId?: string | null
+    school: School | null
+    study_cycles: StudyCycle | { level: number } | null
+    dates: string[] | null
+    nextDate: string | null
 }
 
 interface ConcoursLearningPath {
@@ -84,6 +83,36 @@ export interface LearningPath {
     isEnrolled: boolean
     enrollmentId?: number
     isGenerousWeek?: boolean
+}
+
+interface LearningPathRow {
+    id: number
+    price: number | null
+    isActive: boolean | null
+    learningPathId: string | null
+    concourId: string | null
+    concour: Concours | null
+    learning_path: {
+        id: string
+        title: string | null
+        description: string | null
+        image: unknown
+        duration: unknown[] | null
+        content?: {
+            nodes: {
+                id: string
+                type: 'course' | 'quiz'
+                data: {
+                    courseId?: number
+                    quizId?: string
+                }
+            }[]
+        }
+        course_count: number | null
+        quiz_count: number | null
+        total_duration: number | null
+    } | null
+    user_program_enrollments: UserProgramEnrollment[] | null
 }
 
 const MyLearningPaths = () => {
@@ -157,30 +186,17 @@ const MyLearningPaths = () => {
             // Group by learning path to avoid duplicates and determine enrollment status
             const learningPathMap = new Map<string, LearningPath>()
 
-            learningPathsData.forEach((item: {
-                id: number
-                price: number
-                isActive: boolean
-                learningPathId: string
-                concourId: string
-                concour: Concours
-                learning_path: {
-                    id: string
-                    title: string
-                    description: string
-                    image: { url: string }
-                    duration: Record<string, unknown>[]
-                    content: { nodes: { id: string; type: 'course' | 'quiz'; data: { courseId?: number; quizId?: string } }[] }
-                    course_count: number
-                    quiz_count: number
-                    total_duration: number
+            const learningPathRows = learningPathsData as unknown as LearningPathRow[]
+
+            learningPathRows.forEach((item) => {
+                if (!item.learning_path || !item.concour || !item.concourId || !item.learningPathId || item.price == null || item.isActive == null) {
+                    return
                 }
-                user_program_enrollments: UserProgramEnrollment[] | null
-            }) => {
+
                 const learningPathId = item.learning_path.id
                 const isUserEnrolled = item.user_program_enrollments?.some(
                     (enrollment: UserProgramEnrollment) => enrollment.user_id === authUser?.id
-                )
+                ) ?? false
                 const userEnrollment = item.user_program_enrollments?.find(
                     (enrollment: UserProgramEnrollment) => enrollment.user_id === authUser?.id
                 )
@@ -188,14 +204,14 @@ const MyLearningPaths = () => {
                 if (!learningPathMap.has(learningPathId)) {
                     learningPathMap.set(learningPathId, {
                         id: item.learning_path.id,
-                        title: `Programme ${item.concour.school.sigle} Niveau : ${item.concour.study_cycles.level}`,
-                        description: item.learning_path.description,
-                        image: item.learning_path.image,
-                        duration: item.learning_path.duration,
-                        content: item.learning_path.content,
-                        course_count: item.learning_path.course_count,
-                        quiz_count: item.learning_path.quiz_count,
-                        total_duration: item.learning_path.total_duration,
+                        title: `Programme ${item.concour.school?.sigle ?? ''} Niveau : ${item.concour.study_cycles?.level ?? ''}`,
+                        description: item.learning_path.description ?? "",
+                        image: { url: "" },
+                        duration: [],
+                        content: item.learning_path.content ?? { nodes: [] },
+                        course_count: item.learning_path.course_count ?? 0,
+                        quiz_count: item.learning_path.quiz_count ?? 0,
+                        total_duration: item.learning_path.total_duration ?? 0,
                         concours_learningpaths: [],
                         isEnrolled: isUserEnrolled,
                         enrollmentId: userEnrollment?.id ,
@@ -408,7 +424,7 @@ const MyLearningPaths = () => {
                         removeClippedSubviews={true}
                         maxToRenderPerBatch={8}
                         windowSize={10}
-                        showScrollIndicator={false}
+                        showsVerticalScrollIndicator={false}
                         initialNumToRender={5}
                         updateCellsBatchingPeriod={30}
                         getItemLayout={(data, index) => ({
