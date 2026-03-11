@@ -2,12 +2,12 @@ name: Production Build & Submit
 
 on:
   push:
-    branches:
-      - master
+    tags:
+      - "v*"
 
 jobs:
   build:
-    name: Build Android
+    name: Build Android Production
     type: build
     params:
       platform: android
