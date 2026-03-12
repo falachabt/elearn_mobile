@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build Android Development
     type: build
+    env:
+      APP_VERSION_FROM_TAG: ${{ github.ref_name }}
     params:
       platform: android
       profile: development

@@ -16,6 +16,7 @@
     "build:ios-simulator": "node ./scripts/switch-platform.js native eas build --profile ios-simulator --platform ios",
     "build:preview": "node ./scripts/switch-platform.js native eas build --profile preview --platform android",
     "build:production": "node ./scripts/switch-platform.js native eas build --profile production --platform android",
+    "eas-build-pre-install": "node ./scripts/switch-platform.js native",
     "submit:production": "node ./scripts/switch-platform.js native eas submit --platform android",
     "deploy:web": "eas deploy",
     "deploy:web:prod": "eas deploy --prod",

@@ -14,8 +14,6 @@ import { Platform, ScrollView, Text, View } from "react-native";
 import "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-
-
 import ScreenTracker from "@/components/shared/ScreenTracker";
 
 // Root-level error boundary — catches any crash inside the app tree and shows the error
