@@ -15,3 +15,16 @@ jobs:
     params:
       platform: android
       profile: preview
+
+  summary:
+    name: Build Summary
+    type: doc
+    after: [build]
+    params:
+      md: |
+        ## Preview Build Summary
+        - Profile: `${{ needs.build.outputs.profile }}`
+        - Version: `${{ needs.build.outputs.app_version || 'missing' }}`
+        - Runtime version: `${{ needs.build.outputs.runtime_version || 'missing' }}`
+        - Build version: `${{ needs.build.outputs.app_build_version || 'missing' }}`
+        - Build ID: `${{ needs.build.outputs.build_id || 'missing' }}`

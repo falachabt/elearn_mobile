@@ -21,3 +21,17 @@ jobs:
     needs: [build]
     params:
       build_id: ${{ needs.build.outputs.build_id }}
+
+  summary:
+    name: Build Summary
+    type: doc
+    after: [build, submit]
+    params:
+      md: |
+        ## Production Build Summary
+        - Profile: `${{ needs.build.outputs.profile }}`
+        - Version: `${{ needs.build.outputs.app_version || 'missing' }}`
+        - Runtime version: `${{ needs.build.outputs.runtime_version || 'missing' }}`
+        - Build version: `${{ needs.build.outputs.app_build_version || 'missing' }}`
+        - Build ID: `${{ needs.build.outputs.build_id || 'missing' }}`
+        - Submit status: `${{ after.submit.status }}`
