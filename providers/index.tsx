@@ -404,7 +404,7 @@ const ErrorFallback = ({ error }: PostHogErrorBoundaryFallbackProps) => {
 };
 
 export function Provider({ children }: { children: React.ReactNode }) {
-  const { quizId, attempId } = useLocalSearchParams();
+  const { quizId, attempId } = useLocalSearchParams<{ quizId?: string; attempId?: string }>();
 
   // Initialize Amplitude
   useEffect(() => {
@@ -507,8 +507,8 @@ export function Provider({ children }: { children: React.ReactNode }) {
                   <UpdatesProvider>
                     <ChatProvider>
                         <QuizProvider
-                          quizId={String(quizId)}
-                          attemptId={String(attempId)}
+                          quizId={quizId}
+                          attemptId={attempId}
                         >
                           <UserActivityTracker />
                           <UpdatesManager />

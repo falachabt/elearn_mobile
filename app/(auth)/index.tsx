@@ -360,18 +360,20 @@ const StartPage = () => {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
+    const isNative = Platform.OS !== 'web';
+
     // Logo animation
     Animated.timing(scaleAnim, {
       toValue: 1,
       duration: 800,
-      useNativeDriver: true,
+      useNativeDriver: isNative,
     }).start();
 
     // Content fade in
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1000,
-      useNativeDriver: true,
+      useNativeDriver: isNative,
     }).start();
 
     // Button slide up
@@ -379,7 +381,7 @@ const StartPage = () => {
       toValue: 0,
       duration: 800,
       delay: 400,
-      useNativeDriver: true,
+      useNativeDriver: isNative,
     }).start();
   }, []);
 

@@ -13,6 +13,8 @@ import type { Json } from '@/types/supabase';
  * @returns The Expo push token or undefined if registration failed
  */
 export async function registerForPushNotificationsAsync(userId: string): Promise<string | undefined> {
+  if (Platform.OS === 'web') return undefined;
+
   let token: string | undefined;
 
   // Set up notification channel for Android
