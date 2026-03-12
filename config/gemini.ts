@@ -10,9 +10,9 @@ import { logger } from '@/utils/logger';
 const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 
 if (!apiKey) {
-    throw new Error("EXPO_PUBLIC_GEMINI_API_KEY environment variable is not set. Please set it before using the Gemini client.");
+    console.warn("EXPO_PUBLIC_GEMINI_API_KEY is not set. Gemini features will be disabled.");
 }
-const genAI: GoogleGenerativeAI = new GoogleGenerativeAI(apiKey);
+const genAI: GoogleGenerativeAI = new GoogleGenerativeAI(apiKey ?? "");
 
 const model: GenerativeModel = genAI.getGenerativeModel({
     model: "gemini-3-flash-preview",

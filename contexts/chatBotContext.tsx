@@ -2,7 +2,7 @@
 import {usePathname} from 'expo-router';
 import {useSWRConfig} from 'swr';
 
-import {ContextElement} from '@/components/shared/ChatBot'; // Import the ContextElement type
+import type {ContextElement} from '@/components/shared/ChatBot'; // Import the ContextElement type
 import { logger } from '@/utils/logger';
 
 // Define the context interface
