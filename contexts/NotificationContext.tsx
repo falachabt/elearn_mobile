@@ -8,9 +8,9 @@ import React, {
 } from "react";
 import * as Notifications from "expo-notifications";
 import { Href, router } from "expo-router";
+import { Platform } from "react-native";
 
 import { logger } from "@/utils/logger";
-import {registerForPushNotificationsAsync} from "@/components/TestNotifications";
 
 interface NotificationContextType {
     expoPushToken: string | undefined;
@@ -129,21 +129,18 @@ const handleNotificationNavigation = (data: Record<string, unknown>) => {
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({
                                                                               children,
                                                                           }) => {
-    const [expoPushToken, setExpoPushToken] = useState<string | undefined>(undefined);
+    const [expoPushToken] = useState<string | undefined>(undefined);
     const [notification, setNotification] =
         useState<Notifications.Notification | null>(null);
-    const [error, setError] = useState<Error | null>(null);
-
-
-    logger.log(expoPushToken)
+    const error = null;
 
     const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
     const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
 
     useEffect(() => {
-        registerForPushNotificationsAsync()
-            .then((token: string | undefined) => setExpoPushToken(token))
-            .catch((error: Error) => setError(error));
+        if (Platform.OS === 'web') {
+            return;
+        }
 
         notificationListener.current =
             Notifications.addNotificationReceivedListener((notification) => {

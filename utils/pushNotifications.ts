@@ -12,7 +12,9 @@ import type { Json } from '@/types/supabase';
  * @param userId The ID of the user to store the token for
  * @returns The Expo push token or undefined if registration failed
  */
-export async function registerForPushNotificationsAsync(userId: string): Promise<string | undefined> {
+export async function registerForPushNotificationsAsync(
+  userId?: string
+): Promise<string | undefined> {
   if (Platform.OS === 'web') return undefined;
 
   let token: string | undefined;
@@ -114,6 +116,10 @@ export async function updateUserPushToken(userId: string, token: string): Promis
  * Sets up notification handlers for the app
  */
 export function setupNotifications(): void {
+  if (Platform.OS === 'web') {
+    return;
+  }
+
   // Define how notifications should be handled when the app is in the foreground
   Notifications.setNotificationHandler({
     handleNotification: async () => ({

@@ -1,5 +1,5 @@
 import React, {useEffect, useRef} from "react";
-import {Animated, Easing, Text, View, StyleSheet} from "react-native";
+import {Animated, Easing, Platform, Text, View, StyleSheet} from "react-native";
 
 import {theme} from "@/constants/theme";
 
@@ -8,13 +8,14 @@ export function LoadingAnimation({ isDarkMode } : { isDarkMode: boolean }) {
     const scale = useRef(new Animated.Value(0.8)).current;
 
     useEffect(() => {
+        const isNative = Platform.OS !== 'web';
         // Rotation animation
         Animated.loop(
             Animated.timing(rotation, {
                 toValue: 1,
                 duration: 2000,
                 easing: Easing.linear,
-                useNativeDriver: true
+                useNativeDriver: isNative
             })
         ).start();
 
@@ -25,13 +26,13 @@ export function LoadingAnimation({ isDarkMode } : { isDarkMode: boolean }) {
                     toValue: 1.1,
                     duration: 800,
                     easing: Easing.out(Easing.ease),
-                    useNativeDriver: true
+                    useNativeDriver: isNative
                 }),
                 Animated.timing(scale, {
                     toValue: 0.8,
                     duration: 800,
                     easing: Easing.in(Easing.ease),
-                    useNativeDriver: true
+                    useNativeDriver: isNative
                 })
             ])
         ).start();

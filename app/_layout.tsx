@@ -9,17 +9,56 @@ import { Stack } from "expo-router";
 import Head from "expo-router/head";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
-import { Platform, Text, View } from "react-native";
+import React, { useEffect, Component } from "react";
+import { Platform, ScrollView, Text, View } from "react-native";
 import "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 
 
 import ScreenTracker from "@/components/shared/ScreenTracker";
+
+// Root-level error boundary — catches any crash inside the app tree and shows the error
+class RootErrorBoundary extends Component<
+    { children: React.ReactNode },
+    { error: Error | null }
+> {
+    constructor(props: { children: React.ReactNode }) {
+        super(props);
+        this.state = { error: null };
+    }
+    static getDerivedStateFromError(error: Error) {
+        return { error };
+    }
+    render() {
+        if (this.state.error) {
+            return (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#fff' }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#d32f2f', marginBottom: 12 }}>
+                        Erreur de rendu
+                    </Text>
+                    <ScrollView style={{ maxHeight: 400 }}>
+                        <Text style={{ fontSize: 13, color: '#333', fontFamily: 'monospace' }}>
+                            {this.state.error.message}
+                        </Text>
+                        {this.state.error.stack ? (
+                            <Text style={{ fontSize: 11, color: '#666', marginTop: 8, fontFamily: 'monospace' }}>
+                                {this.state.error.stack}
+                            </Text>
+                        ) : null}
+                    </ScrollView>
+                </View>
+            );
+        }
+        return this.props.children;
+    }
+}
 import { theme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Provider } from "@/providers";
+import { installDevWarningFilters } from "@/utils/devWarnings";
+
+installDevWarningFilters();
 
 
 
@@ -122,17 +161,20 @@ export default function RootLayout() {
 
     // Normal app flow if not expired
     return (
-        <Provider>
-            <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-                <ScreenTracker />
-                <Stack initialRouteName={"(auth)"} screenOptions={{animation: "slide_from_left", headerShown: false}}>
-                    <Stack.Screen name="(auth)"/>
-                    <Stack.Screen name="(app)"/>
-                    <Stack.Screen name="+not-found"/>
-                </Stack>
-                <StatusBar hidden={Platform.OS == "ios" ? true : false} style="auto"
-                           backgroundColor={theme.color.primary[500]}/>
-            </ThemeProvider>
-        </Provider>
+        <RootErrorBoundary>
+            <Provider>
+                <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+                    <ScreenTracker />
+                    <Stack initialRouteName={"(auth)"} screenOptions={{animation: "slide_from_left", headerShown: false}}>
+                        <Stack.Screen name="(auth)"/>
+                        <Stack.Screen name="(app)"/>
+                        <Stack.Screen name="+not-found"/>
+                    </Stack>
+
+                    <StatusBar hidden={Platform.OS == "ios" ? true : false} style="auto"
+                               backgroundColor={theme.color.primary[500]}/>
+                </ThemeProvider>
+            </Provider>
+        </RootErrorBoundary>
     );
 }

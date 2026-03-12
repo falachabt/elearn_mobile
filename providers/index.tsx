@@ -18,7 +18,7 @@ import type { PostHogErrorBoundaryFallbackProps } from 'posthog-react-native';
 import React from "react";
 
 import { AuthProvider } from "@/contexts/auth";
-import { QuizProvider } from "@/contexts/quizContext";
+
 import { UserProvider } from "@/contexts/useUserInfo";
 import { AppConfigProvider } from "@/contexts/useAppConfig";
 import UserActivityTracker from "@/components/shared/UserActivity";
@@ -404,7 +404,6 @@ const ErrorFallback = ({ error }: PostHogErrorBoundaryFallbackProps) => {
 };
 
 export function Provider({ children }: { children: React.ReactNode }) {
-  const { quizId, attempId } = useLocalSearchParams<{ quizId?: string; attempId?: string }>();
 
   // Initialize Amplitude
   useEffect(() => {
@@ -506,16 +505,11 @@ export function Provider({ children }: { children: React.ReactNode }) {
                 <GestureHandlerRootView style={{ flex: 1 }}>
                   <UpdatesProvider>
                     <ChatProvider>
-                        <QuizProvider
-                          quizId={quizId}
-                          attemptId={attempId}
-                        >
                           <UserActivityTracker />
                           <UpdatesManager />
                           {/* <RouteRevalidationManager> */}
                           <BackHandlerManager>{children}</BackHandlerManager>
                           {/* </RouteRevalidationManager> */}
-                        </QuizProvider>
                     </ChatProvider>
                   </UpdatesProvider>
                 </GestureHandlerRootView>

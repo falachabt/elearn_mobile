@@ -76,6 +76,14 @@ type AppConfigContextType = {
 
 const AppConfigContext = createContext<AppConfigContextType | undefined>(undefined);
 
+const DEFAULT_WEBVIEW_URLS: WebViewConfig = {
+  course_url: 'https://staff.elearnprepa.com/fr/webview/courseContent',
+  exercise_url: 'https://staff.elearnprepa.com/fr/webview/exercices',
+  summary_url: 'https://staff.elearnprepa.com/fr/webview/course-summary',
+};
+
+const DEFAULT_API_BASE_URL = 'https://staff.elearnprepa.com';
+
 const fetchAppConfig = async () => {
   const { data, error } = await supabase.from('app_config').select('*').limit(1);
 
@@ -124,33 +132,24 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
       !appConfig.data.webview.course_url ||
       !appConfig.data.webview.exercise_url
     ) {
-      logger.warn('[AppConfig] WebView URLs not configured, using defaults');
-      return {
-        course_url: 'https://staff.elearnprepa.com/fr/webview/courseContent',
-        exercise_url: 'https://staff.elearnprepa.com/fr/webview/exercices',
-        summary_url: 'https://staff.elearnprepa.com/fr/webview/course-summary',
-      };
+      return DEFAULT_WEBVIEW_URLS;
     }
 
     return {
       ...appConfig.data.webview,
-      summary_url:
-        appConfig.data.webview.summary_url?.trim() ||
-        'https://staff.elearnprepa.com/fr/webview/course-summary',
+      summary_url: appConfig.data.webview.summary_url?.trim() || DEFAULT_WEBVIEW_URLS.summary_url,
     };
   };
 
   const getApiBaseUrl = () => {
     if (!appConfig?.data?.api_base_url || appConfig.data.api_base_url.trim() === '') {
-      logger.warn('[AppConfig] API base URL not configured, using default');
-      return 'https://staff.elearnprepa.com';
+      return DEFAULT_API_BASE_URL;
     }
     return appConfig.data.api_base_url;
   };
 
   const getPricingConfig = (): PricingConfig | null => {
     if (!appConfig?.data?.pricing || Object.keys(appConfig.data.pricing).length === 0) {
-      logger.warn('[AppConfig] Pricing configuration not yet loaded or not found in database');
       return null;
     }
     return appConfig.data.pricing;

@@ -8,6 +8,7 @@ import {
     Platform,
     StatusBar,
     Alert,
+    Modal,
     Dimensions,
     Image,
     Text, DimensionValue,
@@ -71,6 +72,7 @@ type OptionButtonProps = {
 
 type QuizHeaderProps = {
     isDark: boolean;
+    onExit: () => void;
 };
 
 type QuestionContentProps = {
@@ -263,7 +265,7 @@ const MixedContentRenderer = memo(({
 });
 
 // Header component showing progress and timer
-const QuizHeader = memo(({isDark}: QuizHeaderProps) => {
+const QuizHeader = memo(({isDark, onExit}: QuizHeaderProps) => {
     const {currentQuestion, totalQuestions, progress, attempt, results} =
         useQuizContext();
 
@@ -275,11 +277,12 @@ const QuizHeader = memo(({isDark}: QuizHeaderProps) => {
 
     // Calculate time display only when timeSpent changes
     const timeDisplay = useMemo(() => {
-        const timeToFormat = results?.status === "in_progress"
-            ? attempt.timeSpent ?? 0
-            : results?.timeSpent ?? 0;
+        // results est défini seulement une fois le quiz terminé
+        const timeToFormat = results
+            ? results.timeSpent ?? 0
+            : attempt.timeSpent ?? 0;
         return formatTime(timeToFormat);
-    }, [formatTime, results?.status, attempt.timeSpent, results?.timeSpent]);
+    }, [formatTime, results, attempt.timeSpent]);
 
     // Calculate progress width only when progress or results change
     const progressWidth = useMemo(() => {
@@ -289,11 +292,18 @@ const QuizHeader = memo(({isDark}: QuizHeaderProps) => {
     return (
         <View style={[styles.header, isDark && styles.headerDark]}>
             <View style={styles.progressInfo}>
+                <Pressable onPress={onExit} style={styles.backButton} hitSlop={8}>
+                    <MaterialCommunityIcons
+                        name="arrow-left"
+                        size={22}
+                        color={isDark ? "#FFFFFF" : "#111827"}
+                    />
+                </Pressable>
                 <ThemedText style={styles.questionCounter}>
                     Question {(currentQuestion?.order ?? 0) + 1}/{totalQuestions}
                 </ThemedText>
                 <ThemedText style={styles.timer}>
-                    Time: {timeDisplay}
+                    Temps écoulé : {timeDisplay}
                 </ThemedText>
             </View>
             <View style={{flexDirection: "row", alignItems: "center"}}>
@@ -371,8 +381,8 @@ const QuestionContent = memo(({isDark}: QuestionContentProps) => {
     // Early return for null question
     if (!currentQuestion) return null;
 
-    // Show results if not in progress
-    if (results?.status !== "in_progress" || isCompleted) {
+    // Show results only when the attempt is explicitly completed and results are loaded
+    if (results && (results.status === "completed" || isCompleted)) {
         return (
             <QuizResultsDisplay
                 key={currentQuestion.id}
@@ -424,7 +434,7 @@ const QuestionContent = memo(({isDark}: QuestionContentProps) => {
                         onPress={onSelectAnswer}
                         isDark={isDark}
                         contentWidth={contentWidth}
-                        disabled={isCompleted || results?.status !== "in_progress"}
+                        disabled={isCompleted}
                     />
                 ))}
             </View>
@@ -499,9 +509,7 @@ const QuizFooter = memo(({
     // Determine button disabled states
     // In review mode, allow navigation but not answer selection
     const isPrevDisabled = isSubmitting || isFirstQuestion;
-    const isNextDisabled = !isCompleted &&
-        (selectedAnswers.length === 0 || isSubmitting) &&
-        results?.status === "in_progress";
+    const isNextDisabled = !isCompleted && (selectedAnswers.length === 0 || isSubmitting);
 
     return (
         <>
@@ -597,8 +605,22 @@ const QuizContent = () => {
     const {currentQuestion, isCompleted, isNewlyCompleted, results} = useQuizContext();
     const [showResult, setShowResult] = useState(false);
     const [quizResults, setQuizResults] = useState<any>(null);
+    const [showExitModal, setShowExitModal] = useState(false);
     const {quiz} = useQuiz(String(quizIdParam));
     const {user} = useAuth();
+
+    const handleExitRequest = useCallback(() => {
+        if (!isCompleted) {
+            setShowExitModal(true);
+        } else {
+            router.back();
+        }
+    }, [isCompleted, router]);
+
+    const confirmExit = useCallback(() => {
+        setShowExitModal(false);
+        router.back();
+    }, [router]);
 
     // Effect to show results automatically ONLY when quiz is newly completed
     // useEffect(() => {
@@ -671,7 +693,7 @@ const QuizContent = () => {
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
             <StatusBar barStyle={isDark ? "light-content" : "dark-content"}/>
-            <QuizHeader isDark={isDark}/>
+            <QuizHeader isDark={isDark} onExit={handleExitRequest}/>
 
             <ScrollView
                 contentContainerStyle={styles.content}
@@ -696,6 +718,42 @@ const QuizContent = () => {
                     onContinue={handleContinue}
                 />
             )}
+
+            {/* Modal confirmation quitter le quiz */}
+            <Modal
+                visible={showExitModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowExitModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalBox, isDark && styles.modalBoxDark]}>
+                        <MaterialCommunityIcons
+                            name="alert-circle-outline"
+                            size={40}
+                            color={theme.color.primary[500]}
+                        />
+                        <ThemedText style={styles.modalTitle}>Quitter le quiz ?</ThemedText>
+                        <ThemedText style={styles.modalMessage}>
+                            Votre progression sera sauvegardée, mais le quiz ne sera pas terminé.
+                        </ThemedText>
+                        <View style={styles.modalButtons}>
+                            <Pressable
+                                style={[styles.modalBtn, styles.modalBtnCancel, isDark && styles.modalBtnCancelDark]}
+                                onPress={() => setShowExitModal(false)}
+                            >
+                                <Text style={[styles.modalBtnText, isDark && {color: '#FFFFFF'}]}>Continuer</Text>
+                            </Pressable>
+                            <Pressable
+                                style={[styles.modalBtn, styles.modalBtnConfirm]}
+                                onPress={confirmExit}
+                            >
+                                <Text style={[styles.modalBtnText, {color: '#FFFFFF'}]}>Quitter</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -751,8 +809,13 @@ const styles = StyleSheet.create({
     },
     progressInfo: {
         flexDirection: "row",
+        alignItems: "center",
         justifyContent: "space-between",
         marginBottom: 8,
+        gap: 8,
+    },
+    backButton: {
+        padding: 4,
     },
     questionCounter: {
         fontFamily: theme.typography.fontFamily,
@@ -1123,6 +1186,67 @@ const styles = StyleSheet.create({
     },
     exerciseButtonTextActive: {
         color: '#FFFFFF',
+    },
+
+    // Modal confirmation quitter
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    modalBox: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: theme.border.radius.medium,
+        padding: 24,
+        width: '100%',
+        maxWidth: 360,
+        alignItems: 'center',
+        gap: 12,
+    },
+    modalBoxDark: {
+        backgroundColor: '#1F2937',
+    },
+    modalTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    modalMessage: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        color: '#6B7280',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 8,
+        width: '100%',
+    },
+    modalBtn: {
+        flex: 1,
+        padding: 14,
+        borderRadius: theme.border.radius.small,
+        alignItems: 'center',
+    },
+    modalBtnCancel: {
+        backgroundColor: '#F3F4F6',
+    },
+    modalBtnCancelDark: {
+        backgroundColor: '#374151',
+    },
+    modalBtnConfirm: {
+        backgroundColor: theme.color.primary[500],
+    },
+    modalBtnText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#111827',
     },
 });
 

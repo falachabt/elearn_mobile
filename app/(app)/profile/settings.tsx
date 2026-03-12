@@ -1,4 +1,4 @@
-﻿import React, {useState, useEffect, useMemo, useCallback} from 'react';
+﻿import React, {useState, useEffect, useMemo} from 'react';
 import {
     View,
     Text,
@@ -12,12 +12,12 @@ import {
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
+import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SchedulableTriggerInputTypes} from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { useRouter } from 'expo-router';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 import { logger } from '@/utils/logger';
 import {theme} from '@/constants/theme';
@@ -25,12 +25,11 @@ import {useAuth} from '@/contexts/auth';
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {ThemedView} from '@/components/ThemedView';
 import {ThemedText} from '@/components/ThemedText';
-import {registerForPushNotificationsAsync} from "@/components/TestNotifications";
 import {useColorScheme} from '@/hooks/useColorScheme';
 import reminderMessages from "@/constants/reminderMessages";
 import { IconNames } from '@/constants/iconNames';
 import SettingsItem from '@/components/settings/SettingsItem';
-import ReminderModal from '@/components/settings/ReminderModal';
+import { registerForPushNotificationsAsync } from '@/utils/pushNotifications';
 
 
 // TODO: check the notification udpates and the last update
@@ -45,13 +44,31 @@ const SettingsScreen = () => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const {trigger, loadHapticSettings} = useHaptics();
-    const router = useRouter();
+
+    const appEnvironment = useMemo(() => {
+        const easChannel = Updates.channel?.trim();
+
+        if (easChannel) {
+            return easChannel;
+        }
+
+        if (__DEV__) {
+            return 'development';
+        }
+
+        return 'unknown';
+    }, []);
+
+    const appVersionLabel = useMemo(() => {
+        const version = Constants.expoConfig?.version ?? '1.0.0';
+        return `${version} (${appEnvironment})`;
+    }, [appEnvironment]);
 
     // Render a setting item with a toggle switch
     const renderSettingItem = (iconName: string, title: string, subtitle: string, value: boolean, onToggle: () => void) => {
         return (
             <SettingsItem
-                icon={iconName as any}
+                icon={iconName as never}
                 title={title}
                 subtitle={subtitle}
                 value={value}
@@ -65,11 +82,11 @@ const SettingsScreen = () => {
     const renderPressableSettingItem = (iconName: string, title: string, subtitle: string, onPress: () => void, rightContent: React.ReactNode = null) => {
         return (
             <SettingsItem
-                icon={iconName as any}
+                icon={iconName as never}
                 title={title}
                 subtitle={subtitle}
                 onPress={onPress}
-                rightComponent={rightContent as any}
+                rightComponent={rightContent as never}
                 isDark={isDark}
             />
         );
@@ -115,7 +132,7 @@ const SettingsScreen = () => {
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [soundsEnabled, setSoundsEnabled] = useState(true);
     const [hapticEnabled, setHapticEnabled] = useState(true);
-    const [darkModeEnabled, setDarkModeEnabled] = useState(isDark);
+    const [darkModeEnabled, ] = useState(isDark);
     const [dataUsageOptimized, setDataUsageOptimized] = useState(true);
     const [downloadOverWifiOnly, setDownloadOverWifiOnly] = useState(true);
 
@@ -328,7 +345,7 @@ const SettingsScreen = () => {
     };
 
     // Handle time change in time picker
-    const onTimeChange = (event: any, selectedDate?: Date) => {
+    const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
         setShowTimePicker(false);
         if (selectedDate) {
             setReminderTime(selectedDate);
@@ -585,7 +602,7 @@ const SettingsScreen = () => {
                     {renderPressableSettingItem(
                         'information-outline',
                         'Version',
-                        `${Constants.expoConfig?.version ?? '1.0.0'}`,
+                        appVersionLabel,
                         () => {
                         }
                     )}

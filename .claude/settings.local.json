@@ -26,7 +26,11 @@
       "Bash(find /d/Projets/elearn_mobile/components -name *.tsx -type f)",
       "Bash(tail -100 /d/Projets/elearn_mobile/app/\\\\\\(auth\\\\\\)/index.tsx)",
       "Bash(grep -r quizId=eq.undefined /d/Projets/elearn_mobile --include=*.tsx --include=*.ts)",
-      "Bash(grep -r .select.*quizId /d/Projets/elearn_mobile --include=*.tsx --include=*.ts)"
+      "Bash(grep -r .select.*quizId /d/Projets/elearn_mobile --include=*.tsx --include=*.ts)",
+      "Bash(cat \"app/\\(auth\\)/_layout.tsx\")",
+      "Bash(timeout 20 npx expo start --web --no-dev)",
+      "Bash(timeout 25 npx expo start --web --port 8083)",
+      "Bash(timeout 30 npx expo start --web --port 8083)"
     ]
   }
 }
