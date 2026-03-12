@@ -20,7 +20,13 @@
       "Bash(eas credentials:*)",
       "Bash(eas build:list --platform android --limit 1 --json)",
       "Bash(eas build:list --platform android --limit 1)",
-      "Bash(eas build:view dfc7c4c4-b8e3-4085-bda5-802c5bf186c8)"
+      "Bash(eas build:view dfc7c4c4-b8e3-4085-bda5-802c5bf186c8)",
+      "Bash(find /d/Projets/elearn_mobile -name provider* -type f)",
+      "Bash(find /d/Projets/elearn_mobile -path ./node_modules -prune -o -name *rovider* -type f -print)",
+      "Bash(find /d/Projets/elearn_mobile/components -name *.tsx -type f)",
+      "Bash(tail -100 /d/Projets/elearn_mobile/app/\\\\\\(auth\\\\\\)/index.tsx)",
+      "Bash(grep -r quizId=eq.undefined /d/Projets/elearn_mobile --include=*.tsx --include=*.ts)",
+      "Bash(grep -r .select.*quizId /d/Projets/elearn_mobile --include=*.tsx --include=*.ts)"
     ]
   }
 }
