@@ -14,7 +14,8 @@ import {
   Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Lottie from "lottie-react-native";
+import { Platform } from "react-native";
+const Lottie = Platform.OS !== 'web' ? require("lottie-react-native").default : null;
 import { Link } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Head from "expo-router/head";
@@ -252,13 +253,15 @@ const DefaultStartPage = ({
               { opacity: fadeAnim },
             ]}
           >
-            <Lottie
-              source={require("@/assets/lotties/welcome.json")}
-              autoPlay
-              loop
-              style={styles(dimensions, isDark).lottie}
-              resizeMode="contain"
-            />
+            {Lottie ? (
+              <Lottie
+                source={require("@/assets/lotties/welcome.json")}
+                autoPlay
+                loop
+                style={styles(dimensions, isDark).lottie}
+                resizeMode="contain"
+              />
+            ) : null}
           </Animated.View>
 
           {/* Welcome Message */}
