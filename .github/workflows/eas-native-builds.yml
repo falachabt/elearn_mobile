@@ -1,0 +1,62 @@
+name: EAS Native Builds
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  trigger-eas-workflow:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.11.0'
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Resolve workflow and version from tag
+        id: resolve
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          VERSION="${VERSION%%-*}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag format: $TAG"
+            exit 1
+          fi
+
+          if [[ "$TAG" == *-dev* ]]; then
+            WORKFLOW_FILE=".eas/workflows/development-build.yml"
+          elif [[ "$TAG" == *-rc* || "$TAG" == *-preview* ]]; then
+            WORKFLOW_FILE=".eas/workflows/preview-build.yml"
+          else
+            WORKFLOW_FILE=".eas/workflows/production-deploy.yml"
+          fi
+
+          echo "workflow_file=$WORKFLOW_FILE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          echo "Selected workflow: $WORKFLOW_FILE"
+          echo "Resolved version: $VERSION"
+
+      - name: Update app version for uploaded snapshot
+        run: node scripts/update-version.js "${{ steps.resolve.outputs.version }}"
+
+      - name: Trigger EAS workflow
+        env:
+          EAS_ACCESS_TOKEN: ${{ secrets.EAS_ACCESS_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EAS_ACCESS_TOKEN }}
+        run: eas workflow:run "${{ steps.resolve.outputs.workflow_file }}" --non-interactive
