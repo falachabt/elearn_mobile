@@ -30,7 +30,14 @@
       "Bash(cat \"app/\\(auth\\)/_layout.tsx\")",
       "Bash(timeout 20 npx expo start --web --no-dev)",
       "Bash(timeout 25 npx expo start --web --port 8083)",
-      "Bash(timeout 30 npx expo start --web --port 8083)"
+      "Bash(timeout 30 npx expo start --web --port 8083)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -rn \"FileViewer\\\\|\\\\.native\\\\|react-native-pdf\\\\|native-only\" /d/Projets/elearn_mobile/app/\\\\\\(app\\\\\\)/secondary/program/[programId]/courses --include=\"*.tsx\" --include=\"*.ts\" -l)",
+      "Bash(find /d/Projets/elearn_mobile/app/\\\\\\(app\\\\\\)/secondary/program/[programId]/courses/[courseId]/lessons -type f)",
+      "Bash(find \"/d/Projets/elearn_mobile/app/\\(app\\)\" -name \"layout.tsx\")",
+      "Bash(mv \"/d/Projets/elearn_mobile/app/\\(app\\)/learn/[pdId]/courses/[courseId]/lessons/layout.tsx\" \"/d/Projets/elearn_mobile/app/\\(app\\)/learn/[pdId]/courses/[courseId]/lessons/_layout.tsx\")",
+      "Bash(mv \"/d/Projets/elearn_mobile/app/\\(app\\)/learn/[pdId]/quizzes/[quizId]/layout.tsx\" \"/d/Projets/elearn_mobile/app/\\(app\\)/learn/[pdId]/quizzes/[quizId]/_layout.tsx\")",
+      "Bash(mv \"/d/Projets/elearn_mobile/app/\\(app\\)/secondary/program/[programId]/quizzes/[quizId]/layout.tsx\" \"/d/Projets/elearn_mobile/app/\\(app\\)/secondary/program/[programId]/quizzes/[quizId]/_layout.tsx\")"
     ]
   }
 }
