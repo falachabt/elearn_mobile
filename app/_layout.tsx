@@ -88,7 +88,9 @@ const ExpiredAppScreen = ({isDarkMode}: { isDarkMode: boolean }) => {
 
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+if (Platform.OS !== 'web') {
+    SplashScreen.preventAutoHideAsync();
+}
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
@@ -106,7 +108,7 @@ export default function RootLayout() {
         }
     }, [loaded]);
 
-    if (!loaded) {
+    if (!loaded && Platform.OS !== 'web') {
         return null;
     }
 
