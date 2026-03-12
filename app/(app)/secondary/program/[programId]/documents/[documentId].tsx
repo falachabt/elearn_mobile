@@ -18,7 +18,7 @@ import { useSecondaryDocument } from "@/hooks/secondary/useSecondaryDocuments";
 import {
   FileViewer,
   type FileViewerFile,
-} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+} from "@/components/shared/learn/anales/FileViewer/FileViewer";
 import { useSecondaryProgram } from "@/hooks/secondary/useSecondaryPrograms";
 import { useDocumentActions } from "@/hooks/secondary/useDocumentActions";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";

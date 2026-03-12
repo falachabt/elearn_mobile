@@ -1,7 +1,26 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(adb logcat:*)",
+      "Bash(adb shell:*)",
+      "Bash(npx eas:*)",
+      "Bash(grep -A 20 '\"\"updates\"\"' d:/Projets/elearn_mobile/app.json)",
+      "Bash(grep -A 20 '\"\"updates\"\"' d:/Projets/elearn_mobile/app.config.ts)",
+      "Bash(grep -A 20 '\"\"updates\"\"' d:/Projets/elearn_mobile/app.config.js)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(icacls \"D:\\\\Projets\\\\elearn_mobile\" /setowner \"benny\" /T /C)",
+      "Bash(cmd /c \"icacls \"\"D:\\\\Projets\\\\elearn_mobile\"\" /setowner \"\"%USERNAME%\"\" /T /C 2>&1\")",
+      "Bash(powershell -Command \":*)",
+      "Bash(powershell.exe -Command \"Get-Acl ''D:\\\\Projets\\\\elearn_mobile'' | Select-Object Owner\")",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\benny\\\\AppData\\\\Local\\\\Temp\\\\fix-owner.ps1\")",
+      "Bash(eas build:list --platform android --limit 5)",
+      "Bash(eas credentials:*)",
+      "Bash(eas build:list --platform android --limit 1 --json)",
+      "Bash(eas build:list --platform android --limit 1)",
+      "Bash(eas build:view dfc7c4c4-b8e3-4085-bda5-802c5bf186c8)"
     ]
   }
 }
