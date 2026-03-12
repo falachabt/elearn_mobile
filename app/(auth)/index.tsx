@@ -14,7 +14,6 @@ import {
   Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Platform } from "react-native";
 const Lottie = Platform.OS !== 'web' ? require("lottie-react-native").default : null;
 import { Link } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
