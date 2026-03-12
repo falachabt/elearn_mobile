@@ -113,10 +113,10 @@ export default function ExercisesList() {
       const isCompleted = item.exercise.exercices_complete?.[0]?.is_completed || false;
 
       return {
-        exerciseId: Number(item.exercise.id),
+        exerciseId: item.exercise.id as unknown as number,
         lpId: programId,
         exercise: {
-          id: Number(item.exercise.id),
+          id: item.exercise.id as unknown as number,
           title: item.exercise.title ?? "Exercice sans titre",
           description: item.exercise.description,
           course: item.exercise.course
