@@ -84,6 +84,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     const [isAccountCreating, setIsAccountCreating] = useState(false);
     const initialLoadRef = useRef(false);
     const streakCheckedRef = useRef(false);
+    const userEverLoadedRef = useRef(false);
     const { getApiBaseUrl } = useAppConfig();
     const apiBaseUrl = getApiBaseUrl();
 
@@ -96,7 +97,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             revalidateOnFocus: false,
             dedupingInterval: 2000,
             onSuccess: () => {
-                // Successfully loaded user data, ensure loading is false if not creating account
+                userEverLoadedRef.current = true;
                 if (!isAccountCreating) {
                     setIsLoading(false);
                 }
@@ -112,7 +113,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // Retry quickly (1.5s) instead of the default 5s so the loading
             // screen resolves fast once the API write is committed.
             onErrorRetry: (error, _key, _config, revalidate, { retryCount }) => {
-                if (retryCount >= 6) return;
+                if (retryCount >= 6) {
+                    // Exhausted retries - give up and stop loading
+                    setIsLoading(false);
+                    return;
+                }
                 const interval = isAccountCreating ? 1500 : Math.min(5000 * 2 ** retryCount, 30000);
                 setTimeout(() => revalidate({ retryCount }), interval);
             },
@@ -218,6 +223,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 setIsLoading(false);
                 setIsAccountCreating(false);
                 streakCheckedRef.current = false;
+                userEverLoadedRef.current = false;
             }
         });
 
@@ -237,13 +243,14 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // No session = not loading
             setIsLoading(false);
         } else if (session && userError) {
-            // Check if this is an expected error during signup
-            if (isAccountCreating) {
-                // This is expected during signup - stay in loading state
-                return;
-            }
+            if (isAccountCreating) return;
 
-            // Handle other errors
+            // If user was never loaded, this might be a transient signup race condition
+            // (account not yet in DB). Let onErrorRetry handle retries and stop loading
+            // only when retries are exhausted (onErrorRetry calls setIsLoading(false)).
+            if (!userEverLoadedRef.current) return;
+
+            // Persistent error for an already-known user
             logger.error("Error loading user data:", userError);
             setIsLoading(false);
         } else if (session && user !== undefined) {
