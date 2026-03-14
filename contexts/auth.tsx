@@ -59,39 +59,18 @@ type AuthContextType = {
 // Create context with unique name
 const AuthProviderContext = createContext<AuthContextType | undefined>(undefined)
 
-// SWR fetcher functions with unique names
-// @ts-ignore
-const getUserEnrollments = async (userId: string) => {
-    const {data, error} = await supabase
-        .from('user_program_enrollments')
-        .select('*, program_id(*)')
-        .eq('user_id', userId);
-
-    if (error) throw error;
-    return data;
-}
-
-const getUserAccountData = async (authId: string) => {
-    const {data, error} = await supabase
-        .from("accounts")
-        .select("*, user_xp(*), user_streaks(*)")
-        .eq("authId", authId)
-        .single();
-
-    if (error) throw error;
-    return data;
-};
-
-// Main fetcher function with unique name
+// Main fetcher function: single query fetching all user data at once
 const userDataFetcher = async (authId: string) => {
     try {
-        const userData = await getUserAccountData(authId);
-        const enrollments = await getUserEnrollments(userData.id);
+        const {data, error} = await supabase
+            .from("accounts")
+            .select("*, user_xp(*), user_streaks(*), user_program_enrollments(*, program_id(*))")
+            .eq("authId", authId)
+            .single();
 
-        return {
-            ...userData,
-            user_program_enrollments: enrollments || []
-        } as unknown as Account;
+        if (error) throw error;
+
+        return data as unknown as Account;
     } catch (error) {
         logger.error("Error fetching user data:", error);
         throw error;
@@ -133,24 +112,27 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     );
 
     // Helper function to wait for account data to be created
-    const waitForAccountData = async (phone: number, maxRetries = 5, retryDelay = 1000) => {
+    // Uses exponential backoff: 300ms, 600ms, 1200ms → max ~2.1s total vs old 5s
+    const waitForAccountData = async (phone: number, maxRetries = 4, initialDelay = 300) => {
         for (let i = 0; i < maxRetries; i++) {
             try {
-                const {data, error} = await supabase
+                const {data} = await supabase
                     .from("accounts")
-                    .select("*")
+                    .select("id, phone")
                     .eq("phone", phone)
-                    .single();
+                    .maybeSingle();
 
                 if (data) {
                     return data;
                 }
 
-                // Wait before retrying
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                // Exponential backoff
+                const delay = initialDelay * Math.pow(2, i);
+                await new Promise(resolve => setTimeout(resolve, delay));
             } catch (err) {
                 if (i === maxRetries - 1) throw err;
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                const delay = initialDelay * Math.pow(2, i);
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
         throw new Error('Failed to retrieve account data after creation');
@@ -467,9 +449,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             try {
                 setIsAccountCreating(true);
 
-                // Simulate slow connection
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
                 const {data, error} = await supabase.auth.signUp({
                     phone: "+237" + phone.toString(),
                     password
@@ -488,18 +467,13 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                                     'Content-Type': 'application/json',
                                     'Authorization': `Bearer ${data.session.access_token}`
                                 },
-                                timeout: 3000,
+                                timeout: 10000,
                             }
                         );
 
                         // Wait for the account data to be available in the database
-
                         try {
-                            // Simulate slow connection
-                            await new Promise(resolve => setTimeout(resolve, 2000));
-
                             await waitForAccountData(phone);
-
                         } catch (error) {
                             // Silently handle account data waiting errors
                         }
