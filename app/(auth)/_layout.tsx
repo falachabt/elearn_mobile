@@ -1,7 +1,6 @@
-import { Stack, usePathname } from 'expo-router'
-import { Redirect } from 'expo-router'
-import React, { useState, useEffect } from 'react';
-import { View } from 'react-native';
+import { Stack, usePathname, useRouter } from 'expo-router'
+import React, { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/auth'
@@ -12,79 +11,76 @@ export default function AuthLayout() {
     const { session, isLoading, user } = useAuth();
     const colorScheme = useColorScheme();
     const pathname = usePathname();
+    const router = useRouter();
     const isDarkMode = colorScheme === 'dark';
-    const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
-    // Determine redirection only when necessary values change
+    // Navigate programmatically so the Stack is NEVER unmounted.
+    // Using <Redirect> caused the Stack to unmount and remount at the index
+    // route every time the redirect triggered, sending the user back to index.
     useEffect(() => {
-        // Don't make redirection decisions while still loading
-        if (isLoading) {
-            setRedirectPath(null);
-            return;
-        }
+        if (isLoading) return;
 
         // Authenticated users who completed onboarding
         if (session && user?.onboarding_done) {
-            // Allow access to forgot password even if authenticated
-            if (!pathname.includes("/forgot_passworddsd") ) {
-                setRedirectPath("/(app)");
+            if (!pathname.includes('/forgot_password')) {
+                router.replace('/(app)' as any);
                 return;
             }
         }
 
         // Authenticated users who haven't completed onboarding
-        if (session && user && !user.onboarding_done && !pathname.includes("/onboarding")) {
-            setRedirectPath("/(auth)/onboarding");
-            return;
+        if (session && user && !user.onboarding_done && !pathname.includes('/onboarding')) {
+            router.replace('/(auth)/onboarding' as any);
         }
-
-        // Default case - no redirection needed
-        setRedirectPath(null);
     }, [session, user?.onboarding_done, pathname, isLoading]);
 
-    // Handle redirect if needed
-    if (redirectPath) {
-        return <Redirect href={redirectPath as any} />;
-    }
+    const showLoading = isLoading && session !== null;
 
-    // For auth screens, only show loading during active authentication processes
-    if (isLoading && session !== null) {
-        return (
-            <View style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: isDarkMode ? theme.color.dark.background.primary : theme.color.light.background.primary
-            }}>
-                <LoadingAnimation isDarkMode={isDarkMode} />
-            </View>
-        );
-    }
-
+    // Stack is always mounted — the loading overlay sits on top with absoluteFill
+    // so React Navigation never resets its history to the index route.
     return (
-        <Stack
-            screenOptions={{
-                headerShown: false,
-                animation: 'fade',
-                contentStyle: {
-                    backgroundColor: isDarkMode
-                        ? theme.color.dark.background.primary
-                        : theme.color.light.background.primary,
-                    paddingVertical : 20
-                }
-            }}
-        >
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="register" options={{ headerShown: false }} />
-            <Stack.Screen name="forgot_password" options={{ headerShown: false }} />
-            <Stack.Screen
-                name="onboarding"
-                options={{
+        <View style={{ flex: 1 }}>
+            <Stack
+                screenOptions={{
                     headerShown: false,
-                    gestureEnabled: false
+                    animation: 'fade',
+                    contentStyle: {
+                        backgroundColor: isDarkMode
+                            ? theme.color.dark.background.primary
+                            : theme.color.light.background.primary,
+                        paddingVertical: 20
+                    }
                 }}
-            />
-        </Stack>
+            >
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="login" options={{ headerShown: false }} />
+                <Stack.Screen name="register" options={{ headerShown: false }} />
+                <Stack.Screen name="forgot_password" options={{ headerShown: false }} />
+                <Stack.Screen
+                    name="onboarding"
+                    options={{
+                        headerShown: false,
+                        gestureEnabled: false
+                    }}
+                />
+            </Stack>
+
+            {showLoading && (
+                <View style={[
+                    StyleSheet.absoluteFill,
+                    styles.loadingOverlay,
+                    { backgroundColor: isDarkMode ? theme.color.dark.background.primary : theme.color.light.background.primary }
+                ]}>
+                    <LoadingAnimation isDarkMode={isDarkMode} />
+                </View>
+            )}
+        </View>
     );
 }
+
+const styles = StyleSheet.create({
+    loadingOverlay: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    }
+})

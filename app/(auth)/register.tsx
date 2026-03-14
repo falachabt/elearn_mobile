@@ -430,11 +430,12 @@ const Register: React.FC = () => {
       setIsLoading(true);
       trigger(HapticType.LIGHT);
 
-      await signUp(phone, password);
+      const { otpRequired } = await signUp(phone, password);
 
-      // TODO : remove in update case we trust user and validate after
-      setIsOtpStep(true);
-      startCountdown();
+      if (otpRequired) {
+        setIsOtpStep(true);
+        startCountdown();
+      }
       trigger(HapticType.SUCCESS);
 
       setToast({

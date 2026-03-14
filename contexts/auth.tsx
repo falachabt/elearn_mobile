@@ -49,7 +49,7 @@ type AuthContextType = {
     isLoading: boolean
     signIn: (phone: string, password: string) => Promise<void>
     signOut: () => Promise<void>
-    signUp: (phone: number | undefined, password: string) => Promise<void>
+    signUp: (phone: number | undefined, password: string) => Promise<{ otpRequired: boolean }>
     verifyOtp: (phone: number, token: string, password: string, type?: string) => Promise<void>
     mutateUser: () => Promise<Account | null | undefined>
     checkStreak: () => Promise<void>
@@ -59,39 +59,18 @@ type AuthContextType = {
 // Create context with unique name
 const AuthProviderContext = createContext<AuthContextType | undefined>(undefined)
 
-// SWR fetcher functions with unique names
-// @ts-ignore
-const getUserEnrollments = async (userId: string) => {
-    const {data, error} = await supabase
-        .from('user_program_enrollments')
-        .select('*, program_id(*)')
-        .eq('user_id', userId);
-
-    if (error) throw error;
-    return data;
-}
-
-const getUserAccountData = async (authId: string) => {
-    const {data, error} = await supabase
-        .from("accounts")
-        .select("*, user_xp(*), user_streaks(*)")
-        .eq("authId", authId)
-        .single();
-
-    if (error) throw error;
-    return data;
-};
-
-// Main fetcher function with unique name
+// Main fetcher function: single query fetching all user data at once
 const userDataFetcher = async (authId: string) => {
     try {
-        const userData = await getUserAccountData(authId);
-        const enrollments = await getUserEnrollments(userData.id);
+        const {data, error} = await supabase
+            .from("accounts")
+            .select("*, user_xp(*), user_streaks(*), user_program_enrollments(*, program_id(*))")
+            .eq("authId", authId)
+            .single();
 
-        return {
-            ...userData,
-            user_program_enrollments: enrollments || []
-        } as unknown as Account;
+        if (error) throw error;
+
+        return data as unknown as Account;
     } catch (error) {
         logger.error("Error fetching user data:", error);
         throw error;
@@ -105,6 +84,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     const [isAccountCreating, setIsAccountCreating] = useState(false);
     const initialLoadRef = useRef(false);
     const streakCheckedRef = useRef(false);
+    const userEverLoadedRef = useRef(false);
     const { getApiBaseUrl } = useAppConfig();
     const apiBaseUrl = getApiBaseUrl();
 
@@ -117,7 +97,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             revalidateOnFocus: false,
             dedupingInterval: 2000,
             onSuccess: () => {
-                // Successfully loaded user data, ensure loading is false if not creating account
+                userEverLoadedRef.current = true;
                 if (!isAccountCreating) {
                     setIsLoading(false);
                 }
@@ -128,29 +108,44 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     logger.error("SWR error loading user:", error);
                     setIsLoading(false);
                 }
-            }
+            },
+            // During account creation, the account row may not exist yet in DB.
+            // Retry quickly (1.5s) instead of the default 5s so the loading
+            // screen resolves fast once the API write is committed.
+            onErrorRetry: (error, _key, _config, revalidate, { retryCount }) => {
+                if (retryCount >= 6) {
+                    // Exhausted retries - give up and stop loading
+                    setIsLoading(false);
+                    return;
+                }
+                const interval = isAccountCreating ? 1500 : Math.min(5000 * 2 ** retryCount, 30000);
+                setTimeout(() => revalidate({ retryCount }), interval);
+            },
         }
     );
 
     // Helper function to wait for account data to be created
-    const waitForAccountData = async (phone: number, maxRetries = 5, retryDelay = 1000) => {
+    // Uses exponential backoff: 300ms, 600ms, 1200ms → max ~2.1s total vs old 5s
+    const waitForAccountData = async (phone: number, maxRetries = 4, initialDelay = 300) => {
         for (let i = 0; i < maxRetries; i++) {
             try {
-                const {data, error} = await supabase
+                const {data} = await supabase
                     .from("accounts")
-                    .select("*")
+                    .select("id, phone")
                     .eq("phone", phone)
-                    .single();
+                    .maybeSingle();
 
                 if (data) {
                     return data;
                 }
 
-                // Wait before retrying
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                // Exponential backoff
+                const delay = initialDelay * Math.pow(2, i);
+                await new Promise(resolve => setTimeout(resolve, delay));
             } catch (err) {
                 if (i === maxRetries - 1) throw err;
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                const delay = initialDelay * Math.pow(2, i);
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
         throw new Error('Failed to retrieve account data after creation');
@@ -228,6 +223,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 setIsLoading(false);
                 setIsAccountCreating(false);
                 streakCheckedRef.current = false;
+                userEverLoadedRef.current = false;
             }
         });
 
@@ -247,13 +243,14 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // No session = not loading
             setIsLoading(false);
         } else if (session && userError) {
-            // Check if this is an expected error during signup
-            if (isAccountCreating) {
-                // This is expected during signup - stay in loading state
-                return;
-            }
+            if (isAccountCreating) return;
 
-            // Handle other errors
+            // If user was never loaded, this might be a transient signup race condition
+            // (account not yet in DB). Let onErrorRetry handle retries and stop loading
+            // only when retries are exhausted (onErrorRetry calls setIsLoading(false)).
+            if (!userEverLoadedRef.current) return;
+
+            // Persistent error for an already-known user
             logger.error("Error loading user data:", userError);
             setIsLoading(false);
         } else if (session && user !== undefined) {
@@ -454,7 +451,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         }
     };
 
-    const signUp = async (phone: number | undefined, password: string) => {
+    const signUp = async (phone: number | undefined, password: string): Promise<{ otpRequired: boolean }> => {
         try {
             setIsLoading(true);
             streakCheckedRef.current = false;
@@ -467,47 +464,39 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             try {
                 setIsAccountCreating(true);
 
-                // Simulate slow connection
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
                 const {data, error} = await supabase.auth.signUp({
                     phone: "+237" + phone.toString(),
                     password
                 });
 
-                // make the logic that create the account
+                if (error) {
+                    logger.error("Sign up error:", error);
+                    setIsLoading(false);
+                    throw error;
+                }
 
+                // data.session exists when phone confirmation is disabled (auto-validated).
+                // In that case we create the account immediately and no OTP is needed.
                 if (data.session) {
                     try {
-                        // Account creation API call
                         await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
-                            // await axios.post('http://192.168.1.168:3000/api/mobile/auth/createAccount',
                             {phone, password},
                             {
                                 headers: {
                                     'Content-Type': 'application/json',
                                     'Authorization': `Bearer ${data.session.access_token}`
                                 },
-                                timeout: 3000,
+                                timeout: 10000,
                             }
                         );
 
-                        // Wait for the account data to be available in the database
-
                         try {
-                            // Simulate slow connection
-                            await new Promise(resolve => setTimeout(resolve, 2000));
-
                             await waitForAccountData(phone);
-
                         } catch (error) {
                             // Silently handle account data waiting errors
                         }
 
-                        // Force revalidation of user data
                         await mutateUser();
-
-                        // Track sign up event
                         posthogService.trackSignupCompleted('phone');
                     } catch (apiError) {
                         logger.error('Error in account creation process:', apiError);
@@ -516,13 +505,13 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         setIsAccountCreating(false);
                         setIsLoading(false);
                     }
+                    return { otpRequired: false };
                 }
 
-                if (error) {
-                    logger.error("Sign up error:", error);
-                    setIsLoading(false);
-                    throw error;
-                }
+                // No session → Supabase sent an OTP, the caller should show the OTP step.
+                setIsAccountCreating(false);
+                setIsLoading(false);
+                return { otpRequired: true };
             } catch (error) {
                 logger.error("Sign up exception:", error);
                 setIsLoading(false);
@@ -534,6 +523,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             setIsLoading(false);
             throw error;
         }
+        return { otpRequired: false };
     };
     const signOut = async () => {
         try {
