@@ -107,7 +107,15 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     logger.error("SWR error loading user:", error);
                     setIsLoading(false);
                 }
-            }
+            },
+            // During account creation, the account row may not exist yet in DB.
+            // Retry quickly (1.5s) instead of the default 5s so the loading
+            // screen resolves fast once the API write is committed.
+            onErrorRetry: (error, _key, _config, revalidate, { retryCount }) => {
+                if (retryCount >= 6) return;
+                const interval = isAccountCreating ? 1500 : Math.min(5000 * 2 ** retryCount, 30000);
+                setTimeout(() => revalidate({ retryCount }), interval);
+            },
         }
     );
 
