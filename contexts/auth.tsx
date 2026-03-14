@@ -49,7 +49,7 @@ type AuthContextType = {
     isLoading: boolean
     signIn: (phone: string, password: string) => Promise<void>
     signOut: () => Promise<void>
-    signUp: (phone: number | undefined, password: string) => Promise<void>
+    signUp: (phone: number | undefined, password: string) => Promise<{ otpRequired: boolean }>
     verifyOtp: (phone: number, token: string, password: string, type?: string) => Promise<void>
     mutateUser: () => Promise<Account | null | undefined>
     checkStreak: () => Promise<void>
@@ -451,7 +451,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         }
     };
 
-    const signUp = async (phone: number | undefined, password: string) => {
+    const signUp = async (phone: number | undefined, password: string): Promise<{ otpRequired: boolean }> => {
         try {
             setIsLoading(true);
             streakCheckedRef.current = false;
@@ -469,13 +469,17 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     password
                 });
 
-                // make the logic that create the account
+                if (error) {
+                    logger.error("Sign up error:", error);
+                    setIsLoading(false);
+                    throw error;
+                }
 
+                // data.session exists when phone confirmation is disabled (auto-validated).
+                // In that case we create the account immediately and no OTP is needed.
                 if (data.session) {
                     try {
-                        // Account creation API call
                         await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
-                            // await axios.post('http://192.168.1.168:3000/api/mobile/auth/createAccount',
                             {phone, password},
                             {
                                 headers: {
@@ -486,17 +490,13 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                             }
                         );
 
-                        // Wait for the account data to be available in the database
                         try {
                             await waitForAccountData(phone);
                         } catch (error) {
                             // Silently handle account data waiting errors
                         }
 
-                        // Force revalidation of user data
                         await mutateUser();
-
-                        // Track sign up event
                         posthogService.trackSignupCompleted('phone');
                     } catch (apiError) {
                         logger.error('Error in account creation process:', apiError);
@@ -505,13 +505,13 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         setIsAccountCreating(false);
                         setIsLoading(false);
                     }
+                    return { otpRequired: false };
                 }
 
-                if (error) {
-                    logger.error("Sign up error:", error);
-                    setIsLoading(false);
-                    throw error;
-                }
+                // No session → Supabase sent an OTP, the caller should show the OTP step.
+                setIsAccountCreating(false);
+                setIsLoading(false);
+                return { otpRequired: true };
             } catch (error) {
                 logger.error("Sign up exception:", error);
                 setIsLoading(false);
@@ -523,6 +523,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             setIsLoading(false);
             throw error;
         }
+        return { otpRequired: false };
     };
     const signOut = async () => {
         try {
