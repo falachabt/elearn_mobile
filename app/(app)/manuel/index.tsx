@@ -29,24 +29,35 @@ const ManuelScreen = () => {
     {
       id: "anciens-sujets",
       title: "Anciens sujets",
-      description: "Consultez les anciens sujets de concours",
+      description: "Entraîne-toi sur les sujets des années précédentes",
       icon: "file-document-outline",
       route: "/manuel/anciens-sujets",
+      available: true,
     },
-    // {
-    //   id: "exercices",
-    //   title: "Exercices",
-    //   description: "Pratiquez avec des exercices",
-    //   icon: "pencil-outline",
-    //   route: "/manuel/exercices",
-    // },
-    // {
-    //   id: "quiz",
-    //   title: "Quiz",
-    //   description: "Testez vos connaissances avec des quiz",
-    //   icon: "help-circle-outline",
-    //   route: "/manuel/quiz",
-    // },
+    {
+      id: "fiches",
+      title: "Fiches de révision",
+      description: "Résumés clés par matière pour réviser vite",
+      icon: "bookmark-outline",
+      route: "/manuel/fiches",
+      available: false,
+    },
+    {
+      id: "corriges",
+      title: "Corrigés détaillés",
+      description: "Corrections expliquées pas à pas",
+      icon: "check-circle-outline",
+      route: "/manuel/corriges",
+      available: false,
+    },
+    {
+      id: "formules",
+      title: "Formulaires & mémos",
+      description: "Formules et tableaux à garder sous la main",
+      icon: "table-of-contents",
+      route: "/manuel/formules",
+      available: false,
+    },
   ];
 
   return (
@@ -58,7 +69,10 @@ const ManuelScreen = () => {
     >
       <View style={styles.header}>
         <Text style={[styles.headerTitle, isDarkMode && styles.textDark]}>
-          Manuel
+          Ressources
+        </Text>
+        <Text style={[styles.headerSubtitle, isDarkMode && styles.textLightDark]}>
+          Tout ce qu'il te faut pour réviser
         </Text>
       </View>
 
@@ -71,29 +85,55 @@ const ManuelScreen = () => {
           {sections.map((section) => (
             <TouchableOpacity
               key={section.id}
-              style={[styles.sectionCard, isDarkMode && styles.sectionCardDark]}
-              onPress={() => handleNavigate(section.route)}
+              style={[
+                styles.sectionCard,
+                isDarkMode && styles.sectionCardDark,
+                !section.available && styles.sectionCardDisabled,
+                !section.available && isDarkMode && styles.sectionCardDisabledDark,
+              ]}
+              onPress={() => section.available && handleNavigate(section.route)}
+              activeOpacity={section.available ? 0.7 : 1}
             >
-              <View style={styles.sectionIconContainer}>
+              <View style={[
+                styles.sectionIconContainer,
+                !section.available && styles.sectionIconContainerDisabled,
+              ]}>
                 <MaterialCommunityIcons
                   name={section.icon as any}
-                  size={32}
-                  color={theme.color.primary[500]}
+                  size={28}
+                  color={section.available ? theme.color.primary[500] : (isDarkMode ? "#475569" : "#9CA3AF")}
                 />
               </View>
               <View style={styles.sectionContent}>
-                <Text style={[styles.sectionTitle, isDarkMode && styles.textDark]}>
-                  {section.title}
-                </Text>
-                <Text style={[styles.sectionDescription, isDarkMode && styles.textLightDark]}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={[
+                    styles.sectionTitle,
+                    isDarkMode && styles.textDark,
+                    !section.available && styles.textDisabled,
+                  ]}>
+                    {section.title}
+                  </Text>
+                  {!section.available && (
+                    <View style={styles.comingSoonBadge}>
+                      <Text style={styles.comingSoonText}>Bientôt</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[
+                  styles.sectionDescription,
+                  isDarkMode && styles.textLightDark,
+                  !section.available && styles.textDisabled,
+                ]}>
                   {section.description}
                 </Text>
               </View>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={24}
-                color={isDarkMode ? theme.color.gray[400] : theme.color.gray[600]}
-              />
+              {section.available && (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color={isDarkMode ? theme.color.gray[400] : theme.color.gray[600]}
+                />
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -120,6 +160,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "600",
     color: "#1A1A1A",
+  },
+  headerSubtitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    color: theme.color.gray[600],
+    marginTop: 2,
   },
   textDark: {
     color: "#FFFFFF",
@@ -166,17 +212,47 @@ const styles = StyleSheet.create({
   sectionContent: {
     flex: 1,
   },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
   sectionTitle: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600",
     color: "#1A1A1A",
-    marginBottom: 4,
   },
   sectionDescription: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
+    fontSize: 13,
     color: theme.color.gray[600],
+  },
+  sectionCardDisabled: {
+    opacity: 0.7,
+    backgroundColor: "#F9FAFB",
+  },
+  sectionCardDisabledDark: {
+    backgroundColor: "#0F172A",
+  },
+  sectionIconContainerDisabled: {
+    backgroundColor: "#F3F4F6",
+  },
+  textDisabled: {
+    color: "#9CA3AF",
+  },
+  comingSoonBadge: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  comingSoonText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#6B7280",
   },
 });
 

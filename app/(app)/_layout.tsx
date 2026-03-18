@@ -126,11 +126,11 @@ export default function AppLayout() {
                     }}
                 />
 
-                {/* Manuel tab */}
+                {/* Ressources tab */}
                 <Tabs.Screen
                     name="manuel"
                     options={{
-                        title: "Manuel",
+                        title: "Ressources",
                         tabBarIcon: ({color}) => (
                             <MaterialCommunityIcons
                                 name="book"
@@ -145,7 +145,7 @@ export default function AppLayout() {
                 <Tabs.Screen
                     name="secondary"
                     options={{
-                        title: "College",
+                        title: "Secondaire",
                         tabBarIcon: ({color}) => (
                             <MaterialCommunityIcons
                                 name="book-open-variant"
@@ -158,7 +158,7 @@ export default function AppLayout() {
                 <Tabs.Screen
                     name="learn"
                     options={{
-                        title: "Prepa",
+                        title: "Concours",
                         tabBarIcon: ({color}) => (
                             <MaterialCommunityIcons
                                 name="book-open-variant"

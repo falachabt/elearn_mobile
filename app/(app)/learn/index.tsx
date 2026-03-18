@@ -3,6 +3,7 @@ import {
     FlatList,
     Pressable,
     RefreshControl,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -115,6 +116,14 @@ interface LearningPathRow {
     user_program_enrollments: UserProgramEnrollment[] | null
 }
 
+type FilterKey = 'tous' | 'inscrits' | 'a-decouvrir'
+
+const FILTERS: { key: FilterKey; label: string }[] = [
+    { key: 'tous', label: 'Tous' },
+    { key: 'inscrits', label: 'Inscrits' },
+    { key: 'a-decouvrir', label: 'À découvrir' },
+]
+
 const MyLearningPaths = () => {
     const { session, user: authUser } = useAuth()
     const { user, mutateUserPrograms, mutateProgramAccessMap } = useUser()
@@ -122,6 +131,7 @@ const MyLearningPaths = () => {
     const colorScheme = useColorScheme()
     const isDarkMode = colorScheme === 'dark'
     const [searchQuery, setSearchQuery] = useState('')
+    const [activeFilter, setActiveFilter] = useState<FilterKey>('tous')
 
     // Get generous week program ID from user metadata
     const generousWeekProgramId = user?.metadata?.generousWeek?.programId
@@ -306,12 +316,20 @@ const MyLearningPaths = () => {
     // Memoize filtered data to prevent unnecessary re-renders
     const filteredData = useMemo(() => {
         if (!data) return []
-        
-        return data.filter(item => 
+
+        let result = data.filter(item =>
             item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
         )
-    }, [data, searchQuery])
+
+        if (activeFilter === 'inscrits') {
+            result = result.filter(item => item.isEnrolled)
+        } else if (activeFilter === 'a-decouvrir') {
+            result = result.filter(item => !item.isEnrolled)
+        }
+
+        return result
+    }, [data, searchQuery, activeFilter])
 
     // Redirect to login if not authenticated
     if (!session) {
@@ -350,23 +368,27 @@ const MyLearningPaths = () => {
         )
     }
 
+    const enrolledCount = data?.filter(p => p.isEnrolled).length ?? 0
+
     return (
         <View style={[styles.container, isDarkMode && styles.containerDark]}>
             <View style={[styles.header, isDarkMode && styles.headerDark]}>
                 <Text style={[styles.title, isDarkMode && styles.titleDark]}>
-                    Mes Parcours
+                    Mes Concours
                 </Text>
                 <Text style={[styles.subtitle, isDarkMode && styles.subtitleDark]}>
-                    Continuez votre préparation aux concours
+                    {enrolledCount > 0
+                        ? `${enrolledCount} parcours en cours · Continue ta préparation`
+                        : 'Découvre les parcours disponibles'}
                 </Text>
             </View>
 
             <View style={[styles.searchContainer, isDarkMode && styles.searchContainerDark]}>
                 <View style={[styles.searchInputWrapper, isDarkMode && styles.searchInputWrapperDark]}>
-                    <MaterialCommunityIcons 
-                        name="magnify" 
-                        size={20} 
-                        color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
+                    <MaterialCommunityIcons
+                        name="magnify"
+                        size={20}
+                        color={isDarkMode ? '#CCCCCC' : '#6B7280'}
                     />
                     <TextInput
                         style={[styles.searchInput, isDarkMode && styles.searchInputDark]}
@@ -377,14 +399,43 @@ const MyLearningPaths = () => {
                     />
                     {searchQuery.length > 0 && (
                         <Pressable onPress={() => setSearchQuery('')}>
-                            <MaterialCommunityIcons 
-                                name="close-circle" 
-                                size={20} 
-                                color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
+                            <MaterialCommunityIcons
+                                name="close-circle"
+                                size={20}
+                                color={isDarkMode ? '#CCCCCC' : '#6B7280'}
                             />
                         </Pressable>
                     )}
                 </View>
+                {/* Filter pills */}
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.filterRow}
+                >
+                    {FILTERS.map((f) => {
+                        const isActive = activeFilter === f.key
+                        return (
+                            <Pressable
+                                key={f.key}
+                                style={[
+                                    styles.filterPill,
+                                    isActive && styles.filterPillActive,
+                                    isDarkMode && !isActive && styles.filterPillDark,
+                                ]}
+                                onPress={() => setActiveFilter(f.key)}
+                            >
+                                <Text style={[
+                                    styles.filterPillText,
+                                    isActive && styles.filterPillTextActive,
+                                    isDarkMode && !isActive && styles.filterPillTextDark,
+                                ]}>
+                                    {f.label}
+                                </Text>
+                            </Pressable>
+                        )
+                    })}
+                </ScrollView>
             </View>
 
             {data && data?.length > 0 ? (
@@ -552,6 +603,41 @@ const styles = StyleSheet.create({
         fontFamily: theme.typography.fontFamily,
         fontSize: 16,
         fontWeight: '600',
+    },
+    filterRow: {
+        flexDirection: 'row',
+        gap: 8,
+        paddingTop: 10,
+        paddingBottom: 2,
+    },
+    filterPill: {
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        borderRadius: 20,
+        backgroundColor: '#F3F4F6',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    filterPillActive: {
+        backgroundColor: theme.color.primary[500],
+        borderColor: theme.color.primary[500],
+    },
+    filterPillDark: {
+        backgroundColor: '#1E293B',
+        borderColor: '#334155',
+    },
+    filterPillText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 13,
+        fontWeight: '500',
+        color: '#6B7280',
+    },
+    filterPillTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+    },
+    filterPillTextDark: {
+        color: '#94A3B8',
     },
 })
 

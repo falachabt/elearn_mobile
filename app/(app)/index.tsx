@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   useColorScheme,
   View,
+  Pressable,
 } from "react-native";
 
 import CustomizableGoals from "@/components/CustimizableHomeScreenGoals";
@@ -133,6 +134,55 @@ export default function Index() {
         </View>
         {/*<JustificationGenerator />*/}
 
+        {/* Mission du jour */}
+        <View style={[styles.missionCard, isDarkMode && styles.missionCardDark]}>
+          <View style={styles.missionHeader}>
+            <View style={styles.missionBadge}>
+              <MaterialCommunityIcons name="lightning-bolt" size={14} color="#FFFFFF" />
+              <Text style={styles.missionBadgeText}>Mission du jour</Text>
+            </View>
+            <Text style={[styles.missionDuration, isDarkMode && styles.textMutedDark]}>~15 min</Text>
+          </View>
+          <Text style={[styles.missionTitle, isDarkMode && styles.textDark]}>
+            {lastCourse?.name ? `Reprends ton cours : ${lastCourse.name}` : "Commence ta première séance"}
+          </Text>
+          <View style={styles.missionActions}>
+            <Pressable
+              style={[styles.missionAction, isDarkMode && styles.missionActionDark]}
+              onPress={() => {
+                if (lastCourse?.id) {
+                  router.push(
+                    NavigationRoutes.learn.lesson(
+                      String(lastCourse?.learning_path?.id),
+                      String(lastCourse?.id),
+                      String(lastCourse?.current_section),
+                    ) as Href,
+                  );
+                } else {
+                  router.push("/(app)/learn" as Href);
+                }
+              }}
+            >
+              <MaterialCommunityIcons name="play-circle-outline" size={20} color={theme.color.primary[500]} />
+              <Text style={styles.missionActionText}>Cours</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.missionAction, isDarkMode && styles.missionActionDark]}
+              onPress={() => router.push("/(app)/learn" as Href)}
+            >
+              <MaterialCommunityIcons name="head-question-outline" size={20} color={theme.color.primary[500]} />
+              <Text style={styles.missionActionText}>Quiz</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.missionAction, isDarkMode && styles.missionActionDark]}
+              onPress={() => router.push("/(app)/manuel/anciens-sujets" as Href)}
+            >
+              <MaterialCommunityIcons name="file-document-outline" size={20} color={theme.color.primary[500]} />
+              <Text style={styles.missionActionText}>Sujet</Text>
+            </Pressable>
+          </View>
+        </View>
+
         {/* Current Course */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -225,6 +275,37 @@ export default function Index() {
           toDayExo={toDayExo}
           toDayTime={toDayTime}
         />
+
+        {/* Weekly Progress */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text numberOfLines={1} style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}>
+              Ma semaine
+            </Text>
+            <TouchableOpacity style={styles.seeAllButton}>
+              <Text style={styles.seeAllText}>
+                <Link href={"/(app)/profile/weekly-performance"}>Détails</Link>
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.weeklyRow]}>
+            {[
+              { label: "XP", value: toDayXp ?? 0, icon: "star-outline", unit: "xp" },
+              { label: "Exercices", value: toDayExo ?? 0, icon: "pencil-outline", unit: "" },
+              { label: "Temps", value: toDayTime ?? 0, icon: "clock-outline", unit: "min" },
+            ].map((stat) => (
+              <View key={stat.label} style={[styles.weeklyStatCard, isDarkMode && styles.weeklyStatCardDark]}>
+                <MaterialCommunityIcons name={stat.icon as any} size={22} color={theme.color.primary[500]} />
+                <Text style={[styles.weeklyStatValue, isDarkMode && styles.textDark]}>
+                  {stat.value}{stat.unit}
+                </Text>
+                <Text style={[styles.weeklyStatLabel, isDarkMode && styles.textMutedDark]}>
+                  {stat.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
 
         {/* News Section */}
         <View style={styles.section}>
@@ -534,5 +615,117 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
+  },
+  // Mission du jour
+  missionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: theme.border.radius.medium,
+    padding: 16,
+    marginBottom: 28,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+    borderLeftWidth: 4,
+    borderLeftColor: theme.color.primary[500],
+  },
+  missionCardDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+  },
+  missionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  missionBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.color.primary[500],
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    gap: 4,
+  },
+  missionBadgeText: {
+    color: "#FFFFFF",
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  missionDuration: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  missionTitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1A1A1A",
+    marginBottom: 14,
+    lineHeight: 20,
+  },
+  missionActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  missionAction: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: `${theme.color.primary[500]}12`,
+  },
+  missionActionDark: {
+    backgroundColor: `${theme.color.primary[500]}20`,
+  },
+  missionActionText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.color.primary[500],
+  },
+  // Weekly progress
+  weeklyRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  weeklyStatCard: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: theme.border.radius.small,
+    paddingVertical: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    gap: 4,
+  },
+  weeklyStatCardDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+  },
+  weeklyStatValue: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1A1A1A",
+  },
+  weeklyStatLabel: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 11,
+    color: "#6B7280",
+  },
+  textDark: {
+    color: "#FFFFFF",
+  },
+  textMutedDark: {
+    color: "#94A3B8",
   },
 });
