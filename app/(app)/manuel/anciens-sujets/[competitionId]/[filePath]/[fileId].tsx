@@ -36,6 +36,11 @@ interface CompletionData {
   id: number;
 }
 
+interface CompetitionContextData {
+  name: string;
+  documentCount: number;
+}
+
 // Specific fetchers with explicit types
 const fetchArchive = async (archiveId: string): Promise<ArchiveData> => {
   const { data, error } = await supabase
@@ -82,6 +87,31 @@ const fetchCompletion = async (userId: string, archiveId: number): Promise<Compl
     logger.error('Error fetching completion status:', error);
     return null;
   }
+};
+
+const fetchCompetitionContext = async (competitionId: string): Promise<CompetitionContextData> => {
+  const [
+    { data: competition, error: competitionError },
+    { count, error: countError },
+  ] = await Promise.all([
+    supabase
+      .from('concours')
+      .select('name')
+      .eq('id', competitionId)
+      .single(),
+    supabase
+      .from('concours_archives')
+      .select('*', { count: 'exact', head: true })
+      .eq('concour_id', competitionId),
+  ]);
+
+  if (competitionError) throw competitionError;
+  if (countError) throw countError;
+
+  return {
+    name: competition?.name || 'ce concours',
+    documentCount: count || 0,
+  };
 };
 
 export const FileViewerScreen = () => {
@@ -188,6 +218,11 @@ export const FileViewerScreen = () => {
       user?.id && archiveData?.id ? (() => fetchCompletion(user.id, archiveData.id) as Promise<CompletionData | null>) : null
   );
 
+  const { data: competitionContext } = useSWR<CompetitionContextData>(
+    competitionId ? `competition-context-${competitionId}` : null,
+    competitionId ? (() => fetchCompetitionContext(competitionId)) : null
+  );
+
   const toggleView = () => {
     // Switch between viewing the original file and the correction
     trigger(HapticType.SELECTION);
@@ -266,7 +301,13 @@ export const FileViewerScreen = () => {
             Accès restreint
           </ThemedText>
           <ThemedText style={viewerStyles.accessDeniedDescription}>
-            Vous devez payer pour accéder à ce contenu. Débloquez tous les sujets de ce concours pour 2500 FCFA .
+            {`Vous devez payer pour accéder à ce contenu. Débloquez ${
+              competitionContext?.documentCount
+                ? `${competitionContext.documentCount} ${
+                    competitionContext.documentCount === 1 ? 'document' : 'documents'
+                  }`
+                : 'tous les documents'
+            } du concours ${competitionContext?.name || 'concours en cours'} pour 2000 FCFA.`}
           </ThemedText>
           <TouchableOpacity
             style={viewerStyles.paymentButton}
@@ -284,7 +325,8 @@ export const FileViewerScreen = () => {
           visible={showPaymentSheet}
           onClose={() => setShowPaymentSheet(false)}
           competitionId={competitionId}
-          competitionName="ce concours"
+          competitionName={competitionContext?.name || 'ce concours'}
+          documentCount={competitionContext?.documentCount}
         />
       </View>
     );

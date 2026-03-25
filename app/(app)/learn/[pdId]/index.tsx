@@ -61,6 +61,9 @@ interface ProgramData {
       id: string;
       name?: string;
       description?: string;
+      image?: {
+        url?: string;
+      };
       dates?: Record<string, unknown>;
       nextDate?: string;
       study_cycles?: {
@@ -90,6 +93,14 @@ interface ProgramLinkData {
     };
   };
 }
+
+const getLevelLabel = (level?: number | string) => {
+  if (level === undefined || level === null || level === "") {
+    return null;
+  }
+
+  return `Niveau ${level}`;
+};
 
 const ProgramDetails = () => {
   const local = useLocalSearchParams();
@@ -158,6 +169,7 @@ const ProgramDetails = () => {
                         id,
                         name,
                         description,
+                        image,
                         dates,
                         nextDate,
                         study_cycles(level),
@@ -200,6 +212,7 @@ const ProgramDetails = () => {
                   id: data.concours_learningpaths.concour.id,
                   name: data.concours_learningpaths.concour.name ?? undefined,
                   description: data.concours_learningpaths.concour.description ?? undefined,
+                  image: data.concours_learningpaths.concour.image ?? undefined,
                   dates: undefined,
                   nextDate: data.concours_learningpaths.concour.nextDate ?? undefined,
                   study_cycles: data.concours_learningpaths.concour.study_cycles
@@ -300,6 +313,18 @@ const ProgramDetails = () => {
   );
 
   const hasArchives = !!programLink?.concourId && archiveCount > 0;
+  const primaryProgramConcour = program?.concours_learningpaths?.concour;
+  const primaryProgramSchool = primaryProgramConcour?.school;
+  const programLevelLabel = getLevelLabel(primaryProgramConcour?.study_cycles?.level);
+  const programHeaderTitle = programLevelLabel
+    ? `${primaryProgramSchool?.sigle || primaryProgramSchool?.name || "Programme"} • ${programLevelLabel}`
+    : primaryProgramSchool?.sigle || primaryProgramSchool?.name || program?.title || "Programme";
+  const programHeaderSubtitle =
+    primaryProgramSchool?.name || primaryConcour?.school?.name || "";
+  const programLogoUri =
+    primaryProgramSchool?.imageUrl ||
+    primaryProgramConcour?.image?.url ||
+    `https://api.dicebear.com/9.x/thumbs/png?seed=${primaryProgramSchool?.name || program?.title || id}`;
 
   // Always call the hook but with proper values - don't pass empty strings
   const {
@@ -876,21 +901,22 @@ const ProgramDetails = () => {
       <View style={[styles.header, isDark && styles.headerDark]}>
         <Image
           source={{
-            uri: `https://api.dicebear.com/9.x/thumbs/png?seed=${program?.title}`,
+            uri: programLogoUri,
           }}
           style={styles.headerImage}
+          resizeMode="contain"
         />
         <View style={styles.headerContent}>
           <ThemedText
             style={[styles.programTitle, isDark && styles.programTitleDark]}
           >
-            {program?.title || "Titre du programme"}
+            {programHeaderTitle}
           </ThemedText>
           <ThemedText
             numberOfLines={1}
             style={[styles.concoursName, isDark && styles.concoursNameDark]}
           >
-            {primaryConcour?.school?.name || ""}
+            {programHeaderSubtitle}
           </ThemedText>
           {!isEnrolled && (
             <View style={styles.enrollmentStatus}>
@@ -1042,9 +1068,12 @@ const styles = StyleSheet.create({
     borderBottomColor: "#374151",
   },
   headerImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 50,
+    width: 68,
+    height: 68,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   headerContent: {
     flex: 1,

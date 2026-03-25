@@ -27,6 +27,8 @@ interface Competition {
   description?: string;
   image_url?: string;
   has_archives: boolean;
+  cycle_name?: string;
+  cycle_level?: number;
   school: {
     name: string;
     sigle: string;
@@ -41,6 +43,7 @@ interface CompetitionRow {
   concours_archives?: Array<{ count?: number | null }> | null;
   cities?: { name?: string | null } | null;
   schools?: { name?: string | null; sigle?: string | null } | null;
+  study_cycles?: { name?: string | null; level?: number | null } | null;
 }
 
 const getImageUrl = (image: CompetitionRow["image"]): string => {
@@ -49,6 +52,14 @@ const getImageUrl = (image: CompetitionRow["image"]): string => {
   }
 
   return "url" in image && typeof image.url === "string" ? image.url : "";
+};
+
+const getCycleLabel = (competition: Pick<Competition, "cycle_level" | "cycle_name">): string => {
+  if (competition.cycle_level) {
+    return `Niveau ${competition.cycle_level}`;
+  }
+
+  return competition.cycle_name || "";
 };
 
 // Fetcher function for SWR
@@ -63,7 +74,8 @@ const fetchCompetitions = async (): Promise<Competition[]> => {
       image,
       concours_archives(count), 
       cities(name),
-      schools(name, sigle)
+      schools(name, sigle),
+      study_cycles(name, level)
     `)
     .order("name");
 
@@ -73,18 +85,35 @@ const fetchCompetitions = async (): Promise<Competition[]> => {
 
   const competitionRows = data as unknown as CompetitionRow[];
 
-  return competitionRows.map((item) => ({
-    id: String(item.id),
-    name: item.name || "",
-    description: item.description || "",
-    image_url: getImageUrl(item.image),
-    city: item.cities?.name || "",
-    has_archives: (item.concours_archives?.[0]?.count || 0) > 0,
-    school: {
-      name: item.schools?.name || "",
-      sigle: item.schools?.sigle || ""
-    }
-  })).filter(item => item.has_archives); // Only include competitions with archives
+  return competitionRows
+    .map((item) => ({
+      id: String(item.id),
+      name: item.name || "",
+      description: item.description || "",
+      image_url: getImageUrl(item.image),
+      city: item.cities?.name || "",
+      has_archives: (item.concours_archives?.[0]?.count || 0) > 0,
+      cycle_name: item.study_cycles?.name || "",
+      cycle_level:
+        typeof item.study_cycles?.level === "number"
+          ? item.study_cycles.level
+          : undefined,
+      school: {
+        name: item.schools?.name || "",
+        sigle: item.schools?.sigle || ""
+      }
+    }))
+    .filter(item => item.has_archives)
+    .sort((a, b) => {
+      const schoolCompare = a.school.sigle.localeCompare(b.school.sigle, "fr");
+      if (schoolCompare !== 0) return schoolCompare;
+
+      const levelA = a.cycle_level ?? Number.MAX_SAFE_INTEGER;
+      const levelB = b.cycle_level ?? Number.MAX_SAFE_INTEGER;
+      if (levelA !== levelB) return levelA - levelB;
+
+      return a.name.localeCompare(b.name, "fr");
+    });
 };
 
 const AnciensujetsScreen = () => {
@@ -114,7 +143,9 @@ const AnciensujetsScreen = () => {
   // Filter competitions based on search query
   const filteredCompetitions = competitions?.filter((competition) =>
       competition.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      competition.school.sigle.toLowerCase().includes(searchQuery.toLowerCase())
+      competition.school.sigle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      competition.school.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      getCycleLabel(competition).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Render competition item
@@ -141,15 +172,28 @@ const AnciensujetsScreen = () => {
         )}
       </View>
       <View style={styles.competitionContent}>
-        <Text style={[styles.competitionTitle, isDarkMode && styles.textDark]} numberOfLines={2}>
-          {item.school.sigle}
-        </Text>
-        {item.description ? (
-          <Text style={[styles.competitionDescription, isDarkMode && styles.textLightDark]} numberOfLines={2}>
-            {item.description}
+        <View style={styles.titleRow}>
+          <Text style={[styles.competitionTitle, isDarkMode && styles.textDark]} numberOfLines={1}>
+            {item.school.sigle}
           </Text>
-        ) : null}
-        <Text style={[styles.competitionSchool, isDarkMode && styles.textLightDark]}>
+          {getCycleLabel(item) ? (
+            <View style={[styles.levelBadge, isDarkMode && styles.levelBadgeDark]}>
+              <Text style={[styles.levelBadgeText, isDarkMode && styles.levelBadgeTextDark]}>
+                {getCycleLabel(item)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        <Text
+          style={[styles.competitionDescription, isDarkMode && styles.textLightDark]}
+          numberOfLines={2}
+        >
+          {item.school.name}
+        </Text>
+        <Text
+          style={[styles.competitionSchool, isDarkMode && styles.textLightDark]}
+          numberOfLines={1}
+        >
           {item.name}
         </Text>
       </View>
@@ -344,12 +388,38 @@ const styles = StyleSheet.create({
   competitionContent: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
   competitionTitle: {
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: "600",
     color: "#1A1A1A",
-    marginBottom: 4,
+    flexShrink: 1,
+  },
+  levelBadge: {
+    backgroundColor: theme.color.primary[100],
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  levelBadgeDark: {
+    backgroundColor: "#14532D",
+    borderWidth: 1,
+    borderColor: "#22C55E",
+  },
+  levelBadgeText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.color.primary[700],
+  },
+  levelBadgeTextDark: {
+    color: "#DCFCE7",
   },
   competitionDescription: {
     fontFamily: theme.typography.fontFamily,

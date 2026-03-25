@@ -657,6 +657,7 @@ export const ArchivesList = () => {
           onClose={() => setShowPaymentSheet(false)}
           competitionId={competitionId}
           competitionName={competitionData?.name || "ce concours"}
+          documentCount={archives.length}
           onPaymentSuccess={handlePaymentSuccess}
         />
       )}

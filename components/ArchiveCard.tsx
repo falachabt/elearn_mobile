@@ -97,7 +97,7 @@ export const ArchiveCard: React.FC<ArchiveCardProps> = ({
               size={24}
               color={
                 item.is_completed
-                  ? theme.color.success[500]
+                  ? "#FFFFFF"
                   : theme.color.primary[500]
               }
             />
@@ -117,19 +117,28 @@ export const ArchiveCard: React.FC<ArchiveCardProps> = ({
           {onToggleComplete && (
             <TouchableOpacity
               onPress={() => onToggleComplete(item.id)}
-              style={styles.actionButton}
+              style={[
+                styles.completionActionButton,
+                item.is_completed && styles.completionActionButtonActive,
+              ]}
             >
               <MaterialCommunityIcons
                 name={item.is_completed ? "check-circle" : "circle-outline"}
-                size={24}
+                size={18}
                 color={
                   item.is_completed
-                    ? theme.color.primary[500]
-                    : isDark
-                    ? theme.color.gray[400]
-                    : theme.color.gray[600]
+                    ? "#FFFFFF"
+                    : theme.color.primary[500]
                 }
               />
+              <Text
+                style={[
+                  styles.completionActionText,
+                  item.is_completed && styles.completionActionTextActive,
+                ]}
+              >
+                {item.is_completed ? "Terminé" : "Marquer terminé"}
+              </Text>
             </TouchableOpacity>
           )}
 
@@ -151,7 +160,7 @@ export const ArchiveCard: React.FC<ArchiveCardProps> = ({
                   size={24}
                   color={
                     localPath
-                      ? theme.color.success[500]
+                      ? theme.color.success
                       : theme.color.primary[500]
                   }
                 />
@@ -308,12 +317,12 @@ const styles = StyleSheet.create({
     borderTopColor: theme.color.dark.border,
   },
   footerCompleted: {
-    backgroundColor: theme.color.success[50],
-    borderTopColor: theme.color.success[100],
+    backgroundColor: theme.color.primary[50],
+    borderTopColor: theme.color.primary[100],
   },
   footerCompletedDark: {
-    backgroundColor: "rgba(74, 222, 128, 0.1)",
-    borderTopColor: theme.color.success[900],
+    backgroundColor: "rgba(5, 150, 105, 0.16)",
+    borderTopColor: theme.color.primary[700],
   },
   metaItem: {
     flexDirection: "row",
@@ -329,11 +338,11 @@ const styles = StyleSheet.create({
     color: theme.color.gray[400],
   },
   metaTextCompleted: {
-    color: theme.color.success[700],
+    color: theme.color.primary[700],
     fontWeight: "500",
   },
   metaTextCompletedDark: {
-    color: theme.color.primary[400],
+    color: theme.color.primary[300],
   },
   textDark: {
     color: "#FFFFFF",
@@ -342,6 +351,30 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: theme.border.radius.large,
     backgroundColor: "transparent",
+  },
+  completionActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: theme.border.radius.large,
+    backgroundColor: theme.color.primary[50],
+    borderWidth: 1,
+    borderColor: theme.color.primary[100],
+  },
+  completionActionButtonActive: {
+    backgroundColor: theme.color.primary[500],
+    borderColor: theme.color.primary[500],
+  },
+  completionActionText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.color.primary[700],
+  },
+  completionActionTextActive: {
+    color: "#FFFFFF",
   },
   progressContainer: {
     width: 40,

@@ -6,11 +6,10 @@ import {
     Pressable,
     Image,
     useColorScheme,
-    Dimensions,
     Alert
 } from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
-import {MaterialCommunityIcons, Ionicons} from '@expo/vector-icons';
+import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {useRouter} from 'expo-router';
 import Animated, {
     useSharedValue,
@@ -26,7 +25,13 @@ import {useProgramProgress} from "@/hooks/useProgramProgress";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {LearningPath} from "@/app/(app)/learn";
 
-const {width} = Dimensions.get('window');
+const getLevelLabel = (level?: number | string | null) => {
+    if (level === undefined || level === null || level === '') {
+        return null;
+    }
+
+    return `Niveau ${level}`;
+};
 
 const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPath, previewMode?: boolean }) => {
     const colorScheme = useColorScheme();
@@ -47,6 +52,8 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
 
     const concours = path.concours_learningpaths?.[0]?.concour;
     const school = concours?.school;
+    const levelLabel = getLevelLabel(concours?.study_cycles?.level);
+    const logoUri = school?.imageUrl || concours?.image?.url || `https://api.dicebear.com/9.x/initials/png?seed=${school?.name || concours?.name || path.id}`;
 
     // Animation values
     const pressed = useSharedValue(0);
@@ -90,7 +97,7 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
                         onPress: () => router.push(`/(app)/learn/${path.id}`),
                     },
                     {
-                        text: "Voir l'offre",
+                        text: "S'inscrire",
                         onPress: () => router.push(`/(app)/learn/${path.id}/payment`),
                     },
                     {
@@ -101,29 +108,6 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
             );
         }
     };
-
-    const formatDate = (dateString: Date) => {
-        const date = new Date(dateString);
-        const options = {day: 'numeric', month: 'short'};
-        // @ts-ignore
-        return date.toLocaleDateString('fr-FR', options);
-    };
-
-    // Calculate days remaining until exam
-    const getDaysRemaining = () => {
-        if (!concours?.nextDate) return null;
-
-        const examDate = new Date(concours.nextDate);
-        const today = new Date();
-        // @ts-ignore
-        const diffTime = Math.abs(examDate - today);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        return diffDays;
-    };
-
-    const daysRemaining = getDaysRemaining();
-
     return (
         <Animated.View style={[
             styles.cardContainer,
@@ -172,44 +156,19 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
                     <View style={styles.header}>
                         <View style={styles.schoolBadge}>
                             <Image
-                                source={{uri: school?.imageUrl || `https://api.dicebear.com/9.x/initials/png?seed=${school?.name}`}}
+                                source={{uri: logoUri}}
                                 style={styles.schoolLogo}
+                                resizeMode="contain"
                             />
-                            <Text style={[styles.schoolText, isDarkMode && styles.schoolTextDark]}>
-                                {school?.name}
-                            </Text>
-                        </View>
-
-                        {/* Progress circle */}
-                        {(isEnrolled || previewMode) && (
-                            <View style={styles.progressCircleContainer}>
-                                <View style={styles.progressBackground}>
-                                    <View
-                                        style={[
-                                            styles.progressFill,
-                                            {width: `${totalProgress}%`}
-                                        ]}
-                                    />
-                                </View>
-                                <Text style={[styles.progressText, isDarkMode && styles.progressTextDark]}>
-                                    {totalProgress}%
+                            <View style={styles.schoolMeta}>
+                                <Text style={[styles.schoolSigle, isDarkMode && styles.schoolSigleDark]} numberOfLines={1}>
+                                    {levelLabel ? `${school?.sigle || school?.name} • ${levelLabel}` : (school?.sigle || school?.name)}
+                                </Text>
+                                <Text style={[styles.schoolText, isDarkMode && styles.schoolTextDark]} numberOfLines={1}>
+                                    {school?.name}
                                 </Text>
                             </View>
-                        )}
-                    </View>
-
-                    {/* Title and description */}
-                    <View style={styles.titleContainer}>
-                        <Text style={[
-                            styles.title,
-                            isDarkMode && styles.titleDark,
-                            !isEnrolled && !previewMode && styles.notEnrolledTitle
-                        ]} numberOfLines={2}>
-                            {path.title}
-                        </Text>
-                        <Text style={[styles.concoursName, isDarkMode && styles.concoursNameDark]}>
-                            {concours?.name}
-                        </Text>
+                        </View>
                     </View>
 
                     {/* Course statistics */}
@@ -245,81 +204,85 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
                         </View>
                     </View>
 
-                    {/* Exam date countdown */}
-                    {concours?.nextDate && (
-                        <View style={[
-                            styles.examCountdown,
-                            isDarkMode && styles.examCountdownDark,
-                            daysRemaining && daysRemaining < 30 ? styles.urgentCountdown : null
-                        ]}>
-                            <Ionicons
-                                name="calendar"
-                                size={16}
-                                color={daysRemaining && daysRemaining < 30 ? "#E11D48" : (!isEnrolled && !previewMode ? '#9CA3AF' : theme.color.primary[600])}
-                            />
-                            <Text style={[
-                                styles.examText,
-                                daysRemaining && daysRemaining < 30 ? styles.urgentExamText : null,
-                                isDarkMode && styles.examTextDark
-                            ]}>
-                                {daysRemaining ?
-                                    `J-${daysRemaining} avant l'examen` :
-                                    `Examen le ${formatDate(new Date(concours.nextDate))}`
-                                }
-                            </Text>
+                    {(isEnrolled || previewMode) && (
+                        <View style={styles.progressSection}>
+                            <View style={styles.progressHeader}>
+                                <Text style={[styles.progressLabel, isDarkMode && styles.progressLabelDark]}>
+                                    Progression
+                                </Text>
+                                <Text style={[styles.progressPercent, isDarkMode && styles.progressPercentDark]}>
+                                    {totalProgress}%
+                                </Text>
+                            </View>
+                            <View style={[styles.progressTrack, isDarkMode && styles.progressTrackDark]}>
+                                <View
+                                    style={[
+                                        styles.progressFill,
+                                        {width: `${totalProgress}%`}
+                                    ]}
+                                />
+                            </View>
                         </View>
                     )}
-                </View>
 
-                {/* Action buttons - Double bouton pour les non-enrollés */}
-                {!isEnrolled && !previewMode ? (
-                    <View style={styles.doubleButtonContainer}>
-                        {/* Bouton d'accès limité */}
-                        <Pressable
-                            style={styles.limitedAccessButton}
-                            onPress={handleCardPress}
-                        >
-                            <MaterialCommunityIcons
-                                name="eye"
-                                size={18}
-                                color={theme.color.primary[600]}
-                            />
-                        </Pressable>
+                    <View style={styles.ctaRow}>
+                        {!isEnrolled && !previewMode ? (
+                            <>
+                                <Pressable
+                                    style={[styles.secondaryCta, isDarkMode && styles.secondaryCtaDark]}
+                                    onPress={handleCardPress}
+                                >
+                                    <MaterialCommunityIcons
+                                        name="eye-outline"
+                                        size={18}
+                                        color={theme.color.primary[600]}
+                                    />
+                                    <Text style={styles.secondaryCtaText}>Aperçu</Text>
+                                </Pressable>
 
-                        {/* Bouton shop */}
-                        <LinearGradient
-                            colors={[theme.color.primary[500], theme.color.primary[700]]}
-                            start={{x: 0, y: 0}}
-                            end={{x: 1, y: 0}}
-                            style={styles.shopButton}
-                        >
-                            <Pressable
-                                style={styles.shopButtonPressable}
-                                onPress={handleShopPress}
+                                <LinearGradient
+                                    colors={[theme.color.primary[500], theme.color.primary[700]]}
+                                    start={{x: 0, y: 0}}
+                                    end={{x: 1, y: 0}}
+                                    style={styles.primaryCtaGradient}
+                                >
+                                    <Pressable
+                                        style={styles.primaryCta}
+                                        onPress={handleShopPress}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name="cart-outline"
+                                            size={18}
+                                            color="#FFFFFF"
+                                        />
+                                        <Text style={styles.primaryCtaText}>S'inscrire</Text>
+                                    </Pressable>
+                                </LinearGradient>
+                            </>
+                        ) : (
+                            <LinearGradient
+                                colors={[theme.color.primary[500], theme.color.primary[700]]}
+                                start={{x: 0, y: 0}}
+                                end={{x: 1, y: 0}}
+                                style={styles.primaryCtaGradient}
                             >
-                                <MaterialCommunityIcons
-                                    name="cart"
-                                    size={18}
-                                    color="#FFFFFF"
-                                />
-                            </Pressable>
-                        </LinearGradient>
+                                <Pressable
+                                    style={styles.primaryCta}
+                                    onPress={handleCardPress}
+                                >
+                                    <Text style={styles.primaryCtaText}>
+                                        {previewMode ? 'Voir le programme' : 'Continuer'}
+                                    </Text>
+                                    <MaterialCommunityIcons
+                                        name="arrow-right"
+                                        size={18}
+                                        color="#FFFFFF"
+                                    />
+                                </Pressable>
+                            </LinearGradient>
+                        )}
                     </View>
-                ) : (
-                    /* Bouton continuer pour les enrollés */
-                    <LinearGradient
-                        colors={[theme.color.primary[500], theme.color.primary[700]]}
-                        start={{x: 0, y: 0}}
-                        end={{x: 1, y: 0}}
-                        style={styles.continueButton}
-                    >
-                        <MaterialCommunityIcons
-                            name="arrow-right"
-                            size={20}
-                            color="#FFFFFF"
-                        />
-                    </LinearGradient>
-                )}
+                </View>
             </Pressable>
         </Animated.View>
     );
@@ -396,9 +359,6 @@ const styles = StyleSheet.create({
     generousWeekAccent: {
         backgroundColor: '#10B981', // Green color for generous week
     },
-    notEnrolledTitle: {
-        color: '#4B5563',
-    },
     card: {
         flexDirection: 'row',
         backgroundColor: '#FFFFFF',
@@ -426,17 +386,32 @@ const styles = StyleSheet.create({
     schoolBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        width: '80%',
+        flex: 1,
         backgroundColor: 'rgba(209, 213, 219, 0.15)',
-        borderRadius: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
     },
     schoolLogo: {
-        width: 0,
-        height: 16,
-        borderRadius: 8,
-        marginRight: 6,
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        marginRight: 10,
+        backgroundColor: '#FFFFFF',
+    },
+    schoolMeta: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    schoolSigle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#1F2937',
+        marginBottom: 2,
+    },
+    schoolSigleDark: {
+        color: '#FFFFFF',
     },
     schoolText: {
         fontFamily: theme.typography.fontFamily,
@@ -446,52 +421,6 @@ const styles = StyleSheet.create({
     },
     schoolTextDark: {
         color: '#D1D5DB',
-    },
-    progressCircleContainer: {
-        alignItems: 'center',
-    },
-    progressBackground: {
-        width: 50,
-        height: 4,
-        backgroundColor: '#E5E7EB',
-        borderRadius: 2,
-        overflow: 'hidden',
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: theme.color.primary[500],
-    },
-    progressText: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 11,
-        fontWeight: '600',
-        color: theme.color.primary[600],
-        marginTop: 2,
-    },
-    progressTextDark: {
-        color: theme.color.primary[400],
-    },
-    titleContainer: {
-        marginBottom: 12,
-    },
-    title: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#1F2937',
-        marginBottom: 2,
-    },
-    titleDark: {
-        color: '#FFFFFF',
-    },
-    concoursName: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 13,
-        color: theme.color.primary[600],
-        fontWeight: '500',
-    },
-    concoursNameDark: {
-        color: theme.color.primary[400],
     },
     statsRow: {
         flexDirection: 'row',
@@ -535,57 +464,92 @@ const styles = StyleSheet.create({
     statLabelDark: {
         color: '#D1D5DB',
     },
-    examCountdown: {
+    progressSection: {
+        marginBottom: 12,
+    },
+    progressHeader: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 6,
+        marginBottom: 6,
     },
-    examCountdownDark: {
-        backgroundColor: 'rgba(37, 99, 235, 0.2)',
-    },
-    urgentCountdown: {
-        backgroundColor: 'rgba(225, 29, 72, 0.1)',
-    },
-    examText: {
+    progressLabel: {
         fontFamily: theme.typography.fontFamily,
         fontSize: 12,
-        fontWeight: '500',
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    progressLabelDark: {
+        color: '#CBD5E1',
+    },
+    progressPercent: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        fontWeight: '700',
         color: theme.color.primary[600],
-        marginLeft: 6,
     },
-    examTextDark: {
-        color: theme.color.primary[400],
+    progressPercentDark: {
+        color: '#DCFCE7',
     },
-    urgentExamText: {
-        color: '#E11D48',
+    progressTrack: {
+        height: 8,
+        backgroundColor: '#E5E7EB',
+        borderRadius: 999,
+        overflow: 'hidden',
     },
-    continueButton: {
-        width: 40,
+    progressTrackDark: {
+        backgroundColor: '#334155',
+    },
+    progressFill: {
+        height: '100%',
+        backgroundColor: theme.color.primary[500],
+        borderRadius: 999,
+    },
+    ctaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    secondaryCta: {
+        flex: 1,
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
+        gap: 6,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: theme.color.primary[200],
+        backgroundColor: theme.color.primary[50],
+        paddingVertical: 12,
+        paddingHorizontal: 14,
     },
-    doubleButtonContainer: {
-        width: 40,
-        flexDirection: 'column',
-        justifyContent: 'space-between',
+    secondaryCtaDark: {
+        backgroundColor: 'rgba(20, 83, 45, 0.22)',
+        borderColor: '#22C55E',
     },
-    limitedAccessButton: {
+    secondaryCtaText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '700',
+        color: theme.color.primary[700],
+    },
+    primaryCtaGradient: {
         flex: 1,
+        borderRadius: 10,
+    },
+    primaryCta: {
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-        marginBottom: 1,
+        gap: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
     },
-    shopButton: {
-        flex: 1,
-    },
-    shopButtonPressable: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+    primaryCtaText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#FFFFFF',
     },
 });
 

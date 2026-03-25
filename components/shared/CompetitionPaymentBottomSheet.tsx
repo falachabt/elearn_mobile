@@ -29,6 +29,7 @@ interface CompetitionPaymentBottomSheetProps {
   onClose: () => void;
   competitionId: string;
   competitionName: string;
+  documentCount?: number;
   onPaymentSuccess?: () => void;
 }
 
@@ -40,6 +41,7 @@ export const CompetitionPaymentBottomSheet = ({
   onClose,
   competitionId,
   competitionName,
+  documentCount,
   onPaymentSuccess
 }: CompetitionPaymentBottomSheetProps) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
@@ -77,6 +79,18 @@ export const CompetitionPaymentBottomSheet = ({
   } = useCompetitionPayment();
   void promoCode;
   void latestPaymentLoading;
+
+  const normalizedCompetitionName = competitionName?.trim() || 'ce concours';
+  const hasDocumentCount = typeof documentCount === 'number' && documentCount > 0;
+  const documentCountLabel = hasDocumentCount
+    ? `${documentCount} ${documentCount === 1 ? 'document' : 'documents'}`
+    : 'tous les documents disponibles';
+  const subjectCountLabel = hasDocumentCount
+    ? `${documentCount} ${documentCount === 1 ? 'sujet' : 'sujets'}`
+    : 'tous les sujets disponibles';
+  const paymentDescription = hasDocumentCount
+    ? `Payez 2000 FCFA pour débloquer ${subjectCountLabel} du concours ${normalizedCompetitionName}.`
+    : `Payez 2000 FCFA pour accéder à tous les sujets du concours ${normalizedCompetitionName}.`;
 
 
   useEffect(() => {
@@ -510,12 +524,31 @@ export const CompetitionPaymentBottomSheet = ({
           >
             <View style={styles.formContainer}>
               <Text style={[styles.title, isDark && styles.titleDark]}>
-                Accéder aux sujets de {competitionName}
+                Accéder aux sujets de {normalizedCompetitionName}
               </Text>
 
               <Text style={[styles.description, isDark && styles.descriptionDark]}>
-                Payez 2000 FCFA pour accéder à tous les sujets de ce concours
+                {paymentDescription}
               </Text>
+
+              <View style={[styles.contextCard, isDark && styles.contextCardDark]}>
+                <View style={styles.contextRow}>
+                  <Text style={[styles.contextLabel, isDark && styles.contextLabelDark]}>
+                    Concours
+                  </Text>
+                  <Text style={[styles.contextValue, isDark && styles.contextValueDark]}>
+                    {normalizedCompetitionName}
+                  </Text>
+                </View>
+                <View style={styles.contextRow}>
+                  <Text style={[styles.contextLabel, isDark && styles.contextLabelDark]}>
+                    Documents inclus
+                  </Text>
+                  <Text style={[styles.contextValue, isDark && styles.contextValueDark]}>
+                    {documentCountLabel}
+                  </Text>
+                </View>
+              </View>
 
               <View style={styles.inputContainer}>
                 <Text style={[styles.inputLabel, isDark && styles.inputLabelDark]}>
@@ -564,7 +597,7 @@ export const CompetitionPaymentBottomSheet = ({
               </View>
 
               <WhatsAppContact 
-                message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${competitionName}`}
+                message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${normalizedCompetitionName}`}
                 style={{ marginTop: 16, marginHorizontal: 0 }}
               />
             </View>
@@ -592,7 +625,7 @@ export const CompetitionPaymentBottomSheet = ({
             </Text>
             
             <WhatsAppContact 
-              message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${competitionName}`}
+              message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${normalizedCompetitionName}`}
               style={{ marginTop: 24 }}
             />
           </View>
@@ -638,7 +671,7 @@ export const CompetitionPaymentBottomSheet = ({
             </TouchableOpacity>
             
             <WhatsAppContact 
-              message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${competitionName}`}
+              message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${normalizedCompetitionName}`}
               style={{ marginTop: 16, width: '100%' }}
             />
           </View>
@@ -661,7 +694,7 @@ export const CompetitionPaymentBottomSheet = ({
               Paiement réussi !
             </Text>
             <Text style={[styles.statusDescription, isDark && styles.statusDescriptionDark]}>
-              Vous avez maintenant accès à tous les sujets de {competitionName} 
+              {`Vous avez maintenant accès à ${subjectCountLabel} du concours ${normalizedCompetitionName}.`}
             </Text>
 
             <TouchableOpacity
@@ -672,7 +705,7 @@ export const CompetitionPaymentBottomSheet = ({
             </TouchableOpacity>
             
             <WhatsAppContact 
-              message={`Bonjour, j'ai besoin d'aide concernant mon accès à ${competitionName}`}
+              message={`Bonjour, j'ai besoin d'aide concernant mon accès à ${normalizedCompetitionName}`}
               style={{ marginTop: 16, width: '100%' }}
             />
           </View>
@@ -714,7 +747,7 @@ export const CompetitionPaymentBottomSheet = ({
             </TouchableOpacity>
             
             <WhatsAppContact 
-              message={`Bonjour, mon paiement pour ${competitionName} a échoué. J'ai besoin d'aide.`}
+              message={`Bonjour, mon paiement pour ${normalizedCompetitionName} a échoué. J'ai besoin d'aide.`}
               style={{ marginTop: 16, width: '100%' }}
             />
           </View>
@@ -756,7 +789,7 @@ export const CompetitionPaymentBottomSheet = ({
             </TouchableOpacity>
             
             <WhatsAppContact 
-              message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${competitionName}`}
+              message={`Bonjour, j'ai besoin d'aide concernant le paiement pour ${normalizedCompetitionName}`}
               style={{ marginTop: 16, width: '100%' }}
             />
           </View>
@@ -919,6 +952,44 @@ const styles = StyleSheet.create({
   },
   descriptionDark: {
     color: theme.color.gray[400],
+  },
+  contextCard: {
+    backgroundColor: theme.color.primary[50],
+    borderRadius: theme.border.radius.medium,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: theme.color.primary[100],
+  },
+  contextCardDark: {
+    backgroundColor: theme.color.dark.background.primary,
+    borderColor: theme.color.dark.border,
+  },
+  contextRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  contextLabel: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.color.gray[700],
+  },
+  contextLabelDark: {
+    color: theme.color.gray[400],
+  },
+  contextValue: {
+    flex: 1,
+    textAlign: 'right',
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.color.gray[900],
+  },
+  contextValueDark: {
+    color: '#FFFFFF',
   },
   inputContainer: {
     marginBottom: 16,

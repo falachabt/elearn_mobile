@@ -9,7 +9,7 @@ import {
     useColorScheme,
     View
 } from 'react-native'
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import useSWR from 'swr'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Href, useRouter, useFocusEffect } from 'expo-router'
@@ -38,6 +38,9 @@ interface Concours {
     id: string
     name: string | null
     description: string | null
+    image?: {
+        url?: string | null
+    } | null
     schoolId?: string | null
     school: School | null
     study_cycles: StudyCycle | { level: number } | null
@@ -115,6 +118,8 @@ interface LearningPathRow {
     user_program_enrollments: UserProgramEnrollment[] | null
 }
 
+type LearnTab = 'enrolled' | 'available'
+
 const MyLearningPaths = () => {
     const { session, user: authUser } = useAuth()
     const { user, mutateUserPrograms, mutateProgramAccessMap } = useUser()
@@ -122,6 +127,8 @@ const MyLearningPaths = () => {
     const colorScheme = useColorScheme()
     const isDarkMode = colorScheme === 'dark'
     const [searchQuery, setSearchQuery] = useState('')
+    const [selectedTab, setSelectedTab] = useState<LearnTab>('available')
+    const hasInitializedTab = useRef(false)
 
     // Get generous week program ID from user metadata
     const generousWeekProgramId = user?.metadata?.generousWeek?.programId
@@ -144,6 +151,7 @@ const MyLearningPaths = () => {
                         id,
                         name,
                         description,
+                        image,
                         dates,
                         nextDate,
                         study_cycles(level),
@@ -202,9 +210,10 @@ const MyLearningPaths = () => {
                 )
 
                 if (!learningPathMap.has(learningPathId)) {
+                    const schoolSigle = item.concour.school?.sigle ?? ''
                     learningPathMap.set(learningPathId, {
                         id: item.learning_path.id,
-                        title: `Programme ${item.concour.school?.sigle ?? ''} Niveau : ${item.concour.study_cycles?.level ?? ''}`,
+                        title: `Programme ${schoolSigle}`.trim(),
                         description: item.learning_path.description ?? "",
                         image: { url: "" },
                         duration: [],
@@ -313,6 +322,37 @@ const MyLearningPaths = () => {
         )
     }, [data, searchQuery])
 
+    const enrolledPrograms = useMemo(
+        () => filteredData.filter((item) => item.isEnrolled || item.isGenerousWeek),
+        [filteredData]
+    )
+
+    const availablePrograms = useMemo(
+        () => filteredData.filter((item) => !item.isEnrolled && !item.isGenerousWeek),
+        [filteredData]
+    )
+
+    const hasAccessiblePrograms = useMemo(
+        () => (data ?? []).some((item) => item.isEnrolled || item.isGenerousWeek),
+        [data]
+    )
+
+    const currentTabData = selectedTab === 'enrolled' ? enrolledPrograms : availablePrograms
+
+    useEffect(() => {
+        if (!data) return
+
+        if (!hasInitializedTab.current) {
+            setSelectedTab(hasAccessiblePrograms ? 'enrolled' : 'available')
+            hasInitializedTab.current = true
+            return
+        }
+
+        if (selectedTab === 'enrolled' && !hasAccessiblePrograms) {
+            setSelectedTab('available')
+        }
+    }, [data, hasAccessiblePrograms, selectedTab])
+
     // Redirect to login if not authenticated
     if (!session) {
         router.replace('/(auth)/login' as Href)
@@ -325,7 +365,7 @@ const MyLearningPaths = () => {
             <View style={styles.centerContainer}>
                 <ActivityIndicator size="large" color={theme.color.primary[500]} />
                 <Text style={[styles.loadingText, isDarkMode && { color: '#FFFFFF' }]}>
-                    Chargement de vos parcours...
+                    Chargement de vos concours...
                 </Text>
             </View>
         )
@@ -354,10 +394,10 @@ const MyLearningPaths = () => {
         <View style={[styles.container, isDarkMode && styles.containerDark]}>
             <View style={[styles.header, isDarkMode && styles.headerDark]}>
                 <Text style={[styles.title, isDarkMode && styles.titleDark]}>
-                    Mes Parcours
+                    Concours
                 </Text>
                 <Text style={[styles.subtitle, isDarkMode && styles.subtitleDark]}>
-                    Continuez votre préparation aux concours
+                    Retrouvez vos concours et ceux disponibles
                 </Text>
             </View>
 
@@ -370,7 +410,7 @@ const MyLearningPaths = () => {
                     />
                     <TextInput
                         style={[styles.searchInput, isDarkMode && styles.searchInputDark]}
-                        placeholder="Rechercher un parcours..."
+                        placeholder="Rechercher un concours..."
                         placeholderTextColor={isDarkMode ? '#CCCCCC' : '#6B7280'}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -387,8 +427,86 @@ const MyLearningPaths = () => {
                 </View>
             </View>
 
+            <View style={[styles.tabsContainer, isDarkMode && styles.tabsContainerDark]}>
+                <Pressable
+                    style={[
+                        styles.tabButton,
+                        selectedTab === 'enrolled' && styles.tabButtonActive,
+                        isDarkMode && styles.tabButtonDark,
+                        isDarkMode && selectedTab === 'enrolled' && styles.tabButtonActiveDark,
+                    ]}
+                    onPress={() => setSelectedTab('enrolled')}
+                >
+                    <Text
+                        style={[
+                            styles.tabButtonText,
+                            selectedTab === 'enrolled' && styles.tabButtonTextActive,
+                            isDarkMode && styles.tabButtonTextDark,
+                            isDarkMode && selectedTab === 'enrolled' && styles.tabButtonTextActiveDark,
+                        ]}
+                    >
+                        Mes concours
+                    </Text>
+                    <View
+                        style={[
+                            styles.tabCount,
+                            selectedTab === 'enrolled' && styles.tabCountActive,
+                            isDarkMode && styles.tabCountDark,
+                        ]}
+                    >
+                        <Text
+                            style={[
+                                styles.tabCountText,
+                                isDarkMode && styles.tabCountTextDark,
+                                selectedTab === 'enrolled' && styles.tabCountTextActive,
+                            ]}
+                        >
+                            {enrolledPrograms.length}
+                        </Text>
+                    </View>
+                </Pressable>
+
+                <Pressable
+                    style={[
+                        styles.tabButton,
+                        selectedTab === 'available' && styles.tabButtonActive,
+                        isDarkMode && styles.tabButtonDark,
+                        isDarkMode && selectedTab === 'available' && styles.tabButtonActiveDark,
+                    ]}
+                    onPress={() => setSelectedTab('available')}
+                >
+                    <Text
+                        style={[
+                            styles.tabButtonText,
+                            selectedTab === 'available' && styles.tabButtonTextActive,
+                            isDarkMode && styles.tabButtonTextDark,
+                            isDarkMode && selectedTab === 'available' && styles.tabButtonTextActiveDark,
+                        ]}
+                    >
+                        Concours disponibles
+                    </Text>
+                    <View
+                        style={[
+                            styles.tabCount,
+                            selectedTab === 'available' && styles.tabCountActive,
+                            isDarkMode && styles.tabCountDark,
+                        ]}
+                    >
+                        <Text
+                            style={[
+                                styles.tabCountText,
+                                isDarkMode && styles.tabCountTextDark,
+                                selectedTab === 'available' && styles.tabCountTextActive,
+                            ]}
+                        >
+                            {availablePrograms.length}
+                        </Text>
+                    </View>
+                </Pressable>
+            </View>
+
             {data && data?.length > 0 ? (
-                filteredData.length === 0 && searchQuery.length > 0 ? (
+                currentTabData.length === 0 ? (
                     <View style={styles.centerContainer}>
                         <MaterialCommunityIcons 
                             name="magnify" 
@@ -396,23 +514,55 @@ const MyLearningPaths = () => {
                             color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
                         />
                         <Text style={[styles.loadingText, { textAlign: 'center', marginTop: 16 }, isDarkMode && { color: '#CCCCCC' }]}>
-                            Aucun parcours trouvé pour "{searchQuery}"
+                            {searchQuery.length > 0
+                                ? `Aucun concours trouvé pour "${searchQuery}"`
+                                : selectedTab === 'enrolled'
+                                    ? "Vous n'avez pas encore de concours actif."
+                                    : "Aucun concours disponible pour le moment."}
                         </Text>
-                        <Pressable 
-                            style={[styles.retryButton, { marginTop: 16 }]} 
-                            onPress={() => setSearchQuery('')}
-                        >
-                            <Text style={styles.retryText}>Effacer la recherche</Text>
-                        </Pressable>
+                        {searchQuery.length > 0 ? (
+                            <Pressable 
+                                style={[styles.retryButton, { marginTop: 16 }]} 
+                                onPress={() => setSearchQuery('')}
+                            >
+                                <Text style={styles.retryText}>Effacer la recherche</Text>
+                            </Pressable>
+                        ) : selectedTab === 'enrolled' ? (
+                            <Pressable
+                                style={[styles.retryButton, { marginTop: 16 }]}
+                                onPress={() => setSelectedTab('available')}
+                            >
+                                <Text style={styles.retryText}>Voir les concours disponibles</Text>
+                            </Pressable>
+                        ) : null}
                     </View>
                 ) : (
                     <FlatList
-                        data={filteredData}
+                        data={currentTabData}
                         keyExtractor={(item) => item.id}
                         renderItem={({ item }) => (
                             <ModernLearningPathCard path={item} />
                         )}
                         contentContainerStyle={styles.listContainer}
+                        ListFooterComponent={
+                            selectedTab === 'enrolled' && enrolledPrograms.length > 0 ? (
+                                <View style={[styles.footerCtaCard, isDarkMode && styles.footerCtaCardDark]}>
+                                    <Text style={[styles.footerCtaTitle, isDarkMode && styles.footerCtaTitleDark]}>
+                                        Explorer d'autres concours
+                                    </Text>
+                                    <Text style={[styles.footerCtaText, isDarkMode && styles.footerCtaTextDark]}>
+                                        Découvrez les concours disponibles et ajoutez-en un nouveau à votre préparation.
+                                    </Text>
+                                    <Pressable
+                                        style={styles.footerCtaButton}
+                                        onPress={() => setSelectedTab('available')}
+                                    >
+                                        <Text style={styles.footerCtaButtonText}>Voir les concours disponibles</Text>
+                                        <MaterialCommunityIcons name="arrow-right" size={18} color="#FFFFFF" />
+                                    </Pressable>
+                                </View>
+                            ) : null
+                        }
                         refreshControl={
                             <RefreshControl
                                 refreshing={isLoading}
@@ -460,6 +610,86 @@ const styles = StyleSheet.create({
     searchContainerDark: {
         backgroundColor: theme.color.dark.background.secondary,
         borderBottomColor: theme.color.dark.border,
+    },
+    tabsContainer: {
+        flexDirection: 'row',
+        gap: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    tabsContainerDark: {
+        backgroundColor: theme.color.dark.background.secondary,
+        borderBottomColor: theme.color.dark.border,
+    },
+    tabButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderRadius: 12,
+        backgroundColor: '#F3F4F6',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    tabButtonDark: {
+        backgroundColor: theme.color.dark.background.primary,
+        borderColor: theme.color.dark.border,
+    },
+    tabButtonActive: {
+        backgroundColor: theme.color.primary[50],
+        borderColor: theme.color.primary[200],
+    },
+    tabButtonActiveDark: {
+        backgroundColor: 'rgba(20, 83, 45, 0.24)',
+        borderColor: '#22C55E',
+    },
+    tabButtonText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#374151',
+    },
+    tabButtonTextDark: {
+        color: '#CBD5E1',
+    },
+    tabButtonTextActive: {
+        color: theme.color.primary[700],
+    },
+    tabButtonTextActiveDark: {
+        color: '#DCFCE7',
+    },
+    tabCount: {
+        minWidth: 24,
+        height: 24,
+        borderRadius: 999,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 6,
+        backgroundColor: '#E5E7EB',
+    },
+    tabCountDark: {
+        backgroundColor: '#334155',
+    },
+    tabCountActive: {
+        backgroundColor: theme.color.primary[500],
+    },
+    tabCountText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#1F2937',
+    },
+    tabCountTextDark: {
+        color: '#E2E8F0',
+    },
+    tabCountTextActive: {
+        color: '#FFFFFF',
     },
     searchInputWrapper: {
         flexDirection: 'row',
@@ -526,6 +756,7 @@ const styles = StyleSheet.create({
     listContainer: {
         padding: 16,
         gap: 16,
+        paddingBottom: 28,
     },
     errorContainer: {
         flex: 1,
@@ -552,6 +783,54 @@ const styles = StyleSheet.create({
         fontFamily: theme.typography.fontFamily,
         fontSize: 16,
         fontWeight: '600',
+    },
+    footerCtaCard: {
+        marginTop: 8,
+        borderRadius: 16,
+        padding: 16,
+        backgroundColor: '#ECFDF5',
+        borderWidth: 1,
+        borderColor: '#A7F3D0',
+    },
+    footerCtaCardDark: {
+        backgroundColor: 'rgba(20, 83, 45, 0.24)',
+        borderColor: '#22C55E',
+    },
+    footerCtaTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#065F46',
+        marginBottom: 6,
+    },
+    footerCtaTitleDark: {
+        color: '#DCFCE7',
+    },
+    footerCtaText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        lineHeight: 20,
+        color: '#047857',
+        marginBottom: 14,
+    },
+    footerCtaTextDark: {
+        color: '#BBF7D0',
+    },
+    footerCtaButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderRadius: 10,
+        backgroundColor: theme.color.primary[500],
+    },
+    footerCtaButtonText: {
+        color: '#FFFFFF',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '700',
     },
 })
 
