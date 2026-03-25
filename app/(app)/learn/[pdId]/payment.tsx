@@ -353,8 +353,9 @@ const ProgramPaymentPage = () => {
     setErrorMessage(null);
 
     try {
+      const normalizedTotalInstallments = paymentData.isInstallment ? 2 : 1;
       let amount = paymentData.isInstallment
-        ? Math.ceil(programContext.programPrice / paymentData.totalInstallments)
+        ? Math.ceil(programContext.programPrice / normalizedTotalInstallments)
         : programContext.programPrice;
 
       if (paymentData.promoCodeDetails) {
@@ -370,7 +371,7 @@ const ProgramPaymentPage = () => {
         amount,
         paymentData.promoCodeDetails?.id,
         paymentData.isInstallment,
-        paymentData.isInstallment ? paymentData.totalInstallments : 1,
+        normalizedTotalInstallments,
         1
       );
 

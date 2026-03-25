@@ -41,6 +41,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
   isLoading,
   onPayment,
 }) => {
+  const INSTALLMENT_COUNT = 2;
   const [phoneNumber, setPhoneNumber] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [promoCodeStatus, setPromoCodeStatus] = useState<
@@ -49,7 +50,6 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
   const [promoCodeDetails, setPromoCodeDetails] = useState<PromoCode | null>(null);
   const [promoCodeError, setPromoCodeError] = useState<string | null>(null);
   const [isInstallment, setIsInstallment] = useState(false);
-  const [totalInstallments, setTotalInstallments] = useState(4);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Get current user ID once on mount
@@ -63,7 +63,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
 
   const displayAmount = () => {
     if (isInstallment) {
-      return Math.ceil(programPrice / totalInstallments);
+      return Math.ceil(programPrice / INSTALLMENT_COUNT);
     }
     return programPrice;
   };
@@ -124,7 +124,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
       promoCode,
       promoCodeDetails,
       isInstallment,
-      totalInstallments,
+      totalInstallments: isInstallment ? INSTALLMENT_COUNT : 1,
     });
   };
 
@@ -140,7 +140,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
           </ThemedText>
           <ThemedText style={styles.paymentAmount}>
             {displayAmount()} FCFA
-            {isInstallment && ` (Versement 1/${totalInstallments})`}
+            {isInstallment && ` (Versement 1/${INSTALLMENT_COUNT})`}
           </ThemedText>
         </View>
 
@@ -193,42 +193,11 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
                 Paiement échelonné
               </ThemedText>
               <ThemedText style={styles.paymentTypeDescription}>
-                Payez en {totalInstallments} versements de{" "}
-                {Math.ceil(programPrice / totalInstallments)} FCFA
+                Payez en {INSTALLMENT_COUNT} versements de{" "}
+                {Math.ceil(programPrice / INSTALLMENT_COUNT)} FCFA
               </ThemedText>
             </View>
           </TouchableOpacity>
-
-          {isInstallment && (
-            <View style={styles.installmentOptionsContainer}>
-              <ThemedText style={styles.installmentOptionsTitle}>
-                Nombre de versements
-              </ThemedText>
-              <View style={styles.installmentButtonsContainer}>
-                {[2, 4].map((num) => (
-                  <TouchableOpacity
-                    key={num}
-                    style={[
-                      styles.installmentButton,
-                      totalInstallments === num &&
-                        styles.installmentButtonSelected,
-                    ]}
-                    onPress={() => setTotalInstallments(num)}
-                  >
-                    <Text
-                      style={[
-                        styles.installmentButtonText,
-                        totalInstallments === num &&
-                          styles.installmentButtonTextSelected,
-                      ]}
-                    >
-                      {num}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
         </View>
 
         <View style={styles.inputContainer}>
@@ -419,44 +388,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     color: theme.color.gray[600],
-  },
-  installmentOptionsContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.color.gray[200],
-  },
-  installmentOptionsTitle: {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  installmentButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  installmentButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: theme.color.gray[200],
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  installmentButtonSelected: {
-    borderColor: theme.color.primary[500],
-    backgroundColor: "rgba(76, 175, 80, 0.1)",
-  },
-  installmentButtonText: {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.color.gray[600],
-  },
-  installmentButtonTextSelected: {
-    color: theme.color.primary[500],
   },
   inputContainer: {
     marginBottom: 16,

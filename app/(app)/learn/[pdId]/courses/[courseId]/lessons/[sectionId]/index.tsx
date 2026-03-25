@@ -227,27 +227,9 @@ const SectionDetail = () => {
       ? sections[currentIndex + 1]
       : null;
 
-  // Check if current section is locked (beyond first 2 for non-enrolled users)
-  const isCurrentSectionLocked = !isEnrolled && currentIndex >= 1;
-
-  // Check if next section is locked
-  const isNextSectionLocked =
-    !isEnrolled &&
-    nextSection &&
-    (sections?.findIndex((section) => section.id === nextSection.id) ?? -1) >=
-      1;
-
-  // Handle purchase flow
-  const handlePurchaseFlow = () => {
-    trigger(HapticType.SELECTION);
-    if (pdIdParam) {
-      router.navigateToShop(pdIdParam);
-    }
-  };
-
   // Preload next section data directly into SWR cache
   useEffect(() => {
-    if (nextSection && nextSection.id && !isNextSectionLocked) {
+    if (nextSection && nextSection.id) {
       // Prefetch next section data and store it in SWR cache
       const fetchAndCacheNextSection = async () => {
         try {
@@ -269,15 +251,9 @@ const SectionDetail = () => {
 
       fetchAndCacheNextSection();
     }
-  }, [nextSection, isNextSectionLocked]);
+  }, [nextSection]);
 
   async function handleNext() {
-    // Check if next section is locked
-    if (isNextSectionLocked) {
-      handlePurchaseFlow();
-      return;
-    }
-
     // Skip the scrolledToEnd check for web platform
     const shouldCheckScroll = Platform.OS !== "web";
 
@@ -482,58 +458,6 @@ const SectionDetail = () => {
     </View>
   );
 
-  // Locked Content Component
-  const LockedContent = () => (
-    <View
-      style={[styles.lockedContainer, isDark && styles.lockedContainerDark]}
-    >
-      <MaterialCommunityIcons
-        name="lock"
-        size={64}
-        color={isDark ? "#6EE7B7" : "#65B741"}
-      />
-      <ThemedText
-        style={[styles.lockedTitle, isDark && styles.lockedTitleDark]}
-      >
-        Contenu verrouillé
-      </ThemedText>
-      <ThemedText
-        style={[
-          styles.lockedDescription,
-          isDark && styles.lockedDescriptionDark,
-        ]}
-      >
-        Cette leçon fait partie du contenu premium. Inscrivez-vous au programme
-        pour accéder à toutes les leçons, quiz et exercices.
-      </ThemedText>
-      <Pressable
-        style={[styles.purchaseButton, isDark && styles.purchaseButtonDark]}
-        onPress={handlePurchaseFlow}
-      >
-        <MaterialCommunityIcons name="cart" size={20} color="#FFFFFF" />
-        <ThemedText style={styles.purchaseButtonText}>
-          S'inscrire au programme
-        </ThemedText>
-      </Pressable>
-      <Pressable
-        style={[
-          styles.backToCourseButton,
-          isDark && styles.backToCourseButtonDark,
-        ]}
-        onPress={() => router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}`)}
-      >
-        <ThemedText
-          style={[
-            styles.backToCourseButtonText,
-            isDark && styles.backToCourseButtonTextDark,
-          ]}
-        >
-          Retour au cours
-        </ThemedText>
-      </Pressable>
-    </View>
-  );
-
   // Add message listener for web platform
   useEffect(() => {
     if (Platform.OS === "web") {
@@ -600,29 +524,20 @@ const SectionDetail = () => {
             >
               {category?.name}
             </ThemedText>
-            {/* Enrollment badge */}
-            <View
-              style={[
-                styles.enrollmentBadge,
-                isEnrolled ? styles.enrolledBadge : styles.previewBadge,
-              ]}
-            >
-              <MaterialCommunityIcons
-                name={isEnrolled ? "check-circle" : "eye-outline"}
-                size={14}
-                color={isEnrolled ? "#10B981" : "#F59E0B"}
-              />
-              <ThemedText
-                style={[
-                  styles.enrollmentBadgeText,
-                  isEnrolled
-                    ? styles.enrolledBadgeText
-                    : styles.previewBadgeText,
-                ]}
-              >
-                {isEnrolled ? "Inscrit" : "Aperçu"}
-              </ThemedText>
-            </View>
+            {isEnrolled ? (
+              <View style={[styles.enrollmentBadge, styles.enrolledBadge]}>
+                <MaterialCommunityIcons
+                  name="check-circle"
+                  size={14}
+                  color="#10B981"
+                />
+                <ThemedText
+                  style={[styles.enrollmentBadgeText, styles.enrolledBadgeText]}
+                >
+                  Inscrit
+                </ThemedText>
+              </View>
+            ) : null}
           </View>
           <ThemedText
             style={[styles.courseInfo, isDark && styles.courseInfoDark]}
@@ -636,82 +551,78 @@ const SectionDetail = () => {
       </View>
 
       {/* Content Area */}
-      {isCurrentSectionLocked ? (
-        <LockedContent />
-      ) : (
-        <>
-          {/* Conditional rendering for web and mobile platforms */}
-          {!isWebViewLoaded && <LoadingIndicator />}
+      <>
+        {/* Conditional rendering for web and mobile platforms */}
+        {!isWebViewLoaded && <LoadingIndicator />}
 
-          {Platform.OS === "web" ? (
-            <View style={styles.webViewContainer}>
-              <iframe
-                src={`${webViewUrls?.course_url}/${sectionId}${
-                  isDark ? "?theme=dark" : "?theme=light"
-                }&device=web`}
-                style={{
-                  width:
-                    Dimensions.get("window").width >= 640 ? "100%" : "117%",
-                  left: Dimensions.get("window").width >= 640 ? 0 : "-8%",
-                  position:
-                    Dimensions.get("window").width >= 640
-                      ? "relative"
-                      : "absolute",
-                  height: "100%",
-                  border: "none",
-                  backgroundColor: isDark ? "#111827" : "#FFFFFF",
-                }}
-                onLoad={() => {
-                  setIsWebViewLoaded(true);
-                  setLoadingProgress(1);
-                }}
-              />
-            </View>
-          ) : (
-            <WebView
-              ref={webViewRef}
-              source={{
-                uri: `${webViewUrls?.course_url}/${sectionId}?theme=${
-                  isDark ? "dark" : "light"
-                }`,
-                headers: {
-                  Authorization: `Bearer ${session?.access_token}`,
-                  "color-scheme": isDark ? "dark" : "light",
-                },
+        {Platform.OS === "web" ? (
+          <View style={styles.webViewContainer}>
+            <iframe
+              src={`${webViewUrls?.course_url}/${sectionId}${
+                isDark ? "?theme=dark" : "?theme=light"
+              }&device=web`}
+              style={{
+                width:
+                  Dimensions.get("window").width >= 640 ? "100%" : "117%",
+                left: Dimensions.get("window").width >= 640 ? 0 : "-8%",
+                position:
+                  Dimensions.get("window").width >= 640
+                    ? "relative"
+                    : "absolute",
+                height: "100%",
+                border: "none",
+                backgroundColor: isDark ? "#111827" : "#FFFFFF",
               }}
-              style={[
-                styles.webView,
-                isDark && styles.webViewDark,
-                !isWebViewLoaded && styles.hiddenWebView,
-              ]}
-              originWhitelist={["*"]}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              cacheEnabled={true}
-              cacheMode="LOAD_CACHE_ELSE_NETWORK"
-              onShouldStartLoadWithRequest={() => true}
-              startInLoadingState={true}
-              onLoadProgress={({ nativeEvent }) => {
-                setLoadingProgress(nativeEvent.progress);
-              }}
-              onLoadEnd={() => {
+              onLoad={() => {
                 setIsWebViewLoaded(true);
-              }}
-              renderLoading={() => <View />} // Empty view since we handle loading UI ourselves
-              injectedJavaScript={darkModeScript}
-              onMessage={(event) => {
-                const data = JSON.parse(event.nativeEvent.data);
-                if (data.type === "contentLoaded") {
-                  setIsListening(true);
-                }
-                if (isListening && data.type === "scrolledToEnd") {
-                  setScrolledToEnd(true);
-                }
+                setLoadingProgress(1);
               }}
             />
-          )}
-        </>
-      )}
+          </View>
+        ) : (
+          <WebView
+            ref={webViewRef}
+            source={{
+              uri: `${webViewUrls?.course_url}/${sectionId}?theme=${
+                isDark ? "dark" : "light"
+              }`,
+              headers: {
+                Authorization: `Bearer ${session?.access_token}`,
+                "color-scheme": isDark ? "dark" : "light",
+              },
+            }}
+            style={[
+              styles.webView,
+              isDark && styles.webViewDark,
+              !isWebViewLoaded && styles.hiddenWebView,
+            ]}
+            originWhitelist={["*"]}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            cacheEnabled={true}
+            cacheMode="LOAD_CACHE_ELSE_NETWORK"
+            onShouldStartLoadWithRequest={() => true}
+            startInLoadingState={true}
+            onLoadProgress={({ nativeEvent }) => {
+              setLoadingProgress(nativeEvent.progress);
+            }}
+            onLoadEnd={() => {
+              setIsWebViewLoaded(true);
+            }}
+            renderLoading={() => <View />} // Empty view since we handle loading UI ourselves
+            injectedJavaScript={darkModeScript}
+            onMessage={(event) => {
+              const data = JSON.parse(event.nativeEvent.data);
+              if (data.type === "contentLoaded") {
+                setIsListening(true);
+              }
+              if (isListening && data.type === "scrolledToEnd") {
+                setScrolledToEnd(true);
+              }
+            }}
+          />
+        )}
+      </>
 
       <View
         style={[
@@ -763,42 +674,30 @@ const SectionDetail = () => {
             !scrolledToEnd &&
               progress?.progress !== 1 &&
               Platform.OS !== "web" &&
-              !isCurrentSectionLocked &&
               styles.disabledButton,
             !scrolledToEnd &&
               progress?.progress !== 1 &&
               Platform.OS !== "web" &&
-              !isCurrentSectionLocked &&
               isDark &&
               styles.disabledButtonDark,
-            isNextSectionLocked && styles.lockedNextButton,
-            isNextSectionLocked && isDark && styles.lockedNextButtonDark,
           ]}
           onPress={() => handleNext()}
           disabled={
             !scrolledToEnd &&
             progress?.progress !== 1 &&
-            Platform.OS !== "web" &&
-            !isCurrentSectionLocked &&
-            !isNextSectionLocked
+            Platform.OS !== "web"
           }
         >
           <MaterialCommunityIcons
-            name={
-              isNextSectionLocked
-                ? "lock"
-                : nextSection
-                ? "arrow-right"
-                : "check"
-            }
+            name={nextSection ? "arrow-right" : "check"}
             size={24}
             color="#FFFFFF"
           />
         </Pressable>
       </View>
 
-      {/* Preload next section - only on mobile and if not locked */}
-      {Platform.OS !== "web" && nextSection && !isNextSectionLocked && (
+      {/* Preload next section - only on mobile */}
+      {Platform.OS !== "web" && nextSection && (
         <PreloadWebView
           url={`${webViewUrls?.course_url}/${nextSection.id}?theme=${
             isDark ? "dark" : "light"
@@ -847,7 +746,6 @@ const SectionDetail = () => {
                   (sp) => sp.sectionid == item.id
                 );
                 const isCompleted = sectionProgress?.progress === 1;
-                const isSectionLocked = !isEnrolled && index >= 1;
 
                 return (
                   <TouchableOpacity
@@ -860,21 +758,14 @@ const SectionDetail = () => {
                         styles.sectionItemActiveDark,
                       isCompleted && styles.sectionItemCompleted,
                       isCompleted && isDark && styles.sectionItemCompletedDark,
-                      isSectionLocked && styles.sectionItemLocked,
-                      isSectionLocked && isDark && styles.sectionItemLockedDark,
                     ]}
                     onPress={() => {
-                      if (isSectionLocked) {
-                        handlePurchaseFlow();
-                        return;
-                      }
                       trigger(HapticType.LIGHT);
                       setShowSectionList(false);
                       router.push(
                         `/(app)/learn/${pdIdParam}/courses/${courseIdParam}/lessons/${item.id}`
                       );
                     }}
-                    disabled={isSectionLocked}
                   >
                     <View
                       style={[
@@ -882,26 +773,17 @@ const SectionDetail = () => {
                         isDark && styles.sectionNumberDark,
                         isCurrentSection && styles.sectionNumberActive,
                         isCompleted && styles.sectionNumberCompleted,
-                        isSectionLocked && styles.sectionNumberLocked,
                       ]}
                     >
-                      {isSectionLocked ? (
-                        <MaterialCommunityIcons
-                          name="lock"
-                          size={12}
-                          color="#F59E0B"
-                        />
-                      ) : (
-                        <Text
-                          style={[
-                            styles.sectionNumberText,
-                            (isCurrentSection || isCompleted) &&
-                              styles.sectionNumberTextActive,
-                          ]}
-                        >
-                          {index + 1}
-                        </Text>
-                      )}
+                      <Text
+                        style={[
+                          styles.sectionNumberText,
+                          (isCurrentSection || isCompleted) &&
+                            styles.sectionNumberTextActive,
+                        ]}
+                      >
+                        {index + 1}
+                      </Text>
                     </View>
                     <ThemedText
                       style={[
@@ -911,25 +793,15 @@ const SectionDetail = () => {
                         isCurrentSection &&
                           isDark &&
                           styles.sectionNameActiveDark,
-                        isSectionLocked && styles.sectionNameLocked,
-                        isSectionLocked &&
-                          isDark &&
-                          styles.sectionNameLockedDark,
                       ]}
                     >
                       {item.name}
                     </ThemedText>
-                    {isCompleted && !isSectionLocked ? (
+                    {isCompleted ? (
                       <MaterialCommunityIcons
                         name="check-circle"
                         size={20}
                         color={isDark ? "#10B981" : "#059669"}
-                      />
-                    ) : isSectionLocked ? (
-                      <MaterialCommunityIcons
-                        name="lock"
-                        size={16}
-                        color="#F59E0B"
                       />
                     ) : null}
                   </TouchableOpacity>

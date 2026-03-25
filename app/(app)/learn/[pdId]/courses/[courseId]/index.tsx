@@ -337,10 +337,7 @@ const CourseDetail = () => {
                     );
                 }
 
-                // En mode aperçu, afficher uniquement la première section
-                const visibleSections = isPreviewMode ? sections.slice(0, 1) : sections;
-
-                const sectionItems = visibleSections.map((section, index) => {
+                const sectionItems = sections.map((section, index) => {
                     const progress = sectionsProgress?.find(
                         (sp) => sp.sectionid == Number(section.id)
                     );
@@ -351,10 +348,6 @@ const CourseDetail = () => {
                             key={section.id}
                             style={[styles.contentItem, isDark && styles.contentItemDark]}
                             onPress={() => {
-                                if (isPreviewMode && index >= 1) {
-                                    handleLockedContentAccess();
-                                    return;
-                                }
                                 trigger(HapticType.SELECTION);
                                 router.push(
                                     `/(app)/learn/${pdIdParam}/courses/${courseIdParam}/lessons/${section.id}`
@@ -407,39 +400,6 @@ const CourseDetail = () => {
                         </Pressable>
                     );
                 });
-
-                // Bannière d'achat si mode aperçu et plus d'une section
-                if (isPreviewMode && sections.length > 1) {
-                    return (
-                        <>
-                            {summaryCard}
-                            {sectionItems}
-                            <View style={[styles.previewBanner, isDark && styles.previewBannerDark]}>
-                                <MaterialCommunityIcons
-                                    name="lock"
-                                    size={24}
-                                    color={isDark ? "#6EE7B7" : "#65B741"}
-                                />
-                                <View style={styles.previewBannerTextContainer}>
-                                    <ThemedText style={[styles.previewBannerTitle, isDark && styles.previewBannerTitleDark]}>
-                                        Accédez à {sections.length - 1} sections supplémentaires
-                                    </ThemedText>
-                                    <ThemedText style={styles.previewBannerDescription}>
-                                        Achetez ce cours pour débloquer tout le contenu
-                                    </ThemedText>
-                                </View>
-                                <Pressable
-                                    style={styles.previewBannerButton}
-                                    onPress={handlePurchaseFlow}
-                                >
-                                    <ThemedText style={styles.previewBannerButtonText}>
-                                        Acheter
-                                    </ThemedText>
-                                </Pressable>
-                            </View>
-                        </>
-                    );
-                }
 
                 return (
                     <>
