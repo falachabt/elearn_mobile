@@ -107,7 +107,7 @@ export const VideoPlaylist: React.FC<VideoPlaylistProps> = ({
 const styles = StyleSheet.create({
     playlist: {
         flex: 1,
-        marginBottom: 70,
+        minHeight: 0,
     },
     playlistLight: {
         backgroundColor: theme.color.light.background.primary,
@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
     },
     playlistContent: {
         paddingVertical: 8,
+        paddingBottom: 96,
     },
     playlistItem: {
         flexDirection: 'row',

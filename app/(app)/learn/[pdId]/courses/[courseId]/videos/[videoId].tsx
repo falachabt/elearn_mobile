@@ -1,8 +1,9 @@
 ﻿import {useCallback, useEffect, useState} from "react";
-import {ActivityIndicator, Pressable, useColorScheme, View, StyleSheet} from "react-native";
-import { useLocalSearchParams, usePathname } from 'expo-router';
+import {ActivityIndicator, Platform, Pressable, useColorScheme, useWindowDimensions, View, StyleSheet} from "react-native";
+import { useRef } from "react";
+import { useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { createVideoPlayer, VideoView, type VideoSource } from 'expo-video';
 
 import { supabase } from '@/lib/supabase';
 import { ThemedText } from '@/components/ThemedText';
@@ -61,16 +62,19 @@ const LockedContent = ({
 
 const VideoPlayerScreen = () => {
     const { videoId, courseId, pdId } = useLocalSearchParams();
+    const videoIdParam = Array.isArray(videoId) ? videoId[0] : videoId;
+    const courseIdParam = Array.isArray(courseId) ? courseId[0] : courseId;
+    const pdIdParam = Array.isArray(pdId) ? pdId[0] : pdId;
     const router = useCustomRouter();
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
+    const { width, height } = useWindowDimensions();
     const [isLoading, setIsLoading] = useState(true);
     const [videos, setVideos] = useState<CourseVideos[]>([]);
     const [currentVideo, setCurrentVideo] = useState<CourseVideos | null>(null);
     const [currentVideoIndex, setCurrentVideoIndex] = useState<number>(-1);
     const [error, setError] = useState<string | null>(null);
     const [isVideoDone, setIsVideoDone] = useState(false);
-    const pathname = usePathname();
     const { playClick } = useSound();
     const { trigger } = useHaptics();
     const [isEnrolled, setIsEnrolled] = useState(false);
@@ -78,77 +82,35 @@ const VideoPlayerScreen = () => {
 
     // Check if user is enrolled in this program
     useEffect(() => {
-        if (!pdId) return;
+        if (!pdIdParam) return;
         const checkEnrollment = async () => {
-            const enrolled = await isLearningPathEnrolled(String(pdId));
+            const enrolled = await isLearningPathEnrolled(String(pdIdParam));
             setIsEnrolled(enrolled);
         };
         checkEnrollment();
-    }, [pdId, isLearningPathEnrolled]);
+    }, [pdIdParam, isLearningPathEnrolled]);
 
     // Handle purchase flow
     const handlePurchaseFlow = () => {
         trigger(HapticType.SELECTION);
-        router.navigateToShop(String(pdId));
+        router.navigateToShop(String(pdIdParam));
     };
 
-    const videoSource = currentVideo ? `https://stream.mux.com/${currentVideo.mux_playback_id}.m3u8` : '';
+    const playerRef = useRef<ReturnType<typeof createVideoPlayer> | null>(null);
+    if (!playerRef.current) {
+        playerRef.current = createVideoPlayer(null);
+        playerRef.current.loop = false;
+    }
 
-    const player = useVideoPlayer(videoSource, player => {
-        player.loop = false; // Changed from true to false to enable playlist behavior
-        player.play();
-
-        // Track video start event
-        if (currentVideo) {
-            posthogService.trackVideoPlayed(
-                String(currentVideo.id),
-                String(courseId)
-            );
-        }
-
-        // Handle video progress tracking
-        let lastProgressTracked = 0;
-        const progressInterval = setInterval(() => {
-            if (player && player.currentTime != null && player.duration) {
-                const progressPercent = Math.floor((player.currentTime / player.duration) * 100);
-
-                // Track progress at 25%, 50%, and 75%
-                if (progressPercent >= 25 && lastProgressTracked < 25) {
-                    lastProgressTracked = 25;
-                    trackVideoProgress(25);
-                } else if (progressPercent >= 50 && lastProgressTracked < 50) {
-                    lastProgressTracked = 50;
-                    trackVideoProgress(50);
-                } else if (progressPercent >= 75 && lastProgressTracked < 75) {
-                    lastProgressTracked = 75;
-                    trackVideoProgress(75);
-                }
-            }
-        }, 1000);
-
-        // Handle video ended event to play next video
-        const endedListener = () => {
-            setIsVideoDone(true);
-
-            // Track video completion event
-            if (currentVideo && player.duration) {
-                posthogService.trackVideoCompleted(
-                    String(currentVideo.id),
-                    Math.floor(player.duration)
-                );
-            }
-        };
-
-        player.addListener('playToEnd', endedListener);
-
-        return () => {
-            if (pathname === `/(app)/learn/${pdId}/courses/${courseId}/videos/${videoId}`) {
-                player.pause();
-            }
-            player.removeListener('playToEnd', endedListener);
-            clearInterval(progressInterval);
-        };
-    });
+    const player = playerRef.current;
+    const videoSource: VideoSource = !currentVideo
+        ? null
+        : Platform.OS === 'web'
+            ? currentVideo.url
+            : currentVideo.mux_playback_id
+                ? `https://stream.mux.com/${currentVideo.mux_playback_id}.m3u8`
+                : currentVideo.url;
+    const videoHeight = Math.min(width * (9 / 16), height * (Platform.OS === 'web' ? 0.42 : 0.36));
 
     // Helper function to track video progress
     const trackVideoProgress = (progressPercent: number) => {
@@ -156,12 +118,98 @@ const VideoPlayerScreen = () => {
             trackEvent(Events.VIDEO_PROGRESS, {
                 video_id: currentVideo.id,
                 video_title: currentVideo.title ?? '',
-                course_id: String(courseId as string),
-                learning_path_id: String(pdId as string),
+                course_id: String(courseIdParam ?? ''),
+                learning_path_id: String(pdIdParam ?? ''),
                 progress_percent: progressPercent
             });
         }
     };
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadVideo = async () => {
+            try {
+                player.pause();
+                await player.replaceAsync(videoSource);
+
+                if (!isMounted || !currentVideo) {
+                    return;
+                }
+
+                posthogService.trackVideoPlayed(
+                    String(currentVideo.id),
+                    String(courseIdParam)
+                );
+
+                player.play();
+            } catch (err) {
+                if (isMounted) {
+                    logger.error('Error loading video player source:', err);
+                    setError('Error loading video');
+                }
+            }
+        };
+
+        void loadVideo();
+
+        return () => {
+            isMounted = false;
+            player.pause();
+        };
+    }, [player, videoSource, currentVideo, courseIdParam]);
+
+    useEffect(() => {
+        if (!currentVideo) {
+            return;
+        }
+
+        let lastProgressTracked = 0;
+        player.timeUpdateEventInterval = 1;
+
+        const timeUpdateSubscription = player.addListener('timeUpdate', ({ currentTime }) => {
+            if (!player.duration) {
+                return;
+            }
+
+            const progressPercent = Math.floor((currentTime / player.duration) * 100);
+
+            if (progressPercent >= 25 && lastProgressTracked < 25) {
+                lastProgressTracked = 25;
+                trackVideoProgress(25);
+            } else if (progressPercent >= 50 && lastProgressTracked < 50) {
+                lastProgressTracked = 50;
+                trackVideoProgress(50);
+            } else if (progressPercent >= 75 && lastProgressTracked < 75) {
+                lastProgressTracked = 75;
+                trackVideoProgress(75);
+            }
+        });
+
+        const endedSubscription = player.addListener('playToEnd', () => {
+            setIsVideoDone(true);
+
+            if (player.duration) {
+                posthogService.trackVideoCompleted(
+                    String(currentVideo.id),
+                    Math.floor(player.duration)
+                );
+            }
+        });
+
+        return () => {
+            timeUpdateSubscription.remove();
+            endedSubscription.remove();
+            player.timeUpdateEventInterval = 0;
+        };
+    }, [player, currentVideo, courseIdParam, pdIdParam]);
+
+    useEffect(() => {
+        return () => {
+            player.pause();
+            player.release();
+        };
+    }, [player]);
 
     useEffect(() => {
         // Auto-play next video when current one finishes
@@ -173,19 +221,33 @@ const VideoPlayerScreen = () => {
     useEffect(() => {
         const fetchVideos = async () => {
             try {
+                setIsLoading(true);
+                setError(null);
+                setCurrentVideo(null);
+                setCurrentVideoIndex(-1);
+                setIsVideoDone(false);
+
+                if (!courseIdParam || !videoIdParam) {
+                    setError('Video parameters are missing');
+                    return;
+                }
+
                 const { data, error } = await supabase
                     .from('course_videos')
                     .select('*')
-                    .eq('course_id', Number(courseId as string))
+                    .eq('course_id', Number(courseIdParam))
                     .order('order_index', { ascending: true });
 
                 if (error) throw error;
-                setVideos(data as unknown as CourseVideos[]);
+                const videoList = (data || []) as unknown as CourseVideos[];
+                setVideos(videoList);
 
-                const currentIndex = data.findIndex(v => v.id === videoId);
+                const currentIndex = videoList.findIndex(v => v.id === videoIdParam);
                 if (currentIndex !== -1) {
-                    setCurrentVideo(data[currentIndex] as unknown as CourseVideos);
+                    setCurrentVideo(videoList[currentIndex]);
                     setCurrentVideoIndex(currentIndex);
+                } else {
+                    setError('Video not found');
                 }
             } catch (err) {
                 setError('Error loading videos');
@@ -196,14 +258,7 @@ const VideoPlayerScreen = () => {
         };
 
         fetchVideos();
-
-        return () => {
-            if (player && player.pause && pathname === `/(app)/learn/${pdId}/courses/${courseId}/videos/${videoId}`) {
-                player.pause();
-                player.release();
-            }
-        };
-    }, [courseId, videoId]);
+    }, [courseIdParam, videoIdParam]);
 
 
     const playNextVideo = useCallback(() => {
@@ -214,9 +269,9 @@ const VideoPlayerScreen = () => {
                 player.pause();
             }
             setIsVideoDone(false);
-            router.push(`/(app)/learn/${pdId}/courses/${courseId}/videos/${nextVideo.id}`);
+            router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}/videos/${nextVideo.id}`);
         }
-    }, [currentVideoIndex, videos, player, pdId, courseId]);
+    }, [currentVideoIndex, videos, player, pdIdParam, courseIdParam]);
 
     const handleVideoSelect = async (video: CourseVideos) => {
         playClick();
@@ -224,7 +279,7 @@ const VideoPlayerScreen = () => {
             player.pause();
         }
         setIsVideoDone(false);
-        router.push(`/(app)/learn/${pdId}/courses/${courseId}/videos/${video.id}`);
+        router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}/videos/${video.id}`);
     };
 
     if (isLoading) {
@@ -259,7 +314,7 @@ const VideoPlayerScreen = () => {
             <LockedContent 
                 isDarkMode={isDarkMode} 
                 onPurchase={handlePurchaseFlow}
-                onBack={() => router.push(`/(app)/learn/${pdId}/courses/${courseId}`)}
+                onBack={() => router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}`)}
             />
         );
     }
@@ -274,7 +329,7 @@ const VideoPlayerScreen = () => {
                         if (player) {
                             player.pause();
                         }
-                        router.push(`/(app)/learn/${pdId}/courses/${courseId}`);
+                        router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}`);
                     }}
                 >
                     <MaterialCommunityIcons name="arrow-left" size={24} color={isDarkMode ? theme.color.dark.text.primary : theme.color.light.text.primary} />
@@ -287,11 +342,11 @@ const VideoPlayerScreen = () => {
             </View>
 
             <View style={styles.videoWrapper}>
-                <View style={styles.videoContainer}>
+                <View style={[styles.videoContainer, { height: videoHeight }]}>
                     <VideoView
                         style={styles.video}
                         player={player}
-                        allowsFullscreen
+                        fullscreenOptions={{ enable: true }}
                         allowsPictureInPicture
                     />
                 </View>
@@ -316,11 +371,13 @@ const VideoPlayerScreen = () => {
                 </View>
             </View>
 
-            <VideoPlaylist
-                videos={videos}
-                currentVideo={currentVideo}
-                onVideoSelect={handleVideoSelect}
-            />
+            <View style={styles.playlistContainer}>
+                <VideoPlaylist
+                    videos={videos}
+                    currentVideo={currentVideo}
+                    onVideoSelect={handleVideoSelect}
+                />
+            </View>
         </View>
     );
 };
@@ -328,6 +385,7 @@ const VideoPlayerScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        minHeight: 0,
         backgroundColor: theme.color.light.background.primary,
     },
     containerDark: {
@@ -392,11 +450,11 @@ fontSize: 18,
     },
     videoWrapper: {
         width: '100%',
+        flexShrink: 0,
         backgroundColor: '#000000',
     },
     videoContainer: {
         width: '100%',
-        aspectRatio: 16/9,
         backgroundColor: '#000000',
         position: 'relative',
     },
@@ -424,6 +482,7 @@ fontSize: 18,
     },
     videoInfo: {
         padding: 16,
+        flexShrink: 0,
         backgroundColor: theme.color.light.background.secondary,
         borderBottomWidth: 1,
         borderBottomColor: theme.color.light.border,
@@ -451,6 +510,10 @@ fontSize: 14,
         fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         opacity: 0.6,
+    },
+    playlistContainer: {
+        flex: 1,
+        minHeight: 0,
     },
     lockedContainer: {
         flex: 1,

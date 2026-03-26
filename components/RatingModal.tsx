@@ -1,8 +1,9 @@
 ﻿
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
@@ -11,11 +12,62 @@ import { logger } from '@/utils/logger';
 import {theme} from "@/constants/theme";
 import type { Json } from '@/types/supabase';
 
+const RATING_PROMPT_COOLDOWN_DAYS = 14;
+const RATING_PROMPT_MAX_DISMISSALS = 3;
+
+type RatingPromptState = {
+  dismissCount?: number;
+  lastShownAt?: string;
+  rated?: boolean;
+};
+
 const RatingModal = () => {
-  const [modalVisible, setModalVisible] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
   const { user, mutateUser } = useAuth();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
+
+  useEffect(() => {
+    const evaluateVisibility = async () => {
+      if (Platform.OS === 'web' || !user || user.metadata?.hasRated) {
+        setModalVisible(false);
+        return;
+      }
+
+      try {
+        const storageKey = `rating_modal_state:${user.id}`;
+        const rawState = await AsyncStorage.getItem(storageKey);
+        const promptState: RatingPromptState = rawState ? JSON.parse(rawState) : {};
+        const dismissCount = promptState.dismissCount ?? 0;
+        const lastShownAt = promptState.lastShownAt ? new Date(promptState.lastShownAt) : null;
+        const cooldownMs = RATING_PROMPT_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+        const isCoolingDown =
+          lastShownAt instanceof Date &&
+          !Number.isNaN(lastShownAt.getTime()) &&
+          Date.now() - lastShownAt.getTime() < cooldownMs;
+
+        if (promptState.rated || dismissCount >= RATING_PROMPT_MAX_DISMISSALS || isCoolingDown) {
+          setModalVisible(false);
+          return;
+        }
+
+        await AsyncStorage.setItem(
+          storageKey,
+          JSON.stringify({
+            ...promptState,
+            lastShownAt: new Date().toISOString(),
+          } satisfies RatingPromptState)
+        );
+
+        setModalVisible(true);
+      } catch (error) {
+        logger.error('Error reading rating modal state:', error);
+        setModalVisible(false);
+      }
+    };
+
+    evaluateVisibility();
+  }, [user]);
 
   const handleRateNow = async () => {
     if (user) {
@@ -29,6 +81,19 @@ const RatingModal = () => {
       } else {
         mutateUser();
       }
+
+      try {
+        await AsyncStorage.setItem(
+          `rating_modal_state:${user.id}`,
+          JSON.stringify({
+            rated: true,
+            dismissCount: RATING_PROMPT_MAX_DISMISSALS,
+            lastShownAt: new Date().toISOString(),
+          } satisfies RatingPromptState)
+        );
+      } catch (storageError) {
+        logger.error('Error persisting rating modal state:', storageError);
+      }
     }
 
     const storeUrl = Platform.OS === 'ios'
@@ -40,7 +105,26 @@ const RatingModal = () => {
     setModalVisible(false);
   };
 
-  const handleRateLater = () => {
+  const handleRateLater = async () => {
+    if (user) {
+      try {
+        const storageKey = `rating_modal_state:${user.id}`;
+        const rawState = await AsyncStorage.getItem(storageKey);
+        const promptState: RatingPromptState = rawState ? JSON.parse(rawState) : {};
+
+        await AsyncStorage.setItem(
+          storageKey,
+          JSON.stringify({
+            ...promptState,
+            dismissCount: (promptState.dismissCount ?? 0) + 1,
+            lastShownAt: new Date().toISOString(),
+          } satisfies RatingPromptState)
+        );
+      } catch (error) {
+        logger.error('Error updating rating modal state:', error);
+      }
+    }
+
     setModalVisible(false);
   };
 
