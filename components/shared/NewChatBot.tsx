@@ -16,99 +16,44 @@ import {
     Animated,
     StatusBar,
     BackHandler,
+    Alert,
+    Image,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePathname } from 'expo-router';
 import { useSWRConfig } from 'swr';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as DocumentPicker from 'expo-document-picker';
 import Markdown from 'react-native-markdown-display';
 
 import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 import { ThemedText } from '@/components/ThemedText';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
-import run, { GENERIC_GEMINI_ERROR_MESSAGE } from '@/config/gemini';
+import run, { GENERIC_GEMINI_ERROR_MESSAGE, type GeminiRequestPart } from '@/config/gemini';
 import { Events, trackEvent } from '@/utils/analytics';
-
-
-
-// Define interfaces for context elements
-export interface ContextElement {
-    id: string;
-    type: 'program' | 'course' | 'lesson' | 'exercise' | 'quiz' | 'archive' | 'video';
-    title: string;
-    data: ContextElementData | null;
-}
-
-interface ContextElementData {
-    title?: string | null;
-    name?: string | null;
-    description?: string | null;
-    course_count?: number | null;
-    course_learningpath?: ProgramCourseSummary[];
-    concours_learningpaths?: {
-        concour?: {
-            name?: string | null;
-            school?: {
-                name?: string | null;
-            } | null;
-        } | null;
-    } | null;
-    level?: string | null;
-    duration?: number | string | null;
-    category?: {
-        name?: string | null;
-    } | null;
-    goals?: string[] | string | null;
-    courses_content?: LessonSummary[];
-    prerequisites?: string | null;
-    quiz_count?: number | null;
-    exercise_count?: number | null;
-    order?: number | null;
-    courses?: {
-        name?: string | null;
-    } | null;
-    content?: string | null;
-    has_quiz?: boolean | null;
-    has_exercises?: boolean | null;
-    keywords?: string[] | null;
-    resources?: ResourceSummary[] | null;
-    course?: {
-        name?: string | null;
-    } | null;
-    lesson?: {
-        name?: string | null;
-    } | null;
-    instructions?: string | null;
-    difficulty?: string | null;
-    points?: number | null;
-    tags?: string[] | null;
-    hints?: Array<HintSummary | string> | null;
-    solution?: unknown;
-    quiz_questions?: QuizQuestionSummary[] | null;
-    passing_score?: number | null;
-    time_limit?: number | null;
-    session?: string | null;
-    file_type?: string | null;
-    year?: number | string | null;
-    subject?: string | null;
-    school?: string | null;
-    concours?: string | null;
-    author?: string | null;
-    size?: number | null;
-    download_count?: number | null;
-    transcript?: string | null;
-    view_count?: number | null;
-    quality?: string | null;
-    chapters?: VideoChapterSummary[] | null;
-    related_resources?: ResourceSummary[] | null;
-}
+import {
+    type ContextElement,
+    getContextElementIconName,
+    getSuggestedContextElementsFromCache,
+    rehydrateContextElementsFromIds,
+} from '@/utils/chatContext';
 
 interface Message {
     id: string;
     text: string;
     isUser: boolean;
     timestamp: Date;
+}
+
+interface UploadAttachment {
+    id: string;
+    uri: string;
+    name: string;
+    mimeType: string;
+    size: number | null;
+    kind: 'image' | 'pdf';
 }
 
 interface ChatSession {
@@ -155,18 +100,35 @@ interface VideoChapterSummary {
     start_time?: number | null;
 }
 
-const CONTEXT_ELEMENT_TYPES: ContextElement['type'][] = [
-    'program',
-    'course',
-    'lesson',
-    'exercise',
-    'quiz',
-    'archive',
-    'video',
-];
+const MAX_CONTEXT_PDF_BYTES = 50 * 1024 * 1024;
+const MAX_UPLOAD_ATTACHMENT_COUNT = 3;
+const MAX_UPLOAD_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_UPLOAD_PDF_BYTES = 50 * 1024 * 1024;
+const BASE64_CHUNK_SIZE = 0x8000;
 
-const isContextElementType = (value: string): value is ContextElement['type'] =>
-    CONTEXT_ELEMENT_TYPES.includes(value as ContextElement['type']);
+const formatAttachmentSize = (size: number | null) => {
+    if (!size || Number.isNaN(size)) {
+        return '';
+    }
+
+    if (size >= 1024 * 1024) {
+        return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    return `${Math.max(1, Math.round(size / 1024))} KB`;
+};
+
+const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+
+    for (let index = 0; index < bytes.length; index += BASE64_CHUNK_SIZE) {
+        const chunk = bytes.subarray(index, index + BASE64_CHUNK_SIZE);
+        binary += String.fromCharCode(...chunk);
+    }
+
+    return btoa(binary);
+};
 
 const NewChatBot: React.FC<ChatBoxProps> = ({
                                                 visible,
@@ -184,6 +146,7 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
     const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
     const [showChatHistory, setShowChatHistory] = useState(false);
     const [showContextDrawer, setShowContextDrawer] = useState(false);
+    const [selectedAttachments, setSelectedAttachments] = useState<UploadAttachment[]>([]);
 
     const { trigger } = useHaptics();
     const scrollViewRef = useRef<ScrollView>(null);
@@ -384,6 +347,7 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
         if (!visible) {
             setShowContextDrawer(false);
             setShowChatHistory(false);
+            setSelectedAttachments([]);
         }
     }, [visible]);
 
@@ -413,172 +377,15 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
 
     // Effect to update context elements when initialContextElements changes
     useEffect(() => {
-        if (initialContextElements && initialContextElements.length > 0) {
-            setContextElements(initialContextElements);
-        }
+        setContextElements(initialContextElements || []);
     }, [initialContextElements]);
 
     // Generate suggested context elements based on current route and SWR cache
     useEffect(() => {
         if (!visible) return;
-
-        const generateSuggestedElementsFromCache = () => {
-            try {
-                const suggestions: ContextElement[] = [];
-                const segments = pathname.split('/').filter(Boolean);
-
-                // Get indexes for different route segments
-                const pdIndex = segments.findIndex(s => s === 'learn') + 1;
-                const courseIndex = segments.findIndex(s => s === 'courses') + 1;
-                const lessonIndex = segments.findIndex(s => s === 'lessons') + 1;
-                const exerciseIndex = segments.findIndex(s => s === 'exercices') + 1;
-                const quizIndex = segments.findIndex(s => s === 'quizzes') + 1;
-                const archiveIndex = segments.findIndex(s => s === 'anales') + 1;
-                const videoIndex = segments.findIndex(s => s === 'videos') + 1;
-
-                // Get IDs from route segments
-                const pdId = pdIndex >= 0 && pdIndex < segments.length ? segments[pdIndex] : null;
-                const courseId = courseIndex >= 0 && courseIndex < segments.length ? segments[courseIndex] : null;
-                const lessonId = lessonIndex >= 0 && lessonIndex < segments.length ? segments[lessonIndex] : null;
-                const exerciseId = exerciseIndex >= 0 && exerciseIndex < segments.length ? segments[exerciseIndex] : null;
-                const quizId = quizIndex >= 0 && quizIndex < segments.length ? segments[quizIndex] : null;
-                const archiveId = archiveIndex >= 0 && archiveIndex < segments.length ? segments[archiveIndex] : null;
-                const videoId = videoIndex >= 0 && videoIndex < segments.length ? segments[videoIndex] : null;
-
-                // Check for program data in SWR cache
-                if (pdId) {
-                    const programKey = `program-index-${pdId}`;
-                    const programData = cache.get(programKey)?.data;
-
-                    if (programData) {
-                        suggestions.push({
-                            id: `program-${pdId}`,
-                            type: 'program',
-                            title: `Programme: ${programData?.title || 'Programme actuel'}`,
-                            data: programData
-                        });
-                    }
-
-                    // Check for courses list in SWR cache
-                    const coursesKey = `program-courses-${pdId}`;
-                    const coursesData = cache.get(coursesKey)?.data;
-
-                    if (coursesData && Array.isArray(coursesData)) {
-                        // Don't add all courses as suggestions, but note the availability
-                        if (coursesData.length > 0 && !courseId) {
-                            suggestions.push({
-                                id: `courses-${pdId}`,
-                                type: 'course',
-                                title: `Tous les cours du programme (${coursesData.length})`,
-                                data: null
-                            });
-                        }
-                    }
-                }
-
-                // Check for course data in SWR cache
-                if (courseId) {
-                    const courseKey = `course-${courseId}`;
-                    const courseData = cache.get(courseKey)?.data;
-
-                    if (courseData) {
-                        suggestions.push({
-                            id: `course-${courseId}`,
-                            type: 'course',
-                            title: `Cours: ${courseData?.name || 'Cours actuel'}`,
-                            data: courseData
-                        });
-                    }
-                }
-
-                // Check for lesson data in SWR cache
-                if (lessonId) {
-                    const contentKey = `content-${lessonId}`;
-                    const lessonData = cache.get(contentKey)?.data;
-
-                    if (lessonData) {
-                        suggestions.push({
-                            id: `lesson-${lessonId}`,
-                            type: 'lesson',
-                            title: `Leçon: ${lessonData?.name || 'Leçon actuelle'}`,
-                            data: lessonData
-                        });
-                    }
-                }
-
-                // Check for exercise data in SWR cache
-                if (exerciseId) {
-                    const exerciseKey = `exercise-${exerciseId}`;
-                    const exerciseData = cache.get(exerciseKey)?.data;
-
-                    if (exerciseData) {
-                        suggestions.push({
-                            id: `exercise-${exerciseId}`,
-                            type: 'exercise',
-                            title: `Exercice: ${exerciseData?.title || 'Exercice actuel'}`,
-                            data: exerciseData
-                        });
-                    }
-                }
-
-                // Check for quiz data in SWR cache
-                if (quizId) {
-                    const quizKey = `quiz-${quizId}`;
-                    const quizData = cache.get(quizKey)?.data;
-
-                    if (quizData) {
-                        suggestions.push({
-                            id: `quiz-${quizId}`,
-                            type: 'quiz',
-                            title: `Quiz: ${quizData?.name || 'Quiz actuel'}`,
-                            data: quizData
-                        });
-                    }
-                }
-
-                // Check for archive data in SWR cache
-                if (archiveId) {
-                    const archiveKey = `archives/${archiveId}`;
-                    const archiveData = cache.get(archiveKey)?.data;
-
-                    if (archiveData) {
-                        suggestions.push({
-                            id: `archive-${archiveId}`,
-                            type: 'archive',
-                            title: `Archive: ${archiveData?.name || 'Archive actuelle'}`,
-                            data: archiveData
-                        });
-                    }
-                }
-
-                // Check for video data in SWR cache
-                if (videoId) {
-                    const videoKey = `video-${videoId}`;
-                    const videoData = cache.get(videoKey)?.data;
-
-                    if (videoData) {
-                        suggestions.push({
-                            id: `video-${videoId}`,
-                            type: 'video',
-                            title: `Vidéo: ${videoData?.title || 'Vidéo actuelle'}`,
-                            data: videoData
-                        });
-                    }
-                }
-
-                // Filter out any suggestions that are already in the context
-                const filteredSuggestions = suggestions.filter(
-                    (suggestion) => !contextElements.some((element) => element.id === suggestion.id)
-                );
-
-                setSuggestedElements(filteredSuggestions);
-            } catch (error) {
-                logger.error('Error generating suggestions from cache:', error);
-                setSuggestedElements([]);
-            }
-        };
-
-        generateSuggestedElementsFromCache();
+        setSuggestedElements(
+            getSuggestedContextElementsFromCache(pathname, cache, contextElements)
+        );
     }, [pathname, contextElements, cache, visible]);
 
     // Load chat history from AsyncStorage
@@ -624,71 +431,9 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
                         ...msg,
                         timestamp: new Date(msg.timestamp)
                     })));
-
-                    // Rehydrate context elements from SWR cache or create empty placeholders
-                    const rehydratedContextElements: ContextElement[] = [];
-
-                    for (const elementId of session.contextElementIds) {
-                        // Parse the element ID to get the type and actual ID
-                        const [type, id] = elementId.split('-');
-
-                        if (!isContextElementType(type)) {
-                            continue;
-                        }
-
-                        // Try to find the corresponding data in SWR cache
-                        let data: ContextElementData | null = null;
-                        let cacheKey = '';
-                        let title = 'Élément de contexte';
-
-                        switch (type) {
-                            case 'program':
-                                cacheKey = `program-index-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Programme: ${data?.title || 'Programme'}`;
-                                break;
-                            case 'course':
-                                cacheKey = `course-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Cours: ${data?.name || 'Cours'}`;
-                                break;
-                            case 'lesson':
-                                cacheKey = `content-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Leçon: ${data?.name || 'Leçon'}`;
-                                break;
-                            case 'exercise':
-                                cacheKey = `exercise-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Exercice: ${data?.title || 'Exercice'}`;
-                                break;
-                            case 'quiz':
-                                cacheKey = `quiz-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Quiz: ${data?.name || 'Quiz'}`;
-                                break;
-                            case 'archive':
-                                cacheKey = `archives/${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Archive: ${data?.name || 'Archive'}`;
-                                break;
-                            case 'video':
-                                cacheKey = `video-${id}`;
-                                data = cache.get(cacheKey)?.data;
-                                title = `Vidéo: ${data?.title || 'Vidéo'}`;
-                                break;
-                        }
-
-                        // Add the element to the list
-                        rehydratedContextElements.push({
-                            id: elementId,
-                            type,
-                            title: title,
-                            data: data || {}
-                        });
-                    }
-
-                    setContextElements(rehydratedContextElements);
+                    setContextElements(
+                        rehydrateContextElementsFromIds(cache, session.contextElementIds)
+                    );
                     setCurrentChatSession(sessionId);
                 }
             }
@@ -881,23 +626,292 @@ ${data?.related_resources && data.related_resources.length > 0 ?
   `Ressources liées: ${data.related_resources.map((resource: ResourceSummary) => resource.title || resource.name).join(', ')}` : ''}
 `;
 
+                case 'document':
+                    return `
+Document: ${data?.name || data?.title || 'Non disponible'}
+${data?.description ? `Description: ${data.description}` : ''}
+${data?.file_type ? `Type de fichier: ${data.file_type}` : ''}
+${data?.file_size ? `Taille du fichier: ${Math.round(data.file_size / 1024)} KB` : ''}
+${data?.is_correction ? 'Document de correction: Oui' : ''}
+${data?.download_url || data?.file_url ? 'Lecture du document disponible: Oui' : ''}
+`;
+
                 default:
                     return `${element.title}\nAucune donnée supplémentaire disponible.`;
             }
         }).join('\n\n');
     };
 
+    const buildPdfContextPart = async (): Promise<{
+        part: GeminiRequestPart | null;
+        sourceName?: string;
+    }> => {
+        const pdfContextElement = contextElements.find((element) => {
+            const fileUrl = element.data?.download_url || element.data?.file_url;
+            const fileType = element.data?.file_type?.toLowerCase();
+
+            return (
+                !!fileUrl &&
+                (element.type === 'document' || element.type === 'archive') &&
+                (fileType === 'pdf' || fileUrl.toLowerCase().includes('.pdf'))
+            );
+        });
+
+        if (!pdfContextElement) {
+            return { part: null };
+        }
+
+        const fileUrl = pdfContextElement.data?.download_url || pdfContextElement.data?.file_url;
+        if (!fileUrl) {
+            return { part: null };
+        }
+
+        const fileSize = Number(pdfContextElement.data?.file_size || pdfContextElement.data?.size || 0);
+        if (fileSize > MAX_CONTEXT_PDF_BYTES) {
+            logger.warn('Nova document context skipped because file is too large', {
+                elementId: pdfContextElement.id,
+                fileSize,
+            });
+            return { part: null };
+        }
+
+        const baseDirectory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+        if (!baseDirectory) {
+            return { part: null };
+        }
+
+        const tempFileUri = `${baseDirectory}nova-context-${Date.now()}.pdf`;
+
+        try {
+            const base64Data =
+                Platform.OS === 'web'
+                    ? await readUriAsBase64(fileUrl)
+                    : await (async () => {
+                        const downloadResult = await FileSystem.downloadAsync(fileUrl, tempFileUri);
+                        return readUriAsBase64(downloadResult.uri);
+                    })();
+
+            return {
+                part: {
+                    inlineData: {
+                        mimeType: 'application/pdf',
+                        data: base64Data,
+                    },
+                },
+                sourceName: pdfContextElement.data?.name || pdfContextElement.title,
+            };
+        } catch (error) {
+            logger.error('Error preparing PDF context for Nova:', error);
+            return { part: null };
+        } finally {
+            try {
+                await FileSystem.deleteAsync(tempFileUri, { idempotent: true });
+            } catch {
+                // Ignore cleanup errors for temporary prompt files
+            }
+        }
+    };
+
+    const readUriAsBase64 = async (uri: string) => {
+        if (Platform.OS !== 'web') {
+            return FileSystem.readAsStringAsync(uri, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+        }
+
+        const response = await fetch(uri);
+        if (!response.ok) {
+            throw new Error(`Failed to read attachment from URI: ${response.status}`);
+        }
+
+        const buffer = await response.arrayBuffer();
+        return arrayBufferToBase64(buffer);
+    };
+
+    const pickAttachments = async () => {
+        if (isLoading) {
+            return;
+        }
+
+        try {
+            const remainingSlots = MAX_UPLOAD_ATTACHMENT_COUNT - selectedAttachments.length;
+            if (remainingSlots <= 0) {
+                Alert.alert(
+                    'Limite atteinte',
+                    `Vous pouvez joindre jusqu'à ${MAX_UPLOAD_ATTACHMENT_COUNT} fichiers par message.`
+                );
+                return;
+            }
+
+            const result = await DocumentPicker.getDocumentAsync({
+                type: ['image/*', 'application/pdf'],
+                multiple: true,
+                copyToCacheDirectory: true,
+            });
+
+            if (result.canceled || !result.assets?.length) {
+                return;
+            }
+
+            const normalizedAssets = result.assets
+                .map((asset) => {
+                    const assetMimeType = asset.mimeType?.toLowerCase() || '';
+                    const assetName = asset.name || 'Pièce jointe';
+                    const isPdf =
+                        assetMimeType === 'application/pdf' ||
+                        assetName.toLowerCase().endsWith('.pdf');
+                    const isImage = assetMimeType.startsWith('image/');
+
+                    if (!isPdf && !isImage) {
+                        return null;
+                    }
+
+                    return {
+                        id: `${Date.now()}-${asset.uri}-${assetName}`,
+                        uri: asset.uri,
+                        name: assetName,
+                        mimeType: isPdf ? 'application/pdf' : assetMimeType || 'image/jpeg',
+                        size: typeof asset.size === 'number' ? asset.size : null,
+                        kind: isPdf ? 'pdf' : 'image',
+                    } satisfies UploadAttachment;
+                })
+                .filter((asset): asset is UploadAttachment => asset !== null);
+
+            if (normalizedAssets.length === 0) {
+                Alert.alert(
+                    'Format non pris en charge',
+                    'Nova accepte uniquement les images et les documents PDF.'
+                );
+                return;
+            }
+
+            const nextAttachments = [
+                ...selectedAttachments,
+                ...normalizedAssets.filter(
+                    (asset) =>
+                        !selectedAttachments.some(
+                            (existing) =>
+                                existing.uri === asset.uri && existing.name === asset.name
+                        )
+                ),
+            ].slice(0, MAX_UPLOAD_ATTACHMENT_COUNT);
+
+            if (nextAttachments.length === selectedAttachments.length) {
+                return;
+            }
+
+            if (selectedAttachments.length + normalizedAssets.length > MAX_UPLOAD_ATTACHMENT_COUNT) {
+                Alert.alert(
+                    'Limite atteinte',
+                    `Nova garde les ${MAX_UPLOAD_ATTACHMENT_COUNT} premiers fichiers sélectionnés.`
+                );
+            }
+
+            setSelectedAttachments(nextAttachments);
+        } catch (error) {
+            logger.error('Error picking Nova attachments:', error);
+            Alert.alert(
+                'Ajout impossible',
+                'Impossible de sélectionner le fichier pour le moment.'
+            );
+        }
+    };
+
+    const removeAttachment = (attachmentId: string) => {
+        setSelectedAttachments((current) =>
+            current.filter((attachment) => attachment.id !== attachmentId)
+        );
+    };
+
+    const buildAttachmentParts = async (): Promise<{
+        parts: GeminiRequestPart[];
+        summary: string;
+    } | null> => {
+        if (selectedAttachments.length === 0) {
+            return {
+                parts: [],
+                summary: '',
+            };
+        }
+
+        const oversizeAttachment = selectedAttachments.find((attachment) => {
+            if (typeof attachment.size !== 'number') {
+                return false;
+            }
+
+            const maxBytes =
+                attachment.kind === 'pdf'
+                    ? MAX_UPLOAD_PDF_BYTES
+                    : MAX_UPLOAD_IMAGE_BYTES;
+
+            return attachment.size > maxBytes;
+        });
+
+        if (oversizeAttachment) {
+            Alert.alert(
+                'Fichier trop volumineux',
+                oversizeAttachment.kind === 'pdf'
+                    ? 'Les PDF joints à Nova doivent faire moins de 50 MB.'
+                    : 'Les images jointes à Nova doivent faire moins de 20 MB.'
+            );
+            return null;
+        }
+
+        try {
+            const parts = await Promise.all(
+                selectedAttachments.map(async (attachment) => {
+                    const base64Data = await readUriAsBase64(attachment.uri);
+
+                    return {
+                        inlineData: {
+                            mimeType: attachment.mimeType,
+                            data: base64Data,
+                        },
+                    } satisfies GeminiRequestPart;
+                })
+            );
+
+            const summary = selectedAttachments
+                .map((attachment) => `${attachment.kind === 'image' ? 'Image' : 'PDF'}: ${attachment.name}`)
+                .join(', ');
+
+            return { parts, summary };
+        } catch (error) {
+            logger.error('Error preparing Nova attachments:', error);
+            Alert.alert(
+                'Lecture impossible',
+                'Nova n’a pas pu lire la pièce jointe sélectionnée.'
+            );
+            return null;
+        }
+    };
+
     // Send message to Gemini AI
     const handleSend = async () => {
-        if (inputText.trim() === '') return;
+        const trimmedInput = inputText.trim();
+        if (trimmedInput === '' && selectedAttachments.length === 0) return;
 
         trackEvent(Events.MESSAGE_SENT);
         trigger(HapticType.LIGHT);
+        setIsLoading(true);
+
+        const attachmentPayload = await buildAttachmentParts();
+        if (!attachmentPayload) {
+            setIsLoading(false);
+            return;
+        }
+
+        const userMessageText = [
+            trimmedInput || 'Analyse les pièces jointes.',
+            attachmentPayload.summary ? `Pièces jointes: ${attachmentPayload.summary}` : '',
+        ]
+            .filter(Boolean)
+            .join('\n\n');
 
         // Create and add user message
         const userMessage: Message = {
             id: Date.now().toString(),
-            text: inputText.trim(),
+            text: userMessageText,
             isUser: true,
             timestamp: new Date(),
         };
@@ -905,7 +919,7 @@ ${data?.related_resources && data.related_resources.length > 0 ?
         const updatedMessages = [...messages, userMessage];
         setMessages(updatedMessages);
         setInputText('');
-        setIsLoading(true);
+        setSelectedAttachments([]);
         let sessionId = currentChatSession;
 
         try {
@@ -917,6 +931,7 @@ ${data?.related_resources && data.related_resources.length > 0 ?
 
             // Prepare context information using actual data
             const contextInfo = prepareContextInfo();
+            const { part: pdfContextPart, sourceName: pdfSourceName } = await buildPdfContextPart();
 
             // Format conversation history
             const conversationHistory = messages
@@ -928,11 +943,13 @@ ${data?.related_resources && data.related_resources.length > 0 ?
 Tu es un assistant pédagogique spécialisé pour aider les étudiants dans leur préparation aux concours. Tu dois proposer une aide adaptée et efficace selon le contexte.
 
 ${contextInfo ? `CONTEXTE DÉTAILLÉ:\n${contextInfo}\n\n` : ''}
+${attachmentPayload.summary ? `PIÈCES JOINTES DE L'ÉTUDIANT:\n${attachmentPayload.summary}\nUtilise ces pièces jointes comme source prioritaire si la question s'y rapporte.\n\n` : ''}
+${pdfContextPart ? `DOCUMENT PDF JOINT:\nUn document PDF lié au contexte est joint à cette requête. Appuie-toi dessus en priorité quand la question porte sur son contenu. Nom du document: ${pdfSourceName || 'Document courant'}.\n\n` : ''}
 
 HISTORIQUE DE LA CONVERSATION:
 ${conversationHistory}
 
-Étudiant: ${inputText}
+Étudiant: ${trimmedInput || 'Analyse les pièces jointes envoyées.'}
 
 Directives:
 1. Fournis des explications claires et précises avec des exemples pertinents
@@ -945,7 +962,12 @@ Directives:
 
 L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur le contexte fourni sans être trop verbeux.
 `;
-            const response = await run(prompt);
+            const parts: GeminiRequestPart[] = [
+                ...attachmentPayload.parts,
+                ...(pdfContextPart ? [pdfContextPart] : []),
+                { text: prompt },
+            ];
+            const response = await run(parts);
 
             // Create and add AI response
             const aiMessage: Message = {
@@ -1145,15 +1167,7 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
         return (
             <View style={[styles.contextElement, isDark && styles.contextElementDark]}>
                 <MaterialCommunityIcons
-                    name={
-                        item.type === 'program' ? 'book-open-variant' :
-                            item.type === 'course' ? 'book-open-page-variant' :
-                                item.type === 'lesson' ? 'file-document-outline' :
-                                    item.type === 'exercise' ? 'pencil-outline' :
-                                        item.type === 'quiz' ? 'help-circle-outline' :
-                                            item.type === 'video' ? 'play-circle-outline' :
-                                                'file-outline'
-                    }
+                    name={getContextElementIconName(item.type)}
                     size={20}
                     color={isDark ? '#F9FAFB' : '#1F2937'}
                     style={styles.contextElementIcon}
@@ -1287,21 +1301,21 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                                 >
                                     <View style={[styles.suggestedElementIcon, isDark && styles.suggestedElementIconDark]}>
                                         <MaterialCommunityIcons
-                                            name={
-                                                element.type === 'program' ? 'book-open-variant' :
-                                                    element.type === 'course' ? 'book-open-page-variant' :
-                                                        element.type === 'lesson' ? 'file-document-outline' :
-                                                            element.type === 'exercise' ? 'pencil-outline' :
-                                                                element.type === 'quiz' ? 'help-circle-outline' :
-                                                                    element.type === 'video' ? 'play-circle-outline' :
-                                                                        'file-outline'
-                                            }
+                                            name={getContextElementIconName(element.type)}
                                             size={16}
                                             color={theme.color.primary[500]}
                                         />
                                     </View>
                                     <Text style={[styles.suggestedElementText, isDark && styles.suggestedElementTextDark]}>
-                                        {element.title.replace('Programme: ', '').replace('Cours: ', '').replace('Leçon: ', '').replace('Exercice: ', '').replace('Quiz: ', '').replace('Archive: ', '').replace('Vidéo: ', '')}
+                                        {element.title
+                                            .replace('Programme: ', '')
+                                            .replace('Cours: ', '')
+                                            .replace('Leçon: ', '')
+                                            .replace('Exercice: ', '')
+                                            .replace('Quiz: ', '')
+                                            .replace('Archive: ', '')
+                                            .replace('Vidéo: ', '')
+                                            .replace('Document: ', '')}
                                     </Text>
                                     <MaterialCommunityIcons
                                         name="plus"
@@ -1347,10 +1361,94 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
 
                     {/* Zone d'input améliorée */}
                     <View style={[styles.inputContainer, isDark && styles.inputContainerDark]}>
+                        {selectedAttachments.length > 0 && (
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.attachmentsList}
+                                style={styles.attachmentsScroll}
+                            >
+                                {selectedAttachments.map((attachment) => (
+                                    <View
+                                        key={attachment.id}
+                                        style={[
+                                            styles.attachmentCard,
+                                            isDark && styles.attachmentCardDark,
+                                        ]}
+                                    >
+                                        {attachment.kind === 'image' ? (
+                                            <Image
+                                                source={{ uri: attachment.uri }}
+                                                style={styles.attachmentThumbnail}
+                                            />
+                                        ) : (
+                                            <View
+                                                style={[
+                                                    styles.attachmentThumbnail,
+                                                    styles.attachmentPdfThumbnail,
+                                                ]}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name="file-pdf-box"
+                                                    size={24}
+                                                    color="#FFFFFF"
+                                                />
+                                            </View>
+                                        )}
+                                        <View style={styles.attachmentMeta}>
+                                            <Text
+                                                style={[
+                                                    styles.attachmentName,
+                                                    isDark && styles.attachmentNameDark,
+                                                ]}
+                                                numberOfLines={1}
+                                            >
+                                                {attachment.name}
+                                            </Text>
+                                            <Text
+                                                style={[
+                                                    styles.attachmentDetails,
+                                                    isDark && styles.attachmentDetailsDark,
+                                                ]}
+                                            >
+                                                {attachment.kind === 'image' ? 'Image' : 'PDF'}
+                                                {attachment.size
+                                                    ? ` • ${formatAttachmentSize(attachment.size)}`
+                                                    : ''}
+                                            </Text>
+                                        </View>
+                                        <Pressable
+                                            style={styles.attachmentRemoveButton}
+                                            onPress={() => removeAttachment(attachment.id)}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name="close"
+                                                size={16}
+                                                color={isDark ? '#F9FAFB' : '#1F2937'}
+                                            />
+                                        </Pressable>
+                                    </View>
+                                ))}
+                            </ScrollView>
+                        )}
                         <View style={[styles.inputWrapper, isDark && styles.inputWrapperDark]}>
+                            <Pressable
+                                style={[
+                                    styles.attachButton,
+                                    isDark && styles.attachButtonDark,
+                                ]}
+                                onPress={pickAttachments}
+                                disabled={isLoading}
+                            >
+                                <MaterialCommunityIcons
+                                    name="paperclip"
+                                    size={20}
+                                    color={theme.color.primary[500]}
+                                />
+                            </Pressable>
                             <TextInput
                                 style={[styles.input, isDark && styles.inputDark]}
-                                placeholder="Posez votre question..."
+                                placeholder="Posez votre question ou joignez un PDF/image..."
                                 placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
                                 value={inputText}
                                 onChangeText={setInputText}
@@ -1362,10 +1460,15 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
                             <Pressable
                                 style={[
                                     styles.sendButton,
-                                    !inputText.trim() && styles.sendButtonDisabled,
+                                    !inputText.trim() &&
+                                    selectedAttachments.length === 0 &&
+                                    styles.sendButtonDisabled,
                                 ]}
                                 onPress={handleSend}
-                                disabled={!inputText.trim() || isLoading}
+                                disabled={
+                                    (!inputText.trim() && selectedAttachments.length === 0) ||
+                                    isLoading
+                                }
                             >
                                 <MaterialCommunityIcons
                                     name="send"
@@ -1751,6 +1854,70 @@ const styles = StyleSheet.create({
         backgroundColor: '#1F2937',
         borderTopColor: '#374151',
     },
+    attachmentsScroll: {
+        marginBottom: 12,
+    },
+    attachmentsList: {
+        paddingRight: 8,
+        gap: 10,
+    },
+    attachmentCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F8FAFC',
+        borderRadius: theme.border.radius.small,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        padding: 8,
+        minWidth: 180,
+        maxWidth: 260,
+        gap: 10,
+    },
+    attachmentCardDark: {
+        backgroundColor: '#374151',
+        borderColor: '#4B5563',
+    },
+    attachmentThumbnail: {
+        width: 42,
+        height: 42,
+        borderRadius: theme.border.radius.small,
+        backgroundColor: '#E5E7EB',
+    },
+    attachmentPdfThumbnail: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#DC2626',
+    },
+    attachmentMeta: {
+        flex: 1,
+        minWidth: 0,
+    },
+    attachmentName: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#1F2937',
+    },
+    attachmentNameDark: {
+        color: '#F9FAFB',
+    },
+    attachmentDetails: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 2,
+    },
+    attachmentDetailsDark: {
+        color: '#D1D5DB',
+    },
+    attachmentRemoveButton: {
+        width: 28,
+        height: 28,
+        borderRadius: theme.border.radius.small,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(148, 163, 184, 0.16)',
+    },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'flex-end',
@@ -1765,6 +1932,17 @@ const styles = StyleSheet.create({
     inputWrapperDark: {
         backgroundColor: '#374151',
         borderColor: '#4B5563',
+    },
+    attachButton: {
+        width: 40,
+        height: 40,
+        borderRadius: theme.border.radius.small,
+        backgroundColor: '#EFF6FF',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    attachButtonDark: {
+        backgroundColor: '#1E3A8A',
     },
     input: {
         flex: 1,

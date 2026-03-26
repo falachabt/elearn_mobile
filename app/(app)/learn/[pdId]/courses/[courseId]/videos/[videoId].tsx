@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createVideoPlayer, VideoView, type VideoSource } from 'expo-video';
+import { WebView } from 'react-native-webview';
 
 import { supabase } from '@/lib/supabase';
 import { ThemedText } from '@/components/ThemedText';
@@ -60,6 +61,60 @@ const LockedContent = ({
     </View>
 );
 
+const escapeHtml = (value: string) => value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const buildVideoFallbackHtml = (videoUrl: string, title: string) => `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <video
+      controls
+      playsinline
+      webkit-playsinline
+      preload="metadata"
+      autoplay
+      src="${escapeHtml(videoUrl)}"
+      title="${escapeHtml(title)}"
+    >
+      Your browser does not support HTML5 video.
+    </video>
+  </body>
+</html>`;
+
 const VideoPlayerScreen = () => {
     const { videoId, courseId, pdId } = useLocalSearchParams();
     const videoIdParam = Array.isArray(videoId) ? videoId[0] : videoId;
@@ -75,6 +130,7 @@ const VideoPlayerScreen = () => {
     const [currentVideoIndex, setCurrentVideoIndex] = useState<number>(-1);
     const [error, setError] = useState<string | null>(null);
     const [isVideoDone, setIsVideoDone] = useState(false);
+    const [isFallbackWebViewLoaded, setIsFallbackWebViewLoaded] = useState(false);
     const { playClick } = useSound();
     const { trigger } = useHaptics();
     const [isEnrolled, setIsEnrolled] = useState(false);
@@ -96,21 +152,40 @@ const VideoPlayerScreen = () => {
         router.navigateToShop(String(pdIdParam));
     };
 
+    const shouldUseWebViewFallback = Platform.OS !== 'web'
+        && Boolean(currentVideo?.url);
+    const shouldUseMuxSource = !shouldUseWebViewFallback
+        && Boolean(currentVideo?.mux_playback_id);
+
+    const videoSource: VideoSource = !currentVideo || shouldUseWebViewFallback
+        ? null
+        : shouldUseMuxSource
+            ? {
+                uri: `https://stream.mux.com/${currentVideo.mux_playback_id}.m3u8`,
+                contentType: 'hls',
+            }
+            : {
+                uri: currentVideo.url,
+                contentType: 'progressive',
+            };
+    const videoHeight = Math.min(width * (9 / 16), height * (Platform.OS === 'web' ? 0.42 : 0.36));
     const playerRef = useRef<ReturnType<typeof createVideoPlayer> | null>(null);
     if (!playerRef.current) {
         playerRef.current = createVideoPlayer(null);
         playerRef.current.loop = false;
+        playerRef.current.timeUpdateEventInterval = 1;
     }
-
     const player = playerRef.current;
-    const videoSource: VideoSource = !currentVideo
-        ? null
-        : Platform.OS === 'web'
-            ? currentVideo.url
-            : currentVideo.mux_playback_id
-                ? `https://stream.mux.com/${currentVideo.mux_playback_id}.m3u8`
-                : currentVideo.url;
-    const videoHeight = Math.min(width * (9 / 16), height * (Platform.OS === 'web' ? 0.42 : 0.36));
+
+    useEffect(() => {
+        return () => {
+            try {
+                player.release();
+            } catch (releaseError) {
+                logger.error('Error releasing video player:', releaseError);
+            }
+        };
+    }, [player]);
 
     // Helper function to track video progress
     const trackVideoProgress = (progressPercent: number) => {
@@ -126,41 +201,76 @@ const VideoPlayerScreen = () => {
     };
 
     useEffect(() => {
+        if (!currentVideo) {
+            return;
+        }
+
         let isMounted = true;
 
-        const loadVideo = async () => {
+        const loadSource = async () => {
             try {
-                player.pause();
-                await player.replaceAsync(videoSource);
+                setError(null);
 
-                if (!isMounted || !currentVideo) {
+                if (shouldUseWebViewFallback) {
+                    await player.replaceAsync(null);
                     return;
                 }
 
-                posthogService.trackVideoPlayed(
-                    String(currentVideo.id),
-                    String(courseIdParam)
-                );
-
-                player.play();
-            } catch (err) {
+                await player.replaceAsync(videoSource);
+            } catch (sourceError) {
                 if (isMounted) {
-                    logger.error('Error loading video player source:', err);
+                    logger.error('Error replacing video source:', sourceError);
                     setError('Error loading video');
                 }
             }
         };
 
-        void loadVideo();
+        void loadSource();
 
         return () => {
             isMounted = false;
-            player.pause();
         };
-    }, [player, videoSource, currentVideo, courseIdParam]);
+    }, [player, currentVideo, videoSource, shouldUseWebViewFallback]);
 
     useEffect(() => {
-        if (!currentVideo) {
+        if (!currentVideo || shouldUseWebViewFallback) {
+            return;
+        }
+
+        const statusSubscription = player.addListener('statusChange', ({ status, error: playerError }) => {
+            if (status === 'readyToPlay') {
+                setError(null);
+                if (!player.playing) {
+                    player.play();
+                }
+            } else if (status === 'error') {
+                logger.error('Video player error:', playerError);
+                setError('Error loading video');
+            }
+        });
+
+        const sourceLoadSubscription = player.addListener('sourceLoad', () => {
+            posthogService.trackVideoPlayed(
+                String(currentVideo.id),
+                String(courseIdParam)
+            );
+            if (!player.playing) {
+                player.play();
+            }
+        });
+
+        return () => {
+            statusSubscription.remove();
+            sourceLoadSubscription.remove();
+        };
+    }, [player, currentVideo, courseIdParam, shouldUseMuxSource, shouldUseWebViewFallback]);
+
+    useEffect(() => {
+        setIsFallbackWebViewLoaded(false);
+    }, [currentVideo?.id]);
+
+    useEffect(() => {
+        if (!currentVideo || shouldUseWebViewFallback) {
             return;
         }
 
@@ -200,16 +310,8 @@ const VideoPlayerScreen = () => {
         return () => {
             timeUpdateSubscription.remove();
             endedSubscription.remove();
-            player.timeUpdateEventInterval = 0;
         };
-    }, [player, currentVideo, courseIdParam, pdIdParam]);
-
-    useEffect(() => {
-        return () => {
-            player.pause();
-            player.release();
-        };
-    }, [player]);
+    }, [player, currentVideo, courseIdParam, pdIdParam, shouldUseWebViewFallback]);
 
     useEffect(() => {
         // Auto-play next video when current one finishes
@@ -265,9 +367,6 @@ const VideoPlayerScreen = () => {
         if (currentVideoIndex < videos.length - 1) {
             playClick();
             const nextVideo = videos[currentVideoIndex + 1];
-            if (player) {
-                player.pause();
-            }
             setIsVideoDone(false);
             router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}/videos/${nextVideo.id}`);
         }
@@ -275,9 +374,6 @@ const VideoPlayerScreen = () => {
 
     const handleVideoSelect = async (video: CourseVideos) => {
         playClick();
-        if (player) {
-            player.pause();
-        }
         setIsVideoDone(false);
         router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}/videos/${video.id}`);
     };
@@ -326,9 +422,6 @@ const VideoPlayerScreen = () => {
                     style={[styles.backButton, isDarkMode && styles.backButtonDark]}
                     onPress={() => {
                         playClick();
-                        if (player) {
-                            player.pause();
-                        }
                         router.push(`/(app)/learn/${pdIdParam}/courses/${courseIdParam}`);
                     }}
                 >
@@ -343,12 +436,54 @@ const VideoPlayerScreen = () => {
 
             <View style={styles.videoWrapper}>
                 <View style={[styles.videoContainer, { height: videoHeight }]}>
-                    <VideoView
-                        style={styles.video}
-                        player={player}
-                        fullscreenOptions={{ enable: true }}
-                        allowsPictureInPicture
-                    />
+                    {shouldUseWebViewFallback && currentVideo ? (
+                        <>
+                            <WebView
+                                key={`${currentVideo.id}-webview`}
+                                originWhitelist={['*']}
+                                source={{
+                                    html: buildVideoFallbackHtml(
+                                        currentVideo.url,
+                                        currentVideo.title ?? currentVideo.filename
+                                    ),
+                                }}
+                                style={styles.video}
+                                javaScriptEnabled
+                                domStorageEnabled
+                                mediaPlaybackRequiresUserAction={false}
+                                allowsInlineMediaPlayback
+                                allowsFullscreenVideo
+                                onLoadEnd={() => {
+                                    setIsFallbackWebViewLoaded(true);
+                                    setError(null);
+                                    posthogService.trackVideoPlayed(
+                                        String(currentVideo.id),
+                                        String(courseIdParam)
+                                    );
+                                }}
+                                onError={(event) => {
+                                    logger.error('Fallback WebView error:', event.nativeEvent);
+                                    setError('Error loading video');
+                                }}
+                                onHttpError={(event) => {
+                                    logger.error('Fallback WebView HTTP error:', event.nativeEvent);
+                                    setError('Error loading video');
+                                }}
+                            />
+                            {!isFallbackWebViewLoaded && (
+                                <View style={styles.webViewLoadingOverlay}>
+                                    <ActivityIndicator size="large" color={theme.color.primary[500]} />
+                                </View>
+                            )}
+                        </>
+                    ) : (
+                        <VideoView
+                            style={styles.video}
+                            player={player}
+                            fullscreenOptions={{ enable: true }}
+                            allowsPictureInPicture
+                        />
+                    )}
                 </View>
 
                 {/*{hasError && (*/}
@@ -460,6 +595,12 @@ fontSize: 18,
     },
     video: {
         flex: 1,
+    },
+    webViewLoadingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#000000',
     },
     playlistControls: {
         flexDirection: 'row',

@@ -23,6 +23,21 @@ type GeminiPart = {
     text?: string;
 };
 
+export type GeminiRequestPart =
+    | {
+        text: string;
+    }
+    | {
+        inlineData: {
+            mimeType: string;
+            data: string;
+        };
+    };
+
+type GeminiRequestContent = {
+    parts: GeminiRequestPart[];
+};
+
 type GeminiCandidate = {
     content?: {
         parts?: GeminiPart[];
@@ -159,7 +174,7 @@ const extractTextFromResponse = (data: GeminiResponse): string => {
     return text ?? "";
 };
 
-const requestModel = async (modelName: string, prompt: string): Promise<string> => {
+const requestModel = async (modelName: string, contents: GeminiRequestContent[]): Promise<string> => {
     const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
         {
@@ -168,11 +183,7 @@ const requestModel = async (modelName: string, prompt: string): Promise<string> 
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                contents: [
-                    {
-                        parts: [{ text: prompt }],
-                    },
-                ],
+                contents,
                 generationConfig,
             }),
         }
@@ -196,16 +207,21 @@ const requestModel = async (modelName: string, prompt: string): Promise<string> 
     return text;
 };
 
-async function run(prompt: string): Promise<string> {
+async function run(promptOrParts: string | GeminiRequestPart[]): Promise<string> {
     if (!apiKey) {
         throw toGeminiServiceError(new Error("Missing Gemini API key"));
     }
 
     let lastError: unknown = null;
+    const contents: GeminiRequestContent[] = [
+        {
+            parts: typeof promptOrParts === "string" ? [{ text: promptOrParts }] : promptOrParts,
+        },
+    ];
 
     for (const modelName of MODEL_CANDIDATES) {
         try {
-            return await requestModel(modelName, prompt);
+            return await requestModel(modelName, contents);
         } catch (error) {
             lastError = error;
 

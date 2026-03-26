@@ -2,8 +2,8 @@
 import {usePathname} from 'expo-router';
 import {useSWRConfig} from 'swr';
 
-import type {ContextElement} from '@/components/shared/ChatBot'; // Import the ContextElement type
-import { logger } from '@/utils/logger';
+import type {ContextElement} from '@/utils/chatContext';
+import { getContextElementFromCache as resolveContextElementFromCache } from '@/utils/chatContext';
 
 // Define the context interface
 interface ChatContextType {
@@ -36,10 +36,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({children}) => {
     useEffect(() => {
         // Only update if chat is not visible - prevents disrupting an ongoing chat
         if (!isChatVisible) {
-            const currentContextElement = getContextElementFromCache(pathname, cache);
-            if (currentContextElement) {
-                setContextElements([currentContextElement]);
-            }
+            const currentContextElement = resolveContextElementFromCache(pathname, cache);
+            setContextElements(currentContextElement ? [currentContextElement] : []);
         }
     }, [pathname, isChatVisible, cache]);
 
@@ -51,7 +49,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({children}) => {
         }
         // Otherwise, try to get context from current path
         else if (contextElements.length === 0) {
-            const currentContextElement = getContextElementFromCache(pathname, cache);
+            const currentContextElement = resolveContextElementFromCache(pathname, cache);
             if (currentContextElement) {
                 setContextElements([currentContextElement]);
             }
@@ -111,141 +109,7 @@ export const useChatBox = () => {
 
 // Function to get context element from SWR cache based on route
 export const getContextElementFromCache = (pathname: string, cache: any): ContextElement | null => {
-    try {
-        const segments = pathname.split('/').filter(Boolean);
-
-        // Get indexes for different route segments to handle various URL patterns
-        const pdIndex = segments.findIndex(s => s === 'learn') + 1;
-        const courseIndex = segments.findIndex(s => s === 'courses') + 1;
-        const lessonIndex = segments.findIndex(s => s === 'lessons') + 1;
-        const exerciseIndex = segments.findIndex(s => s === 'exercices') + 1;
-        const quizIndex = segments.findIndex(s => s === 'quizzes') + 1;
-        const archiveIndex = segments.findIndex(s => s === 'anales') + 1;
-        const videoIndex = segments.findIndex(s => s === 'videos') + 1;
-
-        // Get IDs from route segments, handling possible out-of-bounds
-        const pdId = pdIndex >= 0 && pdIndex < segments.length ? segments[pdIndex] : null;
-        const courseId = courseIndex >= 0 && courseIndex < segments.length ? segments[courseIndex] : null;
-        const lessonId = lessonIndex >= 0 && lessonIndex < segments.length ? segments[lessonIndex] : null;
-        const exerciseId = exerciseIndex >= 0 && exerciseIndex < segments.length ? segments[exerciseIndex] : null;
-        const quizId = quizIndex >= 0 && quizIndex < segments.length ? segments[quizIndex] : null;
-        const archiveId = archiveIndex >= 0 && archiveIndex < segments.length ? segments[archiveIndex] : null;
-        const videoId = videoIndex >= 0 && videoIndex < segments.length ? segments[videoIndex] : null;
-
-        // Determine the primary context based on the most specific route segment
-        // Order matters: more specific routes should be checked first
-
-        // Check for lesson context
-        if (lessonId && courseId) {
-            const contentKey = `content-${lessonId}`;
-            const lessonData = cache.get(contentKey)?.data;
-
-            if (lessonData) {
-                return {
-                    id: `lesson-${lessonId}`,
-                    type: 'lesson',
-                    title: `Leçon: ${lessonData.name || 'Leçon actuelle'}`,
-                    data: lessonData
-                };
-            }
-        }
-
-        // Check for video context
-        if (videoId && courseId) {
-            const videoKey = `video-${videoId}`;
-            const videoData = cache.get(videoKey)?.data;
-
-            if (videoData) {
-                return {
-                    id: `video-${videoId}`,
-                    type: 'video',
-                    title: `Vidéo: ${videoData.title || 'Vidéo actuelle'}`,
-                    data: videoData
-                };
-            }
-        }
-
-        // Check for exercise context
-        if (exerciseId) {
-            const exerciseKey = `exercise-${exerciseId}`;
-            const exerciseData = cache.get(exerciseKey)?.data;
-
-            if (exerciseData) {
-                return {
-                    id: `exercise-${exerciseId}`,
-                    type: 'exercise',
-                    title: `Exercice: ${exerciseData.title || 'Exercice actuel'}`,
-                    data: exerciseData
-                };
-            }
-        }
-
-        // Check for quiz context
-        if (quizId) {
-            const quizKey = `quiz-${quizId}`;
-            const quizData = cache.get(quizKey)?.data;
-
-            if (quizData) {
-                return {
-                    id: `quiz-${quizId}`,
-                    type: 'quiz',
-                    title: `Quiz: ${quizData.name || 'Quiz actuel'}`,
-                    data: quizData
-                };
-            }
-        }
-
-        // Check for archive context
-        if (archiveId) {
-            const archiveKey = `archives/${archiveId}`;
-            const archiveData = cache.get(archiveKey)?.data;
-
-            if (archiveData) {
-                return {
-                    id: `archive-${archiveId}`,
-                    type: 'archive',
-                    title: `Archive: ${archiveData.name || 'Archive actuelle'}`,
-                    data: archiveData
-                };
-            }
-        }
-
-        // Check for course context
-        if (courseId) {
-            const courseKey = `course-${courseId}`;
-            const courseData = cache.get(courseKey)?.data;
-
-            if (courseData) {
-                return {
-                    id: `course-${courseId}`,
-                    type: 'course',
-                    title: `Cours: ${courseData.name || 'Cours actuel'}`,
-                    data: courseData
-                };
-            }
-        }
-
-        // Check for program context (most general)
-        if (pdId) {
-            const programKey = `program-index-${pdId}`;
-            const programData = cache.get(programKey)?.data;
-
-            if (programData) {
-                return {
-                    id: `program-${pdId}`,
-                    type: 'program',
-                    title: `Programme: ${programData.title || 'Programme actuel'}`,
-                    data: programData
-                };
-            }
-        }
-
-        // If we get here, we couldn't find any matching context in the cache
-        return null;
-    } catch (error) {
-        logger.error('Error getting context from cache:', error);
-        return null;
-    }
+    return resolveContextElementFromCache(pathname, cache);
 };
 
 // Helper function to extract useful details from SWR data to print in chat
@@ -274,7 +138,7 @@ ${data?.courses_content ? `Nombre de leçons: ${data.courses_content.length}` : 
         case 'lesson':
             return `
 Leçon: ${data?.name || 'Non disponible'}
-${data?.order !== undefined ? `Ordre: ${data.order + 1}` : ''}
+${typeof data?.order === 'number' ? `Ordre: ${data.order + 1}` : ''}
 ${data?.courses?.name ? `Cours: ${data.courses.name}` : ''}
       `.trim();
 
@@ -299,11 +163,24 @@ ${data?.session ? `Session: ${data.session}` : ''}
 ${data?.file_type ? `Type de fichier: ${data.file_type}` : ''}
       `.trim();
 
-        case 'video':
+        case 'video': {
+            const durationInMinutes =
+                typeof data?.duration === 'number'
+                    ? Math.floor(data.duration / 60)
+                    : null;
             return `
 Vidéo: ${data?.title || 'Non disponible'}
 ${data?.description ? `Description: ${data.description}` : ''}
-${data?.duration ? `Durée: ${Math.floor((data.duration || 0) / 60)} min` : ''}
+${durationInMinutes !== null ? `Durée: ${durationInMinutes} min` : ''}
+      `.trim();
+        }
+
+        case 'document':
+            return `
+Document: ${data?.name || data?.title || 'Non disponible'}
+${data?.description ? `Description: ${data.description}` : ''}
+${data?.file_type ? `Type de fichier: ${data.file_type}` : ''}
+${data?.file_size ? `Taille: ${Math.round(data.file_size / 1024)} KB` : ''}
       `.trim();
 
         default:
