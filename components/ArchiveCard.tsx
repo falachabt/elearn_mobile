@@ -59,6 +59,7 @@ export const ArchiveCard: React.FC<ArchiveCardProps> = ({
   const { downloading, progress, localPath } = downloadState;
   const th = useColorScheme();
   const isDark = th === "dark";
+  const completionLabel = item.is_completed ? "Fait" : "Finir";
 
   // Format the date to only show the year
   const formatYear = (dateString: string) => {
@@ -105,6 +106,7 @@ export const ArchiveCard: React.FC<ArchiveCardProps> = ({
           <TouchableOpacity onPress={() => onView(item)} style={{ flex: 1 }}>
             <Text
               numberOfLines={1}
+              ellipsizeMode="tail"
               style={[styles.cardTitle, isDark && styles.textDark]}
             >
               {item.name}
@@ -117,6 +119,17 @@ export const ArchiveCard: React.FC<ArchiveCardProps> = ({
           {onToggleComplete && (
             <TouchableOpacity
               onPress={() => onToggleComplete(item.id)}
+              accessibilityRole="button"
+              accessibilityLabel={
+                item.is_completed
+                  ? "Retirer des terminés"
+                  : "Marquer comme terminé"
+              }
+              accessibilityHint={
+                item.is_completed
+                  ? "Appuyez pour retirer ce sujet des terminés"
+                  : "Appuyez pour marquer ce sujet comme terminé"
+              }
               style={[
                 styles.completionActionButton,
                 item.is_completed && styles.completionActionButtonActive,
@@ -132,12 +145,13 @@ export const ArchiveCard: React.FC<ArchiveCardProps> = ({
                 }
               />
               <Text
+                numberOfLines={1}
                 style={[
                   styles.completionActionText,
                   item.is_completed && styles.completionActionTextActive,
                 ]}
               >
-                {item.is_completed ? "Terminé" : "Marquer terminé"}
+                {completionLabel}
               </Text>
             </TouchableOpacity>
           )}
@@ -280,6 +294,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    minWidth: 0,
     marginRight: 8,
   },
   iconContainer: {
@@ -304,6 +319,7 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 0,
     gap: 4,
   },
   footer: {
@@ -355,11 +371,13 @@ const styles = StyleSheet.create({
   completionActionButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    gap: 4,
+    minWidth: 36,
+    height: 36,
+    paddingHorizontal: 8,
     borderRadius: theme.border.radius.large,
     backgroundColor: theme.color.primary[50],
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: theme.color.primary[100],
   },
@@ -369,8 +387,8 @@ const styles = StyleSheet.create({
   },
   completionActionText: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
     color: theme.color.primary[700],
   },
   completionActionTextActive: {
