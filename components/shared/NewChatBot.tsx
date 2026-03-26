@@ -27,7 +27,7 @@ import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 import { ThemedText } from '@/components/ThemedText';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
-import run from '@/config/gemini';
+import run, { GENERIC_GEMINI_ERROR_MESSAGE } from '@/config/gemini';
 import { Events, trackEvent } from '@/utils/analytics';
 
 
@@ -726,25 +726,28 @@ const NewChatBot: React.FC<ChatBoxProps> = ({
     };
 
     // Save the current chat session
-    const saveCurrentSession = async () => {
-        if (!currentChatSession) return;
+    const saveCurrentSession = async (
+        nextMessages: Message[] = messages,
+        sessionId: string | null = currentChatSession
+    ) => {
+        if (!sessionId) return;
 
         const updatedHistory = [...chatHistory];
-        const sessionIndex = updatedHistory.findIndex(s => s.id === currentChatSession);
+        const sessionIndex = updatedHistory.findIndex(s => s.id === sessionId);
 
         if (sessionIndex !== -1) {
             updatedHistory[sessionIndex] = {
                 ...updatedHistory[sessionIndex],
-                messages,
+                messages: nextMessages,
                 contextElementIds: contextElements.map(el => el.id),
                 updatedAt: new Date(),
-                title: messages.find(m => m.isUser)?.text.substring(0, 30) || 'Nouvelle conversation',
+                title: nextMessages.find(m => m.isUser)?.text.substring(0, 30) || 'Nouvelle conversation',
             };
         } else {
             updatedHistory.push({
-                id: currentChatSession,
-                title: messages.find(m => m.isUser)?.text.substring(0, 30) || 'Nouvelle conversation',
-                messages,
+                id: sessionId,
+                title: nextMessages.find(m => m.isUser)?.text.substring(0, 30) || 'Nouvelle conversation',
+                messages: nextMessages,
                 contextElementIds: contextElements.map(el => el.id),
                 createdAt: new Date(),
                 updatedAt: new Date(),
@@ -903,12 +906,13 @@ ${data?.related_resources && data.related_resources.length > 0 ?
         setMessages(updatedMessages);
         setInputText('');
         setIsLoading(true);
+        let sessionId = currentChatSession;
 
         try {
             // Create session if needed
-            if (!currentChatSession) {
-                const newSessionId = await createNewChatSession();
-                setCurrentChatSession(newSessionId);
+            if (!sessionId) {
+                sessionId = await createNewChatSession();
+                setCurrentChatSession(sessionId);
             }
 
             // Prepare context information using actual data
@@ -955,19 +959,21 @@ L'objectif est d'être utile et efficace dans tes réponses, en t'appuyant sur l
             setMessages(finalMessages);
 
             // Save the updated session
-            await saveCurrentSession();
+            await saveCurrentSession(finalMessages, sessionId);
         } catch (error) {
             logger.error('Error getting response from Gemini:', error);
 
             // Add error message
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
-                text: "Désolé, je n'ai pas pu traiter votre demande. Veuillez réessayer plus tard.",
+                text: GENERIC_GEMINI_ERROR_MESSAGE,
                 isUser: false,
                 timestamp: new Date(),
             };
 
-            setMessages([...updatedMessages, errorMessage]);
+            const failedMessages = [...updatedMessages, errorMessage];
+            setMessages(failedMessages);
+            await saveCurrentSession(failedMessages, sessionId);
         } finally {
             setIsLoading(false);
         }
