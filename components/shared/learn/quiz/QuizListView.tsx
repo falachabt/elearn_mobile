@@ -24,10 +24,10 @@ import { theme } from "@/constants/theme";
 
 // Types
 export interface QuizListItem {
-  quizId: number;
+  quizId: string;
   lpId: string;
   quiz: {
-    id: number;
+    id: string;
     name: string;
     description?: string | null;
     category?: {

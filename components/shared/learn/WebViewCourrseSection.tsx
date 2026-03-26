@@ -40,7 +40,10 @@ const PreloadWebView = forwardRef<WebView, PreloadWebViewProps>(
 
 const styles = StyleSheet.create({
     webview: {
-        flex: 1,
+        position: 'absolute',
+        width: 0,
+        height: 0,
+        opacity: 0,
         backgroundColor: 'transparent',
     }
 });

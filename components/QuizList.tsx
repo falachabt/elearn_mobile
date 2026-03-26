@@ -47,7 +47,7 @@ interface Course {
 }
 
 interface Quiz {
-    id: number;
+    id: string;
     name: string;
     category?: Category;
     quiz_questions?: QuizQuestion[];
@@ -55,7 +55,7 @@ interface Quiz {
 }
 
 interface QuizItem {
-    quizId: number;
+    quizId: string;
     lpId: string;
     quiz: Quiz;
     isPinned?: boolean;
@@ -352,11 +352,12 @@ const EnhancedQuizScreen = () => {
                 return items;
             }
 
+
             items.push({
-                quizId: Number(item.quizId ?? item.quiz.id),
+                quizId: (item.quizId ?? item.quiz.id),
                 lpId: item.lpId ?? "",
                 quiz: {
-                    id: Number(item.quiz.id),
+                    id: (item.quiz.id),
                     name: item.quiz.name ?? "Quiz",
                     category: item.quiz.category
                         ? {
@@ -385,7 +386,7 @@ const EnhancedQuizScreen = () => {
 
     // Get quiz IDs for fetching pins and attempts
     const quizIds = useMemo(
-        () => quizzes?.map((quiz) => quiz.quizId).filter((id): id is number => Boolean(id)) || [],
+        () => quizzes?.map((quiz) => quiz.quizId).filter((id): id is string => Boolean(id)) || [],
         [quizzes]
     );
 

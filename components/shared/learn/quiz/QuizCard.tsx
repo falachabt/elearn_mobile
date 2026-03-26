@@ -16,10 +16,10 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 // Define types for component props
 interface QuizCardProps {
     quizItem: {
-        quizId: number;
+        quizId: string;
         lpId: string | null;
         quiz: {
-            id: number;
+            id: string;
             name: string | null;
             category?: {
                 id?: string | number;

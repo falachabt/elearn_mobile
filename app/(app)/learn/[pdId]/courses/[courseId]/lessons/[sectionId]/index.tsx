@@ -698,12 +698,14 @@ const SectionDetail = () => {
 
       {/* Preload next section - only on mobile */}
       {Platform.OS !== "web" && nextSection && (
-        <PreloadWebView
-          url={`${webViewUrls?.course_url}/${nextSection.id}?theme=${
-            isDark ? "dark" : "light"
-          }`}
-          isDark={isDark}
-        />
+        <View pointerEvents="none" style={styles.preloadContainer}>
+          <PreloadWebView
+            url={`${webViewUrls?.course_url}/${nextSection.id}?theme=${
+              isDark ? "dark" : "light"
+            }`}
+            isDark={isDark}
+          />
+        </View>
       )}
 
       {/* Sections List Modal */}
@@ -1235,6 +1237,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
     marginRight: 8,
+  },
+  preloadContainer: {
+    position: "absolute",
+    width: 0,
+    height: 0,
+    opacity: 0,
   },
 });
 
