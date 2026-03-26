@@ -37,7 +37,7 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
 
-    const isEnrolled = path.enrollmentId || false
+    const isEnrolled = !!path.isEnrolled
     const isGenerousWeek = path.isGenerousWeek || false;
     const {user} = useAuth();
     

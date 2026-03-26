@@ -60,6 +60,7 @@ interface ConcoursLearningPath {
 interface UserProgramEnrollment {
     id: number
     user_id: string
+    expiry_date?: string | null
 }
 
 export interface LearningPath {
@@ -176,7 +177,8 @@ const MyLearningPaths = () => {
                     ),
                     user_program_enrollments!left(
                         id,
-                        user_id
+                        user_id,
+                        expiry_date
                     )
                 `)
                 .eq('isActive', true)
@@ -202,12 +204,15 @@ const MyLearningPaths = () => {
                 }
 
                 const learningPathId = item.learning_path.id
-                const isUserEnrolled = item.user_program_enrollments?.some(
-                    (enrollment: UserProgramEnrollment) => enrollment.user_id === authUser?.id
-                ) ?? false
-                const userEnrollment = item.user_program_enrollments?.find(
-                    (enrollment: UserProgramEnrollment) => enrollment.user_id === authUser?.id
-                )
+                const now = new Date()
+                const activeEnrollments = item.user_program_enrollments?.filter(
+                    (enrollment: UserProgramEnrollment) =>
+                        enrollment.user_id === authUser?.id &&
+                        !!enrollment.expiry_date &&
+                        new Date(enrollment.expiry_date) > now
+                ) ?? []
+                const isUserEnrolled = activeEnrollments.length > 0
+                const userEnrollment = activeEnrollments[0]
 
                 if (!learningPathMap.has(learningPathId)) {
                     const schoolSigle = item.concour.school?.sigle ?? ''
