@@ -58,6 +58,7 @@ type AuthContextType = {
 
 // Create context with unique name
 const AuthProviderContext = createContext<AuthContextType | undefined>(undefined)
+const ACCOUNT_NOT_READY_ERROR = 'ACCOUNT_NOT_READY'
 
 // SWR fetcher functions with unique names
 // @ts-ignore
@@ -71,15 +72,26 @@ const getUserEnrollments = async (userId: string) => {
     return data;
 }
 
-const getUserAccountData = async (authId: string) => {
-    const {data, error} = await supabase
-        .from("accounts")
-        .select("*, user_xp(*), user_streaks(*)")
-        .eq("authId", authId)
-        .single();
+const getUserAccountData = async (authId: string, maxRetries = 6, retryDelay = 400) => {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const {data, error} = await supabase
+            .from("accounts")
+            .select("*, user_xp(*), user_streaks(*)")
+            .eq("authId", authId)
+            .maybeSingle();
 
-    if (error) throw error;
-    return data;
+        if (error) throw error;
+
+        if (data) {
+            return data;
+        }
+
+        if (attempt < maxRetries - 1) {
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+    }
+
+    throw new Error(ACCOUNT_NOT_READY_ERROR);
 };
 
 // Main fetcher function with unique name
@@ -133,20 +145,40 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     );
 
     // Helper function to wait for account data to be created
-    const waitForAccountData = async (phone: number, maxRetries = 5, retryDelay = 1000) => {
+    const waitForAccountData = async (
+        {
+            authId,
+            phone
+        }: { authId?: string; phone?: number },
+        maxRetries = 8,
+        retryDelay = 400
+    ) => {
+        if (!authId && !phone) {
+            throw new Error('Missing account lookup information');
+        }
+
         for (let i = 0; i < maxRetries; i++) {
             try {
-                const {data, error} = await supabase
+                let query = supabase
                     .from("accounts")
-                    .select("*")
-                    .eq("phone", phone)
-                    .single();
+                    .select("*");
+
+                if (authId) {
+                    query = query.eq("authId", authId);
+                } else if (typeof phone === 'number') {
+                    query = query.eq("phone", phone);
+                }
+
+                const {data, error} = await query.maybeSingle();
+
+                if (error) {
+                    throw error;
+                }
 
                 if (data) {
                     return data;
                 }
 
-                // Wait before retrying
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
             } catch (err) {
                 if (i === maxRetries - 1) throw err;
@@ -418,7 +450,6 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // For signup flow, create the account
             if (type === "signup" && session?.access_token) {
                 try {
-                    // Account creation API call
                     await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
                         {phone, password},
                         {
@@ -429,10 +460,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         }
                     );
 
-                    // Wait for the account data to be available in the database
-                    await waitForAccountData(phone);
+                    await waitForAccountData({
+                        authId: session.user.id,
+                        phone,
+                    });
 
-                    // Force revalidation of user data
                     await mutateUser();
                 } catch (apiError) {
                     logger.error('Error in account creation process:', apiError);
@@ -467,21 +499,15 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             try {
                 setIsAccountCreating(true);
 
-                // Simulate slow connection
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
                 const {data, error} = await supabase.auth.signUp({
                     phone: "+237" + phone.toString(),
                     password
                 });
-
-                // make the logic that create the account
+                posthogService.trackSignupStarted('phone');
 
                 if (data.session) {
                     try {
-                        // Account creation API call
                         await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
-                            // await axios.post('http://192.168.1.168:3000/api/mobile/auth/createAccount',
                             {phone, password},
                             {
                                 headers: {
@@ -492,22 +518,12 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                             }
                         );
 
-                        // Wait for the account data to be available in the database
+                        await waitForAccountData({
+                            authId: data.session.user.id,
+                            phone,
+                        });
 
-                        try {
-                            // Simulate slow connection
-                            await new Promise(resolve => setTimeout(resolve, 2000));
-
-                            await waitForAccountData(phone);
-
-                        } catch (error) {
-                            // Silently handle account data waiting errors
-                        }
-
-                        // Force revalidation of user data
                         await mutateUser();
-
-                        // Track sign up event
                         posthogService.trackSignupCompleted('phone');
                     } catch (apiError) {
                         logger.error('Error in account creation process:', apiError);
@@ -516,6 +532,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                         setIsAccountCreating(false);
                         setIsLoading(false);
                     }
+
+                    return;
                 }
 
                 if (error) {
@@ -523,8 +541,12 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     setIsLoading(false);
                     throw error;
                 }
+
+                setIsAccountCreating(false);
+                setIsLoading(false);
             } catch (error) {
                 logger.error("Sign up exception:", error);
+                setIsAccountCreating(false);
                 setIsLoading(false);
                 throw error;
             }

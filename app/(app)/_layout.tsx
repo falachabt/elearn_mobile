@@ -6,6 +6,7 @@ import {
     GestureResponderEvent,
     Platform,
     StyleSheet,
+    Text,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -20,7 +21,7 @@ import {LoadingAnimation} from "@/components/shared/LoadingAnimation1";
 import RatingModal from '@/components/RatingModal';
 
 export default function AppLayout() {
-    const {session, isLoading, user} = useAuth();
+    const {session, isLoading, user, mutateUser, signOut} = useAuth();
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme != 'light';
     const {mutate} = useSWRConfig();
@@ -78,7 +79,7 @@ export default function AppLayout() {
     }
 
     // Show loading indicator when we have session but user data is still loading
-    if (isLoading || (session && !user)) {
+    if (isLoading) {
         return (
             <View style={{
                 flex: 1,
@@ -87,6 +88,44 @@ export default function AppLayout() {
                 backgroundColor: isDarkMode ? theme.color.dark.background.primary : theme.color.light.background.primary
             }}>
                 <LoadingAnimation isDarkMode={isDarkMode}/>
+            </View>
+        );
+    }
+
+    if (session && !user) {
+        return (
+            <View style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                paddingHorizontal: 24,
+                backgroundColor: isDarkMode ? theme.color.dark.background.primary : theme.color.light.background.primary
+            }}>
+                <LoadingAnimation isDarkMode={isDarkMode}/>
+                <Text style={[styles.accountStatusTitle, {color: isDarkMode ? '#F8FAFC' : '#0F172A'}]}>
+                    Finalisation de votre compte
+                </Text>
+                <Text style={[styles.accountStatusText, {color: isDarkMode ? '#CBD5E1' : '#475569'}]}>
+                    Votre session est ouverte, mais vos donnees de profil ne sont pas encore pretes.
+                </Text>
+                <TouchableOpacity
+                    style={styles.accountStatusPrimaryButton}
+                    onPress={() => {
+                        void mutateUser();
+                    }}
+                >
+                    <Text style={styles.accountStatusPrimaryButtonText}>Reessayer</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.accountStatusSecondaryButton}
+                    onPress={() => {
+                        void signOut();
+                    }}
+                >
+                    <Text style={[styles.accountStatusSecondaryButtonText, {color: isDarkMode ? '#E2E8F0' : '#334155'}]}>
+                        Se deconnecter
+                    </Text>
+                </TouchableOpacity>
             </View>
         );
     }
@@ -291,5 +330,51 @@ const styles = StyleSheet.create({
     tabButtonContentActive: {
         fontFamily: "Outfit",
         backgroundColor: `${theme.color.primary[500]}10`,
+    },
+    accountStatusTitle: {
+        marginTop: 24,
+        textAlign: 'center',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 20,
+        fontWeight: '700',
+    },
+    accountStatusText: {
+        marginTop: 12,
+        marginBottom: 24,
+        textAlign: 'center',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    accountStatusPrimaryButton: {
+        minWidth: 180,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: theme.border.radius.small,
+        backgroundColor: theme.color.primary[500],
+    },
+    accountStatusPrimaryButtonText: {
+        color: '#FFFFFF',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    accountStatusSecondaryButton: {
+        minWidth: 180,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: theme.border.radius.small,
+        marginTop: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(148, 163, 184, 0.35)',
+    },
+    accountStatusSecondaryButtonText: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: '600',
     },
 });
