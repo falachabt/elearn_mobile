@@ -30,6 +30,7 @@ import { useAuth } from "@/contexts/auth";
 import { AccountsInput } from "@/types/type";
 import { theme } from "@/constants/theme";
 import { useCart } from "@/hooks/useCart";
+import { useCustomRouter } from "@/hooks/useCustomRouter";
 
 
 // Get screen dimensions
@@ -55,9 +56,10 @@ const STATUSBAR_HEIGHT = Platform.OS === 'ios'
 const MainOnboarding = () => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const router = useCustomRouter();
 
   const [step, setStep] = useState(1);
-  const { user, signOut } = useAuth();
+  const { user, markOnboardingCompleted } = useAuth();
   const [knowsProgram, setKnowsProgram] = useState(false);
   const userInfoFormRef = useRef<{ validate: () => boolean } | null>(null);
   const [userInfo, setUserInfo] = useState<AccountsInput | null>(null);
@@ -240,7 +242,7 @@ const MainOnboarding = () => {
     if (!isDataValid || !mergedAccountData || !user?.id) return false;
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
           .from('accounts')
           .update(mergedAccountData)
           .eq('id', user.id)
@@ -301,11 +303,25 @@ const MainOnboarding = () => {
   ];
 
   const handleSkipOnboarding = async () => {
-    if (user) {
+    if (!user) return false;
+
+    try {
       setIsOnboardingLoading(true);
-      await supabase.from("accounts").update({
-        onboarding_done: true,
-      }).eq("id", user.id);
+      const { error } = await supabase
+        .from("accounts")
+        .update({
+          onboarding_done: true,
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      await markOnboardingCompleted();
+      return true;
+    } catch (error) {
+      logger.error("Error completing onboarding:", error);
+      return false;
+    } finally {
       setIsOnboardingLoading(false);
     }
   }
@@ -319,11 +335,12 @@ const MainOnboarding = () => {
         await updateAccountInDatabase();
         if (Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web') {
           setIsEndingOnboarding(true);
-          await handleSkipOnboarding();
+          const completed = await handleSkipOnboarding();
+          setIsEndingOnboarding(false);
 
-          setTimeout(() => {
-            setIsEndingOnboarding(false);
-          }, 1500);
+          if (completed) {
+            router.replace('/(app)');
+          }
           return; // Stop here at step 3
         }
       }
@@ -529,7 +546,12 @@ const MainOnboarding = () => {
                           styles.modalButton,
                           isDark && styles.secondaryButtonDark
                         ]}
-                        onPress={() => handleSkipOnboarding()}
+                        onPress={async () => {
+                          const completed = await handleSkipOnboarding();
+                          if (completed) {
+                            router.replace('/(app)');
+                          }
+                        }}
                     >
                       {isOnboardingLoading ? (
                           <ActivityIndicator color={theme.color.primary[500]} />

@@ -1,12 +1,13 @@
 ﻿import React from 'react';
 import {
-    View,
     Text,
     TouchableOpacity,
     StyleSheet,
     useColorScheme,
     Linking,
     Alert,
+    StyleProp,
+    ViewStyle,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -16,11 +17,13 @@ import { theme } from '@/constants/theme';
 interface WhatsAppContactProps {
     phoneNumber?: string;
     message?: string;
-    style?: any;
+    style?: StyleProp<ViewStyle>;
 }
 
+export const DEFAULT_WHATSAPP_SUPPORT_NUMBER = '+237 6 51 05 56 63';
+
 const WhatsAppContact: React.FC<WhatsAppContactProps> = ({
-                                                             phoneNumber = '+237 6 57 27 37 53',
+                                                             phoneNumber = DEFAULT_WHATSAPP_SUPPORT_NUMBER,
                                                              message = '',
                                                              style
                                                          }) => {

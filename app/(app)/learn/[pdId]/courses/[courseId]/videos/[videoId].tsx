@@ -133,7 +133,7 @@ const VideoPlayerScreen = () => {
     const [isFallbackWebViewLoaded, setIsFallbackWebViewLoaded] = useState(false);
     const { playClick } = useSound();
     const { trigger } = useHaptics();
-    const [isEnrolled, setIsEnrolled] = useState(false);
+    const [isEnrolled, setIsEnrolled] = useState<boolean | null>(null);
     const { isLearningPathEnrolled } = useUser();
 
     // Check if user is enrolled in this program
@@ -394,8 +394,7 @@ const VideoPlayerScreen = () => {
         );
     }
 
-    // Optional: Add a loading state while checking enrollment
-    if (typeof isEnrolled === 'undefined') {
+    if (isEnrolled === null) {
         return (
             <View style={[styles.loadingContainer, isDarkMode && styles.loadingContainerDark]}>
                 <ActivityIndicator size="large" color={theme.color.primary[500]} />
@@ -404,8 +403,7 @@ const VideoPlayerScreen = () => {
         );
     }
 
-    // Check if user is not enrolled and this is not the first video
-    if (!isEnrolled && currentVideoIndex > 0) {
+    if (!isEnrolled) {
         return (
             <LockedContent 
                 isDarkMode={isDarkMode} 

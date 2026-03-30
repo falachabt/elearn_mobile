@@ -29,6 +29,7 @@ import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';
 import {useTicketMessages} from "@/hooks/useSupportTicket";
 import { Message } from '@/hooks/useSupportTicket';
+import { DEFAULT_WHATSAPP_SUPPORT_NUMBER } from '@/components/WhatsappSupport';
 // Types
 interface ContactInfo {
     title: string;
@@ -44,7 +45,7 @@ interface ContactInfo {
 const contactNumbers: ContactInfo[] = [
     {
         title: 'Support Technique',
-        number: '+237 6 57 27 37 53',
+        number: DEFAULT_WHATSAPP_SUPPORT_NUMBER,
         hours: 'Lun-Ven: 9h-18h',
         description: 'Pour toute assistance technique avec la plateforme'
     },

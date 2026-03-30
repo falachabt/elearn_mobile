@@ -93,6 +93,39 @@ const EmptyState = ({type, isDark}: { type: ViewType; isDark: boolean; }) => {
     );
 };
 
+const LockedAccessPanel = ({
+    isDark,
+    title,
+    description,
+    onPurchase,
+}: {
+    isDark: boolean;
+    title: string;
+    description: string;
+    onPurchase: () => void;
+}) => (
+    <View style={[styles.lockedPanel, isDark && styles.lockedPanelDark]}>
+        <View style={[styles.lockedIconWrap, isDark && styles.lockedIconWrapDark]}>
+            <MaterialCommunityIcons
+                name="lock"
+                size={28}
+                color={isDark ? "#6EE7B7" : "#65B741"}
+            />
+        </View>
+        <ThemedText style={[styles.lockedTitle, isDark && styles.lockedTitleDark]}>
+            {title}
+        </ThemedText>
+        <ThemedText style={[styles.lockedDescription, isDark && styles.lockedDescriptionDark]}>
+            {description}
+        </ThemedText>
+        <Pressable style={styles.lockedButton} onPress={onPurchase}>
+            <ThemedText style={styles.lockedButtonText}>
+                Acheter le programme
+            </ThemedText>
+        </Pressable>
+    </View>
+);
+
 const CourseDetail = () => {
     const router = useCustomRouter();
     const {courseId, pdId} = useLocalSearchParams();
@@ -413,8 +446,18 @@ const CourseDetail = () => {
                     return <EmptyState type="videos" isDark={isDark}/>;
                 }
 
-                // En mode aperçu, afficher uniquement la première vidéo
-                const visibleVideos = isPreviewMode ? videos.slice(0, 1) : videos;
+                if (!isEnrolled) {
+                    return (
+                        <LockedAccessPanel
+                            isDark={isDark}
+                            title="Videos reservees aux inscrits"
+                            description="Les videos du cours sont accessibles uniquement apres inscription au programme."
+                            onPurchase={handlePurchaseFlow}
+                        />
+                    );
+                }
+
+                const visibleVideos = videos;
 
                 const videoItems = visibleVideos.map((video, index) => (
                     <Pressable
@@ -465,38 +508,6 @@ const CourseDetail = () => {
                         />
                     </Pressable>
                 ));
-
-                // Bannière d'achat si mode aperçu et plus d'une vidéo
-                if (isPreviewMode && videos.length > 1) {
-                    return (
-                        <>
-                            {videoItems}
-                            <View style={[styles.previewBanner, isDark && styles.previewBannerDark]}>
-                                <MaterialCommunityIcons
-                                    name="lock"
-                                    size={24}
-                                    color={isDark ? "#6EE7B7" : "#65B741"}
-                                />
-                                <View style={styles.previewBannerTextContainer}>
-                                    <ThemedText style={[styles.previewBannerTitle, isDark && styles.previewBannerTitleDark]}>
-                                        Accédez à {videos.length - 1} vidéos supplémentaires
-                                    </ThemedText>
-                                    <ThemedText style={styles.previewBannerDescription}>
-                                        Achetez ce programme pour débloquer toutes les vidéos
-                                    </ThemedText>
-                                </View>
-                                <Pressable
-                                    style={styles.previewBannerButton}
-                                    onPress={handlePurchaseFlow}
-                                >
-                                    <ThemedText style={styles.previewBannerButtonText}>
-                                        Acheter
-                                    </ThemedText>
-                                </Pressable>
-                            </View>
-                        </>
-                    );
-                }
 
                 return videoItems;
 
@@ -1218,6 +1229,66 @@ const styles = StyleSheet.create({
         textAlign: "center",
         color: "#6B7280",
         maxWidth: "80%",
+    },
+    lockedPanel: {
+        marginHorizontal: 16,
+        marginTop: 12,
+        padding: 24,
+        borderRadius: 16,
+        alignItems: "center",
+        backgroundColor: "#F8FAFC",
+        borderWidth: 1,
+        borderColor: "#E2E8F0",
+    },
+    lockedPanelDark: {
+        backgroundColor: "#111827",
+        borderColor: "#1F2937",
+    },
+    lockedIconWrap: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#ECFDF5",
+        marginBottom: 16,
+    },
+    lockedIconWrapDark: {
+        backgroundColor: "#052E2B",
+    },
+    lockedTitle: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 18,
+        fontWeight: "700",
+        textAlign: "center",
+        color: "#0F172A",
+    },
+    lockedTitleDark: {
+        color: "#F8FAFC",
+    },
+    lockedDescription: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        lineHeight: 20,
+        textAlign: "center",
+        color: "#475569",
+        marginTop: 8,
+        marginBottom: 20,
+    },
+    lockedDescriptionDark: {
+        color: "#CBD5E1",
+    },
+    lockedButton: {
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderRadius: 12,
+        backgroundColor: theme.color.primary[500],
+    },
+    lockedButtonText: {
+        color: "#FFFFFF",
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 14,
+        fontWeight: "700",
     },
 });
 

@@ -443,7 +443,7 @@ const EnhancedQuizScreen = () => {
             const matchesCategory = selectedCategory === "all" || quiz.category?.name === selectedCategory;
             return matchesSearch && matchesCategory;
         });
-        return isEnrolled ? filteredList : filteredList.slice(0, 2);
+        return isEnrolled ? filteredList : filteredList.slice(0, 1);
     }, [quizzesWithProgress, searchQuery, selectedCategory, isEnrolled]);
 
     // Handle back button press
@@ -705,7 +705,7 @@ const EnhancedQuizScreen = () => {
                     {opacity: fadeAnim}
                 ]}
             >
-                {!isEnrolled && quizzesWithProgress.length > 2 &&
+                {!isEnrolled && quizzesWithProgress.length > 1 &&
                     <View style={[styles.previewBanner, isDark && styles.previewBannerDark]}>
                         <MaterialCommunityIcons
                             name="lock"

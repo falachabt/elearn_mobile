@@ -52,6 +52,7 @@ type AuthContextType = {
     signUp: (phone: number | undefined, password: string) => Promise<void>
     verifyOtp: (phone: number, token: string, password: string, type?: string) => Promise<void>
     mutateUser: () => Promise<Account | null | undefined>
+    markOnboardingCompleted: () => Promise<void>
     checkStreak: () => Promise<void>
     setIsAccountCreating: (isCreating: boolean) => void
 }
@@ -578,6 +579,20 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         }
     };
 
+    const markOnboardingCompleted = async () => {
+        await mutateUser(
+            (current) =>
+                current
+                    ? ({
+                          ...current,
+                          onboarding_done: true,
+                      } as Account)
+                    : current,
+            { revalidate: false }
+        );
+        setIsLoading(false);
+    };
+
     // Provide auth context
     const value: AuthContextType = {
         user: user || null,
@@ -588,6 +603,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         signUp,
         verifyOtp,
         mutateUser: async () => await mutateUser(),
+        markOnboardingCompleted,
         checkStreak,
         setIsAccountCreating,
     };
