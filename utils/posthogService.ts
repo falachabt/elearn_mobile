@@ -13,6 +13,8 @@ import { posthog } from '@/lib/posthog';
 
 export interface PostHogUserProperties {
   email?: string;
+  name?: string;
+  phone?: string;
   user_type?: 'student' | 'admin';
   created_at?: string;
   total_courses_enrolled?: number;

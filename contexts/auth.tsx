@@ -309,6 +309,8 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         // Identify user with user properties
         posthogService.identify(user.id, {
           email: user.email,
+          name: (user.lastname || user.firstname) ? `${user.firstname} ${user.lastname}` : user.phone,
+          phone : user.phone,
           user_type: user.type === 'admin' ? 'admin' : 'student',
           total_courses_enrolled: user.coursesenrolled?.length || 0,
           courses_completed: user.coursescompleted?.length || 0,
