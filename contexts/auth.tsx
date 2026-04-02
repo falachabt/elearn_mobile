@@ -564,6 +564,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         try {
             setIsLoading(true);
             streakCheckedRef.current = false;
+            setIsAccountCreating(false);
 
             // Track logout event before signing out
             posthogService.trackLogout();
@@ -572,9 +573,14 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             posthogService.reset();
             resetPostHogUser();
 
-            const {error} = await supabase.auth.signOut();
+            // Clear local auth state immediately so protected routes react
+            // even if the Supabase auth event is delayed on some platforms.
+            setSession(null);
+            await mutateUser(null, { revalidate: false });
+
+            const {error} = await supabase.auth.signOut({ scope: 'local' });
             if (error) throw error;
-            // Session will be updated by the onAuthStateChange listener
+            setIsLoading(false);
         } catch (error) {
             setIsLoading(false);
             throw error;
