@@ -128,6 +128,7 @@ const MyLearningPaths = () => {
     const colorScheme = useColorScheme()
     const isDarkMode = colorScheme === 'dark'
     const [searchQuery, setSearchQuery] = useState('')
+    const [isSearchVisible, setIsSearchVisible] = useState(false)
     const [selectedTab, setSelectedTab] = useState<LearnTab>('available')
     const hasInitializedTab = useRef(false)
 
@@ -398,39 +399,69 @@ const MyLearningPaths = () => {
     return (
         <View style={[styles.container, isDarkMode && styles.containerDark]}>
             <View style={[styles.header, isDarkMode && styles.headerDark]}>
-                <Text style={[styles.title, isDarkMode && styles.titleDark]}>
-                    Concours
-                </Text>
-                <Text style={[styles.subtitle, isDarkMode && styles.subtitleDark]}>
-                    Retrouvez vos concours et ceux disponibles
-                </Text>
-            </View>
+                <View style={styles.headerTopRow}>
+                    <View style={styles.headerTextBlock}>
+                        <Text style={[styles.title, isDarkMode && styles.titleDark]}>
+                            Concours
+                        </Text>
+                        <Text
+                            style={[styles.subtitle, isDarkMode && styles.subtitleDark]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.85}
+                        >
+                            Retrouvez vos concours et ceux disponibles
+                        </Text>
+                    </View>
 
-            <View style={[styles.searchContainer, isDarkMode && styles.searchContainerDark]}>
-                <View style={[styles.searchInputWrapper, isDarkMode && styles.searchInputWrapperDark]}>
-                    <MaterialCommunityIcons 
-                        name="magnify" 
-                        size={20} 
-                        color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
-                    />
-                    <TextInput
-                        style={[styles.searchInput, isDarkMode && styles.searchInputDark]}
-                        placeholder="Rechercher un concours..."
-                        placeholderTextColor={isDarkMode ? '#CCCCCC' : '#6B7280'}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                    {searchQuery.length > 0 && (
-                        <Pressable onPress={() => setSearchQuery('')}>
-                            <MaterialCommunityIcons 
-                                name="close-circle" 
-                                size={20} 
-                                color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
-                            />
-                        </Pressable>
-                    )}
+                    <Pressable
+                        style={[styles.searchToggleButton, isDarkMode && styles.searchToggleButtonDark]}
+                        onPress={() => {
+                            if (isSearchVisible && searchQuery.length > 0) {
+                                setSearchQuery('')
+                            }
+                            setIsSearchVisible((current) => !current)
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel={isSearchVisible ? 'Fermer la recherche' : 'Ouvrir la recherche'}
+                    >
+                        <MaterialCommunityIcons
+                            name={isSearchVisible ? 'close' : 'magnify'}
+                            size={18}
+                            color={isDarkMode ? '#E2E8F0' : '#374151'}
+                        />
+                    </Pressable>
                 </View>
             </View>
+
+            {isSearchVisible && (
+                <View style={[styles.searchContainer, isDarkMode && styles.searchContainerDark]}>
+                    <View style={[styles.searchInputWrapper, isDarkMode && styles.searchInputWrapperDark]}>
+                        <MaterialCommunityIcons 
+                            name="magnify" 
+                            size={20} 
+                            color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
+                        />
+                        <TextInput
+                            style={[styles.searchInput, isDarkMode && styles.searchInputDark]}
+                            placeholder="Rechercher un concours..."
+                            placeholderTextColor={isDarkMode ? '#CCCCCC' : '#6B7280'}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            autoFocus
+                        />
+                        {searchQuery.length > 0 && (
+                            <Pressable onPress={() => setSearchQuery('')}>
+                                <MaterialCommunityIcons 
+                                    name="close-circle" 
+                                    size={20} 
+                                    color={isDarkMode ? '#CCCCCC' : '#6B7280'} 
+                                />
+                            </Pressable>
+                        )}
+                    </View>
+                </View>
+            )}
 
             <View style={[styles.tabsContainer, isDarkMode && styles.tabsContainerDark]}>
                 <Pressable
@@ -608,6 +639,30 @@ const styles = StyleSheet.create({
     },
     containerDark: {
         backgroundColor: theme.color.dark.background.primary,
+    },
+    headerTopRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    headerTextBlock: {
+        flex: 1,
+        minWidth: 0,
+    },
+    searchToggleButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 40,
+        height: 40,
+        borderRadius: 999,
+        backgroundColor: '#F3F4F6',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    searchToggleButtonDark: {
+        backgroundColor: theme.color.dark.background.primary,
+        borderColor: theme.color.dark.border,
     },
     searchContainer: {
         paddingHorizontal: 16,

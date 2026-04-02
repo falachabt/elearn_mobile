@@ -15,6 +15,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 const Lottie = Platform.OS !== 'web' ? require("lottie-react-native").default : null;
+const WebLottie = Platform.OS === "web" ? require("@lottiefiles/dotlottie-react").DotLottieReact : null;
+const welcomeAnimation = require("@/assets/lotties/welcome.json");
+const welcomeAnimationData = JSON.stringify(welcomeAnimation);
 import { Link } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Head from "expo-router/head";
@@ -246,22 +249,36 @@ const DefaultStartPage = ({
           </Animated.View>
 
           {/* Animated Illustration */}
-          <Animated.View
-            style={[
-              styles(dimensions, isDark).illustrationWrapper,
-              { opacity: fadeAnim },
-            ]}
-          >
-            {Lottie ? (
+          {Platform.OS === "web" && WebLottie ? (
+            <Animated.View
+              style={[
+                styles(dimensions, isDark).illustrationWrapper,
+                { opacity: fadeAnim },
+              ]}
+            >
+              <WebLottie
+                data={welcomeAnimationData}
+                autoplay
+                loop
+                style={styles(dimensions, isDark).lottie}
+              />
+            </Animated.View>
+          ) : Lottie ? (
+            <Animated.View
+              style={[
+                styles(dimensions, isDark).illustrationWrapper,
+                { opacity: fadeAnim },
+              ]}
+            >
               <Lottie
-                source={require("@/assets/lotties/welcome.json")}
+                source={welcomeAnimation}
                 autoPlay
                 loop
                 style={styles(dimensions, isDark).lottie}
                 resizeMode="contain"
               />
-            ) : null}
-          </Animated.View>
+            </Animated.View>
+          ) : null}
 
           {/* Welcome Message */}
           <Animated.View
@@ -284,8 +301,7 @@ const DefaultStartPage = ({
                 isDark && styles(dimensions, isDark).textGray,
               ]}
             >
-              Votre voyage éducatif commence ici. Découvrez des contenus de
-              qualité et suivez votre progression.
+              Préparez vos concours avec des contenus de qualité.
             </Text>
           </Animated.View>
 
@@ -411,8 +427,10 @@ const StartPage = () => {
 const styles = (
   dimensions: { width: number; height: number },
   isDark: boolean
-) =>
-  StyleSheet.create({
+) => {
+  const illustrationSize = Math.min(280, dimensions.width * 0.8, dimensions.height * 0.28);
+
+  return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: "#FFFFFF",
@@ -437,12 +455,13 @@ const styles = (
       paddingBottom: Platform.select({ ios: 20, android: 10 }),
     },
     logoSection: {
-      flexDirection: "row",
+      flexDirection: dimensions.width < 430 ? "column" : "row",
       alignItems: "center",
+      justifyContent: "center",
       marginBottom: dimensions.height * 0.02,
       width: "100%",
       maxWidth: 400,
-      paddingHorizontal: dimensions.width < 375 ? 5 : 10,
+      paddingHorizontal: dimensions.width < 430 ? 0 : dimensions.width < 375 ? 5 : 10,
     },
     logo: {
       width: dimensions.width < 375 ? 60 : 80,
@@ -450,31 +469,35 @@ const styles = (
       borderRadius: 16,
     },
     brandingContainer: {
-      marginLeft: dimensions.width < 375 ? 10 : 15,
-      flex: 1,
+      marginLeft: dimensions.width < 430 ? 0 : dimensions.width < 375 ? 10 : 15,
+      marginTop: dimensions.width < 430 ? 12 : 0,
+      flex: dimensions.width < 430 ? 0 : 1,
+      alignItems: dimensions.width < 430 ? "center" : "flex-start",
     },
     appName: {
       fontFamily: theme.typography.fontFamily,
       fontSize: dimensions.width < 375 ? 20 : 24,
       fontWeight: "bold",
       color: "#1A1A1A",
+      textAlign: dimensions.width < 430 ? "center" : "left",
     },
     tagline: {
       fontFamily: theme.typography.fontFamily,
       fontSize: dimensions.width < 375 ? 14 : 16,
       color: "#666666",
       marginTop: 4,
+      textAlign: dimensions.width < 430 ? "center" : "left",
     },
     illustrationWrapper: {
       width: "100%",
-      height: Math.min(220, dimensions.height * 0.25),
+      height: illustrationSize,
       justifyContent: "center",
       alignItems: "center",
       marginBottom: dimensions.height * 0.03,
     },
     lottie: {
-      width: Math.min(280, dimensions.width * 0.8),
-      height: Math.min(280, dimensions.width * 0.8),
+      width: illustrationSize,
+      height: illustrationSize,
     },
     messageContainer: {
       width: "100%",
@@ -562,5 +585,6 @@ const styles = (
       color: "#CCCCCC",
     },
   });
+};
 
 export default StartPage;
