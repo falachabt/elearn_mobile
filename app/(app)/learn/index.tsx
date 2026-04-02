@@ -449,6 +449,8 @@ const MyLearningPaths = () => {
                             isDarkMode && styles.tabButtonTextDark,
                             isDarkMode && selectedTab === 'enrolled' && styles.tabButtonTextActiveDark,
                         ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
                     >
                         Mes concours
                     </Text>
@@ -487,6 +489,8 @@ const MyLearningPaths = () => {
                             isDarkMode && styles.tabButtonTextDark,
                             isDarkMode && selectedTab === 'available' && styles.tabButtonTextActiveDark,
                         ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
                     >
                         Concours disponibles
                     </Text>
@@ -631,6 +635,7 @@ const styles = StyleSheet.create({
     },
     tabButton: {
         flex: 1,
+        minWidth: 0,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -655,10 +660,14 @@ const styles = StyleSheet.create({
         borderColor: '#22C55E',
     },
     tabButtonText: {
+        flex: 1,
+        minWidth: 0,
+        flexShrink: 1,
         fontFamily: theme.typography.fontFamily,
         fontSize: 14,
         fontWeight: '700',
         color: '#374151',
+        textAlign: 'center',
     },
     tabButtonTextDark: {
         color: '#CBD5E1',
@@ -672,6 +681,7 @@ const styles = StyleSheet.create({
     tabCount: {
         minWidth: 24,
         height: 24,
+        flexShrink: 0,
         borderRadius: 999,
         alignItems: 'center',
         justifyContent: 'center',
