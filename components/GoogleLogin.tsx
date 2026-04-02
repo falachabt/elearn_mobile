@@ -60,12 +60,14 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
                 const url = result.url;
                 logger.log('[GoogleAuth] Callback URL:', url);
 
-                // Extraire les tokens depuis l'URL de callback (soit hash fragment, soit query params)
+                // Extraire les tokens ou le code OAuth depuis l'URL de callback
                 let accessToken: string | null = null;
                 let refreshToken: string | null = null;
+                let code: string | null = null;
 
                 try {
                     const parsedUrl = new URL(url);
+                    code = parsedUrl.searchParams.get('code');
 
                     // Tokens dans le hash fragment (#access_token=...&refresh_token=...)
                     if (parsedUrl.hash) {
@@ -83,7 +85,21 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
                     logger.error('[GoogleAuth] Error parsing callback URL:', parseError);
                 }
 
-                if (accessToken && refreshToken) {
+                if (code) {
+                    logger.log('[GoogleAuth] Exchanging authorization code for session');
+
+                    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+                    if (exchangeError) {
+                        logger.error('[GoogleAuth] Error exchanging code for session:', exchangeError);
+                        throw exchangeError;
+                    }
+
+                    logger.log('[GoogleAuth] Session created from authorization code');
+                    if (onAuthSuccess) {
+                        onAuthSuccess();
+                    }
+                } else if (accessToken && refreshToken) {
                     logger.log('[GoogleAuth] Setting session with tokens from callback URL');
                     const { error: sessionError } = await supabase.auth.setSession({
                         access_token: accessToken,

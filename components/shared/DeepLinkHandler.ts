@@ -49,7 +49,16 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
 
                     // If there's a code/token, process the authentication
                     if (params.access_token || params.refresh_token || params.code) {
-                        if (params.access_token && params.refresh_token) {
+                        if (params.code) {
+                            const { error } = await supabase.auth.exchangeCodeForSession(params.code);
+
+                            if (error) {
+                                logger.error('Error exchanging OAuth code:', error);
+                                onAuthError?.(new Error(`Failed to exchange OAuth code: ${error.message}`));
+                            } else {
+                                onAuthSuccess?.();
+                            }
+                        } else if (params.access_token && params.refresh_token) {
                             // Direct token exchange (more common with OAuth)
                             const { error } = await supabase.auth.setSession({
                                 access_token: params.access_token,

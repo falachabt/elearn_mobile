@@ -21,6 +21,9 @@ export default function OAuthCallbackScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
+  const getParamValue = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value;
+
   useEffect(() => {
     handleOAuthCallback();
   }, []);
@@ -28,6 +31,19 @@ export default function OAuthCallbackScreen() {
   const handleOAuthCallback = async () => {
     try {
       logger.log('[OAuthCallback] Params received:', params);
+
+      const code = getParamValue(params.code);
+
+      if (code) {
+        logger.log('[OAuthCallback] Exchanging authorization code for session');
+
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (exchangeError) {
+          logger.error('[OAuthCallback] Code exchange error:', exchangeError);
+          throw exchangeError;
+        }
+      }
 
       // Vérifier si on a déjà une session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
