@@ -23,7 +23,6 @@ import Head from "expo-router/head";
 import { useAuth } from "@/contexts/auth";
 import { theme } from "@/constants/theme";
 import GoogleAuth from "@/components/GoogleLogin";
-import { AppleLogin } from "@/components/AppleLogin";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import WhatsAppContact from "@/components/WhatsappSupport";
 
@@ -139,6 +138,7 @@ export default function Login() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { trigger } = useHaptics();
+  const showGoogleAuth = Platform.OS !== "ios";
 
   // States
   const [phone, setPhone] = useState("");
@@ -363,6 +363,35 @@ export default function Login() {
             </Text>
           </View>
 
+          {showGoogleAuth && (
+            <View style={styles.socialSection}>
+              <View style={styles.socialButtons}>
+                <GoogleAuth onAuthSuccess={() => router.push("/")}>
+                  <View style={[styles.socialButton, styles.googleButton]}>
+                    <MaterialCommunityIcons
+                      name="google"
+                      size={20}
+                      color="white"
+                    />
+                    <Text style={styles.socialButtonText}>Google</Text>
+                  </View>
+                </GoogleAuth>
+              </View>
+
+              <View style={styles.divider}>
+                <View
+                  style={[styles.dividerLine, isDark && styles.dividerLineDark]}
+                />
+                <Text style={[styles.dividerText, isDark && styles.textGray]}>
+                  ou continuer avec
+                </Text>
+                <View
+                  style={[styles.dividerLine, isDark && styles.dividerLineDark]}
+                />
+              </View>
+            </View>
+          )}
+
           {/* Form Section */}
           <View style={styles.form}>
             {/* Phone Input */}
@@ -556,43 +585,6 @@ export default function Login() {
               )}
             </Pressable>
 
-            {/* Social Login Section */}
-            {Platform.OS !== "ios" && (
-              <View style={styles.socialSection}>
-                <View style={styles.divider}>
-                  <View
-                    style={[
-                      styles.dividerLine,
-                      isDark && styles.dividerLineDark,
-                    ]}
-                  />
-                  <Text style={[styles.dividerText, isDark && styles.textGray]}>
-                    ou continuer avec
-                  </Text>
-                  <View
-                    style={[
-                      styles.dividerLine,
-                      isDark && styles.dividerLineDark,
-                    ]}
-                  />
-                </View>
-
-                <View style={styles.socialButtons}>
-                  <GoogleAuth onAuthSuccess={() => router.push("/")}>
-                    <View style={[styles.socialButton, styles.googleButton]}>
-                      <MaterialCommunityIcons
-                        name="google"
-                        size={20}
-                        color="white"
-                      />
-                      <Text style={styles.socialButtonText}>Google</Text>
-                    </View>
-                  </GoogleAuth>
-
-                  <AppleLogin />
-                </View>
-              </View>
-            )}
             {/* Register Link */}
             <View style={styles.registerSection}>
               <Text style={[styles.registerText, isDark && styles.textGray]}>
@@ -770,7 +762,7 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
+   marginVertical : 24,
   },
   dividerLine: {
     flex: 1,
