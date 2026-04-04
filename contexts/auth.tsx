@@ -6,8 +6,8 @@ import useSWR from 'swr'
 import { useAppConfig } from './useAppConfig'
 
 import {supabase} from '@/lib/supabase'
-import {Accounts, tables, UserXp} from '@/types/type'
-import { trackEvent, Events, setUserId, resetPostHogUser } from '@/utils/analytics'
+import {Accounts, UserXp} from '@/types/type'
+import { setUserId, resetPostHogUser } from '@/utils/analytics'
 import { registerForPushNotificationsAsync, setupNotifications } from '@/utils/pushNotifications'
 import { posthogService } from '@/utils/posthogService'
 import { logger } from '@/utils/logger'
@@ -47,6 +47,7 @@ type AuthContextType = {
     session: Session | null
     user: Account | null
     isLoading: boolean
+    ensureSessionAccount: () => Promise<void>
     signIn: (phone: string, password: string) => Promise<void>
     signOut: () => Promise<void>
     signUp: (phone: number | undefined, password: string) => Promise<void>
@@ -60,9 +61,25 @@ type AuthContextType = {
 // Create context with unique name
 const AuthProviderContext = createContext<AuthContextType | undefined>(undefined)
 const ACCOUNT_NOT_READY_ERROR = 'ACCOUNT_NOT_READY'
+const DEFAULT_PHONE_COUNTRY_CODE = '237'
+
+const normalizePhoneForAuth = (phone: string | number | null | undefined) => {
+    if (phone === null || phone === undefined) return ''
+
+    const rawValue = String(phone).trim()
+    if (!rawValue) return ''
+
+    const digits = rawValue.replace(/\D/g, '')
+    if (!digits) return ''
+
+    if (rawValue.startsWith('+') || digits.startsWith(DEFAULT_PHONE_COUNTRY_CODE)) {
+        return `+${digits}`
+    }
+
+    return `+${DEFAULT_PHONE_COUNTRY_CODE}${digits}`
+}
 
 // SWR fetcher functions with unique names
-// @ts-ignore
 const getUserEnrollments = async (userId: string) => {
     const {data, error} = await supabase
         .from('user_program_enrollments')
@@ -73,7 +90,7 @@ const getUserEnrollments = async (userId: string) => {
     return data;
 }
 
-const getUserAccountData = async (authId: string, maxRetries = 6, retryDelay = 400) => {
+const getUserAccountData = async (authId: string, maxRetries = 8, retryDelay = 150) => {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         const {data, error} = await supabase
             .from("accounts")
@@ -118,6 +135,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     const [isAccountCreating, setIsAccountCreating] = useState(false);
     const initialLoadRef = useRef(false);
     const streakCheckedRef = useRef(false);
+    const accountRecoveryAttemptRef = useRef<string | null>(null);
     const { getApiBaseUrl } = useAppConfig();
     const apiBaseUrl = getApiBaseUrl();
 
@@ -145,48 +163,57 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         }
     );
 
-    // Helper function to wait for account data to be created
-    const waitForAccountData = async (
-        {
-            authId,
-            phone
-        }: { authId?: string; phone?: number },
-        maxRetries = 8,
-        retryDelay = 400
-    ) => {
-        if (!authId && !phone) {
-            throw new Error('Missing account lookup information');
+    const syncAccountAfterAuth = async ({
+        accessToken,
+        email,
+        phone,
+    }: {
+        accessToken: string;
+        email?: string | null;
+        phone?: number | string | null;
+    }) => {
+        try {
+            await axios.post(
+                `${apiBaseUrl}/api/mobile/auth/createAccount`,
+                {
+                    ...(email ? {email} : {}),
+                    ...(phone !== null && phone !== undefined ? {phone} : {}),
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    timeout: 1500,
+                }
+            );
+
+            await mutateUser();
+            return true;
+        } catch (error) {
+            logger.warn('Non-blocking account sync failed:', error);
+            return false;
+        }
+    };
+
+    const ensureSessionAccount = async () => {
+        if (!session?.access_token || !session.user?.id) {
+            return;
         }
 
-        for (let i = 0; i < maxRetries; i++) {
-            try {
-                let query = supabase
-                    .from("accounts")
-                    .select("*");
-
-                if (authId) {
-                    query = query.eq("authId", authId);
-                } else if (typeof phone === 'number') {
-                    query = query.eq("phone", phone);
-                }
-
-                const {data, error} = await query.maybeSingle();
-
-                if (error) {
-                    throw error;
-                }
-
-                if (data) {
-                    return data;
-                }
-
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
-            } catch (err) {
-                if (i === maxRetries - 1) throw err;
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
-            }
+        try {
+            setIsLoading(true);
+            await syncAccountAfterAuth({
+                accessToken: session.access_token,
+                email: session.user.email,
+                phone: session.user.phone,
+            });
+            await mutateUser();
+        } catch (error) {
+            logger.error('Error ensuring session account:', error);
+        } finally {
+            setIsLoading(false);
         }
-        throw new Error('Failed to retrieve account data after creation');
     };
 
     // User streak check function
@@ -254,6 +281,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // Update user ID for analytics
             if (session?.user?.id) {
                 setUserId(session.user.id);
+                setIsLoading(true);
             }
 
             // If signing out, ensure loading is false and reset refs
@@ -261,6 +289,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                 setIsLoading(false);
                 setIsAccountCreating(false);
                 streakCheckedRef.current = false;
+                accountRecoveryAttemptRef.current = null;
             }
         });
 
@@ -294,6 +323,29 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             setIsLoading(false);
         }
     }, [session, user, userError, isAccountCreating]);
+
+    useEffect(() => {
+        if (!session?.user?.id) {
+            accountRecoveryAttemptRef.current = null;
+            return;
+        }
+
+        if (user) {
+            accountRecoveryAttemptRef.current = session.user.id;
+            return;
+        }
+
+        if ((userError as Error | undefined)?.message !== ACCOUNT_NOT_READY_ERROR) {
+            return;
+        }
+
+        if (accountRecoveryAttemptRef.current === session.user.id) {
+            return;
+        }
+
+        accountRecoveryAttemptRef.current = session.user.id;
+        void ensureSessionAccount();
+    }, [session?.user?.id, user, userError]);
 
     // Check streak when user data becomes available - but only once
     useEffect(() => {
@@ -340,10 +392,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     useEffect(() => {
         if (!user?.id || !user?.email) return;
 
-        let subscription: RealtimeChannel;
-
-        // Create a single subscription with a stable channel name
-        subscription = supabase
+        const subscription: RealtimeChannel = supabase
             .channel(`user_${user.id}_updates`)
             .on('postgres_changes',
                 {
@@ -401,9 +450,10 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         try {
             setIsLoading(true);
             streakCheckedRef.current = false;
+            const normalizedPhone = normalizePhoneForAuth(phone);
 
-            const {data, error} = await supabase.auth.signInWithPassword({
-                phone: phone.toString(),
+            const {error} = await supabase.auth.signInWithPassword({
+                phone: normalizedPhone,
                 password,
             });
 
@@ -437,7 +487,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             }
 
             // Verify OTP
-            const {error} = await supabase.auth.verifyOtp({phone: phone.toString(), token, type: "sms"});
+            const {error} = await supabase.auth.verifyOtp({
+                phone: normalizePhoneForAuth(phone),
+                token,
+                type: "sms"
+            });
 
             if (error) {
                 throw error;
@@ -453,22 +507,10 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             // For signup flow, create the account
             if (type === "signup" && session?.access_token) {
                 try {
-                    await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
-                        {phone, password},
-                        {
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${session.access_token}`
-                            }
-                        }
-                    );
-
-                    await waitForAccountData({
-                        authId: session.user.id,
+                    void syncAccountAfterAuth({
+                        accessToken: session.access_token,
                         phone,
                     });
-
-                    await mutateUser();
                 } catch (apiError) {
                     logger.error('Error in account creation process:', apiError);
                     throw apiError;
@@ -501,52 +543,35 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
             try {
                 setIsAccountCreating(true);
+                const normalizedPhone = normalizePhoneForAuth(phone);
 
                 const {data, error} = await supabase.auth.signUp({
-                    phone: "+237" + phone.toString(),
+                    phone: normalizedPhone,
                     password
                 });
                 posthogService.trackSignupStarted('phone');
 
-                if (data.session) {
-                    try {
-                        await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
-                            {phone, password},
-                            {
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${data.session.access_token}`
-                                },
-                                timeout: 3000,
-                            }
-                        );
-
-                        await waitForAccountData({
-                            authId: data.session.user.id,
-                            phone,
-                        });
-
-                        await mutateUser();
-                        posthogService.trackSignupCompleted('phone');
-                    } catch (apiError) {
-                        logger.error('Error in account creation process:', apiError);
-                        throw apiError;
-                    } finally {
-                        setIsAccountCreating(false);
-                        setIsLoading(false);
-                    }
-
-                    return;
-                }
-
                 if (error) {
                     logger.error("Sign up error:", error);
+                    setIsAccountCreating(false);
                     setIsLoading(false);
                     throw error;
                 }
 
+                if (!data.session?.access_token) {
+                    setIsAccountCreating(false);
+                    setIsLoading(false);
+                    throw new Error('Session not created after signup');
+                }
+
+                void syncAccountAfterAuth({
+                    accessToken: data.session.access_token,
+                    phone,
+                });
+
+                posthogService.trackSignupCompleted('phone');
                 setIsAccountCreating(false);
-                setIsLoading(false);
+                return;
             } catch (error) {
                 logger.error("Sign up exception:", error);
                 setIsAccountCreating(false);
@@ -606,6 +631,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         user: user || null,
         session,
         isLoading,
+        ensureSessionAccount,
         signIn,
         signOut,
         signUp,

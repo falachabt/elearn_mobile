@@ -7,6 +7,7 @@ import {
   Image,
   ImageSourcePropType,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import { theme } from "@/constants/theme";
@@ -14,6 +15,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { SecondaryProgram } from "@/types/secondary.type";
 import { useSecondaryProgramProgress } from "@/hooks/secondary/useSecondaryProgramProgress";
 import { useAuth } from "@/contexts/auth";
+
 
 // Import des icônes
 const calendarIcon =
@@ -65,64 +67,59 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
   }`;
   const priceText = program.price ? `${program.price} FCFA` : "Gratuit";
 
+
   return (
-    <Pressable
-      onPress={handlePress}
-      style={({ pressed }) => [
-        styles.card,
-        isDarkMode && styles.cardDark,
-        pressed && styles.cardPressed,
-      ]}
-      accessible={true}
-      accessibilityRole="button"
-      accessibilityLabel={`Programme ${programTitle}, ${priceText}`}
-      accessibilityHint="Appuyez pour voir les détails du programme"
-    >
-      <View style={styles.header}>
-        <Text
-          style={[styles.title, isDarkMode && styles.titleDark]}
-          numberOfLines={1}
-          accessible={true}
-          accessibilityRole="text"
-        >
-          {programTitle}
-        </Text>
-        <Text
-          style={[styles.price, isDarkMode && styles.priceDark]}
-          accessible={true}
-          accessibilityLabel={`Prix: ${priceText}`}
-        >
-          {priceText}
-        </Text>
-      </View>
-      {/* Bloc stylé pour la date avant l'examen avec icône PNG */}
-      <View
-        style={[
-          styles.examCountdown,
-          isDarkMode && styles.examCountdownDark,
-          daysBeforeExam < 30 && styles.urgentCountdown,
-        ]}
+    <View style={[styles.card, isDarkMode && styles.cardDark]}>
+      <Pressable
+        onPress={handlePress}
+        style={({ pressed }) => [pressed && styles.cardPressed]}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={`Programme ${programTitle}, ${priceText}`}
+        accessibilityHint="Appuyez pour voir les détails du programme"
       >
-        <Image source={calendarIcon} style={styles.examIcon} />
-        <Text
+        <View style={styles.header}>
+          <Text
+            style={[styles.title, isDarkMode && styles.titleDark]}
+            numberOfLines={1}
+            accessible={true}
+            accessibilityRole="text"
+          >
+            {programTitle}
+          </Text>
+          <Text
+            style={[styles.price, isDarkMode && styles.priceDark]}
+            accessible={true}
+            accessibilityLabel={`Prix: ${priceText}`}
+          >
+            {priceText}
+          </Text>
+        </View>
+        <View
           style={[
-            styles.examText,
-            daysBeforeExam < 30 && styles.urgentExamText,
-            isDarkMode && styles.examTextDark,
+            styles.examCountdown,
+            isDarkMode && styles.examCountdownDark,
+            daysBeforeExam < 30 && styles.urgentCountdown,
           ]}
         >
-          {`J-${daysBeforeExam} avant l'examen`}
-        </Text>
-      </View>
-      {/* Bloc stylé pour la progression (barre pleine largeur, sans texte) */}
-      <View style={styles.progressContainerFull}>
-        <View style={styles.progressBackgroundFull}>
-          <View style={[styles.progressFillFull, { width: `${progress}%` }]} />
+          <Image source={calendarIcon} style={styles.examIcon} />
+          <Text
+            style={[
+              styles.examText,
+              daysBeforeExam < 30 && styles.urgentExamText,
+              isDarkMode && styles.examTextDark,
+            ]}
+          >
+            {`J-${daysBeforeExam} avant l'examen`}
+          </Text>
         </View>
-      </View>
+        <View style={styles.progressContainerFull}>
+          <View style={styles.progressBackgroundFull}>
+            <View style={[styles.progressFillFull, { width: `${progress}%` }]} />
+          </View>
+        </View>
 
-      {!minimalist && (
-        <>
+        {!minimalist && (
           <Text
             style={[styles.description, isDarkMode && styles.descriptionDark]}
             numberOfLines={2}
@@ -130,39 +127,43 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
           >
             {program.description || "Aucune description"}
           </Text>
-          <View
-            style={[styles.statsRow, isDarkMode && styles.statsRowDark]}
-            accessible={true}
-            accessibilityLabel="Statistiques du programme"
-          >
-            <StatItem
-              label="Cours"
-              value={program.course_count ?? 0}
-              icon={courseIcon}
-              isDarkMode={isDarkMode}
-            />
-            <StatItem
-              label="Quiz"
-              value={program.quiz_count ?? 0}
-              icon={quizIcon}
-              isDarkMode={isDarkMode}
-            />
-            <StatItem
-              label="Exos"
-              value={program.exercise_count ?? 0}
-              icon={exerciceIcon}
-              isDarkMode={isDarkMode}
-            />
-            <StatItem
-              label="Documents"
-              value={program.document_count ?? 0}
-              icon={documentIcon}
-              isDarkMode={isDarkMode}
-            />
-          </View>
-        </>
+        )}
+      </Pressable>
+
+      {!minimalist && (
+        <View
+          style={[styles.statsRow, isDarkMode && styles.statsRowDark]}
+          accessible={true}
+          accessibilityLabel="Statistiques du programme"
+        >
+          <StatItem
+            label="Cours"
+            value={program.course_count ?? 0}
+            icon={courseIcon}
+            isDarkMode={isDarkMode}
+          />
+          <StatItem
+            label="Quiz"
+            value={program.quiz_count ?? 0}
+            icon={quizIcon}
+            isDarkMode={isDarkMode}
+          />
+          <StatItem
+            label="Exos"
+            value={program.exercise_count ?? 0}
+            icon={exerciceIcon}
+            isDarkMode={isDarkMode}
+          />
+          <StatItem
+            label="Documents"
+            value={program.document_count ?? 0}
+            icon={documentIcon}
+            isDarkMode={isDarkMode}
+          />
+
+        </View>
       )}
-    </Pressable>
+    </View>
   );
 };
 
@@ -194,6 +195,8 @@ const StatItem = ({
     </Text>
   </View>
 );
+
+
 
 const styles = StyleSheet.create({
   examIcon: {
@@ -333,12 +336,13 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+    justifyContent: "space-between",
+    alignItems: "stretch",
+    flexWrap: "wrap",
     backgroundColor: "#F3F4F6",
     borderRadius: 8,
     padding: 10,
-    gap: 4,
+    gap: 8,
   },
   statsRowDark: {
     backgroundColor: "rgba(55, 65, 81, 0.5)",
@@ -346,7 +350,24 @@ const styles = StyleSheet.create({
   statItem: {
     flexDirection: "column",
     alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+    minWidth: 56,
     gap: 4,
+  },
+  actionStatItem: {
+    borderRadius: 8,
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    paddingVertical: 6,
+  },
+  actionStatItemDark: {
+    backgroundColor: "#0F2A20",
+    borderColor: "#1E5C45",
+  },
+  actionStatItemPressed: {
+    opacity: 0.8,
   },
   statIcon: {
     width: 20,

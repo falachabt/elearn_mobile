@@ -30,8 +30,6 @@ import { AppleLogin } from "@/components/AppleLogin";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import WhatsAppContact from "@/components/WhatsappSupport";
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 interface ToastProps {
   visible: boolean;
   message: string;
@@ -135,7 +133,7 @@ const Toast: React.FC<ToastProps> = ({
       ]}
     >
       <View style={styles.toastContent}>
-        {/* @ts-ignore */}
+        {/* @ts-expect-error dynamic icon name from local mapper */}
         <MaterialCommunityIcons name={getIcon()} size={24} color="white" />
         <Text style={styles.toastText}>{message}</Text>
       </View>
@@ -169,13 +167,12 @@ const Register: React.FC = () => {
   const { trigger } = useHaptics();
 
   // States
-  const [email, setEmail] = useState<string>("");
+  const [email] = useState<string>("");
   const [phone, setPhone] = useState<number>();
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [emailError, setEmailError] = useState<string>("");
   const [phoneError, setPhoneError] = useState<string>("");
   const [passwordError, setPasswordError] = useState<string>("");
   const [confirmPasswordError, setConfirmPasswordError] = useState<string>("");
@@ -205,7 +202,6 @@ const Register: React.FC = () => {
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
 
-  const emailErrorAnim = useRef(new Animated.Value(0)).current;
   const phoneErrorAnim = useRef(new Animated.Value(0)).current;
   const passwordErrorAnim = useRef(new Animated.Value(0)).current;
   const confirmPasswordErrorAnim = useRef(new Animated.Value(0)).current;
@@ -251,10 +247,6 @@ const Register: React.FC = () => {
   }, [isOtpStep]);
 
   // Animation for error messages
-  useEffect(() => {
-    if (emailError) animateError(emailErrorAnim);
-  }, [emailError]);
-
   useEffect(() => {
     if (phoneError) animateError(phoneErrorAnim);
   }, [phoneError]);
@@ -341,19 +333,6 @@ const Register: React.FC = () => {
       .padStart(2, "0")}`;
   };
 
-  const validateEmail = (email: string): boolean => {
-    if (!email) {
-      setEmailError("L'email est requis");
-      return false;
-    }
-    if (!EMAIL_REGEX.test(email)) {
-      setEmailError("Format d'email invalide");
-      return false;
-    }
-    setEmailError("");
-    return true;
-  };
-
   const validatePhone = (phone: number | undefined): boolean => {
     if (!phone) {
       setPhoneError("Le numéro de téléphone est requis");
@@ -431,25 +410,16 @@ const Register: React.FC = () => {
       trigger(HapticType.LIGHT);
 
       await signUp(phone, password);
-
-      // TODO : remove in update case we trust user and validate after
-      setIsOtpStep(true);
-      startCountdown();
       trigger(HapticType.SUCCESS);
-
-      setToast({
-        visible: true,
-        message: "Code de vérification envoyé à votre email",
-        type: "success",
-        action: null,
-      });
-    } catch (error: any) {
+      router.replace("/(auth)/onboarding");
+    } catch (error: unknown) {
       shakeError();
       trigger(HapticType.ERROR);
+      const errorMessage = error instanceof Error ? error.message : "";
 
       if (
-        error.message === "email exists" ||
-        error.message === "User already registered"
+        errorMessage === "email exists" ||
+        errorMessage === "User already registered"
       ) {
         setToast({
           visible: true,
@@ -501,7 +471,7 @@ const Register: React.FC = () => {
         type: "success",
         action: null,
       });
-    } catch (error) {
+    } catch {
       shakeError();
       trigger(HapticType.ERROR);
 
@@ -530,7 +500,7 @@ const Register: React.FC = () => {
         type: "success",
         action: null,
       });
-    } catch (error) {
+    } catch {
       setToast({
         visible: true,
         message: "Échec de l'envoi du code",
@@ -921,7 +891,7 @@ const Register: React.FC = () => {
                       J'accepte les{" "}
                       <Text
                         style={styles.link}
-                        onPress={() => router.push("/(cgu_privacy)/cgu" as any)}
+                        onPress={() => router.push("/(cgu_privacy)/cgu" as never)}
                       >
                         conditions d'utilisation
                       </Text>

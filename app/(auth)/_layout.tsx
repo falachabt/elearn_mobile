@@ -1,6 +1,6 @@
 import { Stack, usePathname } from 'expo-router'
 import { Redirect } from 'expo-router'
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -13,42 +13,8 @@ export default function AuthLayout() {
     const colorScheme = useColorScheme();
     const pathname = usePathname();
     const isDarkMode = colorScheme === 'dark';
-    const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
-    // Determine redirection only when necessary values change
-    useEffect(() => {
-        // Don't make redirection decisions while still loading
-        if (isLoading) {
-            setRedirectPath(null);
-            return;
-        }
-
-        // Authenticated users who completed onboarding
-        if (session && user?.onboarding_done) {
-            // Allow access to forgot password even if authenticated
-            if (!pathname.includes("/forgot_passworddsd") ) {
-                setRedirectPath("/(app)");
-                return;
-            }
-        }
-
-        // Authenticated users who haven't completed onboarding
-        if (session && user && !user.onboarding_done && !pathname.includes("/onboarding")) {
-            setRedirectPath("/(auth)/onboarding");
-            return;
-        }
-
-        // Default case - no redirection needed
-        setRedirectPath(null);
-    }, [session, user?.onboarding_done, pathname, isLoading]);
-
-    // Handle redirect if needed
-    if (redirectPath) {
-        return <Redirect href={redirectPath as any} />;
-    }
-
-    // For auth screens, only show loading during active authentication processes
-    if (isLoading && session !== null) {
+    if (session && (isLoading || !user)) {
         return (
             <View style={{
                 flex: 1,
@@ -59,6 +25,14 @@ export default function AuthLayout() {
                 <LoadingAnimation isDarkMode={isDarkMode} />
             </View>
         );
+    }
+
+    if (session && user?.onboarding_done && !pathname.includes("/forgot_password")) {
+        return <Redirect href={"/(app)"} />;
+    }
+
+    if (session && user && !user.onboarding_done && !pathname.includes("/onboarding")) {
+        return <Redirect href={"/(auth)/onboarding"} />;
     }
 
     return (

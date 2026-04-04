@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Href, Link, useRouter } from "expo-router";
 import React, { useEffect, useMemo } from "react";
 import {
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,6 +18,7 @@ import NewsCardExam from "@/components/shared/news/NewsCardExam";
 import NewsItem from "@/components/shared/news/NewsItem";
 import TopBar from "@/components/TopBar";
 import WhatsAppContact from "@/components/WhatsappSupport";
+import { SECONDARY_WHATSAPP_GROUPS } from "@/constants/secondaryWhatsAppGroups";
 import { theme } from "@/constants/theme";
 import { useUser } from "@/contexts/useUserInfo";
 import { useAuth } from "@/contexts/auth";
@@ -225,6 +227,51 @@ export default function Index() {
           toDayExo={toDayExo}
           toDayTime={toDayTime}
         />
+
+        <View style={styles.whatsappSection}>
+          <View style={styles.sectionHeader}>
+            <Text
+              numberOfLines={1}
+              style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}
+            >
+              Groupes WhatsApp
+            </Text>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.whatsappGroupsList}
+          >
+            {SECONDARY_WHATSAPP_GROUPS.map((group) => (
+              <TouchableOpacity
+                key={group.label}
+                activeOpacity={0.9}
+                style={[
+                  styles.whatsappGroupChip,
+                  isDarkMode && styles.whatsappGroupChipDark,
+                ]}
+                onPress={() => {
+                  void Linking.openURL(group.url);
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="whatsapp"
+                  size={18}
+                  color="#25D366"
+                />
+                <Text
+                  style={[
+                    styles.whatsappGroupChipText,
+                    isDarkMode && styles.whatsappGroupChipTextDark,
+                  ]}
+                >
+                  {group.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
         {/* News Section */}
         <View style={styles.section}>
@@ -492,6 +539,37 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     color: "#CCCCCC",
+  },
+  whatsappSection: {
+    marginBottom: 20,
+  },
+  whatsappGroupChip: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  whatsappGroupChipDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+    borderColor: "#1E5C45",
+  },
+  whatsappGroupsList: {
+    paddingRight: HORIZONTAL_PADDING,
+    gap: 8,
+  },
+  whatsappGroupChipText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#065F46",
+  },
+  whatsappGroupChipTextDark: {
+    color: "#DCFCE7",
   },
   newsScrollContainer: {
     paddingRight: HORIZONTAL_PADDING,

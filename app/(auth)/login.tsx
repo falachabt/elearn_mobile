@@ -14,7 +14,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-import { Redirect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Pressable } from "react-native-gesture-handler";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -27,7 +27,7 @@ import { AppleLogin } from "@/components/AppleLogin";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import WhatsAppContact from "@/components/WhatsappSupport";
 
-const PHONE_REGEX = /^\+?[1-9]\d{1,14}$/;
+const PHONE_REGEX = /^(?:\+?237)?6[5-9]\d{7}$/;
 
 // Toast Component
 const Toast = ({
@@ -286,7 +286,6 @@ export default function Login() {
         message: "Connexion réussie",
         type: "success",
       });
-      return <Redirect href={"/(app)"} />;
     } catch {
       trigger(HapticType.ERROR);
       shakeForm();
@@ -393,8 +392,9 @@ export default function Login() {
                 <TextInput
                   value={phone}
                   onChangeText={(text) => {
-                    setPhone(text);
-                    if (phoneError) validatePhone(text);
+                    const sanitizedPhone = text.replace(/[^0-9+]/g, "");
+                    setPhone(sanitizedPhone);
+                    if (phoneError) validatePhone(sanitizedPhone);
                   }}
                   style={[
                     styles.input,

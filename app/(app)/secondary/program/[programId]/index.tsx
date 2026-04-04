@@ -5,6 +5,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { Linking } from "react-native";
 import React, { useMemo } from "react";
 import { Href, useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -16,6 +17,7 @@ import { useSecondaryProgram } from "@/hooks/secondary/useSecondaryPrograms";
 import { useSecondaryProgramProgress } from "@/hooks/secondary/useSecondaryProgramProgress";
 import SecondaryProgramCard from "@/components/shared/secondary/SecondaryProgramCard";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
+import { getSecondaryWhatsAppGroup } from "@/constants/secondaryWhatsAppGroups";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { useAuth } from "@/contexts/auth";
 
@@ -80,11 +82,14 @@ const SecondaryProgramDetails = () => {
     },
   };
 
+  // Get WhatsApp group
+  const whatsappGroup = program ? getSecondaryWhatsAppGroup(program.class?.name, program.serie?.name) : null;
+
   // Action cards
   const actionCards = useMemo<ActionCard[]>(() => {
     if (!program) return [];
 
-    return [
+    const cards: ActionCard[] = [
       {
         id: "courses",
         title: "Cours",
@@ -208,13 +213,36 @@ const SecondaryProgramDetails = () => {
             </ThemedText>
           </View>
         ) : undefined,
-      },
+      }
     ];
-  }, [program, programId, isEnrolled, isDark, progression, getCoursesPath, getQuizzesPath, getExercicesPath, getDocumentsPath]);
+
+    if (whatsappGroup) {
+      cards.push({
+        id: "whatsapp",
+        title: "WhatsApp",
+        subtitle: `Rejoindre le groupe ${program.class?.name || ''} ${program.serie?.name || ''}`,
+        icon: (
+          <MaterialCommunityIcons
+            name="whatsapp"
+            size={24}
+            color={isDark ? "#86EFAC" : "#16A34A"}
+          />
+        ),
+        route: whatsappGroup.url,
+        color: isDark ? "#86EFAC" : "#16A34A",
+      });
+    }
+
+    return cards;
+  }, [program, programId, isEnrolled, isDark, progression, getCoursesPath, getQuizzesPath, getExercicesPath, getDocumentsPath, whatsappGroup]);
 
   const handleCardPress = (card: ActionCard) => {
     trigger(HapticType.LIGHT);
-    router.push(card.route as Href);
+    if (card.id === 'whatsapp') {
+      Linking.openURL(card.route);
+    } else {
+      router.push(card.route as Href);
+    }
   };
 
   if (isLoading) {
@@ -354,6 +382,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F9FAFB",
+    marginBottom: 64,
   },
   containerDark: {
     backgroundColor: theme.color.dark.background.primary,

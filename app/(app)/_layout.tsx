@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from "react";
+import React, {useCallback} from "react";
 import {Redirect, router, Tabs} from "expo-router";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {
@@ -21,25 +21,11 @@ import {LoadingAnimation} from "@/components/shared/LoadingAnimation1";
 import RatingModal from '@/components/RatingModal';
 
 export default function AppLayout() {
-    const {session, isLoading, user, mutateUser, signOut} = useAuth();
+    const {session, isLoading, user, ensureSessionAccount, signOut} = useAuth();
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme != 'light';
     const {mutate} = useSWRConfig();
     const {trigger} = useHaptics();
-    const [needsRedirect, setNeedsRedirect] = useState(false);
-
-
-
-    // Check redirect conditions once and store result, don't re-evaluate on every render
-    useEffect(() => {
-        if (!session) {
-            setNeedsRedirect(true);
-        } else if (user && !user.onboarding_done) {
-            setNeedsRedirect(true);
-        } else {
-            setNeedsRedirect(false);
-        }
-    }, [session, user?.onboarding_done]);
 
     // Handle tab press with memoized callback to avoid recreation on each render
     interface TabPressEvent {
@@ -64,21 +50,10 @@ export default function AppLayout() {
             router.replace('/learn');
         }
     }, [trigger, mutate, user?.id]);
-    // CRITICAL: This is a protected route - no session means redirect immediately
-    if (needsRedirect) {
-        // Handle onboarding redirect if needed
-        if (user && !user.onboarding_done) {
-            return <Redirect href="/(auth)/onboarding"/>;
-        }
-
-        if (!session) {
-            return <Redirect href="/(auth)"/>;
-        }
-
-
+    if (!session) {
+        return <Redirect href="/(auth)"/>;
     }
 
-    // Show loading indicator when we have session but user data is still loading
     if (isLoading) {
         return (
             <View style={{
@@ -92,7 +67,7 @@ export default function AppLayout() {
         );
     }
 
-    if (session && !user) {
+    if (!user) {
         return (
             <View style={{
                 flex: 1,
@@ -106,15 +81,15 @@ export default function AppLayout() {
                     Finalisation de votre compte
                 </Text>
                 <Text style={[styles.accountStatusText, {color: isDarkMode ? '#CBD5E1' : '#475569'}]}>
-                    Votre session est ouverte, mais vos donnees de profil ne sont pas encore pretes.
+                    La session est ouverte, mais le profil n&apos;est pas encore prêt.
                 </Text>
                 <TouchableOpacity
                     style={styles.accountStatusPrimaryButton}
                     onPress={() => {
-                        void mutateUser();
+                        void ensureSessionAccount();
                     }}
                 >
-                    <Text style={styles.accountStatusPrimaryButtonText}>Reessayer</Text>
+                    <Text style={styles.accountStatusPrimaryButtonText}>Réessayer</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.accountStatusSecondaryButton}
@@ -123,11 +98,15 @@ export default function AppLayout() {
                     }}
                 >
                     <Text style={[styles.accountStatusSecondaryButtonText, {color: isDarkMode ? '#E2E8F0' : '#334155'}]}>
-                        Se deconnecter
+                        Se déconnecter
                     </Text>
                 </TouchableOpacity>
             </View>
         );
+    }
+
+    if (user && !user.onboarding_done) {
+        return <Redirect href="/(auth)/onboarding"/>;
     }
 
     return (
