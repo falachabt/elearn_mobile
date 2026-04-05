@@ -22,6 +22,7 @@ import PathChoice from "./PathChoice";
 import ProfileForm, { Profile } from "./ProfileForm";
 import Programs from "./Programs";
 import UserInfoForm from "./UserForm";
+import SecondaryPreferencesStep from "./SecondaryPreferencesStep";
 import PaymentPage, { PaymentPageRef } from "./Bill";
 
 import { logger } from '@/utils/logger';
@@ -31,12 +32,11 @@ import { AccountsInput } from "@/types/type";
 import { theme } from "@/constants/theme";
 import { useCart } from "@/hooks/useCart";
 import { useCustomRouter } from "@/hooks/useCustomRouter";
+import { parseSecondaryPreferences } from "@/utils/secondaryPreferences";
 
 
 // Get screen dimensions
 const { width, height } = Dimensions.get("window");
-const isSmallDevice = width < 375;
-const isLargeDevice = width >= 768;
 
 // Scale factors for responsive design
 const scale = Math.min(width / 390, height / 844);
@@ -48,18 +48,13 @@ const rs = (size: number) => Math.round(size * scale);
 // Helper function for responsive font sizes
 const rfs = (size: number) => Math.round(size * Math.min(scale, fontScale));
 
-// Get status bar height
-const STATUSBAR_HEIGHT = Platform.OS === 'ios'
-    ? 20
-    : StatusBar.currentHeight || 0;
-
 const MainOnboarding = () => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useCustomRouter();
 
   const [step, setStep] = useState(1);
-  const { user, markOnboardingCompleted } = useAuth();
+  const { user, markOnboardingCompleted, mutateUser } = useAuth();
   const [knowsProgram, setKnowsProgram] = useState(false);
   const userInfoFormRef = useRef<{ validate: () => boolean } | null>(null);
   const [userInfo, setUserInfo] = useState<AccountsInput | null>(null);
@@ -79,7 +74,7 @@ const MainOnboarding = () => {
   const [isWatingForPayment, setIsWatingForPayment] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isOnboardingLoading, setIsOnboardingLoading] = useState(false);
-  const [mergedAccountData, setMergedAccountData] = useState<any>(null);
+  const [mergedAccountData, setMergedAccountData] = useState<Record<string, unknown> | null>(null);
   const [isDataValid, setIsDataValid] = useState(false);
 
 
@@ -98,6 +93,14 @@ const MainOnboarding = () => {
 
 
     try {
+      const secondaryPreferences = parseSecondaryPreferences(userInfo.metadata);
+      const reminderTimeValue =
+        userInfo.remindertime instanceof Date
+          ? userInfo.remindertime.toISOString()
+          : userInfo.remindertime
+            ? new Date(userInfo.remindertime).toISOString()
+            : null;
+
       // Create sanitized merged data matching accounts schema
       const sanitizedData = {
         // Basic info from userInfo
@@ -108,7 +111,7 @@ const MainOnboarding = () => {
         birthdate:  null,
 
         // Academic info from profile
-        gradelevel: profile.gradelevel || null,
+        gradelevel: secondaryPreferences.preferredTrack || profile.gradelevel || null,
         gpa: profile.gpa ? Number(profile.gpa) : null,
         favoritesubjects: Array.isArray(profile?.favoritesubjects) ? profile.favoritesubjects : [],
         skills: Array.isArray(profile?.skills) ? profile.skills : [],
@@ -116,6 +119,10 @@ const MainOnboarding = () => {
         othergoals: profile.othergoals || null,
         learningstyle: profile.learningstyle || null,
         motivation: profile.motivation || null,
+        schoollevel: secondaryPreferences.preferredTrack ? "secondary" : null,
+        reminders: Boolean(userInfo.reminders),
+        remindertime: reminderTimeValue,
+        metadata: userInfo.metadata || null,
 
         // Status fields
         status: true,
@@ -125,8 +132,7 @@ const MainOnboarding = () => {
       // Validate required fields
       const isValid = Boolean(
           sanitizedData.firstname &&
-          sanitizedData.lastname &&
-          sanitizedData.phone
+          sanitizedData.lastname
       );
 
       setIsDataValid(isValid);
@@ -149,6 +155,7 @@ const MainOnboarding = () => {
         if(!user) return;
 
         const accountData = user
+        const secondaryPreferences = parseSecondaryPreferences(accountData?.metadata);
 
 
         if (accountData) {
@@ -161,6 +168,13 @@ const MainOnboarding = () => {
             birthdate:  null,
             email: user?.email || '',  // from auth user
             authId: user?.id,  // from auth user
+            reminders: accountData.reminders ?? false,
+            remindertime: accountData.remindertime
+              ? new Date(String(accountData.remindertime))
+              : null,
+            metadata: accountData.metadata || null,
+            schoollevel: accountData.schoollevel || '',
+            gradelevel: accountData.gradelevel || '',
           });
 
           // Set profile defaults
@@ -179,8 +193,8 @@ const MainOnboarding = () => {
           if (accountData.firstname && accountData.lastname) {
             setStep(prevStep => Math.max(prevStep, 3));
           }
-          if (accountData.gradelevel) {
-            setStep(prevStep => Math.max(prevStep, 5));
+          if (accountData.gradelevel || secondaryPreferences.hasAnsweredTerminaleStep) {
+            setStep(prevStep => Math.max(prevStep, 4));
           }
           if (accountData.onboarding_done) {
             // Handle case where onboarding was already completed
@@ -196,6 +210,11 @@ const MainOnboarding = () => {
             birthdate: null,
             email:  '',
             authId: '',
+            reminders: false,
+            remindertime: null,
+            metadata: null,
+            schoollevel: '',
+            gradelevel: '',
           });
 
           setProfile({
@@ -220,6 +239,11 @@ const MainOnboarding = () => {
           birthdate: null,
           email: user?.email || '',
           authId: user?.id || '',
+          reminders: false,
+          remindertime: null,
+          metadata: null,
+          schoollevel: '',
+          gradelevel: '',
         });
 
         setProfile({
@@ -249,6 +273,7 @@ const MainOnboarding = () => {
           .select();
 
       if (error) throw error;
+      await mutateUser();
       return true;
     } catch (error) {
       logger.error('Error updating account:', error);
@@ -275,6 +300,12 @@ const MainOnboarding = () => {
           "Quelques informations pour personnaliser votre expérience d'apprentissage.",
       icon: "📝",
       isRequired: true,
+    },
+    {
+      title: "Espace Collège",
+      description:
+          "Choisissez la Terminale et l'heure du rappel.",
+      icon: "🏫",
     },
     {
       title: "Objectif Grande École",
@@ -316,6 +347,7 @@ const MainOnboarding = () => {
 
       if (error) throw error;
 
+      await mutateUser();
       await markOnboardingCompleted();
       return true;
     } catch (error) {
@@ -331,26 +363,35 @@ const MainOnboarding = () => {
       const isValid = userInfoFormRef.current.validate();
       if (!isValid) {
         return;
-      } else {
-        await updateAccountInDatabase();
-        if (Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web') {
-          setIsEndingOnboarding(true);
-          const completed = await handleSkipOnboarding();
-          setIsEndingOnboarding(false);
+      }
 
-          if (completed) {
-            router.replace('/(app)');
-          }
-          return; // Stop here at step 3
+      setStep(4);
+      return;
+    }
+
+    if (step === 4) {
+      const accountUpdated = await updateAccountInDatabase();
+      if (!accountUpdated) {
+        return;
+      }
+
+      if (Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web') {
+        setIsEndingOnboarding(true);
+        const completed = await handleSkipOnboarding();
+        setIsEndingOnboarding(false);
+
+        if (completed) {
+          router.replace('/(app)');
         }
+        return;
       }
     }
 
-    if (step === 5) {
+    if (step === 6) {
       await updateAccountInDatabase();
     }
 
-    if (step === 7) {
+    if (step === 8) {
       if (programs.length === 0) {
         setIsModalVisible(true);
         return;
@@ -364,8 +405,8 @@ const MainOnboarding = () => {
       return;
     }
 
-    if (step < 7) {
-      if (step === 4 && knowsProgram) {
+    if (step < 8) {
+      if (step === 5 && knowsProgram) {
         setStep(step + 2);
       } else {
         setStep(step + 1);
@@ -394,15 +435,22 @@ const MainOnboarding = () => {
             setUserInfo={setUserInfo}
         />;
       case 4:
+        return <SecondaryPreferencesStep
+            title={stepsContent[step - 1].title}
+            description={stepsContent[step - 1].description}
+            userInfo={userInfo}
+            setUserInfo={setUserInfo}
+        />;
+      case 5:
         return (
             <PathChoice
                 knowsProgram={knowsProgram}
                 setKnowsProgram={setKnowsProgram}
             />
         );
-      case 5:
-        return <ProfileForm profile={profile} setProfile={setProfile} />;
       case 6:
+        return <ProfileForm profile={profile} setProfile={setProfile} />;
+      case 7:
         return (
             <Programs
                 knowsProgram={knowsProgram}
@@ -410,7 +458,7 @@ const MainOnboarding = () => {
                 setSelectedPrograms={setPrograms}
             />
         );
-      case 7:
+      case 8:
         return (
             <View style={styles.paymentContainer}>
               <PaymentPage
@@ -445,9 +493,9 @@ const MainOnboarding = () => {
   };
 
   function renderNextButtonLabel() {
-    if (step === 7) {
+    if (step === 8) {
       return isWatingForPayment ? "Paiement en cours..." : programs?.length ? "Payer" :  "Sauter";
-    }else if(step === 6){
+    }else if(step === 7){
       return programs?.length ? "Suivant" : "Sauter";
     } else if(isEndingonboarding) {
       return <ActivityIndicator color={theme.color.primary[500]} />;
@@ -463,7 +511,7 @@ const MainOnboarding = () => {
         >
           <View style={[styles.container, isDark && styles.containerDark]}>
             <View style={styles.group1}>
-              <StepProgress step={step} totalSteps={3} />
+              <StepProgress step={Math.min(step, 4)} totalSteps={4} />
               {renderStepContent()}
             </View>
 
@@ -477,7 +525,7 @@ const MainOnboarding = () => {
                       ]}
                       disabled={isPaymentLoading || isOnboardingLoading || loading || isEndingonboarding}
                       onPress={() => {
-                        if (step == 6 && knowsProgram) {
+                        if (step == 7 && knowsProgram) {
                           setStep(step - 2);
                         } else {
                           setStep(step - 1);
@@ -498,10 +546,10 @@ const MainOnboarding = () => {
                   style={[
                     styles.button,
                     styles.primaryButton,
-                    ((step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding) && styles.disabledButton,
+                    ((step === 5 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding) && styles.disabledButton,
                   ]}
                   onPress={handleNextStep}
-                  disabled={(step === 4 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding}
+                  disabled={(step === 5 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding}
               >
                 <Text style={styles.buttonText}>
                   {renderNextButtonLabel()}

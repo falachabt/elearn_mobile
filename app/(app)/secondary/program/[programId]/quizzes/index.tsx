@@ -8,6 +8,7 @@ import {
 import { QuizListView } from "@/components/shared/learn/quiz/QuizListView";
 import { useQuizPins, useQuizAttempts } from "@/hooks/useQuizData";
 import { SecondaryProgramQuiz } from "@/types/secondary.type";
+import { pickDailyItem } from "@/utils/secondaryPreferences";
 
 export default function QuizzesList() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
@@ -95,12 +96,19 @@ export default function QuizzesList() {
       };
     }).filter(Boolean);
   }, [allQuizzes, programId, pinnedMap, bestScoreMap]);
+  const dailyQuiz = useMemo(
+    () => pickDailyItem(quizzesWithProgress as NonNullable<typeof quizzesWithProgress>, `${programId}:quiz`),
+    [programId, quizzesWithProgress]
+  );
 
   // Get program info
   const getProgramInfo = () => {
     const programClass = program?.class;
     const serie = program?.serie;
-    const title = programClass?.name + " - " + serie?.name || "Programme";
+    const title =
+      programClass?.name && serie?.name
+        ? `${programClass.name} - ${serie.name}`
+        : "Programme";
     return { title };
   };
 
@@ -119,6 +127,7 @@ export default function QuizzesList() {
       programTitle={programTitle}
       programId={programId}
       baseRoute={`/(app)/secondary/program/${programId}/quizzes`}
+      featuredQuiz={dailyQuiz ?? undefined}
     />
   );
 }

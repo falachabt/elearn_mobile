@@ -82,6 +82,15 @@ export interface Accounts {
     },
     expoPushToken?: string,
     hasRated?: boolean,
+    secondaryPreferences?: {
+      hasAnsweredTerminaleStep?: boolean;
+      preferredTrack?: string | null;
+      preferredClassName?: string | null;
+      preferredSeriesName?: string | null;
+      selectedTracks?: string[];
+      reminderEnabled?: boolean;
+      reminderTime?: string | null;
+    },
   } | null;
 }
 export interface AccountsInput {

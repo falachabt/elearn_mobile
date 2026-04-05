@@ -67,6 +67,7 @@ export interface ExerciseListViewProps {
   onBack?: () => void;
   onPinToggle?: (exerciseId: number) => Promise<void>;
   onCompletionToggle?: (exerciseId: number) => Promise<void>;
+  featuredExercise?: ExerciseListItem;
 }
 
 type FilterType = "all" | "pinned" | "uncompleted";
@@ -86,6 +87,7 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
   onBack,
   onPinToggle,
   onCompletionToggle,
+  featuredExercise,
 }) => {
   const router = useRouter();
   const { trigger } = useHaptics();
@@ -147,6 +149,9 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
   const clearSearch = () => {
     setSearchQuery("");
   };
+  const featuredExerciseRoute = featuredExercise
+    ? `${baseRoute}/${featuredExercise.exercise.id}`
+    : null;
 
   // Handle back button
   const handleBack = () => {
@@ -442,6 +447,48 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
         </ThemedText>
       </View>
 
+      {featuredExercise && featuredExerciseRoute && (
+        <View style={[styles.featuredCardWrapper, isDark && styles.featuredCardWrapperDark]}>
+          <Pressable
+            style={[styles.featuredCard, isDark && styles.featuredCardDark]}
+            onPress={() => {
+              trigger(HapticType.LIGHT);
+              router.push(featuredExerciseRoute as Href);
+            }}
+          >
+            <View style={styles.featuredBadge}>
+              <MaterialCommunityIcons
+                name="flash-outline"
+                size={16}
+                color="#FFFFFF"
+              />
+              <ThemedText style={styles.featuredBadgeText}>
+                Exercice du jour
+              </ThemedText>
+            </View>
+
+            <ThemedText style={[styles.featuredTitle, isDark && styles.featuredTitleDark]}>
+              {featuredExercise.exercise.title}
+            </ThemedText>
+
+            <ThemedText style={[styles.featuredSubtitle, isDark && styles.featuredSubtitleDark]}>
+              Le même exercice est proposé aujourd&apos;hui à tous les élèves de {programTitle}.
+            </ThemedText>
+
+            <View style={styles.featuredFooter}>
+              <ThemedText style={[styles.featuredMeta, isDark && styles.featuredMetaDark]}>
+                {featuredExercise.isCompleted ? "Déjà terminé" : "À faire aujourd'hui"}
+              </ThemedText>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color={theme.color.primary[500]}
+              />
+            </View>
+          </Pressable>
+        </View>
+      )}
+
       {/* Exercise list */}
       <FlatList
         data={filteredExercises}
@@ -649,6 +696,78 @@ const styles = StyleSheet.create({
   },
   countContainerDark: {
     backgroundColor: "#111827",
+  },
+  featuredCardWrapper: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: "#FFFFFF",
+  },
+  featuredCardWrapperDark: {
+    backgroundColor: "#111827",
+  },
+  featuredCard: {
+    borderRadius: 18,
+    padding: 16,
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  featuredCardDark: {
+    backgroundColor: "#052E16",
+    borderColor: "#059669",
+  },
+  featuredBadge: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 12,
+    backgroundColor: "#059669",
+  },
+  featuredBadgeText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  featuredTitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 6,
+  },
+  featuredTitleDark: {
+    color: "#FFFFFF",
+  },
+  featuredSubtitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#374151",
+  },
+  featuredSubtitleDark: {
+    color: "#D1FAE5",
+  },
+  featuredFooter: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  featuredMeta: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#047857",
+    flex: 1,
+    marginRight: 8,
+  },
+  featuredMetaDark: {
+    color: "#6EE7B7",
   },
   countText: {
     fontSize: 14,

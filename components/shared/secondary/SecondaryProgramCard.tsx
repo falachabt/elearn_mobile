@@ -149,13 +149,13 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
             isDarkMode={isDarkMode}
           />
           <StatItem
-            label="Exos"
+            label="Exercices"
             value={program.exercise_count ?? 0}
             icon={exerciceIcon}
             isDarkMode={isDarkMode}
           />
           <StatItem
-            label="Documents"
+            label="Sujets"
             value={program.document_count ?? 0}
             icon={documentIcon}
             isDarkMode={isDarkMode}

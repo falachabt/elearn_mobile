@@ -10,6 +10,7 @@ import { useCategories } from "@/hooks/global/useCategories";
 import { ExerciseListView } from "@/components/shared/learn/exercices/ExerciseListView";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
+import { pickDailyItem } from "@/utils/secondaryPreferences";
 
 interface ExerciseRow {
   exercise: {
@@ -134,6 +135,10 @@ export default function ExercisesList() {
       };
     }).filter(Boolean);
   }, [allExercises, programId]);
+  const dailyExercise = useMemo(
+    () => pickDailyItem(exercisesWithDetails as NonNullable<typeof exercisesWithDetails>, `${programId}:exercise`),
+    [exercisesWithDetails, programId]
+  );
 
   // Extract unique categories from exercises
   const categories = useMemo(() => {
@@ -150,7 +155,10 @@ export default function ExercisesList() {
   const getProgramInfo = () => {
     const programClass = program?.class;
     const serie = program?.serie;
-    const title = programClass?.name + " - " + serie?.name || "Programme";
+    const title =
+      programClass?.name && serie?.name
+        ? `${programClass.name} - ${serie.name}`
+        : "Programme";
     return { title };
   };
 
@@ -238,6 +246,7 @@ export default function ExercisesList() {
       programTitle={programTitle}
       programId={programId}
       baseRoute="/(app)/secondary/program/[programId]/exercices"
+      featuredExercise={dailyExercise ?? undefined}
       onPinToggle={handlePinToggle}
       onCompletionToggle={handleCompletionToggle}
     />

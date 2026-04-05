@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Href, useRouter } from "expo-router";
 
 import EnhancedQuizCard from "./QuizCard";
 import EnhancedQuizRowItem from "./QuizRowItem";
@@ -60,6 +60,7 @@ export interface QuizListViewProps {
   programId?: string;
   baseRoute: string;
   onBack?: () => void;
+  featuredQuiz?: QuizListItem;
 }
 
 export const QuizListView: React.FC<QuizListViewProps> = ({
@@ -75,6 +76,7 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
   programId = "",
   baseRoute,
   onBack,
+  featuredQuiz,
 }) => {
   const router = useRouter();
   const { trigger } = useHaptics();
@@ -150,6 +152,9 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
   const clearSearch = () => {
     setSearchQuery("");
   };
+  const featuredQuizRoute = featuredQuiz
+    ? `${baseRoute}/${featuredQuiz.quizId}`
+    : null;
 
   // Handle back button
   const handleBack = () => {
@@ -386,6 +391,62 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
         </ThemedText>
       </Animated.View>
 
+      {featuredQuiz && featuredQuizRoute && (
+        <Animated.View
+          style={[
+            styles.featuredCardWrapper,
+            isDark && styles.featuredCardWrapperDark,
+            { opacity: fadeAnim },
+          ]}
+        >
+          <Pressable
+            style={[styles.featuredCard, isDark && styles.featuredCardDark]}
+            onPress={() => router.push(featuredQuizRoute as Href)}
+          >
+            <View style={styles.featuredBadge}>
+              <MaterialCommunityIcons
+                name="calendar-star"
+                size={16}
+                color="#FFFFFF"
+              />
+              <ThemedText style={styles.featuredBadgeText}>
+                Quiz du jour
+              </ThemedText>
+            </View>
+
+            <ThemedText
+              style={[styles.featuredTitle, isDark && styles.featuredTitleDark]}
+            >
+              {featuredQuiz.quiz.name}
+            </ThemedText>
+
+            <ThemedText
+              style={[
+                styles.featuredSubtitle,
+                isDark && styles.featuredSubtitleDark,
+              ]}
+            >
+              Le même quiz est proposé aujourd&apos;hui à tous les élèves de {programTitle}.
+            </ThemedText>
+
+            <View style={styles.featuredFooter}>
+              <ThemedText
+                style={[styles.featuredMeta, isDark && styles.featuredMetaDark]}
+              >
+                {featuredQuiz.progress
+                  ? `${Math.round(featuredQuiz.progress)}% meilleur score`
+                  : "Nouveau défi du jour"}
+              </ThemedText>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color={theme.color.primary[500]}
+              />
+            </View>
+          </Pressable>
+        </Animated.View>
+      )}
+
       {/* Quiz list */}
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         {viewMode === "list" ? (
@@ -560,6 +621,78 @@ const styles = StyleSheet.create({
   },
   quizCountContainerDark: {
     backgroundColor: "#111827",
+  },
+  featuredCardWrapper: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: "#FFFFFF",
+  },
+  featuredCardWrapperDark: {
+    backgroundColor: "#111827",
+  },
+  featuredCard: {
+    borderRadius: 18,
+    padding: 16,
+    backgroundColor: "#EEF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  featuredCardDark: {
+    backgroundColor: "#172554",
+    borderColor: "#1D4ED8",
+  },
+  featuredBadge: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 12,
+    backgroundColor: theme.color.primary[500],
+  },
+  featuredBadgeText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  featuredTitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 6,
+  },
+  featuredTitleDark: {
+    color: "#FFFFFF",
+  },
+  featuredSubtitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#374151",
+  },
+  featuredSubtitleDark: {
+    color: "#DBEAFE",
+  },
+  featuredFooter: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  featuredMeta: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#2563EB",
+    flex: 1,
+    marginRight: 8,
+  },
+  featuredMetaDark: {
+    color: "#93C5FD",
   },
   quizCountText: {
     fontFamily: theme.typography.fontFamily,

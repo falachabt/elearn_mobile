@@ -98,30 +98,56 @@ export default function NewsDetailsScreen() {
 
     const WebView = require('react-native-webview').WebView;
     const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              font-size: 16px;
-              line-height: 1.6;
-              color: ${isDark ? '#E5E7EB' : '#374151'};
-              background-color: ${isDark ? '#1F2937' : '#FFFFFF'};
-              padding: 16px;
-            }
-            img { max-width: 100%; height: auto; border-radius: 8px; margin: 12px 0; }
-            p { margin-bottom: 12px; }
-            h1, h2, h3 { margin: 16px 0 8px; color: ${isDark ? '#FFFFFF' : '#111827'}; }
-            a { color: ${theme.color.primary[500]}; }
-            ul, ol { margin-left: 20px; margin-bottom: 12px; }
-          </style>
-        </head>
-        <body>${content}</body>
-      </html>
-    `;
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 16px;
+          line-height: 1.6;
+          color: ${isDark ? '#E5E7EB' : '#374151'};
+          background-color: ${isDark ? '#1F2937' : '#FFFFFF'};
+          padding: 0; /* Supprime le padding du body */
+          margin: 0; /* Supprime la marge du body */
+        }
+        /* Ajoute un conteneur pour le contenu avec un padding interne */
+        .content {
+          padding: 0px;
+        }
+        img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
+          margin: 12px 0;
+        }
+        p {
+          margin-bottom: 12px;
+        }
+        h1, h2, h3 {
+          margin: 16px 0 8px;
+          color: ${isDark ? '#FFFFFF' : '#111827'};
+        }
+        a {
+          color: ${theme.color.primary[500]};
+        }
+        ul, ol {
+          margin-left: 20px;
+          margin-bottom: 12px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="content">${content}</div>
+    </body>
+  </html>
+`;
 
     return (
       <View style={styles.contentContainer}>
@@ -129,7 +155,7 @@ export default function NewsDetailsScreen() {
           originWhitelist={['*']}
           source={{ html: htmlContent }}
           style={[styles.webview, { backgroundColor: isDark ? theme.color.dark.background.secondary : '#FFFFFF' }]}
-          scrollEnabled={false}
+          scrollEnabled={true}
         />
       </View>
     );

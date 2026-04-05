@@ -1,5 +1,11 @@
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, useColorScheme } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  useColorScheme,
+} from 'react-native';
 import { TextInput } from 'react-native-gesture-handler';
 
 import { theme } from '@/constants/theme';
@@ -52,14 +58,9 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
     validate,
   }));
 
-  const updateUserInfo = (field: string, value: any) => {
+  const updateUserInfo = (field: string, value: string | number | boolean | Date | null | object) => {
     setUserInfo(prev => prev ? { ...prev, [field]: value } : { [field]: value, authId: '', email: '' });
   };
-
-  function convertDate(date: string) {
-    const dateString = String(date);
-    return dateString.split('-').reverse().join('-');
-  }
 
   useEffect(() => {
     if (user?.birthdate) {

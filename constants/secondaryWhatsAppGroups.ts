@@ -1,5 +1,9 @@
 export const SECONDARY_WHATSAPP_GROUPS = [
   {
+    label: "Prépa Concours",
+    url: "https://chat.whatsapp.com/LpSo5DxP70q3UT9hulTTZj?mode=hqctcla"
+  }, 
+  {
     label: "Tle A",
     url: "https://chat.whatsapp.com/LmX86OqJh6IDnXLjBYoA6t?mode=gi_t",
   },
