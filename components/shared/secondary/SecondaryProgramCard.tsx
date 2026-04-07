@@ -7,6 +7,7 @@ import {
   Image,
   ImageSourcePropType,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import { theme } from "@/constants/theme";
@@ -17,8 +18,6 @@ import { useAuth } from "@/contexts/auth";
 
 
 // Import des icônes
-const calendarIcon =
-  require("@/assets/images/icons/calendar.png") as ImageSourcePropType;
 const courseIcon =
   require("@/assets/images/icons/course.png") as ImageSourcePropType;
 const quizIcon =
@@ -54,6 +53,11 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
   // du programme ou du planning utilisateur lorsque ces informations seront disponibles.
   // Utiliser la vraie progression
   const progress = isLoading ? 0 : totalProgress;
+  const hasProgress = progress > 0;
+  const actionLabel = hasProgress ? "Continuer" : "Commencer";
+  const actionHint = hasProgress
+    ? "Reprenez votre progression dans ce programme"
+    : "Commencez ce programme";
 
   const handlePress = () => {
     if (onPress) onPress();
@@ -67,15 +71,19 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
 
 
   return (
-    <View style={[styles.card, isDarkMode && styles.cardDark]}>
-      <Pressable
-        onPress={handlePress}
-        style={({ pressed }) => [pressed && styles.cardPressed]}
-        accessible={true}
-        accessibilityRole="button"
-        accessibilityLabel={`Programme ${programTitle}, ${priceText}`}
-        accessibilityHint="Appuyez pour voir les détails du programme"
-      >
+    <Pressable
+      onPress={handlePress}
+      style={({ pressed }) => [
+        styles.card,
+        isDarkMode && styles.cardDark,
+        pressed && styles.cardPressed,
+      ]}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={`Programme ${programTitle}, ${priceText}`}
+      accessibilityHint="Appuyez pour voir les détails du programme"
+    >
+      <View style={styles.cardContent}>
         <View style={styles.header}>
           <Text
             style={[styles.title, isDarkMode && styles.titleDark]}
@@ -109,7 +117,6 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
             {program.description || "Aucune description"}
           </Text>
         )}
-      </Pressable>
 
       {!minimalist && (
         <View
@@ -144,7 +151,60 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
 
         </View>
       )}
-    </View>
+
+        <View
+          style={[
+            styles.actionRow,
+            isDarkMode && styles.actionRowDark,
+          ]}
+        >
+          <Text style={[styles.actionText, isDarkMode && styles.actionTextDark]}>
+            {actionHint}
+          </Text>
+          <View
+            style={[
+              styles.actionButton,
+              hasProgress
+                ? styles.actionButtonContinue
+                : styles.actionButtonStart,
+              isDarkMode && styles.actionButtonDark,
+              isDarkMode &&
+                (hasProgress
+                  ? styles.actionButtonContinueDark
+                  : styles.actionButtonStartDark),
+            ]}
+          >
+            <Text
+              style={[
+                styles.actionButtonText,
+                hasProgress
+                  ? styles.actionButtonTextContinue
+                  : styles.actionButtonTextStart,
+                isDarkMode &&
+                  (hasProgress
+                    ? styles.actionButtonTextContinueDark
+                    : styles.actionButtonTextStartDark),
+              ]}
+            >
+              {actionLabel}
+            </Text>
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={16}
+              color={
+                hasProgress
+                  ? isDarkMode
+                    ? theme.color.primary[100]
+                    : "#FFFFFF"
+                  : isDarkMode
+                    ? theme.color.primary[300]
+                    : theme.color.primary[600]
+              }
+            />
+          </View>
+        </View>
+      </View>
+    </Pressable>
   );
 };
 
@@ -258,10 +318,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: theme.border.radius.small,
-    padding: 16,
     elevation: 1,
     borderWidth: 1,
     borderColor: "#E5E7EB",
+    overflow: "hidden",
   },
   cardDark: {
     backgroundColor: theme.color.dark.background.secondary,
@@ -272,6 +332,9 @@ const styles = StyleSheet.create({
   cardPressed: {
     opacity: 0.7,
     transform: [{ scale: 0.98 }],
+  },
+  cardContent: {
+    padding: 16,
   },
   header: {
     flexDirection: "row",
@@ -327,6 +390,67 @@ const styles = StyleSheet.create({
   },
   statsRowDark: {
     backgroundColor: "rgba(55, 65, 81, 0.5)",
+  },
+  actionRow: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  actionRowDark: {},
+  actionText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#4B5563",
+    fontFamily: theme.typography.fontFamily,
+  },
+  actionTextDark: {
+    color: "#D1D5DB",
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: theme.border.radius.small,
+  },
+  actionButtonStart: {
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderColor: theme.color.primary[500],
+  },
+  actionButtonContinue: {
+    backgroundColor: "#059669",
+  },
+  actionButtonDark: {
+  },
+  actionButtonStartDark: {
+    borderColor: theme.color.primary[300],
+  },
+  actionButtonContinueDark: {
+    backgroundColor: "#047857",
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    fontFamily: theme.typography.fontFamily,
+  },
+  actionButtonTextStart: {
+    color: theme.color.primary[600],
+  },
+  actionButtonTextContinue: {
+    color: "#FFFFFF",
+  },
+  actionButtonTextDark: {
+  },
+  actionButtonTextStartDark: {
+    color: theme.color.primary[300],
+  },
+  actionButtonTextContinueDark: {
+    color: theme.color.primary[100],
   },
   statItem: {
     flexDirection: "column",
