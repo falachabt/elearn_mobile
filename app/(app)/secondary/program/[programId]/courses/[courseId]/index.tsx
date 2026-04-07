@@ -2,7 +2,18 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 import React, { useState, useEffect } from "react";
 import { useLocalSearchParams } from "expo-router";
-import useSWR from "swr";
+import useSWR, { mutate as swrGlobalMutate } from "swr";
+
+const invalidateDailyContent = () =>
+  void swrGlobalMutate(
+    (key: unknown) =>
+      Array.isArray(key) &&
+      typeof key[0] === "string" &&
+      (key[0] === "secondary-daily-content" ||
+        key[0] === "secondary-daily-content-programs"),
+    undefined,
+    { revalidate: true }
+  );
 
 import { supabase } from "@/lib/supabase";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -10,6 +21,10 @@ import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useUser } from "@/contexts/useUserInfo";
 import { useCustomRouter } from "@/hooks/useCustomRouter";
+import {
+  findSecondaryDailyItemId,
+  markSecondaryDailyItemCompleted,
+} from "@/services/secondary/dailyContent.service";
 import { Courses, CoursesCategories, CoursesContent, CourseVideos } from "@/types/type";
 import {
   ViewType,
@@ -47,13 +62,14 @@ interface SecondaryQuizItem {
 
 const SecondaryCourseDetail = () => {
   const router = useCustomRouter();
-  const { courseId, programId } = useLocalSearchParams();
+  const { courseId, programId, dailyContentItemId } = useLocalSearchParams();
   const [selectedView, setSelectedView] = useState<ViewType>("content");
-  const { sectionsProgress, refreshProgress } = useCourseProgress(Number(courseId));
+  const { progress, sectionsProgress, refreshProgress } = useCourseProgress(Number(courseId));
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { user } = useAuth();
   const { trigger } = useHaptics();
+  const hasMarkedDailyCourseRef = React.useRef(false);
 
   // Check if user is enrolled in this program
   const { isSecondaryProgramEnrolled } = useUser();
@@ -154,6 +170,42 @@ const SecondaryCourseDetail = () => {
     const highestScore = Math.max(...quizAttempts.map((attempt: QuizAttemptProgress) => attempt.score ?? 0));
     return highestScore || 0;
   };
+
+  useEffect(() => {
+    if (
+      !user?.id ||
+      !course ||
+      !progress?.is_completed ||
+      hasMarkedDailyCourseRef.current
+    ) {
+      return;
+    }
+
+    void (async () => {
+      const effectiveDailyContentItemId =
+        (typeof dailyContentItemId === "string" ? dailyContentItemId : null) ??
+        (programId
+          ? await findSecondaryDailyItemId(String(programId), user.id, {
+              courseId: Number(courseId),
+            })
+          : null);
+
+      if (!effectiveDailyContentItemId) return;
+
+      hasMarkedDailyCourseRef.current = true;
+
+      await markSecondaryDailyItemCompleted(
+        effectiveDailyContentItemId,
+        user.id,
+        "course",
+        {
+          courseId: Number(courseId),
+          programId: String(programId),
+        }
+      );
+      invalidateDailyContent();
+    })();
+  }, [course, courseId, dailyContentItemId, programId, progress?.is_completed, user?.id]);
 
   // Optional: Add a loading state while checking enrollment
   if (typeof isEnrolled === "undefined") {

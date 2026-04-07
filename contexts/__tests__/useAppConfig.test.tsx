@@ -119,6 +119,7 @@ describe('AppConfigProvider', () => {
     });
     expect(latestContext!.getPricingConfig()).toBeNull();
     expect(latestContext!.isGenerousWeekActive()).toBe(false);
+    expect(latestContext!.isFeatureEnabled('daily_activity_leaderboard_enabled')).toBe(false);
     expect(mockSubscribe).toHaveBeenCalledTimes(1);
   });
 
@@ -143,6 +144,9 @@ describe('AppConfigProvider', () => {
           },
           api_base_url: 'https://api.example.com',
           pricing: pricingConfig,
+          features: {
+            daily_activity_leaderboard_enabled: true,
+          },
         },
       },
       error: null,
@@ -166,6 +170,7 @@ describe('AppConfigProvider', () => {
       summary_url: 'https://example.com/summary',
     });
     expect(latestContext!.getPricingConfig()).toEqual(pricingConfig);
+    expect(latestContext!.isFeatureEnabled('daily_activity_leaderboard_enabled')).toBe(true);
   });
 
   it('renders the error boundary when loading failed', () => {

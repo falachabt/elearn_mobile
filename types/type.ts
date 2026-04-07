@@ -1185,6 +1185,8 @@ export interface QuizAttempts {
   id: number;
   user_id: string | null;
   quiz_id: string | null;
+  program_id: string | null;
+  daily_content_item_id: string | null;
   start_time: Date | null;
   end_time: Date | null;
   score: number | null;
@@ -1199,6 +1201,8 @@ export interface QuizAttemptsInput {
   id?: number;
   user_id?: string | null;
   quiz_id?: string | null;
+  program_id?: string | null;
+  daily_content_item_id?: string | null;
   start_time?: Date | null;
   end_time?: Date | null;
   score?: number | null;
@@ -1211,7 +1215,7 @@ export interface QuizAttemptsInput {
 }
 const quiz_attempts = {
   tableName: 'quiz_attempts',
-  columns: ['id', 'user_id', 'quiz_id', 'start_time', 'end_time', 'score', 'status', 'timeSpent', 'current_question_index', 'answers', 'selected_answers', 'last_modified_at'],
+  columns: ['id', 'user_id', 'quiz_id', 'program_id', 'daily_content_item_id', 'start_time', 'end_time', 'score', 'status', 'timeSpent', 'current_question_index', 'answers', 'selected_answers', 'last_modified_at'],
   requiredForInsert: [],
   primaryKey: 'id',
   foreignKeys: {

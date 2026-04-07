@@ -50,11 +50,16 @@ interface PricingConfig {
   };
 }
 
+interface AppFeatureFlags {
+  daily_activity_leaderboard_enabled?: boolean;
+}
+
 interface AppConfigData {
   generous_week?: GenerousWeekConfig;
   webview?: WebViewConfig;
   api_base_url?: string;
   pricing?: PricingConfig;
+  features?: AppFeatureFlags;
 }
 
 interface AppConfig {
@@ -71,6 +76,7 @@ type AppConfigContextType = {
   getWebViewUrls: () => WebViewConfig | null;
   getApiBaseUrl: () => string | null;
   getPricingConfig: () => PricingConfig | null;
+  isFeatureEnabled: (featureName: keyof AppFeatureFlags) => boolean;
   mutateAppConfig: () => Promise<AppConfig | null | undefined>;
 };
 
@@ -155,6 +161,10 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     return appConfig.data.pricing;
   };
 
+  const isFeatureEnabled = (featureName: keyof AppFeatureFlags) => {
+    return Boolean(appConfig?.data?.features?.[featureName]);
+  };
+
   useEffect(() => {
     setIsLoading(appConfig === undefined);
     if (swrError) {
@@ -189,6 +199,7 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
     getWebViewUrls,
     getApiBaseUrl,
     getPricingConfig,
+    isFeatureEnabled,
     mutateAppConfig,
   };
 

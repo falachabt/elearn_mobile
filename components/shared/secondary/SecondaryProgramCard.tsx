@@ -7,7 +7,6 @@ import {
   Image,
   ImageSourcePropType,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import { theme } from "@/constants/theme";
@@ -55,7 +54,6 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
   // du programme ou du planning utilisateur lorsque ces informations seront disponibles.
   // Utiliser la vraie progression
   const progress = isLoading ? 0 : totalProgress;
-  const daysBeforeExam = 45; // TODO: Replace with actual exam date calculation
 
   const handlePress = () => {
     if (onPress) onPress();
@@ -95,24 +93,7 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
             {priceText}
           </Text>
         </View>
-        <View
-          style={[
-            styles.examCountdown,
-            isDarkMode && styles.examCountdownDark,
-            daysBeforeExam < 30 && styles.urgentCountdown,
-          ]}
-        >
-          <Image source={calendarIcon} style={styles.examIcon} />
-          <Text
-            style={[
-              styles.examText,
-              daysBeforeExam < 30 && styles.urgentExamText,
-              isDarkMode && styles.examTextDark,
-            ]}
-          >
-            {`J-${daysBeforeExam} avant l'examen`}
-          </Text>
-        </View>
+        
         <View style={styles.progressContainerFull}>
           <View style={styles.progressBackgroundFull}>
             <View style={[styles.progressFillFull, { width: `${progress}%` }]} />

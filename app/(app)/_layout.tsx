@@ -1,5 +1,5 @@
-import React, {useCallback} from "react";
-import {Redirect, router, Tabs} from "expo-router";
+import React, { useCallback, useRef } from "react";
+import {Href, Redirect, router, Tabs} from "expo-router";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {
     AccessibilityState,
@@ -19,6 +19,7 @@ import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useColorScheme} from '@/hooks/useColorScheme';
 import {LoadingAnimation} from "@/components/shared/LoadingAnimation1";
 import RatingModal from '@/components/RatingModal';
+import { TabBarTourContext } from "@/contexts/TabBarTourContext";
 
 export default function AppLayout() {
     const {session, isLoading, user, ensureSessionAccount, signOut} = useAuth();
@@ -26,6 +27,11 @@ export default function AppLayout() {
     const isDarkMode = colorScheme != 'light';
     const {mutate} = useSWRConfig();
     const {trigger} = useHaptics();
+    const homeTabRef = useRef<View>(null);
+    const manuelTabRef = useRef<View>(null);
+    const secondaryTabRef = useRef<View>(null);
+    const learnTabRef = useRef<View>(null);
+    const profileTabRef = useRef<View>(null);
 
     // Handle tab press with memoized callback to avoid recreation on each render
     interface TabPressEvent {
@@ -38,6 +44,7 @@ export default function AppLayout() {
         const currentRoute: string = e.target?.toString() || '';
         const target: string = currentRoute.includes('-') ? currentRoute.split('-')[0] : currentRoute;
 
+
         // Use focus event to trigger haptics to avoid unnecessary renders
         trigger(HapticType.SELECTION);
 
@@ -49,6 +56,14 @@ export default function AppLayout() {
             e.preventDefault?.();
             router.replace('/learn');
         }
+
+        // navigate to the root of the tab to reset any nested navigation state
+        if (target && target !== 'index') {
+            router.push(`/${target}`  as Href);
+        } else if (target === 'index') {
+            router.push(`/` as Href);
+        }
+
     }, [trigger, mutate, user?.id]);
     if (!session) {
         return <Redirect href="/(auth)"/>;
@@ -110,11 +125,20 @@ export default function AppLayout() {
     }
 
     return (
-        <SafeAreaView
-            style={{flex: 1, backgroundColor: isDarkMode ? theme.color.dark.background.primary : "transparent"}}
+        <TabBarTourContext.Provider
+            value={{
+                homeTabRef,
+                manuelTabRef,
+                secondaryTabRef,
+                learnTabRef,
+                profileTabRef,
+            }}
         >
-            <RatingModal />
-            <Tabs
+            <SafeAreaView
+                style={{flex: 1, backgroundColor: isDarkMode ? theme.color.dark.background.primary : "transparent"}}
+            >
+                <RatingModal />
+                <Tabs
                 screenOptions={{
                     headerShown: false,
                     tabBarActiveTintColor: theme.color.primary[500],
@@ -122,7 +146,6 @@ export default function AppLayout() {
                     tabBarShowLabel: true,
                     tabBarStyle: isDarkMode ? styles.tabBarDark : styles.tabBar,
                     tabBarItemStyle: styles.tabItem,
-                    tabBarButton: (props) => <CustomTabBarButton {...props} isDarkMode={isDarkMode}/>,
                     tabBarLabelStyle: styles.tabLabel,
                 }}
                 screenListeners={{
@@ -141,6 +164,13 @@ export default function AppLayout() {
                                 size={26}
                             />
                         ),
+                        tabBarButton: (props) => (
+                            <CustomTabBarButton
+                                {...props}
+                                isDarkMode={isDarkMode}
+                                tourRef={homeTabRef}
+                            />
+                        ),
                     }}
                 />
 
@@ -156,10 +186,25 @@ export default function AppLayout() {
                                 size={26}
                             />
                         ),
+                        tabBarButton: (props) => (
+                            <CustomTabBarButton
+                                {...props}
+                                isDarkMode={isDarkMode}
+                                tourRef={manuelTabRef}
+                            />
+                        ),
                     }}
                 />
 
-                {/* Other tab screens... */}
+                <Tabs.Screen
+                    name="activity/index"
+                    options={{ href: null }}
+                />
+                <Tabs.Screen
+                    name="activity/detail"
+                    options={{ href: null }}
+                />
+
                 <Tabs.Screen
                     name="secondary"
                     options={{
@@ -169,6 +214,13 @@ export default function AppLayout() {
                                 name="book-open-variant"
                                 color={color}
                                 size={26}
+                            />
+                        ),
+                        tabBarButton: (props) => (
+                            <CustomTabBarButton
+                                {...props}
+                                isDarkMode={isDarkMode}
+                                tourRef={secondaryTabRef}
                             />
                         ),
                     }}
@@ -182,6 +234,13 @@ export default function AppLayout() {
                                 name="book-open-variant"
                                 color={color}
                                 size={26}
+                            />
+                        ),
+                        tabBarButton: (props) => (
+                            <CustomTabBarButton
+                                {...props}
+                                isDarkMode={isDarkMode}
+                                tourRef={learnTabRef}
                             />
                         ),
                     }}
@@ -198,10 +257,18 @@ export default function AppLayout() {
                                 size={26}
                             />
                         ),
+                        tabBarButton: (props) => (
+                            <CustomTabBarButton
+                                {...props}
+                                isDarkMode={isDarkMode}
+                                tourRef={profileTabRef}
+                            />
+                        ),
                     }}
                 />
-            </Tabs>
-        </SafeAreaView>
+                </Tabs>
+            </SafeAreaView>
+        </TabBarTourContext.Provider>
     );
 }
 
@@ -211,11 +278,13 @@ function CustomTabBarButton({
                                 onPress,
                                 accessibilityState,
                                 isDarkMode,
+                                tourRef,
                             }: {
     children: React.ReactNode;
     onPress?: (event: GestureResponderEvent) => void;
     accessibilityState?: AccessibilityState;
     isDarkMode: boolean;
+    tourRef?: React.RefObject<View | null>;
 }) {
     const isSelected = accessibilityState?.selected;
 
@@ -226,6 +295,8 @@ function CustomTabBarButton({
             activeOpacity={0.7}
         >
             <View
+                ref={tourRef}
+                collapsable={false}
                 style={[
                     styles.tabButtonContent,
                     isSelected && styles.tabButtonContentActive,
@@ -237,6 +308,7 @@ function CustomTabBarButton({
         </TouchableOpacity>
     );
 }
+
 
 const styles = StyleSheet.create({
     // Your existing styles here

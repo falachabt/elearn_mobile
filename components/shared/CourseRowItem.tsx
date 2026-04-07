@@ -15,9 +15,10 @@ interface CourseRowItemProps {
     baseRoute: string;
     isDark: boolean;
     isEnrolled?: boolean;
+    onCoursePress?: (courseItem: CourseItem) => void;
 }
 
-const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRoute, isDark, isEnrolled = false}) => {
+const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRoute, isDark, isEnrolled = false, onCoursePress}) => {
     const router = useRouter();
     void pdId;
     const course = courseItem.course ?? undefined;
@@ -46,7 +47,9 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRout
             onPress={() => {
                 trigger(HapticType.SELECTION);
 
-                if (course?.id != null) {
+                if (onCoursePress) {
+                    onCoursePress(courseItem);
+                } else if (course?.id != null) {
                     router.push(`${baseRoute}/${course.id}` as Href);
                 }
             }

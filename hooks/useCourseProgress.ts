@@ -7,6 +7,17 @@ import { CourseProgressService } from "@/services/course.progress.service";
 import { supabase } from "@/lib/supabase";
 import {courseProgressKeys, programProgressKeys} from "@/constants/swr-path";
 
+const invalidateDailyContent = () =>
+  void mutate(
+    (key: unknown) =>
+      Array.isArray(key) &&
+      typeof key[0] === "string" &&
+      (key[0] === "secondary-daily-content" ||
+        key[0] === "secondary-daily-content-programs"),
+    undefined,
+    { revalidate: true }
+  );
+
 interface CourseProgress {
   total_sections: number;
   completed_sections: number;
@@ -53,12 +64,6 @@ const fetchSectionsProgress = async (userId: string, courseId: number): Promise<
       lastaccessed: section.lastaccessed ?? "",
     }));
 };
-
-const fetchSectionProgress = (
-  userId: string,
-  courseId: number,
-  sectionId: number
-) => CourseProgressService.getSectionProgress(userId, courseId, sectionId);
 
 export const useCourseProgress = (courseId: number | undefined) => {
   const { user } = useAuth(); // Get current user
@@ -121,6 +126,7 @@ export const useCourseProgress = (courseId: number | undefined) => {
       
       // Muter les progressions au niveau du programme
       programProgressKeys.mutateAll();
+      invalidateDailyContent();
     } catch (error) {
       logger.error('Error marking section complete:', error);
     }

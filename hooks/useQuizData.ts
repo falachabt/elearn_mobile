@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import useSWR from 'swr';
 
 import { supabase } from '@/lib/supabase';
@@ -12,7 +14,10 @@ export const useQuizPins = (quizIds: string | string[] | undefined) => {
   const { user } = useAuth();
   
   const normalizedIds = Array.isArray(quizIds) ? quizIds : quizIds ? [quizIds] : [];
-  const cacheKey = normalizedIds.length > 0 ? `quiz-pins-${normalizedIds.sort().join('-')}` : null;
+  const cacheKey =
+    user?.id && normalizedIds.length > 0
+      ? `quiz-pins-${user.id}-${normalizedIds.sort().join('-')}`
+      : null;
 
   const { data, error, mutate } = useSWR(
     user?.id && cacheKey ? cacheKey : null,
@@ -30,6 +35,16 @@ export const useQuizPins = (quizIds: string | string[] | undefined) => {
       if (error) throw error;
       return data || [];
     }
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!cacheKey) {
+        return;
+      }
+
+      void mutate();
+    }, [cacheKey, mutate])
   );
 
   // Create a map for easy lookup
@@ -59,7 +74,7 @@ export const useQuizAttempts = (
   
   const normalizedIds = Array.isArray(quizIds) ? quizIds : quizIds ? [quizIds] : [];
   const cacheKey = normalizedIds.length > 0 
-    ? `quiz-attempts-${normalizedIds.sort().join('-')}${status ? `-${status}` : ''}`
+    ? `quiz-attempts-${user?.id ?? 'anonymous'}-${normalizedIds.sort().join('-')}${status ? `-${status}` : ''}`
     : null;
 
   const { data, error, mutate } = useSWR(
@@ -83,6 +98,16 @@ export const useQuizAttempts = (
       if (error) throw error;
       return data || [];
     }
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!cacheKey || !user?.id) {
+        return;
+      }
+
+      void mutate();
+    }, [cacheKey, mutate, user?.id])
   );
 
   // Create a map for best scores per quiz
@@ -168,6 +193,16 @@ export const useQuizDetails = (
         return data;
       }
     }
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!quizId) {
+        return;
+      }
+
+      void mutate();
+    }, [mutate, quizId])
   );
 
   return {

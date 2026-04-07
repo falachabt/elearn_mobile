@@ -36,6 +36,8 @@ export interface QuizQuestion {
     id: number;
     user_id: string | null;
     quiz_id: string | null;
+    program_id?: string | null;
+    daily_content_item_id?: string | null;
     start_time: string | null;
     end_time?: string | null;
     score?: number | null;

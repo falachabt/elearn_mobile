@@ -5,6 +5,22 @@ import { QuizAttempt, QuizResults, type QuizAnswerState } from '@/types/quiz.typ
 
 type QuizRecord = Database['public']['Tables']['quiz']['Row'];
 type QuizAttemptRow = Database['public']['Tables']['quiz_attempts']['Row'];
+type QuizAttemptContext = {
+  programId?: string | null;
+  dailyContentItemId?: string | null;
+};
+type QuizAttemptInsertClient = {
+  from: (table: 'quiz_attempts') => {
+    insert: (values: Record<string, unknown>) => {
+      select: () => {
+        single: () => Promise<{
+          data: QuizAttemptRow | null;
+          error: Error | null;
+        }>;
+      };
+    };
+  };
+};
 
 const isQuizAnswerState = (value: unknown): value is QuizAnswerState => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -41,6 +57,9 @@ const mapAttempt = (attempt: QuizAttemptRow): QuizAttempt => ({
   id: attempt.id,
   user_id: attempt.user_id,
   quiz_id: attempt.quiz_id,
+  program_id: (attempt as QuizAttemptRow & { program_id?: string | null }).program_id ?? null,
+  daily_content_item_id:
+    (attempt as QuizAttemptRow & { daily_content_item_id?: string | null }).daily_content_item_id ?? null,
   start_time: attempt.start_time,
   end_time: attempt.end_time,
   score: attempt.score,
@@ -67,11 +86,19 @@ export class QuizService {
     return data;
   }
 
-  static async createAttempt(quizId: string, userId: string): Promise<QuizAttempt> {
-    const { data, error } = await supabase
+  static async createAttempt(
+    quizId: string,
+    userId: string,
+    context?: QuizAttemptContext
+  ): Promise<QuizAttempt> {
+    const quizAttemptClient = supabase as unknown as QuizAttemptInsertClient;
+
+    const { data, error } = await quizAttemptClient
       .from('quiz_attempts')
       .insert({
         quiz_id: quizId,
+        program_id: context?.programId ?? null,
+        daily_content_item_id: context?.dailyContentItemId ?? null,
         user_id: userId,
         start_time: new Date().toISOString(),
         status: 'in_progress',
@@ -83,7 +110,9 @@ export class QuizService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error || !data) {
+      throw error ?? new Error('Failed to create quiz attempt');
+    }
     return mapAttempt(data);
   }
 
@@ -276,7 +305,11 @@ export class QuizService {
     };
   }
 
-  static async resetAttempt(quizId: string, userId: string) {
+  static async resetAttempt(
+    quizId: string,
+    userId: string,
+    context?: QuizAttemptContext
+  ) {
     try {
       const { data: previousAttempt } = await supabase
         .from('quiz_attempts')
@@ -293,7 +326,7 @@ export class QuizService {
           .eq('id', previousAttempt.id);
       }
 
-      return await this.createAttempt(quizId, userId);
+      return await this.createAttempt(quizId, userId, context);
     } catch (error) {
       logger.error('Error resetting attempt:', error);
       throw error;

@@ -5,19 +5,22 @@ import {
   useSecondaryProgram,
   useSecondaryProgramQuizzes,
 } from "@/hooks/secondary/useSecondaryPrograms";
+import { useSecondaryDailyContent } from "@/hooks/secondary/useSecondaryDailyContent";
 import { QuizListView } from "@/components/shared/learn/quiz/QuizListView";
 import { useQuizPins, useQuizAttempts } from "@/hooks/useQuizData";
+import { useAuth } from "@/contexts/auth";
 import { SecondaryProgramQuiz } from "@/types/secondary.type";
-import { pickDailyItem } from "@/utils/secondaryPreferences";
 
 export default function QuizzesList() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
+  const { user } = useAuth();
   const [page, setPage] = useState(0);
   const [allQuizzes, setAllQuizzes] = useState<SecondaryProgramQuiz[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch program and quizzes data
   const { program, isLoading: isLoadingProgram } = useSecondaryProgram(programId);
+  const { dailyContent } = useSecondaryDailyContent(programId, user?.id);
   const { 
     quizzes, 
     count,
@@ -83,6 +86,9 @@ export default function QuizzesList() {
       return {
         quizId: quizId,
         lpId: programId,
+        dailyContentItemId:
+          dailyContent?.quizzes.find((dailyQuiz) => dailyQuiz.quizId === quizId)
+            ?.dailyContentItemId,
         quiz: {
           id: item.quiz.id,
           name: item.quiz.name || "Quiz sans titre",
@@ -95,11 +101,16 @@ export default function QuizzesList() {
         progress: progress,
       };
     }).filter(Boolean);
-  }, [allQuizzes, programId, pinnedMap, bestScoreMap]);
-  const dailyQuiz = useMemo(
-    () => pickDailyItem(quizzesWithProgress as NonNullable<typeof quizzesWithProgress>, `${programId}:quiz`),
-    [programId, quizzesWithProgress]
-  );
+  }, [allQuizzes, bestScoreMap, dailyContent?.quizzes, pinnedMap, programId]);
+
+  const dailyQuiz = useMemo(() => {
+    const primaryDailyQuiz = dailyContent?.quizzes?.[0];
+    if (!primaryDailyQuiz) return undefined;
+
+    return (quizzesWithProgress as NonNullable<typeof quizzesWithProgress>).find(
+      (item) => item?.quizId === primaryDailyQuiz.quizId
+    );
+  }, [dailyContent?.quizzes, quizzesWithProgress]);
 
   // Get program info
   const getProgramInfo = () => {

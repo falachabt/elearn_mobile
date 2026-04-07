@@ -24,6 +24,7 @@ import { HapticType, useHaptics } from "@/hooks/useHaptics";
 export interface ExerciseListItem {
   exerciseId: number;
   lpId: string;
+  dailyContentItemId?: string;
   exercise: {
     id: number;
     title: string;
@@ -31,11 +32,11 @@ export interface ExerciseListItem {
     course?: {
       id: number;
       name: string;
-      category?: number;
+      category?: number | string | null;
       courses_categories?: {
-        id: number;
+        id: number | string;
         name: string;
-      };
+      } | null;
     };
     document_count?: number;
   };
@@ -150,7 +151,11 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
     setSearchQuery("");
   };
   const featuredExerciseRoute = featuredExercise
-    ? `${baseRoute}/${featuredExercise.exercise.id}`
+    ? `${baseRoute}/${featuredExercise.exercise.id}${
+        featuredExercise.dailyContentItemId
+          ? `?dailyContentItemId=${featuredExercise.dailyContentItemId}`
+          : ""
+      }`
     : null;
 
   // Handle back button

@@ -81,6 +81,17 @@ const handleNotificationNavigation = (data: Record<string, unknown>) => {
                     logger.log('✅ Navigation vers le quiz:', quizId);
                 }
                 break;
+
+            case 'exercise':
+                // Format: { type: 'exercise', programId: 'xxx', exerciseId: 'xxx' }
+                const exerciseProgramId = data?.programId as string;
+                const exerciseId = (data?.exerciseId || id) as string;
+
+                if (exerciseProgramId && exerciseId) {
+                    router.push(`/(app)/secondary/program/${exerciseProgramId}/exercices/${exerciseId}` as Href);
+                    logger.log('✅ Navigation vers l\'exercice:', exerciseId);
+                }
+                break;
                 
             case 'news':
                 if (id) {

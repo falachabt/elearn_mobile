@@ -15,11 +15,11 @@ import { theme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useSecondaryProgram } from "@/hooks/secondary/useSecondaryPrograms";
 import { useSecondaryProgramProgress } from "@/hooks/secondary/useSecondaryProgramProgress";
-import SecondaryProgramCard from "@/components/shared/secondary/SecondaryProgramCard";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { getSecondaryWhatsAppGroup } from "@/constants/secondaryWhatsAppGroups";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { useAuth } from "@/contexts/auth";
+import { useSecondaryDailyContent } from "@/hooks/secondary/useSecondaryDailyContent";
 
 interface ActionCard {
   id: string;
@@ -46,12 +46,15 @@ const SecondaryProgramDetails = () => {
   const { user } = useAuth();
 
   const { program, isLoading, isError } = useSecondaryProgram(programId);
-  
+
+  // Daily activity content
+  const { dailyContent } = useSecondaryDailyContent(programId, user?.id);
+
   // Récupérer la vraie progression
-  const { 
-    courseProgress, 
-    quizProgress, 
-    exercisesProgress, 
+  const {
+    courseProgress,
+    quizProgress,
+    exercisesProgress,
     documentsProgress
   } = useSecondaryProgramProgress(programId, user?.id);
 
@@ -216,6 +219,43 @@ const SecondaryProgramDetails = () => {
       }
     ];
 
+    // Activité du jour
+    if (dailyContent) {
+      const totalItems =
+        dailyContent.courses.length +
+        dailyContent.quizzes.length +
+        dailyContent.exercises.length;
+      const completedItems = Math.max(0, totalItems - dailyContent.pendingCount);
+      const pct = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+      cards.unshift({
+        id: "activity",
+        title: "Activité du jour",
+        subtitle: dailyContent.pendingCount > 0
+          ? `${dailyContent.pendingCount} activité${dailyContent.pendingCount > 1 ? "s" : ""} restante${dailyContent.pendingCount > 1 ? "s" : ""}`
+          : "Tout terminé aujourd'hui 🎉",
+        progress: { current: completedItems, total: totalItems, percentage: pct },
+        icon: (
+          <MaterialCommunityIcons
+            name="calendar-star"
+            size={24}
+            color={isDark ? "#FCD34D" : "#B45309"}
+          />
+        ),
+        route: `/(app)/activity/detail?programId=${programId}&targetDate=${dailyContent.targetDate}&label=${encodeURIComponent("Du jour")}&backTo=${encodeURIComponent(`/(app)/secondary/program/${programId}`)}`,
+        color: isDark ? "#FCD34D" : "#B45309",
+        rightContent: (
+          <View style={styles.progressIndicator}>
+            <ThemedText style={[styles.progressText, isDark && styles.progressTextDark]}>
+              {completedItems}/{totalItems}
+            </ThemedText>
+            <ThemedText style={[styles.progressLabel, isDark && styles.progressLabelDark]}>
+              réalisées
+            </ThemedText>
+          </View>
+        ),
+      });
+    }
+
     if (whatsappGroup) {
       cards.push({
         id: "whatsapp",
@@ -234,7 +274,7 @@ const SecondaryProgramDetails = () => {
     }
 
     return cards;
-  }, [program, programId, isEnrolled, isDark, progression, getCoursesPath, getQuizzesPath, getExercicesPath, getDocumentsPath, whatsappGroup]);
+  }, [program, programId, isEnrolled, isDark, progression, dailyContent, getCoursesPath, getQuizzesPath, getExercicesPath, getDocumentsPath, whatsappGroup]);
 
   const handleCardPress = (card: ActionCard) => {
     trigger(HapticType.LIGHT);
@@ -286,9 +326,29 @@ const SecondaryProgramDetails = () => {
       >
         {/* Header Section */}
         <View style={[styles.header, isDark && styles.headerDark]}>
-          <ThemedText style={[styles.title, isDark && styles.titleDark]}>
-            {program.class?.name} - {program.serie?.name}
-          </ThemedText>
+          <View style={styles.headerTop}>
+            <Pressable
+              onPress={() => router.back()}
+              style={[styles.backButton, isDark && styles.backButtonDark]}
+            >
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color={isDark ? "#F9FAFB" : "#111827"}
+              />
+            </Pressable>
+            <View style={styles.headerTitleContainer}>
+              <ThemedText style={[styles.title, isDark && styles.titleDark]}>
+                {program.class?.name} - {program.serie?.name}
+              </ThemedText>
+              <ThemedText
+                style={[styles.priceTag, isDark && styles.priceTagDark]}
+              >
+                {program.price ? `${program.price} FCFA` : "Gratuit"}
+              </ThemedText>
+            </View>
+          </View>
+
           {program.description && (
             <ThemedText
               style={[styles.description, isDark && styles.descriptionDark]}
@@ -296,6 +356,17 @@ const SecondaryProgramDetails = () => {
               {program.description}
             </ThemedText>
           )}
+
+          <View style={styles.headerProgressContainer}>
+            <View style={styles.headerProgressBackground}>
+              <View
+                style={[
+                  styles.headerProgressFill,
+                  { width: `${courseProgress.percentage}%` },
+                ]}
+              />
+            </View>
+          </View>
         </View>
 
         {/* Enrollment Status */}
@@ -307,11 +378,6 @@ const SecondaryProgramDetails = () => {
             </ThemedText>
           </View>
         )}
-
-        {/* Program Card */}
-        <View style={styles.cardContainer}>
-          <SecondaryProgramCard program={program} minimalist />
-        </View>
 
         {/* Action Cards */}
         <View style={styles.cardsContainer}>
@@ -400,22 +466,77 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#FFFFFF",
-    borderRadius: theme.border.radius.small,
     padding: 16,
+    paddingTop: Platform.OS === 'ios' ? 44 : 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
     marginBottom: 16,
   },
   headerDark: {
     backgroundColor: theme.color.dark.background.secondary,
+    borderBottomColor: theme.color.dark.border,
+  },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  backButtonDark: {
+    backgroundColor: "#374151",
+  },
+  headerTitleContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   title: {
     fontSize: 20,
     fontWeight: "800",
     color: "#111827",
     fontFamily: theme.typography.fontFamily,
-    marginBottom: 8,
+    flex: 1,
   },
   titleDark: {
     color: "#F9FAFB",
+  },
+  priceTag: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.color.primary[600],
+    backgroundColor: "rgba(37, 99, 235, 0.1)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  priceTagDark: {
+    color: "#60A5FA",
+    backgroundColor: "rgba(59, 130, 246, 0.2)",
+  },
+  headerProgressContainer: {
+    width: "100%",
+    marginTop: 12,
+  },
+  headerProgressBackground: {
+    height: 6,
+    backgroundColor: "#E5E7EB",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  headerProgressFill: {
+    height: "100%",
+    backgroundColor: theme.color.primary[500],
+    borderRadius: 3,
   },
   description: {
     fontSize: 14,

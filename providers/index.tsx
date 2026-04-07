@@ -7,18 +7,21 @@
   View,
   Text,
 } from "react-native";
+import {
+  TourGuideOverlay,
+  TourGuideProvider,
+} from "@wrack/react-native-tour-guide";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SWRConfig } from "swr";
 import { useEffect, useRef, useState } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as amplitude from "@amplitude/analytics-react-native";
 import { PostHogProvider, PostHogErrorBoundary } from "posthog-react-native";
-import type { PostHogErrorBoundaryFallbackProps } from 'posthog-react-native';
+import type { PostHogErrorBoundaryFallbackProps } from "posthog-react-native";
 import React from "react";
 
 import { AuthProvider } from "@/contexts/auth";
-
 import { UserProvider } from "@/contexts/useUserInfo";
 import { AppConfigProvider } from "@/contexts/useAppConfig";
 import UserActivityTracker from "@/components/shared/UserActivity";
@@ -503,15 +506,18 @@ export function Provider({ children }: { children: React.ReactNode }) {
             <UserProvider>
               <NavigationProvider>
                 <GestureHandlerRootView style={{ flex: 1 }}>
-                  <UpdatesProvider>
-                    <ChatProvider>
-                          <UserActivityTracker />
-                          <UpdatesManager />
-                          {/* <RouteRevalidationManager> */}
-                          <BackHandlerManager>{children}</BackHandlerManager>
-                          {/* </RouteRevalidationManager> */}
-                    </ChatProvider>
-                  </UpdatesProvider>
+                  <TourGuideProvider>
+                    <UpdatesProvider>
+                      <ChatProvider>
+                            <UserActivityTracker />
+                            <UpdatesManager />
+                            {/* <RouteRevalidationManager> */}
+                            <BackHandlerManager>{children}</BackHandlerManager>
+                            {/* </RouteRevalidationManager> */}
+                      </ChatProvider>
+                    </UpdatesProvider>
+                    <TourGuideOverlay />
+                  </TourGuideProvider>
                 </GestureHandlerRootView>
               </NavigationProvider>
             </UserProvider>

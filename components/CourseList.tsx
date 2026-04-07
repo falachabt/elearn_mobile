@@ -25,6 +25,7 @@ interface CourseListProps {
 const CourseList: React.FC<CourseListProps> = ({
                                                    courses,
                                                    pdId,
+                                                   onCoursePress,
                                                    emptyMessage = "Aucun cours disponible",
                                                    isEnrolled = false
                                                }) => {
@@ -68,6 +69,7 @@ const CourseList: React.FC<CourseListProps> = ({
                     baseRoute={getCoursesPath()}
                     isDark={isDark}
                     isEnrolled={isEnrolled}
+                    onCoursePress={onCoursePress}
                 />
             ))}
         </ScrollView>

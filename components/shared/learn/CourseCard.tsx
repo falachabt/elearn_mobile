@@ -26,6 +26,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
   pdId,
   type = "prepa", // Type de programme (prepa ou secondary) - utilisé pour déterminer le type de cours
   index = 1,
+  onPress,
   isEnrolled = false,
 }) => {
   const router = useRouter();
@@ -110,13 +111,14 @@ const CourseCard: React.FC<CourseCardProps> = ({
 
   const handlePress = useCallback(() => {
     trigger(HapticType.LIGHT);
+    if (onPress) {
+      onPress();
+      return;
+    }
+
     // @ts-expect-error - Dynamic route based on program type
     router.push(courseRoute);
-    // if (onPress) {
-    //     onPress();
-    // } else {
-    // }
-  }, [trigger, router, courseRoute]);
+  }, [trigger, onPress, router, courseRoute]);
 
   // Format course identifier (either unit or chapter number)
   const getCourseIdentifier = useCallback(() => {

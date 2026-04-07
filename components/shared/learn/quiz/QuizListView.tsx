@@ -26,6 +26,7 @@ import { theme } from "@/constants/theme";
 export interface QuizListItem {
   quizId: string;
   lpId: string;
+  dailyContentItemId?: string;
   quiz: {
     id: string;
     name: string;
@@ -153,7 +154,11 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
     setSearchQuery("");
   };
   const featuredQuizRoute = featuredQuiz
-    ? `${baseRoute}/${featuredQuiz.quizId}`
+    ? `${baseRoute}/${featuredQuiz.quizId}${
+        featuredQuiz.dailyContentItemId
+          ? `?dailyContentItemId=${featuredQuiz.dailyContentItemId}`
+          : ""
+      }`
     : null;
 
   // Handle back button

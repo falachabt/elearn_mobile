@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -20,6 +20,7 @@ import NoProgram from "@/components/shared/catalogue/NoProgramCard";
 import SecondaryProgramCard from "@/components/shared/secondary/SecondaryProgramCard";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth";
+import { useSecondaryDailyContentForPrograms } from "@/hooks/secondary/useSecondaryDailyContent";
 import { supabase } from "@/lib/supabase";
 import { getSecondaryPrograms } from "@/services/secondary/program.service";
 import { SecondaryProgram } from "@/types/secondary.type";
@@ -31,6 +32,7 @@ import {
   parseSecondaryPreferences,
   TERMINALE_TRACK_OPTIONS,
 } from "@/utils/secondaryPreferences";
+import { syncSecondaryDailyReminder } from "@/utils/secondaryDailyReminder";
 
 const SecondaryPrograms = () => {
   const { session, user, mutateUser } = useAuth();
@@ -103,19 +105,19 @@ const SecondaryPrograms = () => {
     [preferredPrograms, selectedExtraPrograms]
   );
 
-  const remainingPrograms = useMemo(
+  const manageablePrograms = useMemo(
     () =>
       (secondaryPrograms ?? []).filter(
-        (program) => !visiblePrograms.some((visibleProgram) => visibleProgram.id === program.id)
+        (program) => !preferredPrograms.some((preferredProgram) => preferredProgram.id === program.id)
       ),
-    [secondaryPrograms, visiblePrograms]
+    [secondaryPrograms, preferredPrograms]
   );
 
-  const filteredRemainingPrograms = useMemo(() => {
+  const filteredManageablePrograms = useMemo(() => {
     const normalizedSearch = additionalSearchQuery.trim().toLowerCase();
-    if (!normalizedSearch) return remainingPrograms;
+    if (!normalizedSearch) return manageablePrograms;
 
-    return remainingPrograms.filter((program) =>
+    return manageablePrograms.filter((program) =>
       [
         getSecondaryProgramLabel(program),
         program.class?.name ?? "",
@@ -123,7 +125,29 @@ const SecondaryPrograms = () => {
         program.description ?? "",
       ].some((value) => value.toLowerCase().includes(normalizedSearch))
     );
-  }, [additionalSearchQuery, remainingPrograms]);
+  }, [additionalSearchQuery, manageablePrograms]);
+
+  const visibleProgramIds = useMemo(
+    () => visiblePrograms.map((program) => program.id),
+    [visiblePrograms]
+  );
+
+  const { dailyContents } = useSecondaryDailyContentForPrograms(
+    visibleProgramIds,
+    user?.id
+  );
+
+  useEffect(() => {
+    void syncSecondaryDailyReminder({
+      dailyContents,
+      reminderEnabled: secondaryPreferences.reminderEnabled,
+      reminderTime: secondaryPreferences.reminderTime,
+    });
+  }, [
+    dailyContents,
+    secondaryPreferences.reminderEnabled,
+    secondaryPreferences.reminderTime,
+  ]);
 
   const persistPreferences = async (updates: {
     preferredTrack?: string;
@@ -176,14 +200,25 @@ const SecondaryPrograms = () => {
     }
   };
 
-  const handleAddTrack = async (trackValue: string) => {
+  const handleToggleTrack = async (trackValue: string) => {
     try {
       setIsSavingPreference(true);
+      const isSelected = secondaryPreferences.selectedTracks.some(
+        (track) => isSameTrack(track, trackValue)
+      );
+
+      let nextTracks = [];
+      if (isSelected) {
+        nextTracks = secondaryPreferences.selectedTracks.filter(
+          (track) => !isSameTrack(track, trackValue)
+        );
+      } else {
+        nextTracks = [...secondaryPreferences.selectedTracks, trackValue];
+      }
+
       await persistPreferences({
-        selectedTracks: [...secondaryPreferences.selectedTracks, trackValue],
+        selectedTracks: nextTracks,
       });
-      setAdditionalSearchQuery("");
-      setIsClassPickerVisible(false);
     } finally {
       setIsSavingPreference(false);
     }
@@ -294,7 +329,11 @@ const SecondaryPrograms = () => {
           <FlatList
             data={visiblePrograms}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <SecondaryProgramCard program={item} />}
+            renderItem={({ item }) => (
+              <SecondaryProgramCard
+                program={item}
+              />
+            )}
             contentContainerStyle={styles.listContainer}
           
             ListFooterComponent={
@@ -302,7 +341,7 @@ const SecondaryPrograms = () => {
                 <Pressable
                   style={[styles.addCard, isDarkMode && styles.addCardDark]}
                   onPress={() => setIsClassPickerVisible(true)}
-                  disabled={remainingPrograms.length === 0}
+                  disabled={manageablePrograms.length === 0}
                 >
                   <View style={styles.addCardIcon}>
                     <MaterialCommunityIcons
@@ -315,16 +354,16 @@ const SecondaryPrograms = () => {
                     <Text
                       style={[styles.addCardTitle, isDarkMode && styles.addCardTitleDark]}
                     >
-                      {remainingPrograms.length > 0
-                        ? "Ajouter une autre classe"
-                        : "Toutes les classes sont déjà ajoutées"}
+                      {manageablePrograms.length > 0
+                        ? "Gérer mes classes"
+                        : "Aucune classe disponible"}
                     </Text>
                     <Text
                       style={[styles.addCardText, isDarkMode && styles.addCardTextDark]}
                     >
-                      {remainingPrograms.length > 0
-                        ? "Ouvrir un bottom sheet pour rechercher et ajouter les classes restantes."
-                        : "Il n&apos;y a plus de classe restante à ajouter."}
+                      {manageablePrograms.length > 0
+                        ? "Ouvrir pour ajouter ou retirer des classes de votre liste."
+                        : "Il n'y a aucune classe supplémentaire à gérer."}
                     </Text>
                   </View>
                 </Pressable>
@@ -370,10 +409,10 @@ const SecondaryPrograms = () => {
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderCopy}>
                 <Text style={[styles.sheetTitle, isDarkMode && styles.sheetTitleDark]}>
-                  Ajouter une autre classe
+                  Gérer mes classes
                 </Text>
                 <Text style={[styles.sheetText, isDarkMode && styles.sheetTextDark]}>
-                  Recherchez parmi les classes restantes puis ajoutez-les à votre liste.
+                  Recherchez et sélectionnez les classes que vous souhaitez suivre.
                 </Text>
               </View>
               <Pressable
@@ -404,7 +443,7 @@ const SecondaryPrograms = () => {
                   styles.sheetSearchInput,
                   isDarkMode && styles.sheetSearchInputDark,
                 ]}
-                placeholder="Rechercher une classe restante..."
+                placeholder="Rechercher une classe..."
                 placeholderTextColor={isDarkMode ? "#CCCCCC" : "#6B7280"}
                 value={additionalSearchQuery}
                 onChangeText={setAdditionalSearchQuery}
@@ -416,15 +455,20 @@ const SecondaryPrograms = () => {
               contentContainerStyle={styles.sheetList}
               showsVerticalScrollIndicator={false}
             >
-              {filteredRemainingPrograms.length > 0 ? (
-                filteredRemainingPrograms.map((item) => (
+              {filteredManageablePrograms.length > 0 ? (
+                filteredManageablePrograms.map((item) => {
+                  const isTrackSelected = secondaryPreferences.selectedTracks.some(
+                    (track) => isSameTrack(track, getSecondaryProgramLabel(item))
+                  );
+                  return (
                   <Pressable
                     key={item.id}
                     style={[
                       styles.sheetProgramCard,
                       isDarkMode && styles.sheetProgramCardDark,
+                      isTrackSelected && { borderColor: "#E11D48", borderWidth: 1 },
                     ]}
-                    onPress={() => void handleAddTrack(getSecondaryProgramLabel(item))}
+                    onPress={() => void handleToggleTrack(getSecondaryProgramLabel(item))}
                     disabled={isSavingPreference}
                   >
                     <View style={styles.sheetProgramCopy}>
@@ -442,16 +486,16 @@ const SecondaryPrograms = () => {
                           isDarkMode && styles.sheetProgramTextDark,
                         ]}
                       >
-                        {item.description || "Ajouter cette classe à votre liste."}
+                        {item.description || (isTrackSelected ? "Retirer cette classe de votre liste." : "Ajouter cette classe à votre liste.")}
                       </Text>
                     </View>
                     <MaterialCommunityIcons
-                      name="plus-circle"
+                      name={isTrackSelected ? "minus-circle" : "plus-circle"}
                       size={24}
-                      color={theme.color.primary[500]}
+                      color={isTrackSelected ? "#E11D48" : theme.color.primary[500]}
                     />
                   </Pressable>
-                ))
+                )})
               ) : (
                 <View style={styles.emptySheetState}>
                   <MaterialCommunityIcons
@@ -465,8 +509,8 @@ const SecondaryPrograms = () => {
                       isDarkMode && styles.sheetTitleDark,
                     ]}
                   >
-                    {remainingPrograms.length === 0
-                      ? "Toutes les classes sont déjà ajoutées"
+                    {manageablePrograms.length === 0
+                      ? "Aucune classe disponible"
                       : "Aucune classe trouvée"}
                   </Text>
                 </View>

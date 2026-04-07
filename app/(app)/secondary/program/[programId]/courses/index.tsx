@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import { Href, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -17,6 +17,7 @@ import { CourseGridByCategory } from "@/components/shared/learn/CourseGrid";
 import { ThemedText } from "@/components/ThemedText";
 import { theme } from "@/constants/theme";
 import { useCategories } from "@/hooks/global/useCategories";
+import { useSecondaryDailyContent } from "@/hooks/secondary/useSecondaryDailyContent";
 import {
   useSecondaryProgram,
   useSecondaryProgramCourses,
@@ -25,6 +26,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { Category, CourseItem } from "@/types/course.type";
 import { useUser } from "@/contexts/useUserInfo";
+import { useAuth } from "@/contexts/auth";
 
 const CourseScreen: React.FC<null> = () => {
   const router = useRouter();
@@ -33,6 +35,7 @@ const CourseScreen: React.FC<null> = () => {
   const { programId } = useLocalSearchParams();
   const { trigger } = useHaptics();
   const { isSecondaryProgramEnrolled } = useUser();
+  const { user } = useAuth();
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,6 +46,7 @@ const CourseScreen: React.FC<null> = () => {
   const { program, isLoading: isLoadingProgram } = useSecondaryProgram(
     String(programId)
   );
+  const { dailyContent } = useSecondaryDailyContent(String(programId), user?.id);
   const { courses, isLoading: isLoadingCourses } = useSecondaryProgramCourses(
     String(programId)
   );
@@ -69,7 +73,7 @@ const CourseScreen: React.FC<null> = () => {
     });
 
     return Array.from(categoriesMap.values());
-  }, [courses]);
+  }, [allCategories, courses]);
 
   // Filter courses based on search query
   const filteredCourses = useCallback(() => {
@@ -96,7 +100,19 @@ const CourseScreen: React.FC<null> = () => {
 
       return matchesSearch && matchesCategory;
     }) ;
-  }, [courses, searchQuery, selectedCategory]);
+  }, [allCategories, courses, searchQuery, selectedCategory]);
+
+  const findDailyCourseItemId = useCallback(
+    (courseId: string | number | null | undefined) => {
+      if (courseId == null) return null;
+      return (
+        dailyContent?.courses.find(
+          (dailyCourse) => String(dailyCourse.courseId) === String(courseId)
+        )?.dailyContentItemId ?? null
+      );
+    },
+    [dailyContent?.courses]
+  );
 
   // Handle category selection
   const handleCategorySelect = (category: string) => {
@@ -106,9 +122,37 @@ const CourseScreen: React.FC<null> = () => {
   // Handle course press
   const handleCoursePress = async (courseItem: CourseItem) => {
     await trigger(HapticType.LIGHT);
-    if (!courseItem.course?.id) return;
-    router.push(`/secondary/program/${programId}/courses/${courseItem.course.id}`);
+    const courseId = courseItem.course?.id;
+    if (!courseId) return;
+
+    const dailyContentItemId = findDailyCourseItemId(courseId);
+    const route = `/secondary/program/${programId}/courses/${courseId}${
+      dailyContentItemId ? `?dailyContentItemId=${dailyContentItemId}` : ""
+    }`;
+
+    router.push(route as Href);
   };
+
+  const featuredCourse = useMemo(() => {
+    const primaryDailyCourse = dailyContent?.courses?.[0];
+    if (!primaryDailyCourse || !courses?.length) return null;
+
+    return (
+      courses.find(
+        (courseItem) =>
+          String(courseItem.course?.id) === String(primaryDailyCourse.courseId)
+      ) ?? null
+    );
+  }, [courses, dailyContent?.courses]);
+
+  const featuredCourseRoute = useMemo(() => {
+    if (!featuredCourse?.course?.id) return null;
+    const dailyContentItemId = findDailyCourseItemId(featuredCourse.course.id);
+
+    return `/secondary/program/${programId}/courses/${featuredCourse.course.id}${
+      dailyContentItemId ? `?dailyContentItemId=${dailyContentItemId}` : ""
+    }`;
+  }, [featuredCourse, findDailyCourseItemId, programId]);
 
   // Toggle view mode between grid and list
   const toggleViewMode = () => {
@@ -236,6 +280,52 @@ const CourseScreen: React.FC<null> = () => {
           {filteredCourses().length} cours disponibles
         </ThemedText>
       </View>
+
+      {featuredCourse && featuredCourseRoute ? (
+        <View style={[styles.featuredCardWrapper, isDark && styles.featuredCardWrapperDark]}>
+          <Pressable
+            style={[styles.featuredCard, isDark && styles.featuredCardDark]}
+            onPress={() => {
+              trigger(HapticType.LIGHT);
+              router.push(featuredCourseRoute as Href);
+            }}
+          >
+            <View style={styles.featuredBadge}>
+              <MaterialCommunityIcons
+                name="book-open-page-variant"
+                size={16}
+                color="#FFFFFF"
+              />
+              <ThemedText style={styles.featuredBadgeText}>
+                Cours du jour
+              </ThemedText>
+            </View>
+
+            <ThemedText style={[styles.featuredTitle, isDark && styles.featuredTitleDark]}>
+              {featuredCourse.course?.name || "Cours du jour"}
+            </ThemedText>
+
+            <ThemedText
+              style={[styles.featuredSubtitle, isDark && styles.featuredSubtitleDark]}
+            >
+              Le même cours est mis en avant aujourd&apos;hui pour tous les élèves de {programTitle}.
+            </ThemedText>
+
+            <View style={styles.featuredFooter}>
+              <ThemedText style={[styles.featuredMeta, isDark && styles.featuredMetaDark]}>
+                {dailyContent?.courses?.[0]
+                  ? `${Math.round(dailyContent.courses[0].progressPercentage)}% de progression`
+                  : "À faire aujourd'hui"}
+              </ThemedText>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color={theme.color.primary[500]}
+              />
+            </View>
+          </Pressable>
+        </View>
+      ) : null}
 
       {/* Courses display (grid or list) */}
       {viewMode === "grid" ? (
@@ -374,6 +464,78 @@ const styles = StyleSheet.create({
   },
   courseCountTextDark: {
     color: "#D1D5DB",
+  },
+  featuredCardWrapper: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#FFFFFF",
+  },
+  featuredCardWrapperDark: {
+    backgroundColor: "#111827",
+  },
+  featuredCard: {
+    borderRadius: 18,
+    padding: 16,
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  featuredCardDark: {
+    backgroundColor: "#422006",
+    borderColor: "#D97706",
+  },
+  featuredBadge: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 12,
+    backgroundColor: "#D97706",
+  },
+  featuredBadgeText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  featuredTitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 6,
+  },
+  featuredTitleDark: {
+    color: "#FFFFFF",
+  },
+  featuredSubtitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#78350F",
+  },
+  featuredSubtitleDark: {
+    color: "#FDE68A",
+  },
+  featuredFooter: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  featuredMeta: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#B45309",
+    flex: 1,
+    marginRight: 8,
+  },
+  featuredMetaDark: {
+    color: "#FCD34D",
   },
   listContainer: {
     padding: 16,

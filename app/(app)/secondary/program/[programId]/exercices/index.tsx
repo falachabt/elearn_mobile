@@ -1,16 +1,43 @@
 ﻿import { useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState, useCallback, useRef } from "react";
+import { mutate as swrGlobalMutate } from "swr";
+
+const invalidateDailyContent = () =>
+  void swrGlobalMutate(
+    (key: unknown) =>
+      Array.isArray(key) &&
+      typeof key[0] === "string" &&
+      (key[0] === "secondary-daily-content" ||
+        key[0] === "secondary-daily-content-programs"),
+    undefined,
+    { revalidate: true }
+  );
+
+const invalidateExerciseLists = (
+  programId: string,
+  userId?: string | null
+) =>
+  void swrGlobalMutate(
+    (key: unknown) =>
+      Array.isArray(key) &&
+      key[0] === "secondary-program-exercises" &&
+      key[1] === programId &&
+      key[2] === (userId ?? undefined),
+    undefined,
+    { revalidate: true }
+  );
 
 import { logger } from '@/utils/logger';
 import {
   useSecondaryProgram,
   useSecondaryProgramExercises,
 } from "@/hooks/secondary/useSecondaryPrograms";
+import { useSecondaryDailyContent } from "@/hooks/secondary/useSecondaryDailyContent";
 import { useCategories } from "@/hooks/global/useCategories";
 import { ExerciseListView } from "@/components/shared/learn/exercices/ExerciseListView";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
-import { pickDailyItem } from "@/utils/secondaryPreferences";
+import { markSecondaryDailyItemCompleted } from "@/services/secondary/dailyContent.service";
 
 interface ExerciseRow {
   exercise: {
@@ -42,6 +69,10 @@ export default function ExercisesList() {
 
   // Fetch data
   const { program, isLoading: isLoadingProgram } = useSecondaryProgram(programId);
+  const { dailyContent, mutate: mutateDailyContent } = useSecondaryDailyContent(
+    programId,
+    user?.id
+  );
   const { 
     exercises, 
     count,
@@ -116,6 +147,10 @@ export default function ExercisesList() {
       return {
         exerciseId: item.exercise.id as unknown as number,
         lpId: programId,
+        dailyContentItemId:
+          dailyContent?.exercises.find(
+            (dailyExercise) => dailyExercise.exerciseId === item.exercise?.id
+          )?.dailyContentItemId,
         exercise: {
           id: item.exercise.id as unknown as number,
           title: item.exercise.title ?? "Exercice sans titre",
@@ -134,11 +169,19 @@ export default function ExercisesList() {
         isCompleted,
       };
     }).filter(Boolean);
-  }, [allExercises, programId]);
-  const dailyExercise = useMemo(
-    () => pickDailyItem(exercisesWithDetails as NonNullable<typeof exercisesWithDetails>, `${programId}:exercise`),
-    [exercisesWithDetails, programId]
-  );
+  }, [allExercises, dailyContent?.exercises, programId]);
+
+  const dailyExercise = useMemo(() => {
+    const primaryDailyExercise = dailyContent?.exercises?.[0];
+    if (!primaryDailyExercise) return undefined;
+
+    return (
+      exercisesWithDetails as NonNullable<typeof exercisesWithDetails>
+    ).find(
+      (item) =>
+        String(item?.exercise?.id) === primaryDailyExercise.exerciseId
+    );
+  }, [dailyContent?.exercises, exercisesWithDetails]);
 
   // Extract unique categories from exercises
   const categories = useMemo(() => {
@@ -207,6 +250,20 @@ export default function ExercisesList() {
       const currentCompletionState = exercise?.isCompleted || false;
       const newCompletionState = !currentCompletionState;
 
+      setAllExercises((prev) =>
+        prev.map((item) =>
+          item.exercise?.id === String(exerciseId)
+            ? {
+                ...item,
+                exercise: {
+                  ...item.exercise,
+                  exercices_complete: [{ is_completed: newCompletionState }],
+                },
+              }
+            : item
+        )
+      );
+
       // Update database
       const { error } = await supabase
         .from("exercices_complete")
@@ -224,6 +281,25 @@ export default function ExercisesList() {
         // Revert on error - reload from page 0
         setPage(0);
         mutate();
+      } else {
+        if (newCompletionState) {
+          const dailyItem = dailyContent?.exercises.find(
+            (item) => item.exerciseId === String(exerciseId)
+          );
+
+          if (dailyItem) {
+            await markSecondaryDailyItemCompleted(
+              dailyItem.dailyContentItemId,
+              user.id,
+              "exercise",
+              { exerciseId: String(exerciseId), programId }
+            );
+          }
+        }
+
+        await mutateDailyContent();
+        invalidateDailyContent();
+        invalidateExerciseLists(programId, user.id);
       }
     } catch (error) {
       logger.error("Unexpected error updating completion state:", error);
@@ -245,7 +321,7 @@ export default function ExercisesList() {
       totalCount={count}
       programTitle={programTitle}
       programId={programId}
-      baseRoute="/(app)/secondary/program/[programId]/exercices"
+      baseRoute={`/(app)/secondary/program/${programId}/exercices`}
       featuredExercise={dailyExercise ?? undefined}
       onPinToggle={handlePinToggle}
       onCompletionToggle={handleCompletionToggle}

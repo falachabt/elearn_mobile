@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Href } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { mutate as swrGlobalMutate } from "swr";
 
 import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
@@ -20,6 +21,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
+import { findSecondaryDailyItemId } from "@/services/secondary/dailyContent.service";
 import QuizAttemptsList from "@/components/shared/learn/quiz/QuizAttempList";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useUser } from "@/contexts/useUserInfo";
@@ -59,8 +61,42 @@ interface PrerequisiteProps {
 export interface QuizDetailViewProps {
     quizId: string;
     programId: string;
+    dailyContentItemId?: string;
     basePath: string; // e.g., "/(app)/learn" or "/(app)/secondary/program"
 }
+
+type QuizAttemptInsertClient = {
+    from: (table: "quiz_attempts") => {
+        insert: (
+            values: Array<Record<string, unknown>>
+        ) => {
+            select: () => {
+                single: () => Promise<{
+                    data: { id: number } | null;
+                    error: Error | null;
+                }>;
+            };
+        };
+    };
+};
+
+const invalidateQuizDetailCaches = () => {
+    void swrGlobalMutate(
+        (key: unknown) =>
+            (typeof key === "string" &&
+                (key.startsWith("quiz-attempts-") ||
+                    key.startsWith("quiz-progress-") ||
+                    key.startsWith("secondary-quiz-progress-"))) ||
+            (Array.isArray(key) &&
+                typeof key[0] === "string" &&
+                (key[0] === "quiz-attempts" ||
+                    key[0] === "secondary-daily-content" ||
+                    key[0] === "secondary-daily-content-programs" ||
+                    key[0] === "secondary-daily-quiz-leaderboard")),
+        undefined,
+        { revalidate: true }
+    );
+};
 
 // Skeleton loading component
 const QuizDetailSkeleton = ({ isDark }: { isDark: boolean }) => {
@@ -282,7 +318,12 @@ const ErrorState: React.FC<{ onRetry: () => void; isDark: boolean }> = ({ onRetr
 );
 
 // Main Quiz Detail Component
-export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programId, basePath }) => {
+export const QuizDetailView: React.FC<QuizDetailViewProps> = ({
+    quizId,
+    programId,
+    dailyContentItemId,
+    basePath,
+}) => {
     const router = useCustomRouter();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
@@ -369,11 +410,29 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
                 }
             }
 
-            const { data: attempt, error } = await supabase
+            const quizAttemptClient =
+                supabase as unknown as QuizAttemptInsertClient;
+
+            const effectiveDailyContentItemId =
+                isSecondaryContext && programId
+                    ? (
+                        dailyContentItemId ??
+                        await findSecondaryDailyItemId(programId, user?.id, {
+                            quizId,
+                        })
+                    )
+                    : null;
+
+            const { data: attempt, error } = await quizAttemptClient
                 .from("quiz_attempts")
                 .insert([
                     {
                         quiz_id: quizId,
+                        program_id: isSecondaryContext ? programId : null,
+                        daily_content_item_id:
+                            isSecondaryContext && effectiveDailyContentItemId
+                                ? effectiveDailyContentItemId
+                                : null,
                         user_id: user?.id,
                         start_time: new Date().toISOString(),
                         end_time: new Date(Date.now() + 30 * 60000).toISOString(),
@@ -384,6 +443,9 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({ quizId, programI
                 .single();
 
             if (error) throw error;
+            if (!attempt) throw new Error("Quiz attempt not created");
+
+            invalidateQuizDetailCaches();
 
             // Navigate to the quiz play page with attempt ID using basePath
             router.push(`${basePath}/${programId}/quizzes/${quizId}/${attempt.id}` as Href);

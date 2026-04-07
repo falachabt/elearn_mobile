@@ -14,11 +14,10 @@ import { Platform, ScrollView, Text, View } from "react-native";
 import "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import ScreenTracker from "@/components/shared/ScreenTracker";
 
 // Root-level error boundary — catches any crash inside the app tree and shows the error
 class RootErrorBoundary extends Component<
-    { children: React.ReactNode },
+{ children: React.ReactNode },
     { error: Error | null }
 > {
     constructor(props: { children: React.ReactNode }) {
@@ -55,6 +54,7 @@ import { theme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Provider } from "@/providers";
 import { installDevWarningFilters } from "@/utils/devWarnings";
+import ScreenTracker from "@/components/shared/ScreenTracker";
 
 installDevWarningFilters();
 

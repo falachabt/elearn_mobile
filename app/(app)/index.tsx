@@ -1,6 +1,11 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Href, Link, useRouter } from "expo-router";
-import React, { useEffect, useMemo } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  TourStep,
+  useTourPersistence,
+} from "@wrack/react-native-tour-guide";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Linking,
   ScrollView,
@@ -25,6 +30,12 @@ import { useAuth } from "@/contexts/auth";
 import { checkAndUpdateNotifications } from "@/utils/notification-utils";
 import { NavigationRoutes } from "@/contexts/NavigationContext";
 import { useActiveNews } from "@/hooks/useNews";
+import DailyTodoSection from "@/components/shared/DailyTodoSection";
+import {
+  HOME_MENU_TOUR_ID,
+  getTourGuideConfig,
+} from "@/constants/tourGuide";
+import { useTabBarTourRefs } from "@/contexts/TabBarTourContext";
 
 const HORIZONTAL_PADDING = 16;
 
@@ -34,6 +45,19 @@ export default function Index() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const isDarkMode = colorScheme === "dark";
+  const homeScrollRef = useRef<ScrollView>(null);
+  const dailyTodoRef = useRef<View>(null);
+  const newsSectionRef = useRef<View>(null);
+  const hasAttemptedHomeTourRef = useRef(false);
+  const [hasDailyTodo, setHasDailyTodo] = useState<boolean | null>(null);
+  const [homeScrollY, setHomeScrollY] = useState(0);
+  const {
+    manuelTabRef,
+    secondaryTabRef,
+    learnTabRef,
+    profileTabRef,
+  } = useTabBarTourRefs();
+  const { startTour: startHomeTour } = useTourPersistence(AsyncStorage);
   const streaks = 0;
   const xp = 0;
 
@@ -87,6 +111,102 @@ export default function Index() {
     checkAndUpdateNotifications();
   }, []);
 
+  useEffect(() => {
+    if (
+      hasAttemptedHomeTourRef.current ||
+      hasDailyTodo === null ||
+      !newsSectionRef.current ||
+      !manuelTabRef.current ||
+      !secondaryTabRef.current ||
+      !learnTabRef.current ||
+      !profileTabRef.current
+    ) {
+      return;
+    }
+
+    hasAttemptedHomeTourRef.current = true;
+
+    const steps: TourStep[] = [
+      {
+        id: "daily-todo",
+        targetRef: dailyTodoRef,
+        title: "Activites a faire aujourd'hui",
+        description:
+          "Ces activites s'actualisent chaque jour et sont proposees a tous les utilisateurs.",
+        targetStyle: styles.tourCardTarget,
+        spotlightPadding: 8,
+        delayBefore: 350,
+        active: hasDailyTodo,
+      },
+      {
+        id: "news-section",
+        targetRef: newsSectionRef,
+        title: "Actualites importantes",
+        description:
+          "Les actualites presentent les informations importantes pour les bacheliers, les dates des concours et les evenements.",
+        targetStyle: styles.tourSectionTarget,
+        spotlightPadding: 8,
+        scrollToTarget: {
+          scrollRef: homeScrollRef,
+          offset: 24,
+          animated: true,
+          getCurrentScrollOffset: () => homeScrollY,
+        },
+      },
+      {
+        id: "menu-manuel",
+        targetRef: manuelTabRef,
+        title: "Menu Manuel",
+        description:
+          "Utilisez ce menu pour acceder aux anciens sujets de concours.",
+        targetStyle: styles.tourTabTarget,
+        spotlightPadding: 8,
+      },
+      {
+        id: "menu-college",
+        targetRef: secondaryTabRef,
+        title: "Espace College",
+        description:
+          "C'est l'acces aux cours, exercices et anciens sujets pour les eleves du secondaire.",
+        targetStyle: styles.tourTabTarget,
+        spotlightPadding: 8,
+      },
+      {
+        id: "menu-prepa",
+        targetRef: learnTabRef,
+        title: "Espace Prepa",
+        description:
+          "Ici, on retrouve les cours, quiz, exercices et anciens sujets pour preparer les concours.",
+        targetStyle: styles.tourTabTarget,
+        spotlightPadding: 8,
+      },
+      {
+        id: "menu-profile",
+        targetRef: profileTabRef,
+        title: "Menu Profil",
+        description:
+          "Dans le profil, on retrouve ses informations et on peut aussi configurer son heure de rappel et d'autres reglages.",
+        targetStyle: styles.tourTabTarget,
+        spotlightPadding: 8,
+      },
+    ];
+
+    void startHomeTour(steps, {
+      ...getTourGuideConfig(isDarkMode, HOME_MENU_TOUR_ID),
+      scrollRef: homeScrollRef,
+      getCurrentScrollOffset: () => homeScrollY,
+    });
+  }, [
+    hasDailyTodo,
+    homeScrollY,
+    isDarkMode,
+    learnTabRef,
+    manuelTabRef,
+    profileTabRef,
+    secondaryTabRef,
+    startHomeTour,
+  ]);
+
   const sortedNews = [...dbNews].sort((a, b) => {
     const featuredDelta =
       Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured));
@@ -116,9 +236,14 @@ export default function Index() {
       />
 
       <ScrollView
+        ref={homeScrollRef}
         style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={(event) => {
+          setHomeScrollY(event.nativeEvent.contentOffset.y);
+        }}
+        scrollEventThrottle={16}
       >
         <View style={styles.header}>
           <Text
@@ -228,6 +353,13 @@ export default function Index() {
           toDayTime={toDayTime}
         />
 
+        {/* À faire aujourd'hui */}
+        <DailyTodoSection
+          isDarkMode={isDarkMode}
+          tourRef={dailyTodoRef}
+          onVisibilityChange={setHasDailyTodo}
+        />
+
         <View style={styles.whatsappSection}>
           <View style={styles.sectionHeader}>
             <Text
@@ -274,7 +406,11 @@ export default function Index() {
         </View>
 
         {/* News Section */}
-        <View style={styles.section}>
+        <View
+          ref={newsSectionRef}
+          collapsable={false}
+          style={[styles.section, styles.tourSectionTarget]}
+        >
           <View style={styles.sectionHeader}>
             <Text
               numberOfLines={1}
@@ -410,6 +546,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 24,
   },
+  tourCardTarget: {
+    borderRadius: 18,
+  },
   welcomeTitle: {
     fontFamily: theme.typography.fontFamily,
     fontSize: 24,
@@ -436,6 +575,9 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 28,
+  },
+  tourSectionTarget: {
+    borderRadius: 18,
   },
   lastSection: {
     marginBottom: 0,
@@ -612,5 +754,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
+  },
+  tourTabTarget: {
+    borderRadius: theme.border.radius.small,
   },
 });

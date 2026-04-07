@@ -1,19 +1,19 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
     View,
     StyleSheet,
     Pressable,
     Platform,
-    Dimensions,
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import useSWR from 'swr';
-import type { Json } from '@/types/supabase';
 
 import {ThemedText} from '@/components/ThemedText';
 import {theme} from '@/constants/theme';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from "@/contexts/auth";
+import type { Json } from '@/types/supabase';
 
 interface QuizAttempt {
     id: string;
@@ -31,6 +31,8 @@ interface QuizAttempt {
     }>;
     quiz: { quiz_questions: { count: number }[] }
 }
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const parseAnswers = (value: Json | null): QuizAttempt['answers'] => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -62,8 +64,6 @@ interface QuizAttemptsListProps {
     onAttemptPress: (attempt: QuizAttempt) => void;
 }
 
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
-
 const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr', {
@@ -82,7 +82,7 @@ const formatDuration = (seconds: number): string => {
     return `${minutes}m ${remainingSeconds}s`;
 };
 
-const getStatusConfig = (status: string, score: number): { icon: string; color: string; label: string } => {
+const getStatusConfig = (status: string, score: number): { icon: IconName; color: string; label: string } => {
     switch (status) {
         case 'completed':
             if (score >= 70) {
@@ -138,7 +138,6 @@ const AttemptCard = ({attempt, isDark, onPress, isLast}: {
     isLast: boolean;
 }) => {
     const status = getStatusConfig(attempt.status, attempt.score);
-    const progress = (attempt.current_question_index / 10) * 100; // Assuming 10 questions, adjust as needed
 
     return (
         <Pressable
@@ -152,7 +151,7 @@ const AttemptCard = ({attempt, isDark, onPress, isLast}: {
             {/* Status Badge */}
             <View style={[styles.statusBadge, {backgroundColor: `${status.color}15`}]}>
                 <MaterialCommunityIcons
-                    name={status.icon as any}
+                    name={status.icon}
                     size={16}
                     color={status.color}
                 />
@@ -240,8 +239,9 @@ const AttemptCard = ({attempt, isDark, onPress, isLast}: {
 
 const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({quizId, isDark, onAttemptPress}) => {
     const {user} = useAuth();
-    const {data: attempts, error, isLoading} = useSWR<QuizAttempt[]>(
-        quizId && user?.id ? ['quiz-attempts', quizId, user.id] : null,
+    const cacheKey = quizId && user?.id ? ['quiz-attempts', quizId, user.id] : null;
+    const {data: attempts, error, isLoading, mutate} = useSWR<QuizAttempt[]>(
+        cacheKey,
         async () => {
             const {data, error} = await supabase
                 .from('quiz_attempts')
@@ -275,6 +275,16 @@ const QuizAttemptsList: React.FC<QuizAttemptsListProps> = ({quizId, isDark, onAt
 
 
         }
+    );
+
+    useFocusEffect(
+        useCallback(() => {
+            if (!cacheKey) {
+                return;
+            }
+
+            void mutate();
+        }, [cacheKey, mutate])
     );
 
     if (isLoading) {

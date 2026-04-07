@@ -15,6 +15,7 @@ import {
   useRouter,
 } from "expo-router";
 import useSWR from "swr";
+import { mutate as swrGlobalMutate } from "swr";
 
 import { useQuizQuestions, useQuizAttempt, Attempt } from "@/hooks/useQuiz";
 import { QuizAnswerState, QuizQuestion, QuizResults } from "@/types/quiz.type";
@@ -29,6 +30,34 @@ type QuizAnswerMap = Record<string, QuizAnswerState>;
 type QuizWithPassingScore = Quiz & {
   passing_score?: number | null;
 };
+
+const invalidateSecondaryDailyCaches = () =>
+  void swrGlobalMutate(
+    (key: unknown) =>
+      Array.isArray(key) &&
+      typeof key[0] === "string" &&
+      (key[0] === "secondary-daily-content" ||
+        key[0] === "secondary-daily-content-programs" ||
+        key[0] === "secondary-daily-quiz-leaderboard"),
+    undefined,
+    { revalidate: true },
+  );
+
+const invalidateQuizAttemptCaches = () =>
+  void swrGlobalMutate(
+    (key: unknown) =>
+      (typeof key === "string" &&
+        (key.startsWith("quiz-attempts-") ||
+          key.startsWith("quiz-pins-") ||
+          key.startsWith("quiz-progress-") ||
+          key.startsWith("secondary-quiz-progress-") ||
+          key.startsWith("quiz-attempt-"))) ||
+      (Array.isArray(key) &&
+        typeof key[0] === "string" &&
+        key[0] === "quiz-attempts"),
+    undefined,
+    { revalidate: true },
+  );
 
 const isQuizAnswerState = (value: unknown): value is QuizAnswerState => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -618,6 +647,14 @@ export function QuizProvider({
             dispatch({ type: "SET_RESULTS", payload: completedAttempt });
           }
 
+          if (
+            attempt?.program_id ||
+            attempt?.daily_content_item_id
+          ) {
+            invalidateSecondaryDailyCaches();
+          }
+          invalidateQuizAttemptCaches();
+
           // Track quiz completed
           if (quiz) {
             const score = quizResults.score || 0;
@@ -665,7 +702,10 @@ export function QuizProvider({
       dispatch({ type: "SET_SUBMITTING", payload: true });
 
       try {
-        await QuizService.resetAttempt(quizId ?? "", attempt?.user_id || "");
+        await QuizService.resetAttempt(quizId ?? "", attempt?.user_id || "", {
+          programId: attempt?.program_id ?? null,
+          dailyContentItemId: attempt?.daily_content_item_id ?? null,
+        });
       } catch (error) {
         logger.error("Error resetting quiz on server:", error);
         Alert.alert(
@@ -677,6 +717,11 @@ export function QuizProvider({
 
       // Reset state completely to ensure all old data is cleared
       dispatch({ type: "RESET_STATE" });
+      invalidateQuizAttemptCaches();
+
+      if (attempt?.program_id || attempt?.daily_content_item_id) {
+        invalidateSecondaryDailyCaches();
+      }
     } catch (error) {
       logger.error("Error resetting quiz:", error);
       Alert.alert("Error", "Failed to reset quiz. Please try again.");
