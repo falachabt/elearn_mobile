@@ -1,7 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Href, useRouter } from "expo-router";
-import React, { RefObject, useEffect, useMemo } from "react";
+import React, { RefObject, useEffect, useMemo, useRef } from "react";
 import {
+  Animated,
+  Easing,
   Pressable,
   StyleSheet,
   Text,
@@ -68,6 +70,7 @@ export default function DailyTodoSection({
 }: Props) {
   const { user } = useAuth();
   const router = useRouter();
+  const borderRotation = useRef(new Animated.Value(0)).current;
 
   const secondaryPreferences = useMemo(() => {
     const p = parseSecondaryPreferences(user?.metadata);
@@ -135,12 +138,57 @@ export default function DailyTodoSection({
     [visiblePrograms, dailyContents]
   );
 
+  const shouldPulseBorder = useMemo(() => {
+    return todoItems.some((item) => {
+      if (item.totalCount === 0) {
+        return false;
+      }
+
+      const progress = ((item.totalCount - item.pendingCount) / item.totalCount) * 100;
+      return progress < 80;
+    });
+  }, [todoItems]);
+
   useEffect(() => {
     onVisibilityChange?.(todoItems.length > 0);
   }, [onVisibilityChange, todoItems.length]);
 
+  useEffect(() => {
+    if (!shouldPulseBorder) {
+      borderRotation.stopAnimation();
+      borderRotation.setValue(0);
+      return;
+    }
+
+    const animation = Animated.loop(
+      Animated.timing(borderRotation, {
+        toValue: 1,
+        duration: 2600,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [borderRotation, shouldPulseBorder]);
+
   // Nothing to show only when there is no configured class/day content at all
   if (!todoItems.length) return null;
+
+  const rotatingBorderStyle = {
+    transform: [
+      {
+        rotate: borderRotation.interpolate({
+          inputRange: [0, 1],
+          outputRange: ["0deg", "360deg"],
+        }),
+      },
+    ],
+  };
 
   return (
     <View ref={tourRef} collapsable={false} style={styles.wrapper}>
@@ -155,67 +203,88 @@ export default function DailyTodoSection({
         </View>
       </View>
 
-      <View style={[styles.card, isDarkMode && styles.cardDark]}>
-        {todoItems.map((item, idx) => {
-          const pct = Math.round(
-            ((item.totalCount - item.pendingCount) / item.totalCount) * 100
-          );
-          const isLast = idx === todoItems.length - 1;
+      <View style={styles.cardShell}>
+        {shouldPulseBorder && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.rotatingBorderBeam,
+              isDarkMode
+                ? styles.rotatingBorderBeamDark
+                : styles.rotatingBorderBeamLight,
+              rotatingBorderStyle,
+            ]}
+          />
+        )}
 
-          return (
-            <Pressable
-              key={item.programId}
-              style={[styles.row, !isLast && styles.rowBorder, isDarkMode && styles.rowBorderDark]}
-              onPress={() =>
-                router.push(
-                  `/(app)/activity/detail?programId=${item.programId}&targetDate=${item.targetDate}&label=${encodeURIComponent("Du jour")}&backTo=${encodeURIComponent("/(app)")}` as Href
-                )
-              }
-            >
-              <View
-                style={[
-                  styles.iconWrap,
-                  isDarkMode ? styles.iconWrapDark : styles.iconWrapLight,
-                ]}
+        <View
+          style={[
+            styles.card,
+            styles.cardInner,
+            isDarkMode && styles.cardDark,
+          ]}
+        >
+          {todoItems.map((item, idx) => {
+            const pct = Math.round(
+              ((item.totalCount - item.pendingCount) / item.totalCount) * 100
+            );
+            const isLast = idx === todoItems.length - 1;
+
+            return (
+              <Pressable
+                key={item.programId}
+                style={[styles.row, !isLast && styles.rowBorder, isDarkMode && styles.rowBorderDark]}
+                onPress={() =>
+                  router.push(
+                    `/(app)/activity/detail?programId=${item.programId}&targetDate=${item.targetDate}&label=${encodeURIComponent("Du jour")}&backTo=${encodeURIComponent("/(app)")}` as Href
+                  )
+                }
               >
-                <MaterialCommunityIcons
-                  name="calendar-star"
-                  size={18}
-                  color={isDarkMode ? "#FCD34D" : "#B45309"}
-                />
-              </View>
-
-              <View style={styles.rowBody}>
-                <Text
-                  style={[styles.rowLabel, isDarkMode && styles.rowLabelDark]}
-                  numberOfLines={1}
+                <View
+                  style={[
+                    styles.iconWrap,
+                    isDarkMode ? styles.iconWrapDark : styles.iconWrapLight,
+                  ]}
                 >
-                  {item.programLabel}
-                </Text>
-                <View style={styles.progressRow}>
-                  <View style={[styles.progressTrack, isDarkMode && styles.progressTrackDark]}>
-                    <View
-                      style={[styles.progressFill, { width: `${pct}%` as `${number}%` }]}
-                    />
-                  </View>
-                  <Text style={[styles.progressPct, isDarkMode && styles.progressPctDark]}>
-                    {pct}%
-                  </Text>
+                  <MaterialCommunityIcons
+                    name="calendar-star"
+                    size={18}
+                    color={isDarkMode ? "#FCD34D" : "#B45309"}
+                  />
                 </View>
-              </View>
 
-              <View style={styles.pendingPill}>
-                <Text style={styles.pendingPillText}>{item.pendingCount}</Text>
-              </View>
+                <View style={styles.rowBody}>
+                  <Text
+                    style={[styles.rowLabel, isDarkMode && styles.rowLabelDark]}
+                    numberOfLines={1}
+                  >
+                    {item.programLabel}
+                  </Text>
+                  <View style={styles.progressRow}>
+                    <View style={[styles.progressTrack, isDarkMode && styles.progressTrackDark]}>
+                      <View
+                        style={[styles.progressFill, { width: `${pct}%` as `${number}%` }]}
+                      />
+                    </View>
+                    <Text style={[styles.progressPct, isDarkMode && styles.progressPctDark]}>
+                      {pct}%
+                    </Text>
+                  </View>
+                </View>
 
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={18}
-                color={isDarkMode ? "#475569" : "#CBD5E1"}
-              />
-            </Pressable>
-          );
-        })}
+                <View style={styles.pendingPill}>
+                  <Text style={styles.pendingPillText}>{item.pendingCount}</Text>
+                </View>
+
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={18}
+                  color={isDarkMode ? "#475569" : "#CBD5E1"}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -253,8 +322,30 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
+  cardShell: {
+    borderRadius: theme.border.radius.small,
+    overflow: "hidden",
+    padding: 1.5,
+  },
+  rotatingBorderBeam: {
+    position: "absolute",
+    top: -70,
+    left: "50%",
+    width: "42%",
+    height: 220,
+    marginLeft: "-21%",
+    borderRadius: 999,
+    opacity: 0.9,
+    zIndex: 0,
+  },
+  rotatingBorderBeamLight: {
+    backgroundColor: "rgba(16, 185, 129, 0.85)",
+  },
+  rotatingBorderBeamDark: {
+    backgroundColor: "rgba(52, 211, 153, 0.9)",
+  },
   card: {
-    borderRadius: 16,
+    borderRadius: theme.border.radius.small,
     backgroundColor: "#FFFFFF",
     overflow: "hidden",
     shadowColor: "#000",
@@ -263,10 +354,12 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  cardInner: {
+    zIndex: 1,
+  },
   cardDark: {
     backgroundColor: theme.color.dark.background.secondary,
     shadowOpacity: 0,
-    borderWidth: 1,
     borderColor: theme.color.dark.border,
   },
 
@@ -326,7 +419,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "#9CA3AF",
-    width: 28,
+    width: 40,
+    flexShrink: 0,
     textAlign: "right",
   },
   progressPctDark: { color: "#64748B" },

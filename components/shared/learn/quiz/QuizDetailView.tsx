@@ -413,16 +413,6 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({
             const quizAttemptClient =
                 supabase as unknown as QuizAttemptInsertClient;
 
-            const effectiveDailyContentItemId =
-                isSecondaryContext && programId
-                    ? (
-                        dailyContentItemId ??
-                        await findSecondaryDailyItemId(programId, user?.id, {
-                            quizId,
-                        })
-                    )
-                    : null;
-
             const { data: attempt, error } = await quizAttemptClient
                 .from("quiz_attempts")
                 .insert([
@@ -430,8 +420,8 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({
                         quiz_id: quizId,
                         program_id: isSecondaryContext ? programId : null,
                         daily_content_item_id:
-                            isSecondaryContext && effectiveDailyContentItemId
-                                ? effectiveDailyContentItemId
+                            isSecondaryContext && dailyContentItemId
+                                ? dailyContentItemId
                                 : null,
                         user_id: user?.id,
                         start_time: new Date().toISOString(),
@@ -445,10 +435,46 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({
             if (error) throw error;
             if (!attempt) throw new Error("Quiz attempt not created");
 
-            invalidateQuizDetailCaches();
-
-            // Navigate to the quiz play page with attempt ID using basePath
+            // Navigate first; background sync can update caches and daily metadata after.
             router.push(`${basePath}/${programId}/quizzes/${quizId}/${attempt.id}` as Href);
+
+            void Promise.resolve().then(() => {
+                invalidateQuizDetailCaches();
+            });
+
+            if (
+                isSecondaryContext &&
+                programId &&
+                !dailyContentItemId &&
+                user?.id
+            ) {
+                void (async () => {
+                    const resolvedDailyContentItemId = await findSecondaryDailyItemId(
+                        programId,
+                        user.id,
+                        { quizId }
+                    );
+
+                    if (!resolvedDailyContentItemId) {
+                        return;
+                    }
+
+                    const { error: updateError } = await supabase
+                        .from("quiz_attempts")
+                        .update({
+                            daily_content_item_id: resolvedDailyContentItemId,
+                            program_id: programId,
+                        })
+                        .eq("id", attempt.id);
+
+                    if (updateError) {
+                        throw updateError;
+                    }
+                })().catch((lookupError) => {
+                    logger.error("Error syncing daily quiz attempt metadata:", lookupError);
+                });
+            }
+
         } catch (error) {
             logger.error("Error creating quiz attempt:", error);
         }

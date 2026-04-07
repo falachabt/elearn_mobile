@@ -115,6 +115,25 @@ const handleNotificationNavigation = (data: Record<string, unknown>) => {
                 logger.log('✅ Navigation vers le profil');
                 break;
                 
+            case 'daily_activity':
+                // Format: { type: 'daily_activity', programId: 'xxx', targetDate: 'xxx' }
+                const dailyProgramId = data?.programId as string;
+                const targetDate = data?.targetDate as string;
+
+                if (dailyProgramId && targetDate) {
+                    const label = data?.label as string || "Du jour";
+                    router.push(`/(app)/activity/detail?programId=${dailyProgramId}&targetDate=${targetDate}&label=${encodeURIComponent(label)}` as Href);
+                    logger.log('✅ Navigation vers la daily activity:', targetDate);
+                } else if (dailyProgramId) {
+                    // Fallback to program page if targetDate is missing
+                    router.push(`/(app)/secondary/program/${dailyProgramId}` as Href);
+                    logger.log('✅ Navigation vers le program (fallback daily activity)');
+                } else {
+                     router.push('/(app)/' as Href);
+                     logger.log('✅ Navigation vers l\'accueil (fallback daily activity)');
+                }
+                break;
+
             case 'home':
             case 'reminder':
                 // Rappel d'apprentissage → accueil

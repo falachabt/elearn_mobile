@@ -33,6 +33,9 @@ interface SectionProgress {
   lastaccessed: string;
 }
 
+const createRealtimeChannelName = (baseName: string) =>
+  `${baseName}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+
 const fetcher = async (userId: string, courseId: number): Promise<CourseProgress | null> => {
   const progress = await CourseProgressService.getCurrentProgress(userId, courseId);
 
@@ -136,7 +139,7 @@ export const useCourseProgress = (courseId: number | undefined) => {
     if (!user?.id || typeof courseId !== "number") return;
 
     const channel = supabase
-      .channel("courses_progress" + courseId)
+      .channel(createRealtimeChannelName(`courses_progress:${courseId}:${user.id}`))
       .on(
         "postgres_changes",
         {
@@ -151,7 +154,7 @@ export const useCourseProgress = (courseId: number | undefined) => {
       )
       .subscribe();
     const channel1 = supabase
-      .channel("course_progress")
+      .channel(createRealtimeChannelName(`course_progress:${courseId}:${user.id}`))
       .on(
         "postgres_changes",
         {

@@ -120,6 +120,9 @@ interface ProgramProgress {
   error: Error | null;
 }
 
+const createRealtimeChannelName = (baseName: string) =>
+  `${baseName}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+
 // Helper function to ensure percentage never exceeds 100%
 const capPercentage = (value: number): number => {
   return Math.min(Math.max(0, value), 100);
@@ -485,7 +488,7 @@ export const useProgramProgress = (
     if (!userId || !lpId) return;
 
     const channel = supabase
-      .channel("program_progress_" + lpId)
+      .channel(createRealtimeChannelName(`program_progress:${lpId}:${userId}`))
       .on(
         "postgres_changes",
         {

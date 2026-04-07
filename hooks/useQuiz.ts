@@ -42,13 +42,18 @@ interface LeaderboardEntry {
   timeSpent: number;
 }
 
+const createRealtimeChannelName = (baseName: string) =>
+  `${baseName}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+
 const subscribeToTable = (
   channelName: string,
   table: string,
   filter: string,
   onChange: () => void
 ) => {
-  const channel = supabase.channel(channelName) as unknown as {
+  const channel = supabase.channel(
+    createRealtimeChannelName(channelName)
+  ) as unknown as {
     on: (
       event: 'postgres_changes',
       config: { event: '*'; schema: 'public'; table: string; filter: string },
