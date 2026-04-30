@@ -339,7 +339,7 @@ const Register: React.FC = () => {
       return false;
     }
 
-    const regex = /^6[5-9]{1}[0-9]{7}$/;
+    const regex = /^6[4-9]{1}[0-9]{7}$/;
 
     if (!regex.test(String(phone))) {
       setPhoneError("Format invalide. Ex: 65XXXXXXX, 66XXXXXXX");

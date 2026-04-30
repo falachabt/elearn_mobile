@@ -42,7 +42,7 @@ export const CompetitionPaymentService = {
         expiry_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         payment_status: 'pending',
         phone_number: phoneNumber,
-        payment_provider: phoneNumber.startsWith('655') ? 'orange' : 'mtn',
+        payment_provider: phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'orange' : 'mtn',
         payment_reference: trx_reference,
         promo_code_id: promoCodeId
       })
@@ -173,7 +173,7 @@ export const CompetitionPaymentService = {
   ) {
     try {
       const notchpay = new NotchPayService();
-      const network = phoneNumber.startsWith('655') ? 'orange' : 'mtn';
+      const network = phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'orange' : 'mtn';
 
       const result = await notchpay.initiateDirectCharge({
         phone: phoneNumber,

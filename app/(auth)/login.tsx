@@ -26,7 +26,7 @@ import GoogleAuth from "@/components/GoogleLogin";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import WhatsAppContact from "@/components/WhatsappSupport";
 
-const PHONE_REGEX = /^(?:\+?237)?6[5-9]\d{7}$/;
+const PHONE_REGEX = /^(?:\+?237)?6[4-9]\d{7}$/;
 
 // Toast Component
 const Toast = ({

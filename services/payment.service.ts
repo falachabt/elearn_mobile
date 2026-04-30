@@ -18,7 +18,7 @@ export const PaymentService = {
                 amount,
                 status: '',
                 phone_number: phoneNumber,
-                payment_provider: phoneNumber.startsWith('655') ? 'orange' : 'mtn',
+                payment_provider: phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'orange' : 'mtn',
                 trx_reference,
                 promo_code_id: promoCodeId // Add promo code ID to the payment record
             })

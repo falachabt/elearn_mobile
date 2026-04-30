@@ -42,7 +42,7 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
     }
 
     // Phone validation is now optional
-    const phoneRegex = /^6[5-9]{1}[0-9]{7}$/;
+    const phoneRegex = /^6[4-9]{1}[0-9]{7}$/;
     if (userInfo?.phone && !phoneRegex.test(String(userInfo.phone))) {
       newErrors.phoneNumber = 'Le numéro de téléphone est invalide';
       valid = false;

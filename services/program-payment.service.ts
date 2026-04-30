@@ -194,7 +194,7 @@ export const ProgramPaymentService = {
     const notchpay = new NotchPayService();
     const result = await notchpay.initiateDirectCharge({
       phone: phoneNumber,
-      channel: phoneNumber.startsWith('655') ? 'cm.orange' : 'cm.mtn',
+      channel: phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'cm.orange' : 'cm.mtn',
       currency: 'XAF',
       amount: nextInstallmentAmount,
       customer: {
@@ -350,7 +350,7 @@ export const ProgramPaymentService = {
         amount,
         payment_status: 'pending',
         phone_number: phoneNumber,
-        payment_provider: phoneNumber.startsWith('655') ? 'orange' : 'mtn',
+        payment_provider: phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'orange' : 'mtn',
         payment_reference: trx_reference,
         promo_code_id: promoCodeId,
         payment_date: paymentDate.toISOString(),
@@ -375,7 +375,7 @@ export const ProgramPaymentService = {
       'program',
       programId,
       amount,
-      phoneNumber.startsWith('655') ? 'orange' : 'mtn'
+      phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'orange' : 'mtn'
     );
 
     return payment;
@@ -845,7 +845,7 @@ export const ProgramPaymentService = {
               'program',
               String(payment.program_id),
               payment.amount,
-              (payment.phone_number ?? '').startsWith('655') ? 'orange' : 'mtn'
+              (payment.phone_number ?? '').startsWith('64') || (payment.phone_number ?? '').startsWith('655') ? 'orange' : 'mtn'
             );
             // If this is an installment payment, update the parent payment
             if (payment.is_installment) {

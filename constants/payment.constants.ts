@@ -94,9 +94,9 @@ export const STORAGE_KEYS = {
 } as const;
 
 // Phone number validation
-export const PHONE_NUMBER_REGEX = /^(6[5-9]\d{7})$/;
+export const PHONE_NUMBER_REGEX = /^(6[4-9]\d{7})$/;
 export const PHONE_NUMBER_PROVIDERS = {
-  ORANGE_PREFIX: '655',
+  ORANGE_PREFIXES: ['64', '655'],
   MTN_PREFIX: '67',
 } as const;
 

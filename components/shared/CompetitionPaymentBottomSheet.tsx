@@ -266,7 +266,7 @@ export const CompetitionPaymentBottomSheet = ({
     }
 
     // Validate phone number format
-    const phoneRegex = /^(6[5-9][0-9])[0-9]{6}$/;
+    const phoneRegex = /^(6[4-9][0-9])[0-9]{6}$/;
     if (!phoneRegex.test(phoneNumber)) {
       setErrorMessage('Numéro de téléphone invalide. Utilisez un numéro MTN ou Orange (ex: 650123456)');
       return;
