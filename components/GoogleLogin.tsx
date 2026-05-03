@@ -117,20 +117,18 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
                     }
                 } else {
                     // Pas de tokens dans l'URL, attendre que Supabase traite le deep link
-                    logger.log('[GoogleAuth] No tokens in URL, waiting for session...');
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-
-                    const { data: { user }, error: userError } = await supabase.auth.getUser();
-                    logger.log('[GoogleAuth] User after wait:', user ? 'Found' : 'Not found');
-
-                    if (userError) {
-                        logger.error('[GoogleAuth] Error getting user:', userError);
-                        throw userError;
+                    logger.log('[GoogleAuth] No tokens in URL, polling for session...');
+                    let foundUser = null;
+                    for (let i = 0; i < 5; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        const { data: { user }, error: userError } = await supabase.auth.getUser();
+                        if (userError) { logger.error('[GoogleAuth] Error getting user:', userError); throw userError; }
+                        if (user) { foundUser = user; break; }
                     }
-
-                    if (user && onAuthSuccess) {
+                    logger.log('[GoogleAuth] User after polling:', foundUser ? 'Found' : 'Not found');
+                    if (foundUser && onAuthSuccess) {
                         onAuthSuccess();
-                    } else if (!user) {
+                    } else if (!foundUser) {
                         throw new Error('Auth session missing!');
                     }
                 }

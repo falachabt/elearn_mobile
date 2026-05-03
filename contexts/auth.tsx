@@ -52,6 +52,7 @@ type AuthContextType = {
     signOut: () => Promise<void>
     signUp: (phone: number | undefined, password: string) => Promise<void>
     verifyOtp: (phone: number, token: string, password: string, type?: string) => Promise<void>
+    verifyFirebasePhone: (idToken: string, phoneE164: string, password: string) => Promise<void>
     mutateUser: () => Promise<Account | null | undefined>
     markOnboardingCompleted: () => Promise<void>
     checkStreak: () => Promise<void>
@@ -90,7 +91,7 @@ const getUserEnrollments = async (userId: string) => {
     return data;
 }
 
-const getUserAccountData = async (authId: string, maxRetries = 8, retryDelay = 150) => {
+const getUserAccountData = async (authId: string, maxRetries = 4, retryDelay = 100) => {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         const {data, error} = await supabase
             .from("accounts")
@@ -564,11 +565,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
                     throw new Error('Session not created after signup');
                 }
 
-                void syncAccountAfterAuth({
-                    accessToken: data.session.access_token,
-                    phone,
-                });
-
+                // DB trigger create_account_on_auth_insert handles account creation
                 posthogService.trackSignupCompleted('phone');
                 setIsAccountCreating(false);
                 return;
@@ -612,6 +609,34 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         }
     };
 
+    const verifyFirebasePhone = async (idToken: string, phoneE164: string, password: string) => {
+        try {
+            setIsLoading(true);
+            setIsAccountCreating(true);
+            streakCheckedRef.current = false;
+
+            const response = await axios.post(
+                `${apiBaseUrl}/api/mobile/auth/verify-firebase`,
+                { idToken, phone: phoneE164, password },
+                { headers: { 'Content-Type': 'application/json' }, timeout: 15000 }
+            );
+
+            const { access_token, refresh_token } = response.data;
+            await supabase.auth.setSession({ access_token, refresh_token });
+
+            const { data: { session: newSession } } = await supabase.auth.getSession();
+            if (newSession?.access_token) {
+                void syncAccountAfterAuth({ accessToken: newSession.access_token, phone: phoneE164 });
+            }
+
+            posthogService.trackSignupCompleted('phone');
+        } catch (error) {
+            setIsAccountCreating(false);
+            setIsLoading(false);
+            throw error;
+        }
+    };
+
     const markOnboardingCompleted = async () => {
         await mutateUser(
             (current) =>
@@ -636,6 +661,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         signOut,
         signUp,
         verifyOtp,
+        verifyFirebasePhone,
         mutateUser: async () => await mutateUser(),
         markOnboardingCompleted,
         checkStreak,

@@ -366,7 +366,7 @@ export default function Login() {
           {showGoogleAuth && (
             <View style={styles.socialSection}>
               <View style={styles.socialButtons}>
-                <GoogleAuth onAuthSuccess={() => router.push("/")}>
+                <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
                   <View style={[styles.socialButton, styles.googleButton]}>
                     <MaterialCommunityIcons
                       name="google"

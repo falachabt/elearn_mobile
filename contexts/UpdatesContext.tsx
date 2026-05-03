@@ -53,11 +53,8 @@ export function UpdatesProvider({ children }: UpdatesProviderProps) {
       const updateInfo = await Updates.checkForUpdateAsync();
       
       if (updateInfo.isAvailable) {
-        const downloadResult = await Updates.fetchUpdateAsync();
-        
-        if (downloadResult.isNew) {
-          setIsUpdateAvailable(true);
-        }
+        await Updates.fetchUpdateAsync();
+        setIsUpdateAvailable(true);
       } else {
         setIsUpdateAvailable(false);
       }

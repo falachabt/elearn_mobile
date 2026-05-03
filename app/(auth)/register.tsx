@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { sendPhoneOtp, PhoneConfirmation } from "@/lib/firebasePhoneAuth";
 import {
   ActivityIndicator,
   Animated,
@@ -24,7 +25,6 @@ import OTPInput from "../../components/ui/OTPInput";
 
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth";
-import { supabase } from "@/lib/supabase";
 import GoogleAuth from "@/components/GoogleLogin";
 import { AppleLogin } from "@/components/AppleLogin";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
@@ -161,13 +161,15 @@ interface ToastState {
 
 const Register: React.FC = () => {
   const router = useRouter();
-  const { signUp, verifyOtp } = useAuth();
+  const { verifyFirebasePhone } = useAuth();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { trigger } = useHaptics();
 
   // States
+  const firebaseConfirmation = useRef<PhoneConfirmation | null>(null);
   const [email] = useState<string>("");
+  const [countryCode, setCountryCode] = useState<"+237" | "+33">("+237");
   const [phone, setPhone] = useState<number>();
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
@@ -339,10 +341,18 @@ const Register: React.FC = () => {
       return false;
     }
 
-    const regex = /^6[4-9]{1}[0-9]{7}$/;
+    const str = String(phone);
+    const valid =
+      countryCode === "+237"
+        ? /^6[4-9][0-9]{7}$/.test(str)
+        : /^(0?[67]\d{8})$/.test(str);
 
-    if (!regex.test(String(phone))) {
-      setPhoneError("Format invalide. Ex: 65XXXXXXX, 66XXXXXXX");
+    if (!valid) {
+      setPhoneError(
+        countryCode === "+237"
+          ? "Format invalide. Ex: 65XXXXXXX, 66XXXXXXX"
+          : "Format invalide. Ex: 0612345678 ou 612345678"
+      );
       return false;
     }
 
@@ -385,58 +395,37 @@ const Register: React.FC = () => {
   };
 
   const handleSignUp = async (): Promise<void> => {
+    const isPhoneValid = validatePhone(phone);
+    const isPasswordValid = validatePassword(password);
+    const isConfirmPasswordValid = validateConfirmPassword(password, confirmPassword);
+    const isTermsValid = validateTerms();
+
+    if (!isPhoneValid || !isPasswordValid || !isConfirmPasswordValid || !isTermsValid) {
+      shakeError();
+      trigger(HapticType.ERROR);
+      return;
+    }
+
     try {
-      // Validate fields
-      const isPhoneValid = validatePhone(phone);
-      const isPasswordValid = validatePassword(password);
-      const isConfirmPasswordValid = validateConfirmPassword(
-        password,
-        confirmPassword
-      );
-      const isTermsValid = validateTerms();
-
-      if (
-        !isPhoneValid ||
-        !isPasswordValid ||
-        !isConfirmPasswordValid ||
-        !isTermsValid
-      ) {
-        shakeError();
-        trigger(HapticType.ERROR);
-        return;
-      }
-
       setIsLoading(true);
       trigger(HapticType.LIGHT);
 
-      await signUp(phone, password);
+      const digits = String(phone).replace(/^0/, "");
+      const confirmation = await sendPhoneOtp(`${countryCode}${digits}`);
+      firebaseConfirmation.current = confirmation;
+
+      setIsOtpStep(true);
+      startCountdown();
       trigger(HapticType.SUCCESS);
-      router.replace("/(auth)/onboarding");
     } catch (error: unknown) {
       shakeError();
       trigger(HapticType.ERROR);
-      const errorMessage = error instanceof Error ? error.message : "";
+      const code = (error as { code?: string }).code;
 
-      if (
-        errorMessage === "email exists" ||
-        errorMessage === "User already registered"
-      ) {
-        setToast({
-          visible: true,
-          message: "Ce numéro est déjà associé à un compte",
-          type: "error",
-          action: {
-            label: "Se connecter",
-            onPress: () => router.push("/login"),
-          },
-        });
+      if (code === "auth/too-many-requests") {
+        setToast({ visible: true, message: "Trop de tentatives. Réessayez plus tard.", type: "error", action: null });
       } else {
-        setToast({
-          visible: true,
-          message: "Une erreur est survenue, veuillez réessayer",
-          type: "error",
-          action: null,
-        });
+        setToast({ visible: true, message: "Impossible d'envoyer le code SMS. Vérifiez votre numéro.", type: "error", action: null });
       }
     } finally {
       setIsLoading(false);
@@ -448,65 +437,55 @@ const Register: React.FC = () => {
   };
 
   const handleVerifyOtp = async (): Promise<void> => {
+    if (!phone || !firebaseConfirmation.current) return;
+
     try {
       setIsLoading(true);
       trigger(HapticType.LIGHT);
-      if (!phone) {
-        setToast({
-          visible: true,
-          message: "Numéro de téléphone invalide",
-          type: "error",
-          action: null,
-        });
-        return;
-      }
 
-      await verifyOtp(phone, otp, password);
+      const credential = await firebaseConfirmation.current.confirm(otp);
+      const idToken = await credential.user.getIdToken();
+
+      const digits = String(phone).replace(/^0/, "");
+      const phoneE164 = `${countryCode}${digits}`;
+      await verifyFirebasePhone(idToken, phoneE164, password);
 
       trigger(HapticType.SUCCESS);
-
-      setToast({
-        visible: true,
-        message: "Votre compte a été créé avec succès",
-        type: "success",
-        action: null,
-      });
-    } catch {
+      router.replace("/(auth)/onboarding");
+    } catch (error: unknown) {
       shakeError();
       trigger(HapticType.ERROR);
+      const code = (error as { code?: string }).code;
+      const httpStatus = (error as { response?: { status?: number } }).response?.status;
 
-      setToast({
-        visible: true,
-        message: "Code de vérification invalide",
-        type: "error",
-        action: null,
-      });
+      if (code === "auth/invalid-verification-code" || code === "auth/code-expired") {
+        setToast({ visible: true, message: "Code invalide ou expiré", type: "error", action: null });
+      } else if (httpStatus === 409) {
+        setToast({
+          visible: true,
+          message: "Ce numéro est déjà associé à un compte",
+          type: "error",
+          action: { label: "Se connecter", onPress: () => router.push("/login") },
+        });
+      } else {
+        setToast({ visible: true, message: "Une erreur est survenue, veuillez réessayer", type: "error", action: null });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleResendOtp = async (): Promise<void> => {
+    if (!phone) return;
     try {
       setIsLoading(true);
-      if (phone) {
-        await supabase.auth.signInWithOtp({ phone: phone.toString() });
-        startCountdown();
-      }
-
-      setToast({
-        visible: true,
-        message: "Nouveau code envoyé à votre email",
-        type: "success",
-        action: null,
-      });
+      const digits = String(phone).replace(/^0/, "");
+      const confirmation = await sendPhoneOtp(`${countryCode}${digits}`);
+      firebaseConfirmation.current = confirmation;
+      startCountdown();
+      setToast({ visible: true, message: "Nouveau code envoyé par SMS", type: "success", action: null });
     } catch {
-      setToast({
-        visible: true,
-        message: "Échec de l'envoi du code",
-        type: "error",
-        action: null,
-      });
+      setToast({ visible: true, message: "Échec de l'envoi du code", type: "error", action: null });
     } finally {
       setIsLoading(false);
     }
@@ -600,7 +579,7 @@ const Register: React.FC = () => {
 
                   {/* Social Login Options */}
                   <View style={styles.socialButtons}>
-                    <GoogleAuth onAuthSuccess={() => router.push("/")}>
+                    <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
                       <View style={[styles.socialButton, styles.googleButton]}>
                         <MaterialCommunityIcons
                           name="google"
@@ -645,23 +624,26 @@ const Register: React.FC = () => {
                         phoneError && styles.inputError,
                       ]}
                     >
-                      <MaterialCommunityIcons
-                        name="phone-outline"
-                        size={24}
-                        color={
-                          phoneError
-                            ? theme.color.error
-                            : isDark
-                            ? "#CCCCCC"
-                            : "#666666"
-                        }
-                        style={styles.inputIcon}
-                      />
+                      <TouchableOpacity
+                        onPress={() => {
+                          setCountryCode((c) => (c === "+237" ? "+33" : "+237"));
+                          setPhone(undefined);
+                          setPhoneError("");
+                        }}
+                        style={styles.countryCodeButton}
+                      >
+                        <Text style={[styles.countryCodeText, isDark && styles.textDark]}>
+                          {countryCode === "+237" ? "🇨🇲 +237" : "🇫🇷 +33"}
+                        </Text>
+                        <MaterialCommunityIcons name="chevron-down" size={14} color={isDark ? "#CCCCCC" : "#666666"} />
+                      </TouchableOpacity>
+                      <View style={[styles.countryDivider, isDark && { backgroundColor: "#333" }]} />
                       <TextInput
                         value={phone?.toString()}
                         onChangeText={(text) => {
                           const numericText = text.replace(/[^0-9]/g, "");
-                          if (numericText.length <= 9) {
+                          const maxLen = countryCode === "+237" ? 9 : 10;
+                          if (numericText.length <= maxLen) {
                             setPhone(parseInt(numericText) || undefined);
                             if (phoneError)
                               validatePhone(parseInt(numericText) || undefined);
@@ -672,10 +654,10 @@ const Register: React.FC = () => {
                           isDark && styles.inputDark,
                           { outline: "none" },
                         ]}
-                        placeholder="65X XX XX XX"
+                        placeholder={countryCode === "+237" ? "65X XX XX XX" : "06XX XX XX XX"}
                         placeholderTextColor={isDark ? "#666666" : "#999999"}
                         keyboardType="numeric"
-                        maxLength={9}
+                        maxLength={countryCode === "+237" ? 9 : 10}
                         returnKeyType="next"
                         onSubmitEditing={() => passwordRef.current?.focus()}
                       />
@@ -1157,6 +1139,24 @@ const styles = StyleSheet.create({
   },
   inputIcon: {
     padding: 12,
+  },
+  countryCodeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    gap: 2,
+  },
+  countryCodeText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1A1A1A",
+  },
+  countryDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: "#E5E5E5",
+    marginRight: 4,
   },
   input: {
     flex: 1,
