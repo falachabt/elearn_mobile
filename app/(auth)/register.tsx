@@ -169,7 +169,7 @@ const Register: React.FC = () => {
   // States
   const firebaseConfirmation = useRef<PhoneConfirmation | null>(null);
   const [email] = useState<string>("");
-  const [countryCode, setCountryCode] = useState<"+237" | "+33">("+237");
+  const [countryCode, setCountryCode] = useState<"+237" | "+33" | "+1">("+237");
   const [phone, setPhone] = useState<number>();
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
@@ -345,13 +345,17 @@ const Register: React.FC = () => {
     const valid =
       countryCode === "+237"
         ? /^6[4-9][0-9]{7}$/.test(str)
-        : /^(0?[67]\d{8})$/.test(str);
+        : countryCode === "+33"
+        ? /^(0?[67]\d{8})$/.test(str)
+        : /^\d{10}$/.test(str);
 
     if (!valid) {
       setPhoneError(
         countryCode === "+237"
           ? "Format invalide. Ex: 65XXXXXXX, 66XXXXXXX"
-          : "Format invalide. Ex: 0612345678 ou 612345678"
+          : countryCode === "+33"
+          ? "Format invalide. Ex: 0612345678 ou 612345678"
+          : "Format invalide. Ex: 2015550123 (10 chiffres)"
       );
       return false;
     }
@@ -626,14 +630,14 @@ const Register: React.FC = () => {
                     >
                       <TouchableOpacity
                         onPress={() => {
-                          setCountryCode((c) => (c === "+237" ? "+33" : "+237"));
+                          setCountryCode((c) => c === "+237" ? "+33" : c === "+33" ? "+1" : "+237");
                           setPhone(undefined);
                           setPhoneError("");
                         }}
                         style={styles.countryCodeButton}
                       >
                         <Text style={[styles.countryCodeText, isDark && styles.textDark]}>
-                          {countryCode === "+237" ? "🇨🇲 +237" : "🇫🇷 +33"}
+                          {countryCode === "+237" ? "🇨🇲 +237" : countryCode === "+33" ? "🇫🇷 +33" : "🇺🇸 +1"}
                         </Text>
                         <MaterialCommunityIcons name="chevron-down" size={14} color={isDark ? "#CCCCCC" : "#666666"} />
                       </TouchableOpacity>
@@ -654,7 +658,7 @@ const Register: React.FC = () => {
                           isDark && styles.inputDark,
                           { outline: "none" },
                         ]}
-                        placeholder={countryCode === "+237" ? "65X XX XX XX" : "06XX XX XX XX"}
+                        placeholder={countryCode === "+237" ? "65X XX XX XX" : countryCode === "+33" ? "06XX XX XX XX" : "201 555 0123"}
                         placeholderTextColor={isDark ? "#666666" : "#999999"}
                         keyboardType="numeric"
                         maxLength={countryCode === "+237" ? 9 : 10}
