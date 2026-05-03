@@ -24,12 +24,12 @@ function getVerifier(): RecaptchaVerifier {
     verifier.clear()
     verifier = null
   }
-  let container = document.getElementById('firebase-recaptcha')
-  if (!container) {
-    container = document.createElement('div')
-    container.id = 'firebase-recaptcha'
-    document.body.appendChild(container)
-  }
+  // Always remove and recreate — clear() doesn't clean the DOM widget
+  const old = document.getElementById('firebase-recaptcha')
+  if (old) old.remove()
+  const container = document.createElement('div')
+  container.id = 'firebase-recaptcha'
+  document.body.appendChild(container)
   verifier = new RecaptchaVerifier(webAuth, 'firebase-recaptcha', { size: 'invisible' })
   return verifier
 }

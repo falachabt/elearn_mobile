@@ -179,7 +179,7 @@ const Register: React.FC = () => {
   const [passwordError, setPasswordError] = useState<string>("");
   const [confirmPasswordError, setConfirmPasswordError] = useState<string>("");
   const [otp, setOtp] = useState<string>("");
-  const [countdown, setCountdown] = useState<number>(300);
+  const [countdown, setCountdown] = useState<number>(60);
   const [isOtpStep, setIsOtpStep] = useState<boolean>(false);
   const [isOtpValid, setIsOtpValid] = useState<boolean>(false);
   const [isChecked, setIsChecked] = useState<boolean>(false);
@@ -423,7 +423,7 @@ const Register: React.FC = () => {
       const code = (error as { code?: string }).code;
 
       if (code === "auth/too-many-requests") {
-        setToast({ visible: true, message: "Trop de tentatives. Réessayez plus tard.", type: "error", action: null });
+        setToast({ visible: true, message: "Trop de tentatives. Réessayez dans 15-30 minutes.", type: "error", action: null });
       } else {
         setToast({ visible: true, message: "Impossible d'envoyer le code SMS. Vérifiez votre numéro.", type: "error", action: null });
       }
@@ -433,7 +433,7 @@ const Register: React.FC = () => {
   };
 
   const startCountdown = (): void => {
-    setCountdown(300);
+    setCountdown(60);
   };
 
   const handleVerifyOtp = async (): Promise<void> => {
@@ -963,15 +963,11 @@ const Register: React.FC = () => {
                       isError={!isOtpValid && otp.length === 6}
                     />
 
+                    <Text style={[styles.otpValidityText, isDark && styles.textGray]}>
+                      Code valide pendant 10 minutes
+                    </Text>
+
                     <View style={styles.countdownContainer}>
-                      <Text
-                        style={[
-                          styles.countdownText,
-                          isDark && styles.textGray,
-                        ]}
-                      >
-                        {formatCountdown()}
-                      </Text>
                       <TouchableOpacity
                         onPress={handleResendOtp}
                         disabled={countdown > 0 || isLoading}
@@ -983,7 +979,7 @@ const Register: React.FC = () => {
                             countdown > 0 && styles.resendDisabledText,
                           ]}
                         >
-                          Renvoyer le code
+                          {countdown > 0 ? `Renvoyer dans ${formatCountdown()}` : "Renvoyer le code"}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -1020,7 +1016,7 @@ const Register: React.FC = () => {
                         style={styles.buttonIcon}
                       />
                       <Text style={styles.secondaryButtonText}>
-                        Modifier l'email
+                        Modifier le numéro
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -1329,6 +1325,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666666",
     fontWeight: "500",
+  },
+  otpValidityText: {
+    fontSize: 13,
+    color: "#666666",
+    textAlign: "center",
+    marginTop: 12,
+    marginBottom: 4,
   },
   resendLink: {
     color: theme.color.primary[500],
