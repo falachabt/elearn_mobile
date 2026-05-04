@@ -12,7 +12,7 @@ const Onboarding = () => {
   const isDarkMode = colorScheme === 'dark';
 
   if (!session) return <Redirect href="/(auth)/login" />;
-  if (isLoading && !user) return (
+  if (isLoading) return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: isDarkMode ? theme.color.dark.background.primary : theme.color.light.background.primary }}>
       <LoadingAnimation isDarkMode={isDarkMode} />
     </View>

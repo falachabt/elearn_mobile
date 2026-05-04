@@ -14,7 +14,7 @@ export default function AuthLayout() {
     const pathname = usePathname();
     const isDarkMode = colorScheme === 'dark';
 
-    if (session && (isLoading || !user) && !pathname.includes('/onboarding')) {
+    if (session && isLoading && !pathname.includes('/onboarding')) {
         return (
             <View style={{
                 flex: 1,
