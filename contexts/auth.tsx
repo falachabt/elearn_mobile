@@ -521,16 +521,13 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             }
         } catch (error) {
             logger.error('Error verifying OTP:', error);
+            setIsAccountCreating(false);
             throw error;
         } finally {
-            // Clear the account creation flag
-            setIsAccountCreating(false);
-
-            // If this is not signup, we can set loading to false here
             if (type !== "signup") {
                 setIsLoading(false);
             }
-            // For signup, loading state will be managed by the useEffect when user data loads
+            // For signup: syncAccountAfterAuth (fire-and-forget) owns setIsAccountCreating(false)
         }
     };
 

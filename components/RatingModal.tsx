@@ -14,11 +14,28 @@ import type { Json } from '@/types/supabase';
 
 const RATING_PROMPT_COOLDOWN_DAYS = 14;
 const RATING_PROMPT_MAX_DISMISSALS = 3;
+const RATING_PROMPT_MIN_ACCOUNT_AGE_DAYS = 3;
+const RATING_PROMPT_MIN_FIRST_SEEN_HOURS = 24;
+const RATING_PROMPT_MIN_APP_OPENS = 3;
+const RATING_PROMPT_DISPLAY_DELAY_MS = 60 * 1000;
 
 type RatingPromptState = {
+  firstSeenAt?: string;
+  appOpenCount?: number;
   dismissCount?: number;
   lastShownAt?: string;
   rated?: boolean;
+};
+
+const getElapsedMs = (dateValue?: string | Date | null) => {
+  if (!dateValue) return 0;
+
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+  const time = date.getTime();
+
+  if (Number.isNaN(time)) return 0;
+
+  return Date.now() - time;
 };
 
 const RatingModal = () => {
@@ -28,6 +45,8 @@ const RatingModal = () => {
   const isDarkMode = colorScheme === 'dark';
 
   useEffect(() => {
+    let showTimer: ReturnType<typeof setTimeout> | undefined;
+
     const evaluateVisibility = async () => {
       if (Platform.OS === 'web' || !user || user.metadata?.hasRated) {
         setModalVisible(false);
@@ -38,6 +57,8 @@ const RatingModal = () => {
         const storageKey = `rating_modal_state:${user.id}`;
         const rawState = await AsyncStorage.getItem(storageKey);
         const promptState: RatingPromptState = rawState ? JSON.parse(rawState) : {};
+        const firstSeenAt = promptState.firstSeenAt ?? new Date().toISOString();
+        const appOpenCount = (promptState.appOpenCount ?? 0) + 1;
         const dismissCount = promptState.dismissCount ?? 0;
         const lastShownAt = promptState.lastShownAt ? new Date(promptState.lastShownAt) : null;
         const cooldownMs = RATING_PROMPT_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
@@ -46,20 +67,43 @@ const RatingModal = () => {
           !Number.isNaN(lastShownAt.getTime()) &&
           Date.now() - lastShownAt.getTime() < cooldownMs;
 
+        const nextPromptState = {
+          ...promptState,
+          firstSeenAt,
+          appOpenCount,
+        } satisfies RatingPromptState;
+
+        await AsyncStorage.setItem(storageKey, JSON.stringify(nextPromptState));
+
         if (promptState.rated || dismissCount >= RATING_PROMPT_MAX_DISMISSALS || isCoolingDown) {
           setModalVisible(false);
           return;
         }
 
-        await AsyncStorage.setItem(
-          storageKey,
-          JSON.stringify({
-            ...promptState,
-            lastShownAt: new Date().toISOString(),
-          } satisfies RatingPromptState)
-        );
+        const accountAgeMs = getElapsedMs(user.created_at);
+        const firstSeenMs = getElapsedMs(firstSeenAt);
+        const hasEnoughAccountAge =
+          accountAgeMs >= RATING_PROMPT_MIN_ACCOUNT_AGE_DAYS * 24 * 60 * 60 * 1000;
+        const hasEnoughLocalUsage =
+          firstSeenMs >= RATING_PROMPT_MIN_FIRST_SEEN_HOURS * 60 * 60 * 1000;
+        const hasEnoughOpens = appOpenCount >= RATING_PROMPT_MIN_APP_OPENS;
 
-        setModalVisible(true);
+        if (!hasEnoughAccountAge || !hasEnoughLocalUsage || !hasEnoughOpens) {
+          setModalVisible(false);
+          return;
+        }
+
+        showTimer = setTimeout(async () => {
+          await AsyncStorage.setItem(
+            storageKey,
+            JSON.stringify({
+              ...nextPromptState,
+              lastShownAt: new Date().toISOString(),
+            } satisfies RatingPromptState)
+          );
+
+          setModalVisible(true);
+        }, RATING_PROMPT_DISPLAY_DELAY_MS);
       } catch (error) {
         logger.error('Error reading rating modal state:', error);
         setModalVisible(false);
@@ -67,6 +111,12 @@ const RatingModal = () => {
     };
 
     evaluateVisibility();
+
+    return () => {
+      if (showTimer) {
+        clearTimeout(showTimer);
+      }
+    };
   }, [user]);
 
   const handleRateNow = async () => {
