@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { sendPhoneOtp, PhoneConfirmation } from "@/lib/firebasePhoneAuth";
+import CountryPickerBottomSheet, { COUNTRIES, Country } from "@/components/ui/CountryPickerBottomSheet";
 import {
   ActivityIndicator,
   Animated,
@@ -26,6 +27,7 @@ import OTPInput from "../../components/ui/OTPInput";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth";
 import GoogleAuth from "@/components/GoogleLogin";
+import GoogleLogo from "@/components/GoogleLogo";
 import { AppleLogin } from "@/components/AppleLogin";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import WhatsAppContact from "@/components/WhatsappSupport";
@@ -169,7 +171,8 @@ const Register: React.FC = () => {
   // States
   const firebaseConfirmation = useRef<PhoneConfirmation | null>(null);
   const [email] = useState<string>("");
-  const [countryCode, setCountryCode] = useState<"+237" | "+33" | "+1">("+237");
+  const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [phone, setPhone] = useState<number>();
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
@@ -342,21 +345,10 @@ const Register: React.FC = () => {
     }
 
     const str = String(phone);
-    const valid =
-      countryCode === "+237"
-        ? /^6[4-9][0-9]{7}$/.test(str)
-        : countryCode === "+33"
-        ? /^(0?[67]\d{8})$/.test(str)
-        : /^\d{10}$/.test(str);
+    const valid = selectedCountry.regex.test(str);
 
     if (!valid) {
-      setPhoneError(
-        countryCode === "+237"
-          ? "Format invalide. Ex: 65XXXXXXX, 66XXXXXXX"
-          : countryCode === "+33"
-          ? "Format invalide. Ex: 0612345678 ou 612345678"
-          : "Format invalide. Ex: 2015550123 (10 chiffres)"
-      );
+      setPhoneError(`Format invalide. Ex: ${selectedCountry.placeholder}`);
       return false;
     }
 
@@ -415,7 +407,7 @@ const Register: React.FC = () => {
       trigger(HapticType.LIGHT);
 
       const digits = String(phone).replace(/^0/, "");
-      const confirmation = await sendPhoneOtp(`${countryCode}${digits}`);
+      const confirmation = await sendPhoneOtp(`${selectedCountry.code}${digits}`);
       firebaseConfirmation.current = confirmation;
 
       setIsOtpStep(true);
@@ -453,7 +445,7 @@ const Register: React.FC = () => {
       const idToken = await credential.user.getIdToken();
 
       const digits = String(phone).replace(/^0/, "");
-      const phoneE164 = `${countryCode}${digits}`;
+      const phoneE164 = `${selectedCountry.code}${digits}`;
       await verifyFirebasePhone(idToken, phoneE164, password);
 
       trigger(HapticType.SUCCESS);
@@ -486,7 +478,7 @@ const Register: React.FC = () => {
     try {
       setIsLoading(true);
       const digits = String(phone).replace(/^0/, "");
-      const confirmation = await sendPhoneOtp(`${countryCode}${digits}`);
+      const confirmation = await sendPhoneOtp(`${selectedCountry.code}${digits}`);
       firebaseConfirmation.current = confirmation;
       startCountdown();
       setToast({ visible: true, message: "Nouveau code envoyé par SMS", type: "success", action: null });
@@ -587,12 +579,10 @@ const Register: React.FC = () => {
                   <View style={styles.socialButtons}>
                     <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
                       <View style={[styles.socialButton, styles.googleButton]}>
-                        <MaterialCommunityIcons
-                          name="google"
-                          size={20}
-                          color="white"
-                        />
-                        <Text style={styles.socialButtonText}>Google</Text>
+                        <GoogleLogo size={20} />
+                        <Text style={[styles.socialButtonText, styles.googleButtonText]}>
+                          Google
+                        </Text>
                       </View>
                     </GoogleAuth>
                     <AppleLogin />
@@ -631,15 +621,11 @@ const Register: React.FC = () => {
                       ]}
                     >
                       <TouchableOpacity
-                        onPress={() => {
-                          setCountryCode((c) => c === "+237" ? "+33" : c === "+33" ? "+1" : "+237");
-                          setPhone(undefined);
-                          setPhoneError("");
-                        }}
+                        onPress={() => setShowCountryPicker(true)}
                         style={styles.countryCodeButton}
                       >
                         <Text style={[styles.countryCodeText, isDark && styles.textDark]}>
-                          {countryCode === "+237" ? "🇨🇲 +237" : countryCode === "+33" ? "🇫🇷 +33" : "🇺🇸 +1"}
+                          {selectedCountry.flag} {selectedCountry.code}
                         </Text>
                         <MaterialCommunityIcons name="chevron-down" size={14} color={isDark ? "#CCCCCC" : "#666666"} />
                       </TouchableOpacity>
@@ -648,8 +634,7 @@ const Register: React.FC = () => {
                         value={phone?.toString()}
                         onChangeText={(text) => {
                           const numericText = text.replace(/[^0-9]/g, "");
-                          const maxLen = countryCode === "+237" ? 9 : 10;
-                          if (numericText.length <= maxLen) {
+                          if (numericText.length <= selectedCountry.maxLength) {
                             setPhone(parseInt(numericText) || undefined);
                             if (phoneError)
                               validatePhone(parseInt(numericText) || undefined);
@@ -660,10 +645,10 @@ const Register: React.FC = () => {
                           isDark && styles.inputDark,
                           { outline: "none" },
                         ]}
-                        placeholder={countryCode === "+237" ? "65X XX XX XX" : countryCode === "+33" ? "06XX XX XX XX" : "201 555 0123"}
+                        placeholder={__DEV__ && selectedCountry.code === "+237" ? "694650142" : selectedCountry.placeholder}
                         placeholderTextColor={isDark ? "#666666" : "#999999"}
                         keyboardType="numeric"
-                        maxLength={countryCode === "+237" ? 9 : 10}
+                        maxLength={selectedCountry.maxLength}
                         returnKeyType="next"
                         onSubmitEditing={() => passwordRef.current?.focus()}
                       />
@@ -1038,6 +1023,17 @@ const Register: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CountryPickerBottomSheet
+        visible={showCountryPicker}
+        selected={selectedCountry}
+        onSelect={(country) => {
+          setSelectedCountry(country);
+          setPhone(undefined);
+          setPhoneError("");
+        }}
+        onClose={() => setShowCountryPicker(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -1294,10 +1290,15 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   googleButton: {
-    backgroundColor: "#DB4437",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#DADCE0",
   },
   facebookButton: {
     backgroundColor: "#4267B2",
+  },
+  googleButtonText: {
+    color: "#3C4043",
   },
   footerText: {
     flexDirection: "row",

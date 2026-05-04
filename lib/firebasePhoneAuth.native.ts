@@ -7,5 +7,20 @@ export type PhoneConfirmation = {
 
 export async function sendPhoneOtp(phoneE164: string): Promise<PhoneConfirmation> {
   const auth = getAuth(getApp())
-  return await signInWithPhoneNumber(auth, phoneE164)
+  const confirmation = await signInWithPhoneNumber(auth, phoneE164)
+
+  return {
+    confirm: async (code: string) => {
+      const credential = await confirmation.confirm(code)
+      if (!credential?.user) {
+        throw new Error('Phone verification failed')
+      }
+
+      return {
+        user: {
+          getIdToken: () => credential.user.getIdToken(),
+        },
+      }
+    },
+  }
 }

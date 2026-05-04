@@ -190,9 +190,11 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
             );
 
             await mutateUser();
+            setIsAccountCreating(false);
             return true;
         } catch (error) {
             logger.warn('Non-blocking account sync failed:', error);
+            setIsAccountCreating(false);
             return false;
         }
     };

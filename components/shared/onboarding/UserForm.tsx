@@ -41,8 +41,8 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
       valid = false;
     }
 
-    // Phone validation is now optional
-    const phoneRegex = /^6[4-9]{1}[0-9]{7}$/;
+    // Phone validation is now optional (relaxed regex)
+    const phoneRegex = /^\+?[0-9\s]{8,15}$/;
     if (userInfo?.phone && !phoneRegex.test(String(userInfo.phone))) {
       newErrors.phoneNumber = 'Le numéro de téléphone est invalide';
       valid = false;
@@ -156,11 +156,14 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
                     errors.phoneNumber && styles.inputError
                   ]}
                   value={userInfo?.phone ? String(userInfo.phone) : ""}
-                  onChangeText={(text) => updateUserInfo('phone', Number(text))}
+                  onChangeText={(text) => {
+                    const numericStr = text.replace(/[^0-9]/g, '');
+                    updateUserInfo('phone', numericStr ? Number(numericStr) : null);
+                  }}
                   keyboardType="phone-pad"
                   onFocus={() => setFocusedInput('phoneNumber')}
                   onBlur={() => setFocusedInput(null)}
-                  maxLength={9}
+                  maxLength={15}
                   placeholder="Optionnel"
                   placeholderTextColor={isDarkMode ? theme.color.gray[400] : theme.color.gray[500]}
               />

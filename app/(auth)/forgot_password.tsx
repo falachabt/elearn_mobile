@@ -1,9 +1,10 @@
-import {useRouter} from "expo-router";
+import axios from "axios";
+import {useLocalSearchParams, useRouter} from "expo-router";
+import {StatusBar} from "expo-status-bar";
 import React, {useEffect, useRef, useState} from "react";
 import {
     ActivityIndicator,
     Animated,
-    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -14,17 +15,15 @@ import {
     useColorScheme,
     View,
 } from "react-native";
-import {StatusBar} from "expo-status-bar";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useLocalSearchParams} from "expo-router";
 
 import OTPInput from "../../components/ui/OTPInput";
+import CountryPickerBottomSheet, { COUNTRIES, Country } from "../../components/ui/CountryPickerBottomSheet";
 
-import {supabase} from "@/lib/supabase";
 import {theme} from "@/constants/theme";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { sendPhoneOtp, PhoneConfirmation } from "@/lib/firebasePhoneAuth";
+import { useAppConfig } from "@/contexts/useAppConfig";
 
 interface ToastProps {
     visible: boolean;
@@ -152,10 +151,16 @@ const ResetPassword: React.FC = () => {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+    const { getApiBaseUrl } = useAppConfig();
+    const apiBaseUrl = getApiBaseUrl();
 
     // State variables to manage the multi-step flow
-    const [currentStep, setCurrentStep] = useState<number>(1); // 1: Email entry, 2: OTP verification, 3: New password
-    const [email, setEmail] = useState<string>("");
+    const [currentStep, setCurrentStep] = useState<number>(1); // 1: Phone entry, 2: OTP verification, 3: New password
+    const firebaseConfirmation = useRef<PhoneConfirmation | null>(null);
+    const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
+    const [showCountryPicker, setShowCountryPicker] = useState<boolean>(false);
+    const [phone, setPhone] = useState<string>("");
+    const [verifiedIdToken, setVerifiedIdToken] = useState<string>("");
     const [otp, setOtp] = useState<string>("");
     const [newPassword, setNewPassword] = useState<string>("");
     const [confirmPassword, setConfirmPassword] = useState<string>("");
@@ -166,7 +171,7 @@ const ResetPassword: React.FC = () => {
     const { trigger } = useHaptics();
 
     // Error states
-    const [emailError, setEmailError] = useState<string>("");
+    const [phoneError, setPhoneError] = useState<string>("");
     const [passwordError, setPasswordError] = useState<string>("");
     const [confirmPasswordError, setConfirmPasswordError] = useState<string>("");
 
@@ -193,7 +198,7 @@ const ResetPassword: React.FC = () => {
     // Refs for focus management
     const newPasswordRef = useRef<TextInput>(null);
     const confirmPasswordRef = useRef<TextInput>(null);
-    const emailErrorAnim = useRef(new Animated.Value(0)).current;
+    const phoneErrorAnim = useRef(new Animated.Value(0)).current;
     const passwordErrorAnim = useRef(new Animated.Value(0)).current;
     const confirmPasswordErrorAnim = useRef(new Animated.Value(0)).current;
 
@@ -254,8 +259,8 @@ const ResetPassword: React.FC = () => {
 
     // Animation for error messages
     useEffect(() => {
-        if (emailError) animateError(emailErrorAnim);
-    }, [emailError]);
+        if (phoneError) animateError(phoneErrorAnim);
+    }, [phoneError]);
 
     useEffect(() => {
         if (passwordError) animateError(passwordErrorAnim);
@@ -333,16 +338,23 @@ const ResetPassword: React.FC = () => {
         return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    const validateEmail = (email: string): boolean => {
-        if (!email) {
-            setEmailError("L'email est requis");
+    const getPhoneE164 = (): string => {
+        const digits = phone.replace(/^0/, "");
+        return `${selectedCountry.code}${digits}`;
+    };
+
+    const validatePhone = (phoneValue: string): boolean => {
+        if (!phoneValue) {
+            setPhoneError("Le numéro de téléphone est requis");
             return false;
         }
-        if (!EMAIL_REGEX.test(email)) {
-            setEmailError("Format d'email invalide");
+
+        if (!selectedCountry.regex.test(phoneValue)) {
+            setPhoneError(`Format invalide. Ex: ${selectedCountry.placeholder}`);
             return false;
         }
-        setEmailError("");
+
+        setPhoneError("");
         return true;
     };
 
@@ -368,11 +380,10 @@ const ResetPassword: React.FC = () => {
         return true;
     };
 
-    const handleSendResetEmail = async (): Promise<void> => {
+    const handleSendResetOtp = async (): Promise<void> => {
         try {
-            // Validate email
-            const isEmailValid = validateEmail(email);
-            if (!isEmailValid) {
+            const isPhoneValid = validatePhone(phone);
+            if (!isPhoneValid) {
                 shakeError();
                trigger(HapticType.LIGHT)
                 return;
@@ -381,32 +392,26 @@ const ResetPassword: React.FC = () => {
             setIsLoading(true);
             trigger(HapticType.LIGHT)
 
-            // Send reset password email with OTP
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: undefined, // Don't redirect, we'll handle OTP verification
-            });
+            firebaseConfirmation.current = await sendPhoneOtp(getPhoneE164());
 
-            if (error) throw error;
-
-            // Move to OTP verification step
             setCurrentStep(2);
             startCountdown();
             trigger(HapticType.SUCCESS)
 
             setToast({
                 visible: true,
-                message: "Code de réinitialisation envoyé à votre email",
+                message: "Code de réinitialisation envoyé par SMS",
                 type: "success",
                 action: null
             });
         } catch (error: unknown ) {
-            console.error("Error sending reset email:", error);
+            console.error("Error sending reset OTP:", error);
             shakeError();
             trigger(HapticType.ERROR)
 
             setToast({
                 visible: true,
-                message: "Erreur lors de l'envoi du code de réinitialisation",
+                message: "Erreur lors de l'envoi du code SMS",
                 type: "error",
                 action: null
             });
@@ -426,16 +431,14 @@ const ResetPassword: React.FC = () => {
             setIsLoading(true);
             trigger(HapticType.LIGHT)
 
-            // Verify OTP
-            const { error } = await supabase.auth.verifyOtp({
-                email,
-                token: otp,
-                type: 'recovery'
-            });
+            if (!firebaseConfirmation.current) {
+                throw new Error("Code de vérification non initialisé");
+            }
 
-            if (error) throw error;
+            const credential = await firebaseConfirmation.current.confirm(otp);
+            const idToken = await credential.user.getIdToken();
+            setVerifiedIdToken(idToken);
 
-            // Move to new password step
             setCurrentStep(3);
             trigger(HapticType.LIGHT)
         } catch (error: unknown) {
@@ -472,12 +475,15 @@ const ResetPassword: React.FC = () => {
             setIsLoading(true);
             trigger(HapticType.LIGHT)
 
-            // Update password
-            const { error } = await supabase.auth.updateUser({
-                password: newPassword
-            });
+            if (!verifiedIdToken) {
+                throw new Error("Session de vérification expirée. Veuillez recommencer.");
+            }
 
-            if (error) throw error;
+            await axios.post(
+                `${apiBaseUrl}/api/mobile/auth/reset-password`,
+                { idToken: verifiedIdToken, phone: getPhoneE164(), newPassword },
+                { headers: { "Content-Type": "application/json" }, timeout: 15000 }
+            );
 
             trigger(HapticType.SUCCESS)
             setToast({
@@ -492,7 +498,6 @@ const ResetPassword: React.FC = () => {
                 }
             });
 
-            // Reset form after successful password reset
             setTimeout(() => {
                 if (come_from === "mobile") {
                   router.push("com.ezadrive.elearn://login");
@@ -529,22 +534,17 @@ const ResetPassword: React.FC = () => {
         try {
             setIsLoading(true);
 
-            // Resend reset password email
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: undefined,
-            });
-
-            if (error) throw error;
+            firebaseConfirmation.current = await sendPhoneOtp(getPhoneE164());
 
             startCountdown();
             setToast({
                 visible: true,
-                message: "Nouveau code envoyé à votre email",
+                message: "Nouveau code envoyé par SMS",
                 type: "success",
                 action: null
             });
         } catch (error : unknown) {
-            console.error("Error sending reset email:", error);
+            console.error("Error sending reset OTP:", error);
             setToast({
                 visible: true,
                 message: "Échec de l'envoi du code",
@@ -560,12 +560,15 @@ const ResetPassword: React.FC = () => {
         setCountdown(60);
     };
 
-    const handleModifyEmail = (): void => {
+    const handleModifyPhone = (): void => {
         setCurrentStep(1);
         setOtp("");
+        setVerifiedIdToken("");
+        firebaseConfirmation.current = null;
     };
 
     return (
+        <>
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={[styles.container, isDark && styles.containerDark]}
@@ -595,30 +598,15 @@ const ResetPassword: React.FC = () => {
                         },
                     ]}
                 >
-                    {/* Logo section */}
-                    <View style={styles.logoSection}>
-                        <Image
-                            source={require("@/assets/images/icon.png")}
-                            style={styles.logo}
-                        />
-                        <View style={{
-                            flexDirection: "column",
-                            justifyContent: "flex-start",
-                            alignItems: "flex-start"
-                        }}>
-                            <Text style={[styles.title, isDark && styles.textDark]}>
-                                Elearn Prepa
-
-                            </Text>
-                            <Text style={[styles.subtitle, isDark && styles.textGray]}>
-                                Réinitialisation de mot de passe
-                            </Text>
-                        </View>
+                    <View style={styles.headerSection}>
+                        <Text style={[styles.title, isDark && styles.textDark]}>
+                            Réinitialisation du mot de passe
+                        </Text>
                     </View>
 
                     {/* Main content with animations for step transition */}
                     <View style={styles.contentContainer}>
-                        {/* Step 1: Email Entry */}
+                        {/* Step 1: Phone Entry */}
                         {currentStep === 1 && (
                             <Animated.View
                                 style={[
@@ -627,39 +615,50 @@ const ResetPassword: React.FC = () => {
                                 ]}
                             >
                                 <Text style={[styles.subtitle, isDark && styles.textGray]}>
-                                    Entrez votre adresse email pour réinitialiser votre mot de passe
+                                    Entrez votre numéro de téléphone pour réinitialiser votre mot de passe
                                 </Text>
 
-                                {/* Email Input */}
+                                {/* Phone Input */}
                                 <View style={styles.inputContainer}>
                                     <Text style={[styles.label, isDark && styles.textDark]}>
-                                        Email
+                                        Numéro de téléphone
                                     </Text>
                                     <View style={[
                                         styles.inputWrapper,
                                         isDark && styles.inputWrapperDark,
-                                        emailError && styles.inputError
+                                        phoneError && styles.inputError
                                     ]}>
-                                        <MaterialCommunityIcons
-                                            name={"email-outline" as const}
-                                            size={24}
-                                            color={emailError ? theme.color.error : (isDark ? "#CCCCCC" : "#666666")}
-                                            style={styles.inputIcon}
-                                        />
+                                        <TouchableOpacity
+                                            onPress={() => setShowCountryPicker(true)}
+                                            style={styles.countryCodeButton}
+                                        >
+                                            <Text style={[styles.countryCodeText, isDark && styles.textDark]}>
+                                                {selectedCountry.flag} {selectedCountry.code}
+                                            </Text>
+                                            <MaterialCommunityIcons
+                                                name="chevron-down"
+                                                size={14}
+                                                color={isDark ? "#CCCCCC" : "#666666"}
+                                            />
+                                        </TouchableOpacity>
+                                        <View style={[styles.countryDivider, isDark && { backgroundColor: "#333333" }]} />
                                         <TextInput
-                                            value={email}
+                                            value={phone}
                                             onChangeText={(text) => {
-                                                setEmail(text);
-                                                if (emailError) validateEmail(text);
+                                                const numericText = text.replace(/[^0-9]/g, "");
+                                                if (numericText.length <= selectedCountry.maxLength) {
+                                                    setPhone(numericText);
+                                                    if (phoneError) validatePhone(numericText);
+                                                }
                                             }}
                                             style={[styles.input, isDark && styles.inputDark, { outline : "none"}]}
-                                            placeholder="Votre email"
+                                            placeholder={selectedCountry.placeholder}
                                             placeholderTextColor={isDark ? "#666666" : "#999999"}
-                                            keyboardType="email-address"
-                                            autoCapitalize="none"
+                                            keyboardType="numeric"
+                                            maxLength={selectedCountry.maxLength}
                                             returnKeyType="done"
                                         />
-                                        {emailError && (
+                                        {phoneError && (
                                             <MaterialCommunityIcons
                                                 name={"alert-circle" as const}
                                                 size={20}
@@ -668,13 +667,13 @@ const ResetPassword: React.FC = () => {
                                             />
                                         )}
                                     </View>
-                                    {emailError && (
+                                    {phoneError && (
                                         <Animated.View
                                             style={[
                                                 styles.errorContainer,
                                                 {
-                                                    opacity: emailErrorAnim, transform: [{
-                                                        translateY: emailErrorAnim.interpolate({
+                                                    opacity: phoneErrorAnim, transform: [{
+                                                        translateY: phoneErrorAnim.interpolate({
                                                             inputRange: [0, 1],
                                                             outputRange: [-10, 0]
                                                         })
@@ -687,7 +686,7 @@ const ResetPassword: React.FC = () => {
                                                 size={16}
                                                 color={theme.color.error}
                                             />
-                                            <Text style={styles.errorText}>{emailError}</Text>
+                                            <Text style={styles.errorText}>{phoneError}</Text>
                                         </Animated.View>
                                     )}
                                 </View>
@@ -698,7 +697,7 @@ const ResetPassword: React.FC = () => {
                                         styles.primaryButton,
                                         isLoading && styles.buttonDisabled
                                     ]}
-                                    onPress={handleSendResetEmail}
+                                    onPress={handleSendResetOtp}
                                     disabled={isLoading}
                                 >
                                     {isLoading ? (
@@ -747,7 +746,7 @@ const ResetPassword: React.FC = () => {
                                     Entrez le code à 6 chiffres envoyé à
                                 </Text>
                                 <Text style={[styles.emailHighlight, isDark && styles.textDark]}>
-                                    {email}
+                                    {getPhoneE164()}
                                 </Text>
 
                                 <View style={styles.otpContainer}>
@@ -794,16 +793,16 @@ const ResetPassword: React.FC = () => {
 
                                     <TouchableOpacity
                                         style={[styles.secondaryButton, isLoading && styles.buttonDisabled]}
-                                        onPress={handleModifyEmail}
+                                        onPress={handleModifyPhone}
                                         disabled={isLoading}
                                     >
                                         <MaterialCommunityIcons
-                                            name={"email-edit-outline" as const}
+                                            name={"phone-outline" as const}
                                             size={20}
                                             color={theme.color.primary[500]}
                                             style={styles.buttonIcon}
                                         />
-                                        <Text style={styles.secondaryButtonText}>Modifier l'email</Text>
+                                        <Text style={styles.secondaryButtonText}>Modifier le téléphone</Text>
                                     </TouchableOpacity>
                                 </View>
                             </Animated.View>
@@ -967,6 +966,17 @@ const ResetPassword: React.FC = () => {
                 </Animated.View>
             </ScrollView>
         </KeyboardAvoidingView>
+        <CountryPickerBottomSheet
+            visible={showCountryPicker}
+            selected={selectedCountry}
+            onSelect={(country) => {
+                setSelectedCountry(country);
+                setPhone("");
+                setPhoneError("");
+            }}
+            onClose={() => setShowCountryPicker(false)}
+        />
+        </>
     );
 };
 
@@ -988,17 +998,8 @@ const styles = StyleSheet.create({
         maxWidth: 400,
         alignSelf: "center",
     },
-    logoSection: {
-        alignItems: "center",
-        flexDirection: "row",
-        gap: 12,
-        marginBottom: 24,
-    },
-    logo: {
-        width: 80,
-        height: 80,
-        marginBottom: 12,
-        borderRadius: 16,
+    headerSection: {
+        marginBottom: 28,
     },
     contentContainer: {
         position: "relative",
@@ -1052,6 +1053,25 @@ fontSize: 15,
     inputWrapperDark: {
         backgroundColor: theme.color.dark.background.secondary,
         borderColor: "#333333",
+    },
+    countryCodeButton: {
+        height: 50,
+        paddingHorizontal: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+    },
+    countryCodeText: {
+        fontFamily : theme.typography.fontFamily,
+        fontSize: 15,
+        fontWeight: "600",
+        color: "#1A1A1A",
+    },
+    countryDivider: {
+        width: 1,
+        height: 28,
+        backgroundColor: "#E5E5E5",
+        marginRight: 8,
     },
     inputIcon: {
         padding: 12,

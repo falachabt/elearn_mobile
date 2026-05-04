@@ -23,10 +23,10 @@ import Head from "expo-router/head";
 import { useAuth } from "@/contexts/auth";
 import { theme } from "@/constants/theme";
 import GoogleAuth from "@/components/GoogleLogin";
+import GoogleLogo from "@/components/GoogleLogo";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import WhatsAppContact from "@/components/WhatsappSupport";
-
-const PHONE_REGEX = /^(?:\+?237)?6[4-9]\d{7}$/;
+import CountryPickerBottomSheet, { COUNTRIES, Country } from "@/components/ui/CountryPickerBottomSheet";
 
 // Toast Component
 const Toast = ({
@@ -141,6 +141,8 @@ export default function Login() {
   const showGoogleAuth = Platform.OS !== "ios";
 
   // States
+  const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -212,8 +214,8 @@ export default function Login() {
       setPhoneError("Le numéro de téléphone est requis");
       return false;
     }
-    if (!PHONE_REGEX.test(phone)) {
-      setPhoneError("Numéro de téléphone invalide");
+    if (!selectedCountry.regex.test(phone)) {
+      setPhoneError(`Format invalide. Ex: ${selectedCountry.placeholder}`);
       return false;
     }
     setPhoneError("");
@@ -278,7 +280,8 @@ export default function Login() {
       setIsLoading(true);
       trigger(HapticType.LIGHT);
 
-      await signIn(phone, password);
+      const digits = phone.replace(/^0/, "");
+      await signIn(`${selectedCountry.code}${digits}`, password);
       trigger(HapticType.SUCCESS);
 
       setToast({
@@ -368,12 +371,10 @@ export default function Login() {
               <View style={styles.socialButtons}>
                 <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
                   <View style={[styles.socialButton, styles.googleButton]}>
-                    <MaterialCommunityIcons
-                      name="google"
-                      size={20}
-                      color="white"
-                    />
-                    <Text style={styles.socialButtonText}>Google</Text>
+                    <GoogleLogo size={20} />
+                    <Text style={[styles.socialButtonText, styles.googleButtonText]}>
+                      Google
+                    </Text>
                   </View>
                 </GoogleAuth>
               </View>
@@ -406,33 +407,31 @@ export default function Login() {
                   phoneError && styles.inputError,
                 ]}
               >
-                <MaterialCommunityIcons
-                  name="phone-outline"
-                  size={24}
-                  color={
-                    phoneError
-                      ? theme.color.error
-                      : isDark
-                      ? "#CCCCCC"
-                      : "#666666"
-                  }
-                  style={styles.inputIcon}
-                />
+                <TouchableOpacity
+                  onPress={() => setShowCountryPicker(true)}
+                  style={styles.countryCodeButton}
+                >
+                  <Text style={[styles.countryCodeText, isDark && styles.textDark]}>
+                    {selectedCountry.flag} {selectedCountry.code}
+                  </Text>
+                  <MaterialCommunityIcons name="chevron-down" size={14} color={isDark ? "#CCCCCC" : "#666666"} />
+                </TouchableOpacity>
                 <TextInput
                   value={phone}
                   onChangeText={(text) => {
-                    const sanitizedPhone = text.replace(/[^0-9+]/g, "");
-                    setPhone(sanitizedPhone);
-                    if (phoneError) validatePhone(sanitizedPhone);
+                    const sanitized = text.replace(/[^0-9]/g, "");
+                    setPhone(sanitized);
+                    if (phoneError) validatePhone(sanitized);
                   }}
                   style={[
                     styles.input,
                     isDark && styles.inputDark,
                     { outline: "none" },
                   ]}
-                  placeholder="6XX XX XX XX"
+                  placeholder={__DEV__ && selectedCountry.code === "+237" ? "694650142" : selectedCountry.placeholder}
                   placeholderTextColor={isDark ? "#666666" : "#999999"}
-                  keyboardType="phone-pad"
+                  keyboardType="numeric"
+                  maxLength={selectedCountry.maxLength}
                   returnKeyType="next"
                   onSubmitEditing={() => passwordRef?.current?.focus()}
                 />
@@ -612,6 +611,17 @@ export default function Login() {
           />
         </View>
       </ScrollView>
+
+      <CountryPickerBottomSheet
+        visible={showCountryPicker}
+        selected={selectedCountry}
+        onSelect={(country) => {
+          setSelectedCountry(country);
+          setPhone("");
+          setPhoneError("");
+        }}
+        onClose={() => setShowCountryPicker(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -713,6 +723,20 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 12,
   },
+  countryCodeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRightWidth: 1,
+    borderRightColor: "#E5E5E5",
+    gap: 4,
+  },
+  countryCodeText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1A1A1A",
+  },
   errorIcon: {
     padding: 12,
   },
@@ -792,7 +816,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   googleButton: {
-    backgroundColor: "#DB4437",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#DADCE0",
   },
   facebookButton: {
     backgroundColor: "#4267B2",
@@ -802,6 +828,9 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: "500",
+  },
+  googleButtonText: {
+    color: "#3C4043",
   },
   registerSection: {
     flexDirection: "row",
