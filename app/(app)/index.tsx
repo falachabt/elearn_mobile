@@ -450,7 +450,7 @@ export default function Index() {
                 {/* Dynamic News from Database */}
                 {sortedNews.map((newsItem) => (
                   <View key={newsItem.id} style={styles.newsCardWrapper}>
-                    <NewsItem news={newsItem} userId={authUser?.id || ""} />
+                    <NewsItem news={newsItem} userId={authUser?.authId || ""} />
                   </View>
                 ))}
               </ScrollView>

@@ -28,7 +28,7 @@ export default function NewsDetailsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { news, isLoading } = useNewsById(id);
-  const { recordView } = useNewsInteraction(id, user?.id || '');
+  const { recordView } = useNewsInteraction(id, user?.authId || '');
   const hasRecordedView = useRef(false);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   
