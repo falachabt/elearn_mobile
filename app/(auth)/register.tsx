@@ -426,6 +426,8 @@ const Register: React.FC = () => {
       trigger(HapticType.ERROR);
       const code = (error as { code?: string }).code;
 
+      console.error("[PhoneAuth] error code:", code, "full error:", JSON.stringify(error));
+
       if (code === "auth/too-many-requests") {
         setToast({ visible: true, message: "Trop de tentatives. Réessayez dans 15-30 minutes.", type: "error", action: null });
       } else {
