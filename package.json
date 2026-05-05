@@ -9,7 +9,7 @@
     "convert:android": "node ./scripts/switch-platform.js native",
     "android": "node ./scripts/switch-platform.js native && expo start --android",
     "ios": "node ./scripts/switch-platform.js native && expo start --ios",
-    "web": "node ./scripts/switch-platform.js web && expo start --tunnel --web ",
+    "web": "node ./scripts/switch-platform.js web && expo start  --web ",
     "build:web": "node ./scripts/switch-platform.js web && expo export --platform web",
     "build:native": "node ./scripts/switch-platform.js native && expo export --platform ios && expo export --platform android",
     "build:development": "node ./scripts/switch-platform.js native eas build --profile development --platform android",

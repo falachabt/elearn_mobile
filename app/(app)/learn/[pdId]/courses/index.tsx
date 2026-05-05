@@ -225,7 +225,7 @@ const CourseScreen: React.FC<null> = () => {
 
   // Handle course press
   const handleCoursePress = (courseItem: SharedCourseItem) => {
-    if (typeof courseItem.id === "string" || !courseItem.course?.id) return;
+    if (!courseItem.course?.id) return;
 
     trigger(HapticType.LIGHT);
     router.push({

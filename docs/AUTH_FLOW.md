@@ -2,36 +2,56 @@
 
 ## Overview
 
-This document describes the authentication flow in the Elearn Mobile application, including the registration, login, and account confirmation processes. It also highlights a known issue with the loading screen during account creation and confirmation.
+This document describes the authentication flow in the Elearn Mobile application, including phone registration, login, password reset, and the Supabase account mirror used by the mobile app.
 
 ## Authentication Flow
 
-### Registration Process
+### Phone Registration Process
 
 1. **User Registration (Step 1)**
-   - User enters phone number, password, and accepts terms
-   - App validates inputs
-   - App calls `signUp` function from auth context
-   - Supabase creates a new user account
-   - App sends an API request to create the user account in the database
-   - App transitions to OTP verification step
+   - User enters phone number with country indicator, password, and accepts terms.
+   - App validates inputs with the selected country rules.
+   - App calls Firebase Phone Auth via `sendPhoneOtp(phoneE164)`.
+   - Platform-specific implementation is handled by:
+     - `lib/firebasePhoneAuth.native.ts` for Android/iOS.
+     - `lib/firebasePhoneAuth.web.ts` for web with invisible reCAPTCHA.
 
 2. **OTP Verification (Step 2)**
-   - User receives an SMS with a verification code
-   - User enters the code in the app
-   - App calls `verifyOtp` function from auth context
-   - Supabase verifies the OTP
-   - App completes the account creation process
-   - User is redirected to the app or onboarding flow
+   - User receives an SMS code.
+   - User enters the OTP in the app.
+   - Firebase validates the OTP and returns an `idToken`.
+   - App calls `verifyFirebasePhone(idToken, phoneE164, password)`.
+   - Backend route `/api/mobile/auth/verify-firebase` verifies the Firebase token, cross-checks the phone, creates the Supabase Auth user, then signs in with password to return a Supabase session.
+   - Supabase Auth metadata stores `firebase_uid`.
+   - User is redirected to onboarding.
 
 ### Login Process
 
 1. **User Login**
-   - User enters phone number and password
-   - App validates inputs
-   - App calls `signIn` function from auth context
-   - Supabase authenticates the user
-   - User is redirected to the app
+   - User enters phone number and password.
+   - App normalizes phone for Supabase Auth.
+   - App calls `signIn`.
+   - Supabase authenticates the user.
+   - After session creation, `syncAccountAfterAuth` calls `/api/mobile/auth/createAccount` to ensure the `accounts` row exists and is synchronized.
+
+### Password Reset Process
+
+1. **Phone Entry**
+   - User enters phone number with country indicator on `app/(auth)/forgot_password.tsx`.
+   - The old email reset flow is no longer used on mobile.
+   - App calls `sendPhoneOtp(phoneE164)`.
+
+2. **OTP Verification**
+   - User enters the Firebase SMS code.
+   - Firebase validates the code and returns a fresh `idToken`.
+
+3. **Password Update**
+   - App sends `{ idToken, phone, newPassword }` to `/api/mobile/auth/reset-password`.
+   - Backend verifies the Firebase token and checks that the submitted phone matches `payload.phone_number`.
+   - Backend finds the Supabase user via `accounts.phone`.
+   - Backend updates the password with `supabase.auth.admin.updateUserById(authId, { password })`.
+
+This works for old Supabase-only users as long as their verified phone matches `accounts.phone`. The reset route supports local Cameroon storage (`694...`) and E.164-derived storage (`237694...`) when searching accounts.
 
 ### Post-Authentication Flow
 
@@ -45,45 +65,79 @@ This document describes the authentication flow in the Elearn Mobile application
    - During this process, the "Chargement de votre expérience..." loading screen is displayed
    - Once user data is loaded, the app displays the main interface
 
+## Account Mirror Rules
+
+The `public.accounts` table mirrors Supabase Auth users for application data. Current rule:
+
+- `accounts.id` must match `auth.users.id`.
+- `accounts."authId"` also stores `auth.users.id` for backward compatibility.
+- `accounts.firebase_uid` stores Firebase UID from Supabase Auth metadata when available.
+- Phone auth users may not have an email, so backend/schema uses a fallback email like `{authUserId}@phone.elearnprepa.local`.
+
+### Database Trigger
+
+`public.create_account_on_auth_insert()` in `supabase/schemas/0_prod.sql` creates or updates the account row after `auth.users` insert.
+
+It:
+
+- normalizes phone numbers,
+- inserts `id = NEW.id` and `"authId" = NEW.id`,
+- copies `firebase_uid` from `raw_user_meta_data` or `raw_app_meta_data`,
+- stores raw user metadata in `accounts.metadata`,
+- updates existing rows on `"authId"` conflict.
+
+### Existing Account Backfill
+
+Migration `supabase/migrations/20260504231913_fix user auth .sql` aligns old records:
+
+- updates FK constraints that did not have `ON UPDATE CASCADE`,
+- updates `news_views` and `news_interactions`, which store account ids without FK,
+- updates `accounts.id = accounts."authId"`,
+- backfills `accounts.firebase_uid` from `auth.users` metadata.
+
+The migration also fixes `check_account_unique_contacts()` so an update that changes the account id excludes `OLD.id`; otherwise the row can falsely detect its own phone as a duplicate.
+
+### API Account Sync
+
+`/api/mobile/auth/createAccount` must also enforce the mirror rule because the mobile app calls it after login/session recovery.
+
+The payload must include:
+
+- `id: user.id`,
+- `authId: user.id`,
+- fallback email when missing,
+- normalized phone,
+- `firebase_uid` from `user.user_metadata.firebase_uid` when present.
+
+Important deployment note: `supabase db push` applies DB migrations only. Changes to `/api/mobile/auth/createAccount`, `/api/mobile/auth/verify-firebase`, and `/api/mobile/auth/reset-password` require redeploying the backoffice/API.
+
 ## Known Issue: Loading Screen Delay
 
 ### Issue Description
 
-The "Chargement de votre expérience..." loading screen often takes a long time to complete, especially during account creation or confirmation. This can lead to a poor user experience as users wait for the app to load.
+The "Chargement de votre expérience..." loading screen can take time during account creation or confirmation if the `accounts` row is not immediately available.
 
 ### Causes
 
 1. **Account Creation Delay**
-   - The `waitForAccountData` function in the auth context polls the database with a delay between retries
-   - It can make up to 5 retries with 1-second delays between each retry
-   - This can cause a delay of up to 5 seconds
+   - Auth session may be created before `accounts` is fully synced.
 
 2. **API Call Latency**
-   - The account creation API call to `https://elearn.ezadrive.com/api/mobile/auth/createAccount` might be slow
-   - Network latency can further increase the delay
+   - The account sync API call uses the configured API base URL from `useAppConfig`.
 
 3. **Loading State Management**
-   - The `isAccountCreating` state keeps the loading state active during account creation
-   - Complex loading state management across multiple useEffect hooks can lead to edge cases
+   - `isAccountCreating` keeps the loading state active while signup/account sync is in progress.
 
 ### Potential Improvements
 
 1. **Optimize Account Creation Process**
-   - Reduce the delay between retries in the `waitForAccountData` function
-   - Consider using a more efficient approach than polling, such as WebSockets or real-time database listeners
+   - Keep `/api/mobile/auth/createAccount` fast and idempotent.
 
 2. **Improve Loading State Management**
-   - Simplify the loading state management to avoid edge cases
-   - Add timeout handling to prevent indefinite loading states
+   - Ensure `setIsAccountCreating(false)` happens on success and error paths.
 
 3. **Enhance User Experience**
-   - Add progress indicators or step indicators to show users where they are in the process
-   - Display helpful messages during the loading process
-   - Consider adding a timeout with a retry option if the loading takes too long
-
-4. **Backend Optimizations**
-   - Optimize the account creation API endpoint for faster response times
-   - Consider moving some operations to background processes
+   - Keep onboarding reachable while account sync completes.
 
 ## Implementation Details
 
@@ -92,8 +146,16 @@ The "Chargement de votre expérience..." loading screen often takes a long time 
 - `contexts/auth.tsx`: Contains the auth context and provider with authentication logic
 - `app/(auth)/register.tsx`: Registration screen implementation
 - `app/(auth)/login.tsx`: Login screen implementation
+- `app/(auth)/forgot_password.tsx`: Phone OTP password reset implementation
+- `lib/firebasePhoneAuth.native.ts`: Native Firebase Phone Auth implementation
+- `lib/firebasePhoneAuth.web.ts`: Web Firebase Phone Auth implementation
 - `app/(app)/_layout.tsx`: App layout with authentication checks and loading screen
 - `components/shared/LoadingAnimation1.tsx`: Loading animation component
+- Backoffice `/api/mobile/auth/verify-firebase`: Firebase token verification and Supabase user creation
+- Backoffice `/api/mobile/auth/reset-password`: Firebase-verified password reset
+- Backoffice `/api/mobile/auth/createAccount`: Account row sync after session creation
+- Backoffice `supabase/schemas/0_prod.sql`: declarative schema for account trigger and constraints
+- Backoffice `supabase/migrations/20260504231913_fix user auth .sql`: migration for account id alignment
 
 ### Authentication Context
 
