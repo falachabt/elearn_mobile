@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, TouchableOpacity, Platform} from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
 
 import {supabase} from "@/lib/supabase";
 import { logger } from '@/utils/logger';
@@ -17,16 +16,9 @@ interface GoogleAuthProps {
 export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps) {
     const [loading, setLoading] = useState<boolean>(false);
 
-    // Get redirect URI for this app
-    // Pour mobile natif, utiliser le package name comme scheme
-    const redirectUri = Platform.select({
-        // Mobile natif: utiliser le deep link avec le package name
-        native: 'com.ezadrive.elearn://auth/callback',
-        // Web: utiliser l'URL du site
-        default: makeRedirectUri({
-            scheme: 'https',
-        }),
-    });
+    const redirectUri = Platform.OS === 'web'
+        ? (typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : '/auth/callback')
+        : 'com.ezadrive.elearn://auth/callback';
 
     logger.log('[GoogleAuth] Redirect URI:', redirectUri);
 
@@ -47,6 +39,12 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
             if (!data?.url) throw new Error('No authentication URL returned');
 
             logger.log('[GoogleAuth] Opening auth URL:', data.url);
+
+            // On web, do a direct redirect — openAuthSessionAsync doesn't return a result on web
+            if (Platform.OS === 'web') {
+                window.location.href = data.url;
+                return;
+            }
 
             // Open browser for authentication
             const result = await WebBrowser.openAuthSessionAsync(
