@@ -134,6 +134,18 @@ const handleNotificationNavigation = (data: Record<string, unknown>) => {
                 }
                 break;
 
+            case 'discussion_message':
+                // Format: { type: 'discussion_message', groupId: 'xxx', title?: 'xxx' }
+                const discussionGroupId = data?.groupId as string;
+                const discussionTitle = data?.title as string | undefined;
+
+                if (discussionGroupId) {
+                    const titleParam = discussionTitle ? `?title=${encodeURIComponent(discussionTitle)}` : '';
+                    router.push(`/(app)/chat/${discussionGroupId}${titleParam}` as Href);
+                    logger.log('✅ Navigation vers le groupe de discussion:', discussionGroupId);
+                }
+                break;
+
             case 'home':
             case 'reminder':
                 // Rappel d'apprentissage → accueil

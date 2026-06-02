@@ -22,6 +22,8 @@ import Animated, {
 import {theme} from '@/constants/theme';
 import {useAuth} from '@/contexts/auth';
 import {useProgramProgress} from "@/hooks/useProgramProgress";
+import {useLearningPathEnrollmentCounts} from "@/hooks/useLearningPathEnrollmentCounts";
+import {getInflatedEnrollmentCount} from "@/utils/inflatedCount";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {LearningPath} from "@/app/(app)/learn";
 
@@ -46,7 +48,11 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
     
     // Use progress only if enrolled
     const totalProgress = isEnrolled ? hookProgress : 0;
-    
+
+    // Social proof: real enrolled count from DB (the only dynamic part).
+    const {countFor} = useLearningPathEnrollmentCounts();
+    const realEnrolled = countFor(path.id);
+
     const {trigger} = useHaptics();
     const router = useRouter();
 
@@ -54,6 +60,9 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
     const school = concours?.school;
     const levelLabel = getLevelLabel(concours?.study_cycles?.level);
     const logoUri = school?.imageUrl || concours?.image?.url || `https://api.dicebear.com/9.x/initials/png?seed=${school?.name || concours?.name || path.id}`;
+
+    // Inflated display count: stable base/drift seeded by concours name + real count.
+    const enrolledCount = getInflatedEnrollmentCount(concours?.name ?? path.id, realEnrolled);
 
     // Animation values
     const pressed = useSharedValue(0);
@@ -202,6 +211,26 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
                                 quiz
                             </Text>
                         </View>
+
+                        {enrolledCount > 0 && (
+                            <>
+                                <View style={styles.statDivider}/>
+
+                                <View style={styles.statItem}>
+                                    <MaterialCommunityIcons
+                                        name="account-group"
+                                        size={16}
+                                        color={!isEnrolled && !previewMode ? '#9CA3AF' : theme.color.primary[500]}
+                                    />
+                                    <Text style={[styles.statText, isDarkMode && styles.statTextDark]}>
+                                        {enrolledCount}
+                                    </Text>
+                                    <Text style={[styles.statLabel, isDarkMode && styles.statLabelDark]}>
+                                        inscrits
+                                    </Text>
+                                </View>
+                            </>
+                        )}
                     </View>
 
                     {(isEnrolled || previewMode) && (

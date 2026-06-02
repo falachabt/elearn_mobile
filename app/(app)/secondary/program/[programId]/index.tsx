@@ -20,6 +20,9 @@ import { getSecondaryWhatsAppGroup } from "@/constants/secondaryWhatsAppGroups";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { useAuth } from "@/contexts/auth";
 import { useSecondaryDailyContent } from "@/hooks/secondary/useSecondaryDailyContent";
+import { useSecondaryEnrollments } from "@/hooks/secondary/useSecondaryEnrollments";
+import { useMyDiscussionGroup } from "@/hooks/useDiscussionGroup";
+import { useGroupUnread } from "@/hooks/useGroupUnread";
 
 interface ActionCard {
   id: string;
@@ -58,8 +61,15 @@ const SecondaryProgramDetails = () => {
     documentsProgress
   } = useSecondaryProgramProgress(programId, user?.id);
 
-  // Vérifier si l'utilisateur est inscrit (à améliorer avec une vraie vérification)
-  const isEnrolled = true; // Simuler l'inscription pour l'instant
+  // Inscription réelle depuis user_secondary_enrollments (source de vérité)
+  const { isEnrolled: checkEnrolled } = useSecondaryEnrollments();
+  const isEnrolled = programId ? checkEnrolled(programId) : false;
+
+  // Groupe de discussion du programme (assigné par trigger à l'inscription)
+  const { group: discussionGroup, isMember: hasDiscussionGroup } = useMyDiscussionGroup({
+    secondaryProgramId: programId,
+  });
+  const { unread: discussionUnread } = useGroupUnread(discussionGroup?.id);
   
   // Utiliser les vraies données de progression
   const progression = {
@@ -256,6 +266,38 @@ const SecondaryProgramDetails = () => {
       });
     }
 
+    // Groupe de discussion (chat in-app) — visible seulement si membre
+    if (hasDiscussionGroup && discussionGroup) {
+      cards.push({
+        id: "discussion",
+        title: "Groupe de discussion",
+        subtitle: "Échangez avec les autres élèves du programme",
+        icon: (
+          <MaterialCommunityIcons
+            name="forum"
+            size={24}
+            color={isDark ? "#A5B4FC" : "#4F46E5"}
+          />
+        ),
+        route: `/(app)/chat/${discussionGroup.id}?title=${encodeURIComponent(
+          `${program.class?.name || ""} ${program.serie?.name || ""}`.trim() || "Groupe de discussion"
+        )}&kind=secondary&programId=${programId}`,
+        color: isDark ? "#A5B4FC" : "#4F46E5",
+        rightContent: (
+          <View style={styles.discussionRight}>
+            {discussionUnread > 0 && (
+              <View style={styles.unreadBadge}>
+                <ThemedText style={styles.unreadBadgeText}>
+                  {discussionUnread > 99 ? "99+" : discussionUnread}
+                </ThemedText>
+              </View>
+            )}
+            <MaterialCommunityIcons name="chevron-right" size={22} color="#9CA3AF" />
+          </View>
+        ),
+      });
+    }
+
     if (whatsappGroup) {
       cards.push({
         id: "whatsapp",
@@ -274,7 +316,7 @@ const SecondaryProgramDetails = () => {
     }
 
     return cards;
-  }, [program, programId, isEnrolled, isDark, progression, dailyContent, getCoursesPath, getQuizzesPath, getExercicesPath, getDocumentsPath, whatsappGroup]);
+  }, [program, programId, isEnrolled, isDark, progression, dailyContent, getCoursesPath, getQuizzesPath, getExercicesPath, getDocumentsPath, whatsappGroup, hasDiscussionGroup, discussionGroup, discussionUnread]);
 
   const handleCardPress = (card: ActionCard) => {
     trigger(HapticType.LIGHT);
@@ -637,6 +679,26 @@ const styles = StyleSheet.create({
   },
   cardSubtitleDark: {
     color: "#9CA3AF",
+  },
+  discussionRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  unreadBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unreadBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+    fontFamily: theme.typography.fontFamily,
   },
   progressIndicator: {
     alignItems: "flex-end",

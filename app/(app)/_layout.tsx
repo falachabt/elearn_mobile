@@ -204,6 +204,10 @@ export default function AppLayout() {
                     name="activity/detail"
                     options={{ href: null }}
                 />
+                <Tabs.Screen
+                    name="chat/[groupId]"
+                    options={{ href: null, tabBarStyle: { display: "none" } }}
+                />
 
                 <Tabs.Screen
                     name="secondary"

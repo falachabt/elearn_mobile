@@ -20,6 +20,8 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAuth } from "@/contexts/auth";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useProgramProgress } from "@/hooks/useProgramProgress";
+import { useMyDiscussionGroup } from "@/hooks/useDiscussionGroup";
+import { useGroupUnread } from "@/hooks/useGroupUnread";
 import { useUser } from "@/contexts/useUserInfo";
 import { supabase } from "@/lib/supabase";
 import { ProgramPaymentService } from "@/services/program-payment.service";
@@ -289,6 +291,13 @@ const ProgramDetails = () => {
 
   const primaryConcoursLearningPath = programLink ?? null;
   const primaryConcour = programLink?.concour;
+
+  // Groupe de discussion du concours (assigné par trigger à l'inscription)
+  const concoursId = programLink?.concourId ? String(programLink.concourId) : null;
+  const { group: discussionGroup, isMember: hasDiscussionGroup } = useMyDiscussionGroup({
+    concoursId,
+  });
+  const { unread: discussionUnread } = useGroupUnread(discussionGroup?.id);
 
   const { data: archiveCount = 0, isLoading: archiveCountLoading } = useSWR<number>(
     programLink?.concourId ? `learn-archive-count-${programLink.concourId}` : null,
@@ -656,6 +665,38 @@ const ProgramDetails = () => {
         cards.pop();
       }
 
+      // Groupe de discussion (chat in-app) — visible seulement si membre
+      if (isEnrolled && hasDiscussionGroup && discussionGroup) {
+        cards.push({
+          id: "discussion",
+          title: "Groupe de discussion",
+          subtitle: "Échangez avec les autres candidats du concours",
+          icon: (
+            <MaterialCommunityIcons
+              name="forum"
+              size={24}
+              color={isDark ? "#A5B4FC" : "#4F46E5"}
+            />
+          ),
+          route: `/(app)/chat/${discussionGroup.id}?title=${encodeURIComponent(
+            primaryConcour?.name || program?.title || "Groupe de discussion"
+          )}&kind=learn&pdId=${id}`,
+          color: isDark ? "#A5B4FC" : "#4F46E5",
+          rightContent: (
+            <View style={styles.discussionRight}>
+              {discussionUnread > 0 && (
+                <View style={styles.unreadBadge}>
+                  <ThemedText style={styles.unreadBadgeText}>
+                    {discussionUnread > 99 ? "99+" : discussionUnread}
+                  </ThemedText>
+                </View>
+              )}
+              <MaterialCommunityIcons name="chevron-right" size={22} color="#9CA3AF" />
+            </View>
+          ),
+        });
+      }
+
       // Ajout de la carte paiement échelonné si actif ou expiré
       if (activeInstallment) {
         const currentInstallment = activeInstallment.current_installment || 1;
@@ -738,6 +779,10 @@ const ProgramDetails = () => {
     activeInstallment,
     isExpired,
     hasArchives,
+    hasDiscussionGroup,
+    discussionGroup,
+    discussionUnread,
+    primaryConcour,
   ]);
 
   // Handle card press
@@ -1257,6 +1302,26 @@ const styles = StyleSheet.create({
   shopCardIndicator: {
     alignItems: "center",
     justifyContent: "center",
+  },
+  discussionRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  unreadBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unreadBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+    fontFamily: theme.typography.fontFamily,
   },
   progressBarContainer: {
     marginTop: 12,

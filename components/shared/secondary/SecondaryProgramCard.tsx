@@ -14,6 +14,7 @@ import { theme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { SecondaryProgram } from "@/types/secondary.type";
 import { useSecondaryProgramProgress } from "@/hooks/secondary/useSecondaryProgramProgress";
+import { useSecondaryEnrollmentCounts } from "@/hooks/secondary/useSecondaryEnrollmentCounts";
 import { useAuth } from "@/contexts/auth";
 
 
@@ -48,6 +49,10 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
     program.id,
     user?.id
   );
+
+  // Social proof: real enrolled count (no inflation, secondary numbers are already high).
+  const { countFor } = useSecondaryEnrollmentCounts();
+  const enrolledCount = countFor(program.id);
 
   // TODO: Intégrer la vraie valeur "jours avant l'examen" à partir des données
   // du programme ou du planning utilisateur lorsque ces informations seront disponibles.
@@ -93,15 +98,36 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
           >
             {programTitle}
           </Text>
-          <Text
-            style={[styles.price, isDarkMode && styles.priceDark]}
-            accessible={true}
-            accessibilityLabel={`Prix: ${priceText}`}
-          >
-            {priceText}
-          </Text>
+          <View style={styles.headerRight}>
+            {enrolledCount > 0 && (
+              <View
+                style={styles.enrolledTag}
+                accessible={true}
+                accessibilityLabel={`${enrolledCount} ${
+                  enrolledCount > 1 ? "personnes inscrites" : "personne inscrite"
+                }`}
+              >
+                <MaterialCommunityIcons
+                  name="account-group"
+                  size={14}
+                  color={isDarkMode ? theme.color.primary[300] : theme.color.primary[600]}
+                />
+                <Text style={[styles.enrolledText, isDarkMode && styles.enrolledTextDark]}>
+                  {enrolledCount} {enrolledCount > 1 ? "inscrits" : "inscrit"}
+                </Text>
+                <Text style={[styles.headerDot, isDarkMode && styles.headerDotDark]}>·</Text>
+              </View>
+            )}
+            <Text
+              style={[styles.price, isDarkMode && styles.priceDark]}
+              accessible={true}
+              accessibilityLabel={`Prix: ${priceText}`}
+            >
+              {priceText}
+            </Text>
+          </View>
         </View>
-        
+
         <View style={styles.progressContainerFull}>
           <View style={styles.progressBackgroundFull}>
             <View style={[styles.progressFillFull, { width: `${progress}%` }]} />
@@ -250,6 +276,34 @@ const styles = StyleSheet.create({
   progressContainerFull: {
     width: "100%",
     marginBottom: 8,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  enrolledTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  enrolledText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.color.primary[600],
+  },
+  enrolledTextDark: {
+    color: theme.color.primary[300],
+  },
+  headerDot: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#9CA3AF",
+  },
+  headerDotDark: {
+    color: "#6B7280",
   },
   progressBackgroundFull: {
     width: "100%",

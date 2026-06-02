@@ -23,6 +23,12 @@ import { useAuth } from "@/contexts/auth";
 import { useSecondaryDailyContentForPrograms } from "@/hooks/secondary/useSecondaryDailyContent";
 import { supabase } from "@/lib/supabase";
 import { getSecondaryPrograms } from "@/services/secondary/program.service";
+import {
+  enrollSecondary,
+  unenrollSecondary,
+} from "@/services/secondary/enrollment.service";
+import { useSecondaryEnrollments } from "@/hooks/secondary/useSecondaryEnrollments";
+import { logger } from "@/utils/logger";
 import { SecondaryProgram } from "@/types/secondary.type";
 import {
   getSecondaryProgramLabel,
@@ -75,6 +81,16 @@ const SecondaryPrograms = () => {
     "secondary-program",
     async () => await getSecondaryPrograms()
   );
+
+  const { mutate: mutateEnrollments } = useSecondaryEnrollments();
+
+  // Map a track label (e.g. "Terminale A") to its secondary program id.
+  const findProgramIdByTrack = (trackValue: string): string | null => {
+    const program = (secondaryPrograms ?? []).find((p) =>
+      isSameTrack(getSecondaryProgramLabel(p), trackValue)
+    );
+    return program?.id ?? null;
+  };
 
   const preferredPrograms = useMemo(
     () =>
@@ -187,6 +203,20 @@ const SecondaryPrograms = () => {
   const handleTrackSelection = async (trackValue: string) => {
     try {
       setIsSavingPreference(true);
+
+      // Source de vérité = user_secondary_enrollments (le trigger ajoute au
+      // groupe de discussion). Les préférences restent pour l'affichage.
+      const programId = findProgramIdByTrack(trackValue);
+      if (programId && user?.id) {
+        try {
+          await enrollSecondary(user.id, programId);
+          await mutateEnrollments();
+        } catch (err) {
+          logger.error("[secondary] enrollSecondary failed:", err);
+          // Ne bloque pas : les préférences sont quand même enregistrées.
+        }
+      }
+
       await persistPreferences({
         preferredTrack: trackValue,
         selectedTracks: secondaryPreferences.selectedTracks.filter(
@@ -206,6 +236,22 @@ const SecondaryPrograms = () => {
       const isSelected = secondaryPreferences.selectedTracks.some(
         (track) => isSameTrack(track, trackValue)
       );
+
+      // Synchronise l'inscription (enroll/unenroll) avec le toggle.
+      const programId = findProgramIdByTrack(trackValue);
+      if (programId && user?.id) {
+        try {
+          if (isSelected) {
+            await unenrollSecondary(user.id, programId);
+          } else {
+            await enrollSecondary(user.id, programId);
+          }
+          await mutateEnrollments();
+        } catch (err) {
+          logger.error("[secondary] toggle enrollment failed:", err);
+          // Ne bloque pas la mise à jour des préférences.
+        }
+      }
 
       let nextTracks = [];
       if (isSelected) {
