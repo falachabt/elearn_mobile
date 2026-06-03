@@ -270,8 +270,8 @@ const SecondaryProgramDetails = () => {
     if (hasDiscussionGroup && discussionGroup) {
       cards.push({
         id: "discussion",
-        title: "Groupe de discussion",
-        subtitle: "Échangez avec les autres élèves du programme",
+        title: "Groupe de suivi",
+        subtitle: "Suivez le programme avec les autres élèves",
         icon: (
           <MaterialCommunityIcons
             name="forum"
@@ -280,7 +280,7 @@ const SecondaryProgramDetails = () => {
           />
         ),
         route: `/(app)/chat/${discussionGroup.id}?title=${encodeURIComponent(
-          `${program.class?.name || ""} ${program.serie?.name || ""}`.trim() || "Groupe de discussion"
+          `${program.class?.name || ""} ${program.serie?.name || ""}`.trim() || "Groupe de suivi"
         )}&kind=secondary&programId=${programId}`,
         color: isDark ? "#A5B4FC" : "#4F46E5",
         rightContent: (

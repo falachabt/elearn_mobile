@@ -669,8 +669,8 @@ const ProgramDetails = () => {
       if (isEnrolled && hasDiscussionGroup && discussionGroup) {
         cards.push({
           id: "discussion",
-          title: "Groupe de discussion",
-          subtitle: "Échangez avec les autres candidats du concours",
+          title: "Groupe de suivi",
+          subtitle: "Suivez le concours avec les autres candidats",
           icon: (
             <MaterialCommunityIcons
               name="forum"
@@ -679,7 +679,7 @@ const ProgramDetails = () => {
             />
           ),
           route: `/(app)/chat/${discussionGroup.id}?title=${encodeURIComponent(
-            primaryConcour?.name || program?.title || "Groupe de discussion"
+            primaryConcour?.name || program?.title || "Groupe de suivi"
           )}&kind=learn&pdId=${id}`,
           color: isDark ? "#A5B4FC" : "#4F46E5",
           rightContent: (

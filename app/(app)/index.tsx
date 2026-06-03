@@ -36,6 +36,7 @@ import {
   getTourGuideConfig,
 } from "@/constants/tourGuide";
 import { useTabBarTourRefs } from "@/contexts/TabBarTourContext";
+import { SUIVI_SEEN_KEY } from "./suivi";
 
 const HORIZONTAL_PADDING = 16;
 
@@ -110,6 +111,21 @@ export default function Index() {
   useEffect(() => {
     checkAndUpdateNotifications();
   }, []);
+
+  // Annonce "suivi personnalisé" : affichée une seule fois après login/inscription.
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(SUIVI_SEEN_KEY)
+      .then((seen) => {
+        if (!cancelled && !seen) {
+          router.replace("/(app)/suivi" as Href);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   useEffect(() => {
     if (

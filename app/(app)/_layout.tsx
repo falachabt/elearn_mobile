@@ -208,6 +208,10 @@ export default function AppLayout() {
                     name="chat/[groupId]"
                     options={{ href: null, tabBarStyle: { display: "none" } }}
                 />
+                <Tabs.Screen
+                    name="suivi"
+                    options={{ href: null, tabBarStyle: { display: "none" } }}
+                />
 
                 <Tabs.Screen
                     name="secondary"

@@ -356,7 +356,7 @@ const ChatScreen = () => {
         </Pressable>
         <View style={styles.headerTextWrap}>
           <ThemedText numberOfLines={1} style={[styles.headerTitle, isDark && styles.headerTitleDark]}>
-            {params.title || "Groupe de discussion"}
+            {params.title || "Groupe de suivi"}
           </ThemedText>
           <ThemedText style={[styles.headerSubtitle, { color: onlineCount > 0 ? "#22C55E" : isDark ? "#9CA3AF" : "#6B7280" }]}>
             {members.length} membres{onlineCount > 0 ? ` · ${onlineCount} en ligne` : ""}
