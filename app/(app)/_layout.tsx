@@ -212,6 +212,14 @@ export default function AppLayout() {
                     name="suivi"
                     options={{ href: null, tabBarStyle: { display: "none" } }}
                 />
+                <Tabs.Screen
+                    name="parcours-proto"
+                    options={{ href: null, tabBarStyle: { display: "none" } }}
+                />
+                <Tabs.Screen
+                    name="activity-proto"
+                    options={{ href: null, tabBarStyle: { display: "none" } }}
+                />
 
                 <Tabs.Screen
                     name="secondary"

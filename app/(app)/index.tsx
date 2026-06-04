@@ -276,6 +276,27 @@ export default function Index() {
         </View>
         {/*<JustificationGenerator />*/}
 
+        {/* TEMP · accès prototype parcours (à retirer) */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => router.push("/(app)/parcours-proto")}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            backgroundColor: "#059669",
+            borderRadius: 16,
+            padding: 14,
+            marginBottom: 20,
+          }}
+        >
+          <MaterialCommunityIcons name="map-marker-path" size={24} color="#FFFFFF" />
+          <Text style={{ flex: 1, color: "#FFFFFF", fontWeight: "700", fontSize: 15, fontFamily: theme.typography.fontFamily }}>
+            Tester le parcours (beta)
+          </Text>
+          <MaterialCommunityIcons name="chevron-right" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+
         {/* Current Course */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
