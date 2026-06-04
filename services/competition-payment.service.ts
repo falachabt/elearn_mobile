@@ -33,13 +33,17 @@ export const CompetitionPaymentService = {
       throw new Error('User not authenticated');
     }
 
+    // Access is valid for 9 months from the payment date
+    const expiry = new Date();
+    expiry.setMonth(expiry.getMonth() + 9);
+
     const { data: payment, error } = await supabase
       .from('user_competition_payments')
       .insert({
         competition_id: competitionId,
         user_id: user.id,
         amount,
-        expiry_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        expiry_date: expiry.toISOString(),
         payment_status: 'pending',
         phone_number: phoneNumber,
         payment_provider: phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'orange' : 'mtn',
