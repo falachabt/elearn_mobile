@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import useSWR from "swr";
 
 import { getSecondaryEnrollmentCounts } from "@/services/secondary/enrollment.service";
@@ -13,7 +14,16 @@ export function useSecondaryEnrollmentCounts() {
     { revalidateOnFocus: false, dedupingInterval: 30000 }
   );
 
-  const counts = data ?? new Map<string, number>();
+  // The persistent SWR cache (AsyncStorage + JSON) cannot serialize a Map: it is
+  // restored as a plain object, so `data` may be `{}` instead of a Map on relaunch.
+  // Normalize back to a Map to keep `.get()` available (else: crash).
+  const counts = useMemo<Map<string, number>>(() => {
+    if (data instanceof Map) return data;
+    if (data && typeof data === "object") {
+      return new Map(Object.entries(data as Record<string, number>));
+    }
+    return new Map<string, number>();
+  }, [data]);
 
   return {
     counts,

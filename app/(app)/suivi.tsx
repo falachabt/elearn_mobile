@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   Pressable,
   ScrollView,
@@ -34,11 +34,6 @@ const SuiviWelcome = () => {
   const { user } = useAuth();
   const { userPrograms } = useUser();
 
-  // Marque l'annonce comme vue dès l'ouverture : ne réapparaîtra plus.
-  useEffect(() => {
-    AsyncStorage.setItem(SUIVI_SEEN_KEY, "true").catch(() => {});
-  }, []);
-
   // Prepa : a-t-il un programme de prépa actif ?
   const activePrepa = userPrograms?.[0] ?? null;
   const hasPrepa = !!activePrepa?.id;
@@ -48,17 +43,25 @@ const SuiviWelcome = () => {
   const preferredTrack = secondaryPreferences.preferredTrack;
   const hasSecondary = !!preferredTrack;
 
-  const goPrepa = () => {
+  // Marque l'annonce comme vue UNIQUEMENT quand l'utilisateur interagit.
+  // (Pas au montage : un refresh de session peut réinitialiser les onglets et
+  // remonter cet écran ; on veut qu'il réapparaisse tant qu'on n'a pas agi.)
+  const markSeen = () => AsyncStorage.setItem(SUIVI_SEEN_KEY, "true").catch(() => {});
+
+  const goPrepa = async () => {
     if (!hasPrepa) return;
+    await markSeen();
     router.replace(`/(app)/learn/${activePrepa!.id}` as Href);
   };
 
-  const goSecondary = () => {
+  const goSecondary = async () => {
     if (!hasSecondary) return;
+    await markSeen();
     router.replace(`/(app)/secondary` as Href);
   };
 
-  const dismiss = () => {
+  const dismiss = async () => {
+    await markSeen();
     router.replace(`/(app)` as Href);
   };
 

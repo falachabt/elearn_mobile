@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import useSWR from "swr";
 
 import { supabase } from "@/lib/supabase";
@@ -43,7 +44,15 @@ export function useLearningPathEnrollmentCounts() {
     { revalidateOnFocus: false, dedupingInterval: 30000 }
   );
 
-  const counts = data ?? new Map<string, number>();
+  // Persistent SWR cache (AsyncStorage + JSON) can't serialize a Map: it comes
+  // back as a plain object on relaunch. Normalize to a Map (else: crash).
+  const counts = useMemo<Map<string, number>>(() => {
+    if (data instanceof Map) return data;
+    if (data && typeof data === "object") {
+      return new Map(Object.entries(data as Record<string, number>));
+    }
+    return new Map<string, number>();
+  }, [data]);
 
   return {
     counts,
