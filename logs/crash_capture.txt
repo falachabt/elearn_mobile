@@ -1,0 +1,751 @@
+--------- beginning of main
+06-04 01:57:08.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531028
+06-04 01:57:08.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:09.447 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:57:09.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531029
+06-04 01:57:09.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:09.939 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:10.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531030
+06-04 01:57:10.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:10.962 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:57:11.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531031
+06-04 01:57:11.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:12.477 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:57:12.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531032
+06-04 01:57:12.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:12.952 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:13.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531033
+06-04 01:57:13.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:13.991 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:57:14.483 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:14.484 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:14.485 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:14.485 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:14.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531034
+06-04 01:57:14.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:14.511 E/BatteryDump( 1829): !@new_battery_dump : 4069,892,1100,3370,64,333,317,367,333,0,344,367,0,Charging,NO_CHARGING,Normal,Good,PDIC,0,Normal,0,0,9300,0x8000,0x10010000,0x0,0,0,216,v0002,0000,0000,00000000,0,0,0,0,169,4043,6428,990,0,
+06-04 01:57:15.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531035
+06-04 01:57:15.506 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:57:15.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:15.966 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+--------- beginning of system
+06-04 01:57:16.276 E/WindowManager( 2360): win=Window{bc8476c u0 NotificationShade} destroySurfaces: appStopped=true cleanupOnResume=false win.mWindowRemovalAllowed=false win.mRemoveOnExit=false win.mViewVisibility=4 caller=com.android.server.wm.WindowManagerService.tryStartExitingAnimation:134 com.android.server.wm.WindowManagerService.relayoutWindow:1160 com.android.server.wm.Session.relayout:27 android.view.IWindowSession$Stub.onTransact:829 com.android.server.wm.Session.onTransact:1 android.os.Binder.execTransactInternal:1462 android.os.Binder.execTransact:1401 
+06-04 01:57:16.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531036
+06-04 01:57:16.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:17.002 E/SurfaceFlinger( 1914): alpha changed 1.000 -> 0.000 - Surface(name=TransientLaunchOverlayToken{e773e37 token=android.os.BinderProxy@f5eaf36})/@0x9ac0b35_transition-leash#3527
+06-04 01:57:17.002 E/SurfaceFlinger( 1914): alpha changed 1.000 -> 0.000 - Surface(name=Task=1)/@0x9a91bca_transition-leash#3528
+06-04 01:57:17.014 E/AppIconSolution( 4621): Couldn't get theme package resources, package is null
+06-04 01:57:17.019 E/SurfaceFlinger( 1914): alpha changed 0.000 -> 1.000 - Surface(name=TransientLaunchOverlayToken{e773e37 token=android.os.BinderProxy@f5eaf36})/@0x9ac0b35_transition-leash#3527
+06-04 01:57:17.019 E/SurfaceFlinger( 1914): alpha changed 0.000 -> 1.000 - Surface(name=Task=1)/@0x9a91bca_transition-leash#3528
+06-04 01:57:17.023 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:57:17.097 E/SecVibrator-HAL-AIDL-EXT( 1834): V_5_0: performPrebakedHapticPattern 23 : 4000 : 0
+06-04 01:57:17.098 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [setForceFeedbackAmplitude]amplitude: 4000
+06-04 01:57:17.111 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [uploadForceFeedbackeffect]ioctl success ,uploaded effect with ID: 0
+06-04 01:57:17.112 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: do_on for timeoutMs: 1000
+06-04 01:57:17.112 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [triggerForceFeedbackVibration]on: 1
+06-04 01:57:17.113 E/SurfaceFlinger( 1914): Caller needs permission android.permission.WAKEUP_SURFACE_FLINGER to use eEarlyWakeup[Start|End] flags
+06-04 01:57:17.217 E/SecVibrator-HAL-AIDL-CORE( 1834): V_2_0: Vibrator off
+06-04 01:57:17.217 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: do_off
+06-04 01:57:17.217 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [triggerForceFeedbackVibration]on: 0
+06-04 01:57:17.234 E/SurfaceFlinger( 1914): Caller needs permission android.permission.WAKEUP_SURFACE_FLINGER to use eEarlyWakeup[Start|End] flags
+06-04 01:57:17.246 E/ThemeUtils( 4621): View class com.honeyspace.ui.common.iconview.IconViewImpl is an AppCompat widget that can only be used with a Theme.AppCompat theme (or descendant).
+06-04 01:57:17.250 E/HoneySpace.BadgeIconDecoratorCreator( 4621): NameNotFoundException /#UserHandle{0}
+06-04 01:57:17.250 E/ThemeUtils( 4621): View class com.honeyspace.ui.common.iconview.IconViewImpl is an AppCompat widget that can only be used with a Theme.AppCompat theme (or descendant).
+06-04 01:57:17.250 E/HoneySpace.BadgeIconDecoratorCreator( 4621): NameNotFoundException /#UserHandle{0}
+06-04 01:57:17.251 E/ThemeUtils( 4621): View class com.honeyspace.ui.common.iconview.IconViewImpl is an AppCompat widget that can only be used with a Theme.AppCompat theme (or descendant).
+06-04 01:57:17.251 E/HoneySpace.BadgeIconDecoratorCreator( 4621): NameNotFoundException /#UserHandle{0}
+06-04 01:57:17.251 E/ThemeUtils( 4621): View class com.honeyspace.ui.common.iconview.IconViewImpl is an AppCompat widget that can only be used with a Theme.AppCompat theme (or descendant).
+06-04 01:57:17.251 E/HoneySpace.BadgeIconDecoratorCreator( 4621): NameNotFoundException /#UserHandle{0}
+06-04 01:57:17.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531037
+06-04 01:57:17.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:17.767 E/pageboostd( 5347): Received HALT command code 2
+06-04 01:57:17.773 E/HoneySpace.StackRecentsView( 4621): setChildCornerInfo, invalid position = -1
+06-04 01:57:17.773 E/HoneySpace.StackRecentsView( 4621): setChildCornerInfo, invalid position = -1
+06-04 01:57:17.773 E/HoneySpace.StackRecentsView( 4621): setChildCornerInfo, invalid position = -1
+06-04 01:57:17.773 E/HoneySpace.StackRecentsView( 4621): setChildCornerInfo, invalid position = -1
+06-04 01:57:17.801 E/SurfaceFlinger( 1914): alpha changed 1.000 -> 0.000 - Surface(name=Task=10920)/@0x25b5dcc_transition-leash#3536
+06-04 01:57:17.914 E/TransitionChain( 2360): Can't collect into a chain with no transition
+06-04 01:57:17.935 E/SurfaceFlinger( 1914): alpha changed 0.000 -> 1.000 - Surface(name=Task=10920)/@0x25b5dcc_transition-leash#3536
+06-04 01:57:17.945 E/WindowManager( 2360): win=Window{3ddbed3 u0 com.android.settings/com.android.settings.SubSettings} destroySurfaces: appStopped=true cleanupOnResume=false win.mWindowRemovalAllowed=false win.mRemoveOnExit=false win.mViewVisibility=8 caller=com.android.server.wm.ActivityRecord.destroySurfaces:25 com.android.server.wm.ActivityRecord.activityStopped:192 com.android.server.wm.ActivityClientController.activityStopped:97 android.app.IActivityClientController$Stub.onTransact:740 com.android.server.wm.ActivityClientController.onTransact:1 android.os.Binder.execTransactInternal:1462 android.os.Binder.execTransact:1401 
+06-04 01:57:17.963 E/WindowManager( 2360): win=Window{4ea70e7 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity} destroySurfaces: appStopped=true cleanupOnResume=false win.mWindowRemovalAllowed=false win.mRemoveOnExit=false win.mViewVisibility=4 caller=com.android.server.wm.ActivityRecord.destroySurfaces:25 com.android.server.wm.ActivityRecord.activityStopped:192 com.android.server.wm.ActivityClientController.activityStopped:97 android.app.IActivityClientController$Stub.onTransact:740 com.android.server.wm.ActivityClientController.onTransact:1 android.os.Binder.execTransactInternal:1462 android.os.Binder.execTransact:1401 
+06-04 01:57:17.968 E/SurfaceFlinger( 1914): alpha changed 1.000 -> 0.000 - Surface(name=478bcfa InputMethod)/@0xeb2ec23 - animation-leash of insets_animation#3537
+06-04 01:57:18.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531038
+06-04 01:57:18.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:18.536 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:57:18.979 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:19.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531039
+06-04 01:57:19.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:19.960 E/PERFHAL-RESOURCEQS( 1821): PERFHAL-RESOURCEQS: AddAndApply() 159: Failed to apply optimization [10, 9]
+06-04 01:57:20.050 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:57:20.278 E/SecVibrator-HAL-AIDL-EXT( 1834): V_5_0: performPrebakedHapticPattern 41 : 4000 : 0
+06-04 01:57:20.278 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [setForceFeedbackAmplitude]amplitude: 4000
+06-04 01:57:20.293 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [uploadForceFeedbackeffect]ioctl success ,uploaded effect with ID: 0
+06-04 01:57:20.293 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: do_on for timeoutMs: 1000
+06-04 01:57:20.293 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [triggerForceFeedbackVibration]on: 1
+06-04 01:57:20.387 E/SecVibrator-HAL-AIDL-CORE( 1834): V_2_0: Vibrator off
+06-04 01:57:20.387 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: do_off
+06-04 01:57:20.387 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [triggerForceFeedbackVibration]on: 0
+06-04 01:57:20.434 E/TaskPersister( 2360): File error accessing recents directory (directory doesn't exist?).
+06-04 01:57:20.434 E/TaskPersister( 2360): File error accessing recents directory (directory doesn't exist?).
+06-04 01:57:20.434 E/TaskPersister( 2360): File error accessing recents directory (directory doesn't exist?).
+06-04 01:57:20.476 E/HYPER-HAL( 1799): [HandlerUClamp.cpp]set_uclamp_min(): sched_setattr failed for thread 24144, err = -1
+06-04 01:57:20.476 E/HYPER-HAL( 1799): [HandlerUClamp.cpp]set_uclamp_min(): sched_setattr failed for thread 24145, err = -1
+06-04 01:57:20.476 E/HYPER-HAL( 1799): [HandlerUClamp.cpp]set_uclamp_min(): sched_setattr failed for thread 24081, err = -1
+06-04 01:57:20.476 E/HYPER-HAL( 1799): [HandlerUClamp.cpp]set_uclamp_min(): sched_setattr failed for thread 24140, err = -1
+06-04 01:57:20.476 E/HYPER-HAL( 1799): [HandlerUClamp.cpp]set_uclamp_min(): sched_setattr failed for thread 24144, err = -1
+06-04 01:57:20.476 E/HYPER-HAL( 1799): [HandlerUClamp.cpp]set_uclamp_min(): sched_setattr failed for thread 24145, err = -1
+06-04 01:57:20.476 E/HYPER-HAL( 1799): [HandlerUClamp.cpp]set_uclamp_min(): sched_setattr failed for thread 24081, err = -1
+06-04 01:57:20.476 E/HYPER-HAL( 1799): [HandlerUClamp.cpp]set_uclamp_min(): sched_setattr failed for thread 24140, err = -1
+06-04 01:57:20.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531040
+06-04 01:57:20.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:20.944 E/pageboostd( 5347): alp start : app comsecandroidapppopupcalculator
+06-04 01:57:20.953 E/pageboostd( 5347): comsecandroidapppopupcalculator, amt 1886788 scnt 4 fcnt 0
+06-04 01:57:20.955 E/pageboostd( 5347): comsecandroidapppopupcalculator, amt 929792 scnt 2 fcnt 5
+06-04 01:57:20.955 E/pageboostd( 5347): alp end : app comsecandroidapppopupcalculator data_amount 2816580
+06-04 01:57:21.020 E/ashmem  (28719): Pinning is deprecated since Android Q. Please use trim or other methods.
+06-04 01:57:21.020 E/ashmem  (28719): Pinning is deprecated since Android Q. Please use trim or other methods.
+06-04 01:57:21.045 E/pageboostd( 5347): Received HALT command code 2
+06-04 01:57:21.107 E/pageboostd( 5347): Received HALT command code 2
+06-04 01:57:21.121 E/SAMSUNGWALLET(16278): [Hint_PayHintService] getWindowLayoutParamType, error: TYPE_SAMSUNG_PAY_HANDLE
+06-04 01:57:21.147 E/SurfaceFlinger( 1914): alpha changed 1.000 -> 0.000 - Surface(name=Task=1)/@0x65127a2_transition-leash#3543
+06-04 01:57:21.147 E/SurfaceFlinger( 1914): alpha changed 0.000 -> 0.000 - Surface(name=Task=1)/@0x65127a2_transition-leash#3543
+06-04 01:57:21.147 E/SurfaceFlinger( 1914): alpha changed 0.000 -> 0.000 - Surface(name=Task=1)/@0x65127a2_transition-leash#3543
+06-04 01:57:21.180 E/SurfaceFlinger( 1914): alpha changed 0.000 -> 0.011 - Surface(name=Task=1)/@0x65127a2_transition-leash#3543
+06-04 01:57:21.213 E/SurfaceFlinger( 1914): alpha changed 1.000 -> 0.000 - Surface(name=478bcfa InputMethod)/@0xeb2ec23 - animation-leash of insets_animation#3546
+06-04 01:57:21.413 E/SurfaceFlinger( 1914): alpha changed 0.011 -> 0.000 - Surface(name=Task=10920)/@0xe3e1bee_transition-leash#3544
+06-04 01:57:21.439 E/WindowManager( 2360): win=Window{744513c u0 com.sec.android.app.launcher/com.android.quickstep.RecentsActivity} destroySurfaces: appStopped=true cleanupOnResume=false win.mWindowRemovalAllowed=false win.mRemoveOnExit=false win.mViewVisibility=8 caller=com.android.server.wm.ActivityRecord.destroySurfaces:25 com.android.server.wm.ActivityRecord.activityStopped:192 com.android.server.wm.ActivityClientController.activityStopped:97 android.app.IActivityClientController$Stub.onTransact:740 com.android.server.wm.ActivityClientController.onTransact:1 android.os.Binder.execTransactInternal:1462 android.os.Binder.execTransact:1401 
+06-04 01:57:21.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531041
+06-04 01:57:21.503 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:21.993 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:22.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531042
+06-04 01:57:22.508 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:22.666 E/SAMSUNGWALLET(16278): [Hint_PayHintService] getWindowLayoutParamType, error: TYPE_SAMSUNG_PAY_HANDLE
+06-04 01:57:22.673 E/WindowManager( 2360): win=Window{6dff5b1 u0 com.samsung.android.spay.pay.HintService} destroySurfaces: appStopped=true cleanupOnResume=false win.mWindowRemovalAllowed=false win.mRemoveOnExit=false win.mViewVisibility=8 caller=com.android.server.wm.WindowManagerService.tryStartExitingAnimation:134 com.android.server.wm.WindowManagerService.relayoutWindow:1160 com.android.server.wm.Session.relayout:27 android.view.IWindowSession$Stub.onTransact:829 com.android.server.wm.Session.onTransact:1 android.os.Binder.execTransactInternal:1457 android.os.Binder.execTransact:1401 
+06-04 01:57:22.679 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:57:22.943 E/Watchdog( 2360): !@Sync: 352 heap(MB): 154 / 190 FD: 1512 [2026-06-04 01:57:22.942]
+06-04 01:57:23.478 E/TaskPersister( 2360): File error accessing recents directory (directory doesn't exist?).
+06-04 01:57:23.478 E/TaskPersister( 2360): File error accessing recents directory (directory doesn't exist?).
+06-04 01:57:23.478 E/TaskPersister( 2360): File error accessing recents directory (directory doesn't exist?).
+06-04 01:57:23.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531043
+06-04 01:57:23.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:24.084 E/pageboostd( 5347): alp start : app comezadriveelearn
+06-04 01:57:24.108 E/pageboostd( 5347): comezadriveelearn, amt 15622144 scnt 2 fcnt 0
+06-04 01:57:24.118 E/pageboostd( 5347): comezadriveelearn, amt 9404416 scnt 6 fcnt 33
+06-04 01:57:24.118 E/pageboostd( 5347): alp end : app comezadriveelearn data_amount 25026560
+06-04 01:57:24.141 E/pageboostd( 5347): Received HALT command code 2
+06-04 01:57:24.176 E/SurfaceFlinger( 1914): alpha changed 1.000 -> 0.000 - Surface(name=Task=10959)/@0x13c682d_transition-leash#3554
+06-04 01:57:24.195 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:57:24.226 E/SurfaceFlinger( 1914): alpha changed 0.000 -> 0.783 - Surface(name=Task=10959)/@0x13c682d_transition-leash#3554
+06-04 01:57:24.245 E/ashmem  (28763): Pinning is deprecated since Android Q. Please use trim or other methods.
+06-04 01:57:24.256 E/Adreno-AppProfiles(28763): QSPM AIDL service doesn't exist
+06-04 01:57:24.284 E/ezadrive.elearn(28763): Unable to open libpenguin.so: dlopen failed: library "libpenguin.so" not found.
+06-04 01:57:24.393 E/AVManager(28763): Cannot install JSI bindings for AV module because JS context is not available
+06-04 01:57:24.413 I/ReactNativeJS(28763): Running "main"
+06-04 01:57:24.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531044
+06-04 01:57:24.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:24.510 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:24.510 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:24.511 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:24.511 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:24.523 E/pageboostd( 5347): Received HALT command code 2
+06-04 01:57:24.593 E/SurfaceFlinger( 1914): alpha changed 1.000 -> 0.000 - Surface(name=478bcfa InputMethod)/@0xeb2ec23 - animation-leash of insets_animation#3563
+06-04 01:57:24.655 E/BatteryDump( 1829): !@new_battery_dump : 4030,-146,1100,3370,64,332,317,371,332,0,341,371,0,Charging,NO_CHARGING,Normal,Good,PDIC,0,Normal,0,0,9300,0x8000,0x10010000,0x0,0,0,319,v0002,0000,0000,00000000,0,0,0,0,169,4043,6432,990,0,
+06-04 01:57:24.822 W/ReactNativeJS(28763): [expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
+06-04 01:57:24.884 E/WindowManager( 2360): win=Window{4ea70e7 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity} destroySurfaces: appStopped=true cleanupOnResume=false win.mWindowRemovalAllowed=false win.mRemoveOnExit=false win.mViewVisibility=8 caller=com.android.server.wm.ActivityRecord.destroySurfaces:25 com.android.server.wm.ActivityRecord.activityStopped:192 com.android.server.wm.ActivityClientController.activityStopped:97 android.app.IActivityClientController$Stub.onTransact:740 com.android.server.wm.ActivityClientController.onTransact:1 android.os.Binder.execTransactInternal:1462 android.os.Binder.execTransact:1401 
+06-04 01:57:24.999 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:25.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531045
+06-04 01:57:25.503 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:26.035 E/SecVibrator-HAL-AIDL-EXT( 1834): V_5_0: performPrebakedHapticPattern 0 : 4000 : 0
+06-04 01:57:26.035 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [setForceFeedbackAmplitude]amplitude: 4000
+06-04 01:57:26.040 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [uploadForceFeedbackeffect]ioctl success ,uploaded effect with ID: 0
+06-04 01:57:26.041 E/SecVibrator-HAL-AIDL-CORE( 1834): V_2_0: Vibrator set amplitude: 0.117647
+06-04 01:57:26.041 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [isAmplitudeControlExist]return true
+06-04 01:57:26.041 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [setForceFeedbackAmplitude]amplitude: 1176
+06-04 01:57:26.042 E/SecVibrator-HAL-AIDL-CORE( 1834): V_2_0: Vibrator on for timeoutMs: 50
+06-04 01:57:26.042 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: do_on for timeoutMs: 50
+06-04 01:57:26.043 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [uploadForceFeedbackeffect]ioctl success ,uploaded effect with ID: 0
+06-04 01:57:26.043 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [triggerForceFeedbackVibration]on: 1
+06-04 01:57:26.096 E/SecVibrator-HAL-AIDL-CORE( 1834): V_2_0: Vibrator off
+06-04 01:57:26.097 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: do_off
+06-04 01:57:26.097 E/SecVibrator-HAL-AIDL-CORE( 1834): HW_API: [triggerForceFeedbackVibration]on: 0
+06-04 01:57:26.129 E/ReactNativeJS(28763): { [TypeError: undefined is not a function]
+06-04 01:57:26.129 E/ReactNativeJS(28763):   componentStack: '\n    at SecondaryProgramCard (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:4290427)\n    at RCTView (<anonymous>)\n    at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)\n    at VirtualizedListCellContextProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:739786)\n    at CellRenderer (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:738013)\n    at RCTView (<anonymous>)\n    at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)\n    at RCTScrollView (<anonymous>)\n    at AndroidSwipeRefreshLayout (<anonymous>)\n    at RefreshControl (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:749178)\n    at ScrollView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:752773)\n    at ScrollView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:759686)\n    at VirtualizedListContextProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:739578)\n    at VirtualizedList (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:712998)\n    at FlatList (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:705996)\n    at RCTView (<anonymous>)\n    at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)\n    at SecondaryPrograms (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:4280815)\n    at Suspense (<anonymous>)\n    at Route (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:975357)\n    at BaseRoute (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:982271)\n    at StaticContainer (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:946638)\n    at EnsureSingleNavigator (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:893705)\n    at SceneView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:944502)\n    at RNSScreenContentWrapper (<anonymous>)\n    at ScreenContentWrapper (<anonymous>)\n    at DebugContainer (<anonymous>)\n    at RNSScreen (<anonymous>)\n    at Animated(Anonymous) (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:689270)\n    at Suspender (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1057203)\n    at Suspense (<anonymous>)\n    at Freeze (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1057264)\n    at DelayedFreeze (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1056845)\n    at InnerScreen (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1054549)\n    at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1056243)\n    at ScreenStackItem (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1066462)\n    at SceneView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1089817)\n    at RNSScreenStack (<anonymous>)\n    at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1065538)\n    at ScreenStack (address at 
+06-04 01:57:26.129 E/ReactNativeJS(28763):   isComponentError: true }
+06-04 01:57:26.131 E/unknown:ReactNative(28763): TypeError: undefined is not a function
+06-04 01:57:26.131 E/unknown:ReactNative(28763): 
+06-04 01:57:26.131 E/unknown:ReactNative(28763): This error is located at:
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SecondaryProgramCard (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:4290427)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RCTView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at VirtualizedListCellContextProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:739786)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at CellRenderer (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:738013)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RCTView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RCTScrollView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at AndroidSwipeRefreshLayout (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RefreshControl (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:749178)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ScrollView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:752773)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ScrollView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:759686)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at VirtualizedListContextProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:739578)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at VirtualizedList (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:712998)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at FlatList (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:705996)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RCTView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SecondaryPrograms (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:4280815)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Suspense (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Route (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:975357)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at BaseRoute (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:982271)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at StaticContainer (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:946638)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at EnsureSingleNavigator (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:893705)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SceneView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:944502)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RNSScreenContentWrapper (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ScreenContentWrapper (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at DebugContainer (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RNSScreen (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Animated(Anonymous) (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:689270)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Suspender (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1057203)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Suspense (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Freeze (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1057264)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at DelayedFreeze (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1056845)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at InnerScreen (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1054549)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1056243)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ScreenStackItem (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1066462)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SceneView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1089817)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RNSScreenStack (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1065538)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ScreenStack (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1064724)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at FrameSizeProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1028154)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RCTView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SafeAreaProviderCompat (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1039536)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NativeStackView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1088384)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at PreventRemoveProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:924899)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NavigationStateListenerProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:951984)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NavigationContent (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:941609)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:941512)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NativeStackNavigator (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1084736)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:974275)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:866241)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ProgramLayout (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:4278127)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Suspense (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Route (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:975357)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at BaseRoute (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:982271)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at StaticContainer (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:946638)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at EnsureSingleNavigator (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:893705)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SceneView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:944502)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RCTView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RCTView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Animated(View) (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:689270)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Background (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:994075)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Screen (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1040254)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RNSScreen (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Animated(Anonymous) (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:689270)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Suspender (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1057203)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Suspense (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Freeze (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1057264)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at DelayedFreeze (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1056845)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at InnerScreen (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1054549)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1056243)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at MaybeScreen (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1050099)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RNSScreenContainer (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ScreenContainer (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1063823)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at MaybeScreenContainer (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1050262)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at FrameSizeProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1028154)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RCTView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SafeAreaProviderCompat (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1039536)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at BottomTabView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:988528)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at PreventRemoveProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:924899)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NavigationStateListenerProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:951984)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NavigationContent (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:941609)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:941512)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at BottomTabNavigator (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:987608)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:974275)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RNCSafeAreaView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1026704)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at AppLayout (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:858239)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Suspense (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Route (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:975357)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at BaseRoute (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:982271)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at StaticContainer (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:946638)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at EnsureSingleNavigator (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:893705)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SceneView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:944502)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RNSScreenContentWrapper (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ScreenContentWrapper (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at DebugContainer (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RNSScreen (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Animated(Anonymous) (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:689270)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Suspender (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1057203)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Suspense (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Freeze (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1057264)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at DelayedFreeze (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1056845)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at InnerScreen (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1054549)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1056243)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ScreenStackItem (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1066462)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SceneView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1089817)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RNSScreenStack (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1065538)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ScreenStack (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1064724)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at FrameSizeProviderInner (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1028234)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at FrameSizeProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1028154)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RCTView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SafeAreaProviderCompat (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1039536)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NativeStackView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1088384)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at PreventRemoveProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:924899)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NavigationStateListenerProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:951984)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NavigationContent (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:941609)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:941512)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NativeStackNavigator (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1084736)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:974275)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:866241)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ThemeProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:895866)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:4983492)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ChatProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:3558617)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at UpdatesProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:4992182)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at TourGuideProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:2003635)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RNGestureHandlerRootView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at GestureHandlerRootView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:5032342)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NavigationProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:2447510)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at UserProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:2435413)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at AuthProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1235812)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at AppConfigProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1290578)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NotificationProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:4991153)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SWRConfig (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1234508)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at PostHogErrorBoundary (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1707496)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RCTView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at PostHogProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1703128)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Provider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:4982526)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RootErrorBoundary (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:4978723)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RootLayout (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:4977910)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Suspense (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Route (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:975357)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at BaseRoute (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:982271)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at StaticContainer (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:946638)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at EnsureSingleNavigator (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:893705)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SceneView (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:944502)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at PreventRemoveProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:924899)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NavigationStateListenerProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:951984)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NavigationContent (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:941609)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:941512)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at Content (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1186834)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RNCSafeAreaProvider (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at SafeAreaProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1024604)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at LinkPreviewContextProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1097675)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at anonymous (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1185728)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ThemeProvider (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:895866)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at EnsureSingleNavigator (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:893705)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at BaseNavigationContainer (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:872440)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at NavigationContainerInner (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1188699)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ContextNavigator (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1185957)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at ExpoRoot (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:1185600)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at App (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at RCTView (<anonymous>)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at View (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:537515)
+06-04 01:57:26.131 E/unknown:ReactNative(28763):     at AppContainer (address at /data/user/0/com.ezadrive.elearn/files/.expo-internal/c2e4d3992f7b41816bc917dd0bcebd40:1:536842), stack:
+06-04 01:57:26.131 E/unknown:ReactNative(28763): countFor@1:4297323
+06-04 01:57:26.131 E/unknown:ReactNative(28763): SecondaryProgramCard@1:4290603
+06-04 01:57:26.131 E/unknown:ReactNative(28763): renderWithHooks@1:297626
+06-04 01:57:26.131 E/unknown:ReactNative(28763): updateFunctionComponent@1:316483
+06-04 01:57:26.131 E/unknown:ReactNative(28763): updateSimpleMemoComponent@1:315573
+06-04 01:57:26.131 E/unknown:ReactNative(28763): updateMemoComponent@1:315330
+06-04 01:57:26.131 E/unknown:ReactNative(28763): beginWork@1:323493
+06-04 01:57:26.131 E/unknown:ReactNative(28763): performUnitOfWork@1:343101
+06-04 01:57:26.131 E/unknown:ReactNative(28763): workLoopSync@1:342108
+06-04 01:57:26.131 E/unknown:ReactNative(28763): renderRootSync@1:341940
+06-04 01:57:26.131 E/unknown:ReactNative(28763): performWorkOnRoot@1:339582
+06-04 01:57:26.131 E/unknown:ReactNative(28763): performSyncWorkOnRoot@1:293195
+06-04 01:57:26.131 E/unknown:ReactNative(28763): flushSyncWorkAcrossRoots_impl@1:292086
+06-04 01:57:26.131 E/unknown:ReactNative(28763): processRootScheduleInMicrotask@1:292446
+06-04 01:57:26.131 E/unknown:ReactNative(28763): anonymous@1:293290
+06-04 01:57:26.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531046
+06-04 01:57:26.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:27.141 E/TaskPersister( 2360): File error accessing recents directory (directory doesn't exist?).
+06-04 01:57:27.141 E/TaskPersister( 2360): File error accessing recents directory (directory doesn't exist?).
+06-04 01:57:27.141 E/TaskPersister( 2360): File error accessing recents directory (directory doesn't exist?).
+06-04 01:57:27.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531047
+06-04 01:57:27.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:27.532 E/Pageboost( 2360): ioinfo read failed
+06-04 01:57:28.009 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:28.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531048
+06-04 01:57:28.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:29.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531049
+06-04 01:57:29.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:30.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531050
+06-04 01:57:30.503 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:30.624 E/HwcComposer( 1914): getLuts failed Status(-129, EX_TRANSACTION_FAILED): 'UNKNOWN_TRANSACTION: '
+06-04 01:57:30.655 E/minksocket( 1767): MinkIPC ERROR: ( 1767:1881 ) MinkIPC_preProcess:272 Client down, but cannot find corresponding minksession
+06-04 01:57:30.655 E/minksocket( 1767): MinkIPC ERROR: ( 1767:1876 ) MinkIPC_preProcess:272 Client down, but cannot find corresponding minksession
+06-04 01:57:31.016 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:31.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531051
+06-04 01:57:31.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:32.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531052
+06-04 01:57:32.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:33.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531053
+06-04 01:57:33.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:34.030 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:34.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531054
+06-04 01:57:34.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:34.544 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:34.544 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:34.546 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:34.546 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:34.824 E/BatteryDump( 1829): !@new_battery_dump : 4072,990,1100,3370,64,332,318,379,332,0,341,379,0,Charging,NO_CHARGING,Normal,Good,PDIC,0,Normal,0,0,9300,0x8000,0x10010000,0x0,0,0,477,v0002,0000,0000,00000000,0,0,0,0,169,4044,6435,990,0,
+06-04 01:57:35.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531055
+06-04 01:57:35.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:36.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531056
+06-04 01:57:36.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:37.048 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:37.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531057
+06-04 01:57:37.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:38.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531058
+06-04 01:57:38.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:39.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531059
+06-04 01:57:39.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:40.062 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:40.318 E/SatelliteController( 3888): registerForSatelliteModemStateChanged: mSatelliteSessionController is not initialized yet
+06-04 01:57:40.319 E/SatelliteController( 3888): registerForSatelliteModemStateChanged: mSatelliteSessionController is not initialized yet
+06-04 01:57:40.322 E/SatelliteController( 3888): notifyNtnEligibility: mSatellitePhone is null
+06-04 01:57:40.392 E/ashmem  (28956): Pinning is deprecated since Android Q. Please use trim or other methods.
+06-04 01:57:40.452 E/ActivityThread(28972): Failed to find provider info for com.sec.android.log.diagmonagent
+06-04 01:57:40.454 E/ashmem  (28972): Pinning is deprecated since Android Q. Please use trim or other methods.
+06-04 01:57:40.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531060
+06-04 01:57:40.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:40.675 E/SatelliteController( 3888): registerForSatelliteModemStateChanged: mSatelliteSessionController is not initialized yet
+06-04 01:57:40.676 E/SatelliteController( 3888): registerForSatelliteModemStateChanged: mSatelliteSessionController is not initialized yet
+06-04 01:57:40.678 E/SatelliteController( 3888): notifyNtnEligibility: mSatellitePhone is null
+06-04 01:57:40.711 E/ashmem  (28986): Pinning is deprecated since Android Q. Please use trim or other methods.
+06-04 01:57:40.792 E/SatelliteController( 3888): registerForSatelliteModemStateChanged: mSatelliteSessionController is not initialized yet
+06-04 01:57:40.795 E/SatelliteController( 3888): registerForSatelliteModemStateChanged: mSatelliteSessionController is not initialized yet
+06-04 01:57:40.797 E/SatelliteController( 3888): notifyNtnEligibility: mSatellitePhone is null
+06-04 01:57:40.810 E/SatelliteController( 3888): notifyNtnEligibility: mSatellitePhone is null
+06-04 01:57:41.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531061
+06-04 01:57:41.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:42.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531062
+06-04 01:57:42.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:43.080 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:43.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531063
+06-04 01:57:43.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:44.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531064
+06-04 01:57:44.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:44.578 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:44.578 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:44.580 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:44.580 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:44.984 E/BatteryDump( 1829): !@new_battery_dump : 4078,1034,1100,3370,65,332,318,369,332,0,345,369,0,Charging,NO_CHARGING,Normal,Good,PDIC,0,Normal,0,0,9300,0x8000,0x10010000,0x0,0,0,332,v0002,0000,0000,00000000,0,0,0,0,169,4044,6441,990,0,
+06-04 01:57:45.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531065
+06-04 01:57:45.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:46.095 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:46.276 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:46.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531066
+06-04 01:57:46.506 E/HeatmapThread( 1908): !@Entered the read from path function
+06-04 01:57:46.506 E/HeatmapThread( 1908): !@Read Extended_heatmap from efs is: 18689 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1114 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1291 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1336 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1427 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1527 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1525 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1595 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1713 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1635 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1668 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6553 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 8510 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 17168 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 16789 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 16937 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 15241 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 14398 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6473 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6401 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6162 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6429 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 927 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 866 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 853 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 805 0 0 
+06-04 01:57:46.506 E/HeatmapThread( 1908): !@Write Extended Heatmap to efs is: 18689 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1114 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1291 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1336 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1427 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1527 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1525 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1595 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1713 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1635 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1668 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6553 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 8510 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 17168 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 16790 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 16937 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 15241 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 14398 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6473 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6401 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6162 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6429 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 927 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 866 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 853 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 805 0 0 0
+06-04 01:57:46.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:47.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531067
+06-04 01:57:47.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:48.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531068
+06-04 01:57:48.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:49.108 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:49.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531069
+06-04 01:57:49.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:50.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531070
+06-04 01:57:50.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:51.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531071
+06-04 01:57:51.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:52.125 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:52.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531072
+06-04 01:57:52.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:52.957 E/Watchdog( 2360): !@Sync: 353 heap(MB): 186 / 190 FD: 1524 [2026-06-04 01:57:52.957]
+06-04 01:57:53.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531073
+06-04 01:57:53.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:54.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531074
+06-04 01:57:54.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:54.611 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:54.611 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:54.613 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:54.613 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:57:55.125 E/BatteryDump( 1829): !@new_battery_dump : 4079,1031,1100,3370,65,332,318,363,332,0,343,363,0,Charging,NO_CHARGING,Normal,Good,PDIC,0,Normal,0,0,9300,0x8000,0x10010000,0x0,0,0,254,v0002,0000,0000,00000000,0,0,0,0,169,4044,6447,990,0,
+06-04 01:57:55.141 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:55.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531075
+06-04 01:57:55.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:55.963 E/HwcComposer( 1914): getLuts failed Status(-129, EX_TRANSACTION_FAILED): 'UNKNOWN_TRANSACTION: '
+06-04 01:57:55.971 E/ANDR-PERF-LM( 1821): Core: detectAndRunIdle() 182: Not able to open /sys/class/power_supply/battery/status, Error: Permission denied
+06-04 01:57:55.976 E/PersonaManagerService( 2360): DeviceLocked : true, DeviceSecure : true
+06-04 01:57:55.978 E/PersonaManagerService( 2360): DeviceLocked : true, DeviceSecure : true
+06-04 01:57:56.000 E/SmcInvoke_MinkDescriptor( 2579): mem obj with id :20 not found in list
+06-04 01:57:56.020 E/AbsSettings( 3944): refreshInner: refreshedSettingsDBItem key enabled_complication_widgets_id_list val = com.sec.android.daemonapp/com.sec.android.daemonapp.complication.receiver.ComplicationWeatherDetailReceiver;6;2;1;0~0,null~null
+06-04 01:57:56.068 E/ashmem  (29034): Pinning is deprecated since Android Q. Please use trim or other methods.
+06-04 01:57:56.069 E/ThemeUtils(29034): View class com.airbnb.lottie.LottieAnimationView is an AppCompat widget that can only be used with a Theme.AppCompat theme (or descendant).
+06-04 01:57:56.071 E/SmcInvoke_MinkDescriptor( 2579): mem obj with id :20 not found in list
+06-04 01:57:56.075 E/SmcInvoke_MinkDescriptor( 2579): mem obj with id :20 not found in list
+06-04 01:57:56.082 E/SmcInvoke_MinkDescriptor( 2579): mem obj with id :20 not found in list
+06-04 01:57:56.089 E/SmcInvoke_MinkDescriptor( 2579): mem obj with id :20 not found in list
+06-04 01:57:56.093 E/ThemeUtils(29034): View class com.airbnb.lottie.LottieAnimationView is an AppCompat widget that can only be used with a Theme.AppCompat theme (or descendant).
+06-04 01:57:56.135 E/SmcInvoke_MinkDescriptor( 2579): mem obj with id :20 not found in list
+06-04 01:57:56.146 E/SmcInvoke_MinkDescriptor( 2579): mem obj with id :20 not found in list
+06-04 01:57:56.348 E/minksocket( 1767): MinkIPC ERROR: ( 1767:1881 ) MinkIPC_preProcess:272 Client down, but cannot find corresponding minksession
+06-04 01:57:56.349 E/minksocket( 1767): MinkIPC ERROR: ( 1767:1876 ) MinkIPC_preProcess:272 Client down, but cannot find corresponding minksession
+06-04 01:57:56.371 E/WindowManager( 2360): win=Window{f46f8d7 u0 com.ezadrive.elearn/com.ezadrive.elearn.MainActivity} destroySurfaces: appStopped=true cleanupOnResume=false win.mWindowRemovalAllowed=false win.mRemoveOnExit=false win.mViewVisibility=8 caller=com.android.server.wm.ActivityRecord.destroySurfaces:25 com.android.server.wm.ActivityRecord.activityStopped:192 com.android.server.wm.ActivityClientController.activityStopped:97 android.app.IActivityClientController$Stub.onTransact:740 com.android.server.wm.ActivityClientController.onTransact:1 android.os.Binder.execTransactInternal:1462 android.os.Binder.execTransact:1401 
+06-04 01:57:56.377 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_STOP, appName: com.google.android.gms, scannerId: 4, reportDelayMillis=0
+06-04 01:57:56.384 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_STOP, appName: com.google.android.gms, scannerId: 11, reportDelayMillis=0
+06-04 01:57:56.403 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_STOP, appName: com.google.android.gms, scannerId: 12, reportDelayMillis=0
+06-04 01:57:56.410 E/BtGatt.AdvertiseManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_ADV_SET_STOP, appName: com.google.android.gms, id: 0, isLegacy: true
+06-04 01:57:56.410 E/BtGatt.AdvertiseManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_ADV_SET_STOP, appName: com.google.android.gms, id: 3, isLegacy: false
+06-04 01:57:56.428 E/BtGatt.AdvertiseManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_ADV_SET_START, appName: com.google.android.gms, id: 0, isLegacy: true
+06-04 01:57:56.433 E/NearbyMediums( 4865): MEDIUM_ERROR [SYSTEM][WIFI_LAN][START_LISTENING_INCOMING_CONNECTION][ACCEPT_CONNECTION_FAILED][SOCKET_CLOSED], service-id=NearbySharing
+06-04 01:57:56.433 E/NearbyMediums( 4865): Extra Sensitive/PII message : Socket closed
+06-04 01:57:56.439 E/BtGatt.AdvertiseManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_ADV_SET_START, appName: com.google.android.gms, id: 2, isLegacy: true
+06-04 01:57:56.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531076
+06-04 01:57:56.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:56.510 E/ANDR-PERF-LM( 1821): Core: detectAndRunIdle() 182: Not able to open /sys/class/power_supply/battery/status, Error: Permission denied
+06-04 01:57:56.533 E/AbsSettings( 3944): refreshInner: refreshedSettingsDBItem key CLOCK_VERSION val = 300000
+06-04 01:57:56.533 E/AbsSettings( 3944): refreshInner: refreshedSettingsDBItem key PALETTE_VERSION val = 90000
+06-04 01:57:56.538 E/AbsSettings( 3944): refreshInner: refreshedSettingsDBItem key enabled_complication_widgets_id_list val = com.sec.android.daemonapp/com.sec.android.daemonapp.complication.receiver.ComplicationWeatherDetailReceiver;6;2;1;0~0,null~null
+06-04 01:57:56.546 E/AbsSettings( 3944): refreshInner: refreshedSettingsDBItem key enabled_complication_widgets_id_list val = com.sec.android.daemonapp/com.sec.android.daemonapp.complication.receiver.ComplicationWeatherDetailReceiver;6;2;1;0~0,null~null
+06-04 01:57:56.554 E/WindowManager( 2360): win=Window{d372ca5 u0 com.sec.android.app.launcher/com.samsung.app.honeyspace.edge.edgepanel.app.CocktailBarService} destroySurfaces: appStopped=true cleanupOnResume=false win.mWindowRemovalAllowed=false win.mRemoveOnExit=false win.mViewVisibility=8 caller=com.android.server.wm.WindowManagerService.tryStartExitingAnimation:134 com.android.server.wm.WindowManagerService.relayoutWindow:1160 com.android.server.wm.Session.relayout:27 android.view.IWindowSession$Stub.onTransact:829 com.android.server.wm.Session.onTransact:1 android.os.Binder.execTransactInternal:1457 android.os.Binder.execTransact:1401 
+06-04 01:57:56.565 E/NowBarCardStackView( 3944): getTopCard topCard is null view size = 0
+06-04 01:57:56.565 E/NowBarCardViewModel( 3944): updateExpandedClickPanelVisibility screen on = false expanded false isTopCardSettingViewOpened = false
+06-04 01:57:56.584 E/ClockPackSettingsUtils( 3944): isRoamingState: android.provider.Settings$SettingNotFoundException: easy_mode_switch
+06-04 01:57:56.585 E/PocketModeEvent( 2360): ACTION_SCREEN_OFF
+06-04 01:57:56.585 E/PocketModeEvent( 2360): currentState : 1
+06-04 01:57:56.587 E/PocketModeEvent( 2360): MSG_TYPE_STOP_SENSING
+06-04 01:57:56.587 E/minksocket( 1767): MinkIPC ERROR: ( 1767:1881 ) MinkIPC_preProcess:272 Client down, but cannot find corresponding minksession
+06-04 01:57:56.587 E/minksocket( 1767): MinkIPC ERROR: ( 1767:1876 ) MinkIPC_preProcess:272 Client down, but cannot find corresponding minksession
+06-04 01:57:56.588 E/AbsSettings( 3944): refreshInner: refreshedSettingsDBItem key lock_theme_clock_package val = 
+06-04 01:57:56.593 E/ClockPackSettingsUtils( 3944): isRoamingState: android.provider.Settings$SettingNotFoundException: easy_mode_switch
+06-04 01:57:56.593 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_STOP, appName: android, scannerId: 10, reportDelayMillis=0
+06-04 01:57:56.594 E/AbsSettings( 3944): refreshInner: refreshedSettingsDBItem key lock_theme_clock_package val = 
+06-04 01:57:56.594 E/AbsSettings( 3944): refreshInner: refreshedSettingsDBItem key lock_theme_clock_package val = 
+06-04 01:57:56.594 E/LoadedApk( 4865): Exception : java.lang.NullPointerException: Attempt to invoke virtual method 'boolean android.os.Looper.isPerfLogEnable()' on a null object reference
+06-04 01:57:56.600 E/MULTISIM-PROD-REPO( 3944): isDataBlocked : mSimCardManagerService is null.
+06-04 01:57:56.610 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_STOP, appName: com.samsung.android.mcfserver, scannerId: 2, reportDelayMillis=0
+06-04 01:57:56.611 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_STOP, appName: com.samsung.android.mcfserver, scannerId: 13, reportDelayMillis=0
+06-04 01:57:56.624 E/LoadedApk( 4865): Exception : java.lang.NullPointerException: Attempt to invoke virtual method 'boolean android.os.Looper.isPerfLogEnable()' on a null object reference
+06-04 01:57:56.625 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_STOP, appName: com.samsung.android.mcfds, scannerId: 7, reportDelayMillis=0
+06-04 01:57:56.626 E/NsdService( 2360): id 327 for 30 has no client mapping
+06-04 01:57:56.626 E/LoadedApk( 4865): Exception : java.lang.NullPointerException: Attempt to invoke virtual method 'boolean android.os.Looper.isPerfLogEnable()' on a null object reference
+06-04 01:57:56.626 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_STOP, appName: com.samsung.android.mcfds, scannerId: 3, reportDelayMillis=0
+06-04 01:57:56.630 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_STOP, appName: com.samsung.android.mcfds, scannerId: 5, reportDelayMillis=0
+06-04 01:57:56.630 E/NowBarCardStackView( 3944): getTopCard topCard is null view size = 0
+06-04 01:57:56.631 E/NowBarCardStackView( 3944): getTopCard topCard is null view size = 0
+06-04 01:57:56.631 E/NowBarCardStackView( 3944): getTopCard topCard is null view size = 0
+06-04 01:57:56.631 E/NowBarCardStackView( 3944): getTopCard topCard is null view size = 0
+06-04 01:57:56.631 E/NowBarCardViewModel( 3944): updateExpandedClickPanelVisibility screen on = false expanded false isTopCardSettingViewOpened = false
+06-04 01:57:56.632 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_STOP, appName: com.samsung.android.mdx.kit, scannerId: 8, reportDelayMillis=0
+06-04 01:57:56.633 E/NowBarCardStackView( 3944): getTopCard topCard is null view size = 0
+06-04 01:57:56.633 E/NowBarCardViewModel( 3944): updateExpandedClickPanelVisibility screen on = false expanded false isTopCardSettingViewOpened = false
+06-04 01:57:56.634 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:57:56.639 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:57:56.645 E/bluetooth( 4299): system/gd/hci/le_scanning_manager.cc:929 scan_filter_parameter_setup: Remove passive filterScan. filter_index=36, uuid=0000fd59-0000-1000-8000-00805f9b34fb
+06-04 01:57:56.646 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_STOP, appName: com.samsung.android.beaconmanager, scannerId: 6, reportDelayMillis=0
+06-04 01:57:56.652 E/Routine@Core[4.9.04.13]: PendingActionRepository(25311): load: invalid data format - []
+06-04 01:57:56.653 E/LoadedApk(28165): Exception : java.lang.NullPointerException: Attempt to invoke virtual method 'boolean android.os.Looper.isPerfLogEnable()' on a null object reference
+06-04 01:57:56.684 E/BtGatt.AdvertiseManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_ADV_SET_STOP, appName: com.samsung.android.mcfds, id: 1, isLegacy: true
+06-04 01:57:56.734 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_START, appName: com.samsung.android.mdx.kit, scannerId: 2, reportDelayMillis=0
+06-04 01:57:56.735 E/BtGatt.AdvertiseManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_ADV_SET_STOP, appName: com.samsung.android.mcfds, id: 4, isLegacy: false
+06-04 01:57:56.743 E/SystemServiceRegistry(29102): create SemLocationManager service
+06-04 01:57:56.754 E/ashmem  (29102): Pinning is deprecated since Android Q. Please use trim or other methods.
+06-04 01:57:56.793 E/BtGatt.AdvertiseManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_ADV_SET_START, appName: com.samsung.android.mcfds, id: 1, isLegacy: true
+06-04 01:57:56.806 E/SmcInvoke_MinkDescriptor( 1797): mem obj with id :11 not found in list
+06-04 01:57:56.839 E/BtGatt.AdvertiseManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_ADV_SET_START, appName: com.samsung.android.mcfds, id: 3, isLegacy: false
+06-04 01:57:56.873 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:57:56.873 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:57:56.874 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:57:56.875 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:57:56.875 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:57:56.876 E/RequestManager_FLP( 5235): [LocationManager] Location remove 080F72AC from com.samsung.android.mcfds
+06-04 01:57:56.876 E/RequestManager_FLP( 5235): [LocationManager] Location request 080F72AC(PendingIntent) passive (min=40000ms) from com.samsung.android.mcfds (10099_FINE_visible_false_background)
+06-04 01:57:56.895 E/[CE]_InactivityDetectionManager(29102): receiver already unregistered - 
+06-04 01:57:56.997 E/AOD_CONFIG@AODConfigurationController( 3944): Skipping unregisterMonitor MONITOR_SEMCONTEXT - no registered monitor
+06-04 01:57:56.997 E/AOD_CONFIG@AODConfigurationController( 3944): Skipping unregisterMonitor MONITOR_BROADCAST_PSM - no registered monitor
+06-04 01:57:56.997 E/AOD_CONFIG@AODConfigurationController( 3944): Skipping unregisterMonitor MONITOR_BROADCAST_WALLPAPER - no registered monitor
+06-04 01:57:56.997 E/AOD_CONFIG@AODConfigurationController( 3944): Skipping unregisterMonitor MONITOR_BROADCAST_ROAMING - no registered monitor
+06-04 01:57:56.998 E/AOD_CONFIG@AODConfigurationController( 3944): Skipping unregisterMonitor MONITOR_WEATHER_INFO_ENABLED - no registered monitor
+06-04 01:57:56.998 E/AOD_CONFIG@AODConfigurationController( 3944): Skipping unregisterMonitor MONITOR_BROADCAST_OMC - no registered monitor
+06-04 01:57:57.000 E/AODUiController( 3944): removeBottomUI: container is null
+06-04 01:57:57.012 E/SemContext.CaeProvider( 2360): setAttribute() : attribute is null!
+06-04 01:57:57.094 E/SemWifiApSmartBleScanner( 2360): mGuidScanFilterBluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=null, mServiceData=null, mServiceDataMask=null, mManufacturerId=117, mManufacturerData=[1, 18, -29, 30, -78, -11, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], mManufacturerDataMask=[0, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], mAdvertisingDataType=-1, mAdvertisingData=null, mAdvertisingDataMask=null, mTransportBlockFilter=null]
+06-04 01:57:57.109 E/ScanManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_SCAN_START, appName: android, scannerId: 3, reportDelayMillis=0
+06-04 01:57:57.301 E/SAFullSettingFit3( 8612): FullSettingSAPService.[e][null][onSent][20] Message successfully sent to agent: 11
+06-04 01:57:57.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531077
+06-04 01:57:57.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:57.957 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:57:57.957 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:57:57.957 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:57:57.957 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:57:57.958 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:57:57.958 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:57:57.958 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:57:57.958 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:57:57.959 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:57:57.959 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:57:58.431 E/BtGatt.AdvertiseManager( 4299): [GSIM LOG]: gsimLogHandler, msg: MESSAGE_ADV_SET_STOP, appName: com.google.android.gms, id: 0, isLegacy: true
+06-04 01:57:58.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531078
+06-04 01:57:58.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:57:59.142 E/bluetooth-asha( 4299): system/bta/hearing_aid/hearing_aid.cc:602 OnConnectionUpdateComplete: unknown device: conn_id=0x2f
+06-04 01:57:59.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531079
+06-04 01:57:59.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:00.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531080
+06-04 01:58:00.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:01.012 E/FromGoneTransitionInteractor( 3944): Ignoring startTransition: This interactor asked to transition from GONE -> LOCKSCREEN, but we last transitioned to DOZING, not GONE. This should never happen - check currentTransitionInfoInternal or use filterRelevantKeyguardState before starting transitions.
+06-04 01:58:01.031 E/engmode_client_list( 3944): Cannot find client
+06-04 01:58:01.031 E/engmode_client_aidl( 3944): Client error
+06-04 01:58:01.035 E/engmode_world( 1629): Unknown token(00/00/00)
+06-04 01:58:01.035 E/engmode_aidl_service( 1306): error to server(0xd0060012)
+06-04 01:58:01.044 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:58:01.107 E/SystemUITextView( 3944): set Background Drawable!!
+06-04 01:58:01.124 E/engmode_world( 1629): Unknown token(00/00/00)
+06-04 01:58:01.124 E/engmode_aidl_service( 1306): error to server(0xd0060012)
+06-04 01:58:01.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531081
+06-04 01:58:01.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:02.457 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:02.458 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:02.464 E/RequestManager_FLP( 5235): [LocationManager] Location request 21422F02(Listener) network interval=0ms (min=0ms) from system(SLocationService) (1000_FINE_unknown_false_foreground)
+06-04 01:58:02.468 E/RequestManager_FLP( 5235): [LocationManager] Location request B460CE16(Listener) fused interval=0ms (min=0ms) from system(SLocationService) (1000_FINE_unknown_false_foreground)
+06-04 01:58:02.478 E/RequestManager_FLP( 5235): [LocationManager] Location remove 21422F02 from system
+06-04 01:58:02.480 E/RequestManager_FLP( 5235): [LocationManager] Location remove B460CE16 from system
+06-04 01:58:02.481 E/bluetooth-asha( 4299): system/bta/hearing_aid/hearing_aid.cc:602 OnConnectionUpdateComplete: unknown device: conn_id=0x2f
+06-04 01:58:02.481 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:58:02.481 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:58:02.482 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:02.482 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:02.483 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:58:02.483 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:58:02.484 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:58:02.484 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:58:02.484 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:02.485 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:02.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531082
+06-04 01:58:02.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:03.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531083
+06-04 01:58:03.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:04.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531084
+06-04 01:58:04.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:04.639 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:04.639 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:04.640 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:04.640 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:05.296 E/BatteryDump( 1829): !@new_battery_dump : 4078,954,1100,3370,65,332,318,366,332,0,340,366,0,Charging,NO_CHARGING,Normal,Good,PDIC,0,Normal,0,0,9300,0x8000,0x10010000,0x0,0,0,330,v0002,0000,0000,00000000,0,0,0,0,169,4044,6452,990,0,
+06-04 01:58:05.375 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:58:05.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531085
+06-04 01:58:05.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:06.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531086
+06-04 01:58:06.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:07.457 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:58:07.457 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:58:07.458 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:58:07.458 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:58:07.458 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:07.459 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:07.459 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:07.475 E/WifiStaIfaceAidlImpl( 2360): getCachedScanData failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+06-04 01:58:07.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531087
+06-04 01:58:07.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:08.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531088
+06-04 01:58:08.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:09.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531089
+06-04 01:58:09.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:10.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531090
+06-04 01:58:10.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:11.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531091
+06-04 01:58:11.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:12.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531092
+06-04 01:58:12.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:13.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531093
+06-04 01:58:13.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:14.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531094
+06-04 01:58:14.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:14.678 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:14.679 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:14.680 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:14.681 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:14.692 E/SemContext.CaeProvider( 2360): setAttribute() : attribute is null!
+06-04 01:58:14.693 E/SensorService( 2360): BigData:Pakage) 5 already enabled. 
+06-04 01:58:15.456 E/BatteryDump( 1829): !@new_battery_dump : 4085,1084,1100,3370,65,331,318,360,331,0,340,360,0,Charging,NO_CHARGING,Normal,Good,PDIC,0,Normal,0,0,9300,0x8000,0x10010000,0x0,0,0,244,v0002,0000,0000,00000000,0,0,0,0,169,4045,6458,990,0,
+06-04 01:58:15.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531095
+06-04 01:58:15.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:16.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531096
+06-04 01:58:16.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:16.676 E/SensorService( 2360): BigData:Pakage) 5 already disabled. 
+06-04 01:58:17.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531097
+06-04 01:58:17.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:18.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531098
+06-04 01:58:18.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:19.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531099
+06-04 01:58:19.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:19.936 E/PERFHAL-RESOURCEQS( 1821): PERFHAL-RESOURCEQS: AddAndApply() 159: Failed to apply optimization [10, 9]
+06-04 01:58:20.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531100
+06-04 01:58:20.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:21.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531101
+06-04 01:58:21.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:22.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531102
+06-04 01:58:22.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:22.581 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:58:22.581 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:58:22.583 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:22.584 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:22.589 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:58:22.589 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:58:22.590 E/sensors-hal( 1792): sendContextData:133, slocationcore h 193 m 23 s 55
+06-04 01:58:22.590 E/sensors-hal( 1792): create_send_context_data:64, slocationcore create_send_context_data
+06-04 01:58:22.590 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:22.591 E/sensors-hal( 1792): handle_sns_client_event:78, slocationcore_event: msgid:1025
+06-04 01:58:22.969 E/Watchdog( 2360): !@Sync: 354 heap(MB): 161 / 190 FD: 1529 [2026-06-04 01:58:22.968]
+06-04 01:58:23.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531103
+06-04 01:58:23.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:24.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531104
+06-04 01:58:24.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:24.709 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:24.709 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:24.711 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:24.711 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:25.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531105
+06-04 01:58:25.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:25.612 E/BatteryDump( 1829): !@new_battery_dump : 4084,1023,1100,3370,65,331,318,356,331,0,339,356,0,Charging,NO_CHARGING,Normal,Good,PDIC,0,Normal,0,0,9299,0x8000,0x10010000,0x0,0,0,193,v0002,0000,0000,00000000,0,0,0,0,169,4045,6464,990,0,
+06-04 01:58:25.638 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:58:26.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531106
+06-04 01:58:26.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:27.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531107
+06-04 01:58:27.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:28.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531108
+06-04 01:58:28.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:29.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531109
+06-04 01:58:29.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:30.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531110
+06-04 01:58:30.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:31.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531111
+06-04 01:58:31.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:32.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531112
+06-04 01:58:32.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:33.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531113
+06-04 01:58:33.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:34.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531114
+06-04 01:58:34.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:34.744 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:34.744 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:34.746 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:34.747 E/ConversionHelperAidl( 1853): Function: parseAndSetVendorParameters Line: 94 Failed 
+06-04 01:58:35.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531115
+06-04 01:58:35.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:35.774 E/BatteryDump( 1829): !@new_battery_dump : 4083,972,1100,3370,65,331,317,355,331,0,337,355,0,Charging,NO_CHARGING,Normal,Good,PDIC,0,Normal,0,0,9299,0x8000,0x10010000,0x0,0,0,189,v0002,0000,0000,00000000,0,0,0,0,169,4045,6470,990,0,
+06-04 01:58:35.805 E/NativeCustomFrequencyManager( 1914): [NativeCFMS] BpCustomFrequencyManager::acquire()
+06-04 01:58:36.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531116
+06-04 01:58:36.504 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:37.502 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531117
+06-04 01:58:37.505 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:38.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531118
+06-04 01:58:38.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:39.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531119
+06-04 01:58:39.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:40.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531120
+06-04 01:58:40.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:41.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531121
+06-04 01:58:41.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:42.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531122
+06-04 01:58:42.507 E/HeatmapThread( 1908): !@ CAM New BSOH: 98
+06-04 01:58:43.503 E/HeatmapThread( 1908): ECT Thread time in milliseconds: 1780531123
+06-04 01:58:43.506 E/HeatmapThread( 1908): !@ CAM New BSOH: 98

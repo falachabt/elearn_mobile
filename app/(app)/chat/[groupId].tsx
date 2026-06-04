@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
+  Keyboard,
   Linking,
   Modal,
   Platform,
@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image as ExpoImage } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as DocumentPicker from "expo-document-picker";
@@ -105,6 +106,25 @@ const ChatScreen = () => {
   const { trigger } = useHaptics();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
+
+  // Edge-to-edge (Expo SDK 54) breaks KeyboardAvoidingView on Android: it only
+  // lifts halfway. Track the real keyboard height and pad the screen manually.
+  // The parent SafeAreaView already pads `insets.bottom`, so subtract it.
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvt, (e) =>
+      setKeyboardHeight(e.endCoordinates?.height ?? 0)
+    );
+    const hideSub = Keyboard.addListener(hideEvt, () => setKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+  const keyboardPad = keyboardHeight > 0 ? Math.max(keyboardHeight - insets.bottom, 0) : 0;
 
   const { messages, isLoading, isLoadingMore, hasMore, error, loadMore, send, retry } =
     useDiscussionChat(groupId);
@@ -345,11 +365,7 @@ const ChatScreen = () => {
   const canSend = !!draft.trim() || pending.length > 0 || !!tag;
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, isDark && styles.containerDark]}
-      behavior="padding"
-      keyboardVerticalOffset={0}
-    >
+    <View style={[styles.container, isDark && styles.containerDark, { paddingBottom: keyboardPad }]}>
       {/* Header */}
       <View style={[styles.header, isDark && styles.headerDark]}>
         <Pressable onPress={() => router.back()} style={[styles.iconButton, isDark && styles.iconButtonDark]}>
@@ -442,7 +458,13 @@ const ChatScreen = () => {
       )}
 
       {/* Input */}
-      <View style={[styles.inputBar, isDark && styles.inputBarDark]}>
+      <View
+        style={[
+          styles.inputBar,
+          isDark && styles.inputBarDark,
+          keyboardHeight > 0 && styles.inputBarKeyboardOpen,
+        ]}
+      >
         <View style={[styles.inputWrapper, isDark && styles.inputWrapperDark]}>
           <Pressable
             onPress={() => setAttachMenu(true)}
@@ -525,7 +547,7 @@ const ChatScreen = () => {
       {viewer && (
         <MediaViewer uri={viewer.uri} type={viewer.type} onClose={() => setViewer(null)} />
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -681,6 +703,7 @@ const styles = StyleSheet.create({
     borderTopColor: "#F1F5F9",
   },
   inputBarDark: { backgroundColor: theme.color.dark.background.secondary, borderTopColor: theme.color.dark.border },
+  inputBarKeyboardOpen: { paddingBottom: 6, paddingTop: 6, marginBottom: 12 },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "flex-end",
