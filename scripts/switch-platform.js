@@ -7,24 +7,13 @@ function processFile(filePath, platform) {
     // Read the file content
     let content = fs.readFileSync(filePath, 'utf8');
     
-    // Define the import patterns and their replacements
-    const patterns = [
-      {
-        // Pattern for web import
-        regex: /import\s+\{\s*FileViewer\s*\}\s+from\s+["']@\/components\/shared\/learn\/anales\/FileViewer\/FileViewer\.(web|native)["'];/g,
-        replacement: `import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.${platform}";`
-      },
-      {
-        // Pattern for native import with alias
-        regex: /import\s+\{\s*FileViewer\s+as\s+FileViewerNative\s*\}\s+from\s+["']@\/components\/shared\/learn\/anales\/FileViewer\/FileViewer\.(web|native)["'];/g,
-        replacement: `import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer.${platform}";`
-      }
-    ];
-    
-    // Apply each pattern
-    patterns.forEach(pattern => {
-      content = content.replace(pattern.regex, pattern.replacement);
-    });
+    // Rewrite only the module path suffix of any FileViewer import, leaving the
+    // import shape intact (named, aliased, type-only, single- or multi-line).
+    // Matches both bare imports (".../FileViewer") and suffixed ones
+    // (".../FileViewer.web" | ".../FileViewer.native") and normalizes them to
+    // the requested platform.
+    const importPathRegex = /(from\s+["']@\/components\/shared\/learn\/anales\/FileViewer\/FileViewer)(\.(web|native))?(["'])/g;
+    content = content.replace(importPathRegex, `$1.${platform}$4`);
     
     // Write the updated content back to the file
     fs.writeFileSync(filePath, content, 'utf8');

@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
-import { FileViewer } from "@/components/shared/learn/anales/FileViewer/FileViewer";
+import { FileViewer } from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
 
 
 // Define TypeScript interfaces for our data
