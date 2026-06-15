@@ -17,11 +17,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Modal from 'react-native-modal';
 import LottieView from 'lottie-react-native';
 
+import * as Crypto from 'expo-crypto';
+
 import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 import { useCompetitionPayment } from '@/hooks/useCompetitionPayment';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { CompetitionPaymentService } from '@/services/competition-payment.service';
+import { PawaPayService, pawapayFailureMessage } from '@/lib/pawapay';
 import WhatsAppContact from '@/components/WhatsappSupport';
 
 interface CompetitionPaymentBottomSheetProps {
@@ -35,6 +38,14 @@ interface CompetitionPaymentBottomSheetProps {
 
 // Get screen dimensions for modal sizing
 const { height } = Dimensions.get('window');
+
+// Competition unlock price (FCFA). In dev builds (__DEV__) we charge a tiny test
+// amount so PawaPay test deposits don't cost the full price. The DB/display price
+// stays 2000 in production. PawaPay MTN_MOMO_CMR minimum is 1 XAF (we use 100 to
+// avoid operator rejection of micro-amounts) — change DEV_TEST_AMOUNT if needed.
+const COMPETITION_PRICE = 2000;
+const DEV_TEST_AMOUNT = 100;
+const COMPETITION_PAYMENT_AMOUNT = __DEV__ ? DEV_TEST_AMOUNT : COMPETITION_PRICE;
 
 export const CompetitionPaymentBottomSheet = ({
   visible,
@@ -53,6 +64,7 @@ export const CompetitionPaymentBottomSheet = ({
   const [promoCode, setPromoCode] = useState('');
   const [processingState, setProcessingState] = useState<'idle' | 'processing' | 'verifying' | 'success' | 'failed' | 'canceled' | 'existing_payment'>('idle');
   const [currentTrxReference, setCurrentTrxReference] = useState<string | null>(null);
+  const [paymentRowId, setPaymentRowId] = useState<string | null>(null);
   const [isStatusCheckActive, setIsStatusCheckActive] = useState(false);
   const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -79,6 +91,9 @@ export const CompetitionPaymentBottomSheet = ({
   } = useCompetitionPayment();
   void promoCode;
   void latestPaymentLoading;
+  // NotchPay helpers kept by the hook but unused now that manuel payments use PawaPay.
+  void initiateDirectPayment;
+  void cancelPayment;
 
   const normalizedCompetitionName = competitionName?.trim() || 'ce concours';
   const hasDocumentCount = typeof documentCount === 'number' && documentCount > 0;
@@ -214,28 +229,41 @@ export const CompetitionPaymentBottomSheet = ({
     };
   }, [statusCheckInterval]);
 
-  // Handle payment verification
+  // PawaPay verification polling — polls the backoffice, which syncs our DB row.
   useEffect(() => {
-    if (currentTrxReference && isStatusCheckActive && processingState === 'verifying') {
-      const interval = setInterval(async () => {
-        try {
-          await verifyPaymentStatus(currentTrxReference);
-        } catch (error) {
-          logger.error('Error verifying payment:', error);
-        }
-      }, 5000); // Check every 5 seconds
-
-      setStatusCheckInterval(interval);
-
-      return () => {
-        clearInterval(interval);
-      };
+    if (!(currentTrxReference && isStatusCheckActive && processingState === 'verifying')) {
+      return;
     }
 
-    if (['completed', 'canceled', 'failed'].includes(paymentStatus) && isStatusCheckActive) {
-      setIsStatusCheckActive(false);
-    }
-  }, [currentTrxReference, isStatusCheckActive, paymentStatus, processingState]);
+    let elapsedSeconds = 0;
+    const interval = setInterval(async () => {
+      elapsedSeconds += 5;
+      const res = await PawaPayService.checkStatus(currentTrxReference);
+
+      if (res.status === 'completed') {
+        setIsStatusCheckActive(false);
+        setProcessingState('success');
+        invalidateAccessCache(competitionId);
+        setTimeout(() => onPaymentSuccess?.(), 500);
+      } else if (res.status === 'failed') {
+        setIsStatusCheckActive(false);
+        setProcessingState('failed');
+        setErrorMessage(pawapayFailureMessage(res.failureCode));
+        invalidateAccessCache(competitionId);
+      } else if (elapsedSeconds >= 300) {
+        // 5 min timeout — stop polling, let the user retry / contact support.
+        setIsStatusCheckActive(false);
+        setProcessingState('failed');
+        setErrorMessage("Le délai de vérification a expiré. Si le montant a été débité, contactez le support.");
+      }
+    }, 5000);
+
+    setStatusCheckInterval(interval);
+    return () => clearInterval(interval);
+    // invalidateAccessCache / onPaymentSuccess are intentionally excluded: they change
+    // identity every render and would cause an infinite re-run loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTrxReference, isStatusCheckActive, processingState, competitionId]);
 
   // Handle keyboard events
   useEffect(() => {
@@ -265,7 +293,6 @@ export const CompetitionPaymentBottomSheet = ({
       return;
     }
 
-    // Validate phone number format
     const phoneRegex = /^(6[4-9][0-9])[0-9]{6}$/;
     if (!phoneRegex.test(phoneNumber)) {
       setErrorMessage('Numéro de téléphone invalide. Utilisez un numéro MTN ou Orange (ex: 650123456)');
@@ -277,39 +304,46 @@ export const CompetitionPaymentBottomSheet = ({
     trigger(HapticType.MEDIUM);
 
     try {
-      const result = await initiateDirectPayment(
+      const depositId = Crypto.randomUUID();
+
+      // 1. Create the payment intent row first (the server requires it before charging).
+      const payment = await CompetitionPaymentService.createPayment(
         competitionId,
         phoneNumber,
-        2000, // Fixed amount for competition payment
-        undefined // No promo code for now
+        COMPETITION_PAYMENT_AMOUNT,
+        depositId
       );
+      setPaymentRowId(payment.id);
 
-      if (result.needsFallback && result.authorizationUrl) {
-        // If direct charge failed but we have a fallback URL
-        setProcessingState('verifying');
-        setCurrentTrxReference(result.trxReference);
-        setIsStatusCheckActive(true);
-        // New payment created, allow status changes for this payment
-        setShouldIgnoreOldStatus(false);
-        // Reload payment to get the newly created one
-        await getLatestPayment(competitionId);
+      // 2. Ask the backoffice to initiate the PawaPay deposit (PIN prompt on the phone).
+      const result = await PawaPayService.initiateDeposit({
+        depositId,
+        phoneNumber,
+        amount: COMPETITION_PAYMENT_AMOUNT,
+        customerMessage: 'Elearn Prepa',
+      });
 
-        // Open the authorization URL if needed
-        if (Platform.OS !== 'web') {
-          Linking.openURL(result.authorizationUrl);
+      if (!result.ok) {
+        const code = (result.failureReason as { failureCode?: string })?.failureCode;
+        setProcessingState('failed');
+        setErrorMessage(
+          code
+            ? pawapayFailureMessage(code)
+            : result.error || "Le paiement n'a pas pu être initié. Vérifiez votre numéro et réessayez."
+        );
+        if (payment.id) {
+          CompetitionPaymentService.setStatus(payment.id, 'failed').catch(() => {});
         }
-      } else {
-        // Direct charge initiated successfully
-        setProcessingState('verifying');
-        setCurrentTrxReference(result.trxReference);
-        setIsStatusCheckActive(true);
-        // New payment created, allow status changes for this payment
-        setShouldIgnoreOldStatus(false);
-        // Reload payment to get the newly created one
-        await getLatestPayment(competitionId);
+        return;
       }
+
+      // 3. Deposit accepted → verify by polling the server (the verification effect below).
+      setCurrentTrxReference(depositId);
+      setShouldIgnoreOldStatus(false);
+      setProcessingState('verifying');
+      setIsStatusCheckActive(true);
     } catch (error) {
-      logger.error('Payment initiation error:', error);
+      logger.error('PawaPay payment initiation error:', error);
       setProcessingState('failed');
       setErrorMessage(error instanceof Error ? error.message : 'Une erreur est survenue lors du paiement');
     }
@@ -318,8 +352,12 @@ export const CompetitionPaymentBottomSheet = ({
   const handleCancel = async () => {
     trigger(HapticType.LIGHT);
 
+    // Stop verifying and mark our intent row canceled. (This does not reverse an
+    // already-approved mobile-money deposit — the customer simply ignores the PIN prompt.)
     if (processingState === 'verifying' || processingState === 'processing') {
-      await cancelPayment();
+      if (paymentRowId) {
+        await CompetitionPaymentService.setStatus(paymentRowId, 'canceled').catch(() => {});
+      }
     }
 
     // Mark as seen before closing if in a final state
@@ -352,6 +390,7 @@ export const CompetitionPaymentBottomSheet = ({
     setPromoCode('');
     setProcessingState('idle');
     setCurrentTrxReference(null);
+    setPaymentRowId(null);
     setIsStatusCheckActive(false);
     setErrorMessage(null);
     setShouldIgnoreOldStatus(false);

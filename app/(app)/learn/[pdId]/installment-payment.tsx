@@ -15,11 +15,20 @@ import { ThemedText } from "@/components/ThemedText";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/utils/logger";
+import * as Crypto from "expo-crypto";
+
 import { ProgramPaymentService } from "@/services/program-payment.service";
+import { PawaPayService, pawapayFailureMessage } from "@/lib/pawapay";
 import { ProgramPayment, PaymentFlowState } from "@/types/payment.types";
 import { InstallmentDetails, NextPaymentOptions, PaymentProcessing } from "@/components/payment";
 import { useUser } from "@/contexts/useUserInfo";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
+
+// Cameroon MTN/Orange phone (9 digits, 64-69). In dev we charge a tiny test amount.
+const CM_PHONE_REGEX = /^(6[4-9][0-9])[0-9]{6}$/;
+const DEV_TEST_AMOUNT = 100;
+const POLL_INTERVAL_MS = 5000;
+const POLL_TIMEOUT_S = 300;
 
 const InstallmentPaymentPage = () => {
   const local = useLocalSearchParams();
@@ -37,9 +46,7 @@ const InstallmentPaymentPage = () => {
   const [installmentPayment, setInstallmentPayment] = useState<ProgramPayment | null>(null);
   const [currentState, setCurrentState] = useState<PaymentFlowState>(PaymentFlowState.INSTALLMENT_DETAILS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [authorizationUrl, setAuthorizationUrl] = useState<string | null>(null);
   const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
-  const MAX_STATUS_CHECK_ATTEMPTS = 60; // 60 attempts * 10 seconds = 10 minutes max
 
   // Load program and installment data
   useEffect(() => {
@@ -121,10 +128,15 @@ const InstallmentPaymentPage = () => {
     }
   };
 
-  // Handle payment submission
+  // Handle payment submission (next installment via PawaPay).
   const handlePaymentSubmit = async (phoneNumber: string) => {
-    if (!installmentPayment?.id) {
+    if (!installmentPayment?.id || !programId) {
       setErrorMessage("Paiement non trouvé");
+      return;
+    }
+    if (!CM_PHONE_REGEX.test(phoneNumber)) {
+      setErrorMessage("Numéro invalide. Utilisez un numéro MTN ou Orange (ex: 650123456).");
+      setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
       return;
     }
 
@@ -132,81 +144,97 @@ const InstallmentPaymentPage = () => {
     setErrorMessage(null);
 
     try {
-      const result = await ProgramPaymentService.processNextInstallment(
-        installmentPayment.id,
-        phoneNumber
+      const depositId = Crypto.randomUUID();
+      const total = installmentPayment.total_installments ?? 2;
+      const nextNum = (installmentPayment.current_installment ?? 1) + 1;
+      const fullTotal = installmentPayment.total_amount ?? installmentPayment.amount * total;
+      const baseAmount = Math.ceil(fullTotal / total);
+      const amount = __DEV__ ? DEV_TEST_AMOUNT : baseAmount;
+      const trueParentId = installmentPayment.parent_payment_id || installmentPayment.id;
+
+      // 1. Create the next pending installment row (DB trigger extends the
+      //    enrollment expiry when this payment becomes "completed").
+      const payment = await ProgramPaymentService.createPayment(
+        programId,
+        phoneNumber,
+        amount,
+        depositId,
+        null,
+        true,
+        total,
+        nextNum,
+        fullTotal,
+        trueParentId ?? undefined
       );
 
-      if (result.authorizationUrl) {
-        setAuthorizationUrl(result.authorizationUrl);
+      // 2. Initiate the PawaPay deposit.
+      const result = await PawaPayService.initiateDeposit({
+        depositId,
+        phoneNumber,
+        amount,
+        customerMessage: "Elearn Prepa",
+      });
+
+      if (!result.ok) {
+        const code = (result.failureReason as { failureCode?: string })?.failureCode;
+        setErrorMessage(
+          code ? pawapayFailureMessage(code) : result.error || "Le paiement n'a pas pu être initié. Réessayez."
+        );
+        setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
+        if (payment.id) ProgramPaymentService.setStatus(payment.id, "failed").catch(() => {});
+        return;
       }
 
-      // Start checking payment status
+      // 3. Poll for the final status.
       setCurrentState(PaymentFlowState.NEXT_PAYMENT_VERIFYING);
-      const paymentReference = result.trxReference ?? result.payment_reference;
-      if (!paymentReference) {
-        throw new Error("Référence de paiement introuvable");
-      }
-      startStatusCheck(paymentReference);
+      startStatusCheck(depositId);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Erreur lors du traitement du paiement";
+      const msg = error instanceof Error ? error.message : "Erreur lors du traitement du paiement";
       logger.error("Error processing next installment:", error);
-      setErrorMessage(errorMessage);
+      setErrorMessage(msg);
       setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
     }
   };
 
-  // Start checking payment status
-  const startStatusCheck = (trxReference: string) => {
-    if (!trxReference) return;
+  // Poll the backoffice for the PawaPay deposit status.
+  const startStatusCheck = (depositId: string) => {
+    if (!depositId) return;
+    let elapsed = 0;
 
-    let attempts = 0;
+    const interval = setInterval(async () => {
+      elapsed += POLL_INTERVAL_MS / 1000;
 
-    // Check status every 10 seconds
-    const interval = setInterval(() => {
-      attempts++;
-      
-      // Stop checking after max attempts
-      if (attempts >= MAX_STATUS_CHECK_ATTEMPTS) {
+      if (elapsed >= POLL_TIMEOUT_S) {
         clearInterval(interval);
         setStatusCheckInterval(null);
         setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
-        setErrorMessage("Le délai de vérification du paiement a expiré. Veuillez vérifier votre compte ou contacter le support.");
+        setErrorMessage("Le délai de vérification a expiré. Si le montant a été débité, contactez le support.");
         return;
       }
 
-      // Async function to check payment status
-      (async () => {
-        try {
-          // Get the payment by reference to check status
-          const payment = await ProgramPaymentService.getPaymentByReference(trxReference);
-          
-          if (payment && payment.payment_status === "completed") {
-            clearInterval(interval);
-            setStatusCheckInterval(null);
-            setCurrentState(PaymentFlowState.NEXT_PAYMENT_SUCCESS);
-            
-            // Revalidate data
-            await mutateUserPrograms();
-            await mutateProgramAccessMap();
-            
-            // Reload installment data
-            if (programId) {
-              const updatedPayment = await ProgramPaymentService.getLatestPayment(programId);
-              setInstallmentPayment(updatedPayment);
-            }
-          } else if (payment && (payment.payment_status === "failed" || payment.payment_status === "canceled")) {
-            clearInterval(interval);
-            setStatusCheckInterval(null);
-            setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
-            setErrorMessage("Le paiement a échoué. Veuillez réessayer.");
+      try {
+        const res = await PawaPayService.checkStatus(depositId);
+        if (res.status === "completed") {
+          clearInterval(interval);
+          setStatusCheckInterval(null);
+          setCurrentState(PaymentFlowState.NEXT_PAYMENT_SUCCESS);
+          await mutateUserPrograms().catch(() => {});
+          await mutateProgramAccessMap().catch(() => {});
+          if (programId) {
+            const updatedPayment = await ProgramPaymentService.getLatestPayment(programId);
+            setInstallmentPayment(updatedPayment);
           }
-        } catch (error) {
-          logger.error("Error checking payment status:", error);
-          // Don't stop checking on individual errors, only on timeout
+        } else if (res.status === "failed") {
+          clearInterval(interval);
+          setStatusCheckInterval(null);
+          setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
+          setErrorMessage(pawapayFailureMessage(res.failureCode));
         }
-      })();
-    }, 10000);
+      } catch (error) {
+        logger.error("Error checking payment status:", error);
+        // Keep polling; only stop on final status or timeout.
+      }
+    }, POLL_INTERVAL_MS);
 
     setStatusCheckInterval(interval);
   };
@@ -351,8 +379,8 @@ const InstallmentPaymentPage = () => {
             }
             isDark={isDark}
             currentMessage={
-              currentState === PaymentFlowState.NEXT_PAYMENT_VERIFYING && authorizationUrl
-                ? "Validation en cours. Si besoin, terminez l'autorisation ouverte sur votre téléphone."
+              currentState === PaymentFlowState.NEXT_PAYMENT_VERIFYING
+                ? "En attente de validation. Confirmez avec votre code PIN Mobile Money..."
                 : undefined
             }
             onCancel={handleBack}

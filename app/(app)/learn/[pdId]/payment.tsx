@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { View, TouchableOpacity, ActivityIndicator, useColorScheme, ScrollView, Linking, StyleSheet } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, TouchableOpacity, ActivityIndicator, useColorScheme, ScrollView, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Crypto from "expo-crypto";
 
 import { theme } from "@/constants/theme";
 import { useProgramPayment } from "@/hooks/useProgramPayment";
@@ -13,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { useUser } from "@/contexts/useUserInfo";
 import { logger } from "@/utils/logger";
 import { ProgramPaymentService } from "@/services/program-payment.service";
+import { PawaPayService, pawapayFailureMessage } from "@/lib/pawapay";
 import {
   PaymentInstructions,
   PaymentOptions,
@@ -20,8 +22,17 @@ import {
   PaymentProcessing,
   InstallmentDetails,
 } from "@/components/payment";
+import WhatsAppContact from "@/components/WhatsappSupport";
 import { PaymentFlowState, ProgramPayment, PromoCodeDetails, PaymentContextData } from "@/types/payment.types";
 import { MESSAGE_ROTATION_INTERVAL } from "@/constants/payment.constants";
+
+// Phone numbers accepted (Cameroon MTN/Orange, 9 digits starting 64-69).
+const CM_PHONE_REGEX = /^(6[4-9][0-9])[0-9]{6}$/;
+// In dev builds we charge a tiny test amount instead of the real price so test
+// PawaPay deposits don't cost the full price. PawaPay MTN_MOMO_CMR min = 1 XAF.
+const DEV_TEST_AMOUNT = 100;
+const POLL_INTERVAL_MS = 5000;
+const POLL_TIMEOUT_S = 300; // 5 min
 
 const ProgramPaymentPage = () => {
   const local = useLocalSearchParams();
@@ -34,21 +45,14 @@ const ProgramPaymentPage = () => {
   const { mutateUserPrograms, mutateProgramAccessMap } = useUser();
   const pricing = usePricing();
 
-  // Use the program payment hook
+  // The hook gives us the latest payment (for resume) + cancel + program id.
   const {
-    paymentStatus,
     loading,
     latestPayment,
     latestPaymentLoading,
-    authorizationUrl,
-    errorMessage: hookErrorMessage,
     programId,
-    initiateDirectPayment,
     cancelPayment,
-    verifyPaymentStatus,
-    isFinalStatus,
   } = useProgramPayment(pdId);
-  void hookErrorMessage;
 
   // State management
   const [currentState, setCurrentState] = useState<PaymentFlowState>(PaymentFlowState.LOADING);
@@ -64,86 +68,117 @@ const ProgramPaymentPage = () => {
   });
 
   const [currentTrxReference, setCurrentTrxReference] = useState<string | null>(null);
-  const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [paymentRowId, setPaymentRowId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [shouldIgnoreOldStatus, setShouldIgnoreOldStatus] = useState(latestPayment?.has_seen_result === true);
-  
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [verificationMessages] = useState([
     "En attente de validation sur votre téléphone...",
+    "Confirmez le paiement avec votre code PIN Mobile Money...",
     "Une fois validé, la vérification peut prendre jusqu'à 5 minutes...",
   ]);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
 
-  // Determine initial state based on payment history
-  const determineInitialState = (latestPayment: ProgramPayment | null, hasCompletedFirstInstallment: boolean) => {
-    // Check if user is retrying after a failed/canceled payment
-    const isRetry = local.retry !== undefined;
-    
-    if (isRetry) {
-      logger.log('[Payment] Retry parameter detected, starting fresh payment flow');
-      setCurrentState(PaymentFlowState.INSTRUCTIONS);
-      return;
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
     }
-    
-    if (!latestPayment) {
-      setCurrentState(PaymentFlowState.INSTRUCTIONS);
-      return;
-    }
+  };
 
-    // If payment already seen, start fresh
-    if (latestPayment.has_seen_result === true) {
-      logger.log('[Payment] Payment already seen, starting fresh');
-      setCurrentState(PaymentFlowState.INSTRUCTIONS);
-      return;
-    }
-
-    // If payment not in final status, continue verification
-    if (!isFinalStatus(latestPayment.payment_status)) {
-      logger.log('[Payment] Non-final payment status, setting up verification');
-      
-      if (hasCompletedFirstInstallment && latestPayment.is_installment) {
-        setCurrentState(PaymentFlowState.NEXT_PAYMENT_VERIFYING);
-      } else {
-        setCurrentState(PaymentFlowState.VERIFYING);
-      }
-      
-      if (latestPayment.payment_reference) {
-        setCurrentTrxReference(latestPayment.payment_reference);
-        startStatusCheck(latestPayment.payment_reference);
-      }
-      return;
-    }
-
-    // If payment is final AND not seen, show result
-    logger.log('[Payment] Final payment status not seen, redirecting to result page');
-    
-    // Mark as seen immediately to prevent redirect loops
-    if (latestPayment.id) {
-      ProgramPaymentService.markAsSeen(latestPayment.id).catch(err => 
-        logger.error('[Payment] Error marking payment as seen:', err)
-      );
-    }
-    
+  // Navigate to the result screen (success | failed | canceled).
+  const goToResult = (
+    result: "success" | "failed" | "canceled",
+    reference: string,
+    message?: string
+  ) => {
     router.replace({
       pathname: "/learn/[pdId]/payment-result",
       params: {
         pdId: pdId || "",
-        result: latestPayment.payment_status === 'completed' ? 'success' : 
-                latestPayment.payment_status === 'failed' ? 'failed' : 'canceled',
+        result,
         programName: programContext.programName,
         programId: programContext.programId || "",
-        paymentReference: latestPayment.payment_reference || '',
+        paymentReference: reference,
+        ...(message ? { errorMessage: message } : {}),
       },
     });
+  };
+
+  // Poll the backoffice for the PawaPay deposit status. On a final status the
+  // server has already synced our DB row (and the DB trigger creates/extends the
+  // program enrollment on "completed"), so we just navigate.
+  const startPawaPayPolling = (depositId: string) => {
+    stopPolling();
+    let elapsed = 0;
+    pollRef.current = setInterval(async () => {
+      elapsed += POLL_INTERVAL_MS / 1000;
+      const res = await PawaPayService.checkStatus(depositId);
+
+      if (res.status === "completed") {
+        stopPolling();
+        await mutateUserPrograms().catch(() => {});
+        await mutateProgramAccessMap().catch(() => {});
+        goToResult("success", depositId);
+      } else if (res.status === "failed") {
+        stopPolling();
+        goToResult("failed", depositId, pawapayFailureMessage(res.failureCode));
+      } else if (elapsed >= POLL_TIMEOUT_S) {
+        stopPolling();
+        goToResult(
+          "failed",
+          depositId,
+          "Le délai de vérification a expiré. Si le montant a été débité, contactez le support."
+        );
+      }
+    }, POLL_INTERVAL_MS);
+  };
+
+  // Determine initial state based on payment history
+  const determineInitialState = (latest: ProgramPayment | null, hasCompletedFirstInstallment: boolean) => {
+    const isRetry = local.retry !== undefined;
+
+    if (isRetry || !latest || latest.has_seen_result === true) {
+      setCurrentState(PaymentFlowState.INSTRUCTIONS);
+      return;
+    }
+
+    // Payment still in progress (not final, not seen) → resume verification.
+    if (!ProgramPaymentService.isFinalStatus(latest.payment_status)) {
+      setCurrentState(
+        hasCompletedFirstInstallment && latest.is_installment
+          ? PaymentFlowState.NEXT_PAYMENT_VERIFYING
+          : PaymentFlowState.VERIFYING
+      );
+      if (latest.payment_reference) {
+        setCurrentTrxReference(latest.payment_reference);
+        setPaymentRowId(latest.id ?? null);
+        startPawaPayPolling(latest.payment_reference);
+      }
+      return;
+    }
+
+    // Final + not seen → show the result page.
+    if (latest.id) {
+      ProgramPaymentService.markAsSeen(latest.id).catch((err) =>
+        logger.error("[Payment] Error marking payment as seen:", err)
+      );
+    }
+    goToResult(
+      latest.payment_status === "completed"
+        ? "success"
+        : latest.payment_status === "failed"
+          ? "failed"
+          : "canceled",
+      latest.payment_reference || ""
+    );
   };
 
   // Initialize program context
   useEffect(() => {
     if (!pdId || !programId || latestPaymentLoading) return;
-    
-    if (isInitialized && currentState !== PaymentFlowState.LOADING) {
-      return;
-    }
+    if (isInitialized && currentState !== PaymentFlowState.LOADING) return;
 
     const initializeProgramContext = async () => {
       try {
@@ -153,9 +188,16 @@ const ProgramPaymentPage = () => {
           .eq("learningPathId", pdId)
           .single();
 
+        const hasCompletedFirst = !!(
+          latestPayment?.is_installment &&
+          latestPayment?.current_installment &&
+          latestPayment.current_installment >= 1 &&
+          (latestPayment.current_installment ?? 0) < (latestPayment.total_installments ?? 0)
+        );
+
         if (error || !programData) {
           logger.error("[Payment] Error fetching program data:", error);
-          setProgramContext(prev => ({
+          setProgramContext((prev) => ({
             ...prev,
             programId: programId || null,
             programName: "Programme",
@@ -168,179 +210,49 @@ const ProgramPaymentPage = () => {
           return;
         }
 
-        const hasCompletedFirst = latestPayment?.is_installment && 
-                                   latestPayment?.current_installment && 
-                                   latestPayment?.current_installment > 1;
-
         const lpData = programData.learning_paths as { title?: string } | { title?: string }[] | null;
         const programName = (Array.isArray(lpData) ? lpData[0]?.title : lpData?.title) || "Programme";
 
-        const updatedContext = {
+        setProgramContext({
           programId: String(programData.id),
           programName,
           programPrice: pricing.FIXED_PRICE || 0,
           user,
-          hasCompletedFirstInstallment: hasCompletedFirst || false,
+          hasCompletedFirstInstallment: hasCompletedFirst,
           latestPayment: latestPayment as ProgramPayment | null,
-          installmentPayment: latestPayment?.is_installment ? latestPayment as ProgramPayment : null,
-        };
-
-        setProgramContext(updatedContext);
-        determineInitialState(latestPayment as ProgramPayment | null, hasCompletedFirst || false);
+          installmentPayment: latestPayment?.is_installment ? (latestPayment as ProgramPayment) : null,
+        });
+        determineInitialState(latestPayment as ProgramPayment | null, hasCompletedFirst);
         setIsInitialized(true);
-      } catch (error) {
-        logger.error("[Payment] Error initializing program context:", error);
+      } catch (e) {
+        logger.error("[Payment] Error initializing program context:", e);
         setCurrentState(PaymentFlowState.INSTRUCTIONS);
         setIsInitialized(true);
       }
     };
 
     initializeProgramContext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdId, programId, latestPaymentLoading, pricing.FIXED_PRICE]);
 
-  // Handle payment status changes
-  useEffect(() => {
-    logger.log('[Payment] Status:', paymentStatus, 'State:', currentState, 'TrxRef:', currentTrxReference);
-    
-    const isVerifying = currentState === PaymentFlowState.VERIFYING || 
-                        currentState === PaymentFlowState.NEXT_PAYMENT_VERIFYING;
-    
-    if (!isVerifying) {
-      logger.log('[Payment] Not verifying, skipping navigation check');
-      return;
-    }
-    if (!programContext.programId || !programContext.programName) {
-      logger.log('[Payment] Missing program context, skipping navigation');
-      return;
-    }
-    if (shouldIgnoreOldStatus) {
-      logger.log('[Payment] Ignoring old status, skipping navigation');
-      return;
-    }
-    if (!currentTrxReference) {
-      logger.log('[Payment] No current transaction reference, skipping navigation');
-      return;
-    }
-    
-    // Check if we should navigate based on payment reference
-    // For final statuses (completed, failed, canceled), we can navigate even if latestPayment is not yet loaded
-    const isFinalStatus = paymentStatus === "successful" || paymentStatus === "completed" || 
-                          paymentStatus === "failed" || paymentStatus === "canceled";
-    
-    if (!isFinalStatus) {
-      // For non-final statuses, we need latestPayment to match
-      if (!latestPayment?.payment_reference) {
-        logger.log('[Payment] No payment reference in latestPayment (non-final status), skipping navigation');
-        return;
-      }
-      if (latestPayment.payment_reference !== currentTrxReference) {
-        logger.log('[Payment] Payment reference mismatch:', latestPayment.payment_reference, 'vs', currentTrxReference);
-        return;
-      }
-    } else {
-      // For final statuses, check if latestPayment exists and matches, or just use currentTrxReference
-      if (latestPayment?.payment_reference && latestPayment.payment_reference !== currentTrxReference) {
-        logger.log('[Payment] Payment reference mismatch (final status):', latestPayment.payment_reference, 'vs', currentTrxReference);
-        return;
-      }
-    }
-    
-    if (latestPayment?.has_seen_result === true) {
-      logger.log('[Payment] Payment already seen, skipping navigation');
-      return;
-    }
-    
-    logger.log('[Payment] All checks passed, processing status:', paymentStatus);
-
-    if (paymentStatus === "successful" || paymentStatus === "completed") {
-      logger.log('[Payment] Navigating to success page');
-      stopStatusCheck();
-      router.replace({
-        pathname: "/learn/[pdId]/payment-result",
-        params: {
-          pdId: pdId || "",
-          result: "success",
-          programName: programContext.programName,
-          programId: programContext.programId || "",
-          paymentReference: currentTrxReference,
-        },
-      });
-    } else if (paymentStatus === "failed") {
-      stopStatusCheck();
-      router.replace({
-        pathname: "/learn/[pdId]/payment-result",
-        params: {
-          pdId: pdId || "",
-          result: "failed",
-          programName: programContext.programName,
-          programId: programContext.programId || "",
-          paymentReference: currentTrxReference,
-          errorMessage: errorMessage || "Le paiement a échoué. Veuillez réessayer.",
-          authorizationUrl: authorizationUrl || undefined,
-        },
-      });
-    } else if (paymentStatus === "canceled") {
-      stopStatusCheck();
-      router.replace({
-        pathname: "/learn/[pdId]/payment-result",
-        params: {
-          pdId: pdId || "",
-          result: "canceled",
-          programName: programContext.programName,
-          programId: programContext.programId || "",
-          paymentReference: currentTrxReference,
-        },
-      });
-    }
-  }, [paymentStatus, programContext, errorMessage, authorizationUrl, currentTrxReference, currentState, shouldIgnoreOldStatus, latestPayment, pdId, router]);
-
-  // Handle authorization URL
-  useEffect(() => {
-    if (authorizationUrl) {
-      Linking.openURL(authorizationUrl);
-    }
-  }, [authorizationUrl]);
-
-  // Message rotation for verification
+  // Message rotation while verifying
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentMessageIndex((current) => (current + 1) % verificationMessages.length);
     }, MESSAGE_ROTATION_INTERVAL);
     return () => clearInterval(interval);
-  }, []);
+  }, [verificationMessages.length]);
 
-  // Status check functions
-  const startStatusCheck = (reference: string) => {
-    if (statusCheckInterval) return;
+  // Cleanup polling on unmount
+  useEffect(() => () => stopPolling(), []);
 
-    const interval = setInterval(async () => {
-      const result = await verifyPaymentStatus(reference);
+  // --- Event handlers -------------------------------------------------------
 
-      if (result?.transaction?.status) {
-        const status = result.transaction.status === "complete" ? "completed" : result.transaction.status;
-        if (isFinalStatus(status)) {
-          stopStatusCheck();
-          await mutateUserPrograms();
-          await mutateProgramAccessMap();
-        }
-      }
-    }, 5000);
-
-    setStatusCheckInterval(interval);
-  };
-
-  const stopStatusCheck = () => {
-    if (statusCheckInterval) {
-      clearInterval(statusCheckInterval);
-      setStatusCheckInterval(null);
-    }
-  };
-
-  // Event handlers
   const handleContinueFromInstructions = () => {
     setCurrentState(PaymentFlowState.PAYMENT_OPTIONS);
   };
 
+  // First payment — full price OR first of 2 installments.
   const handlePayment = async (paymentData: {
     phoneNumber: string;
     promoCode: string;
@@ -348,133 +260,177 @@ const ProgramPaymentPage = () => {
     isInstallment: boolean;
     totalInstallments: number;
   }) => {
+    const { phoneNumber, promoCodeDetails, isInstallment, totalInstallments } = paymentData;
+
+    if (!CM_PHONE_REGEX.test(phoneNumber)) {
+      setErrorMessage("Numéro invalide. Utilisez un numéro MTN ou Orange (ex: 650123456).");
+      setCurrentState(PaymentFlowState.FAILED);
+      return;
+    }
+    if (!programContext.programId) {
+      setErrorMessage("Programme introuvable. Réessayez.");
+      setCurrentState(PaymentFlowState.FAILED);
+      return;
+    }
+
     trigger(HapticType.MEDIUM);
-    setCurrentState(PaymentFlowState.PROCESSING);
     setErrorMessage(null);
+    setCurrentState(PaymentFlowState.PROCESSING);
 
     try {
-      const normalizedTotalInstallments = paymentData.isInstallment ? 2 : 1;
-      let amount = paymentData.isInstallment
-        ? Math.ceil(programContext.programPrice / normalizedTotalInstallments)
-        : programContext.programPrice;
+      const depositId = Crypto.randomUUID();
+      const fullPrice = programContext.programPrice;
+      const baseAmount = isInstallment ? Math.ceil(fullPrice / totalInstallments) : fullPrice;
+      const amount = __DEV__ ? DEV_TEST_AMOUNT : baseAmount;
+      const totalAmount = isInstallment ? (__DEV__ ? DEV_TEST_AMOUNT * totalInstallments : fullPrice) : undefined;
 
-      if (paymentData.promoCodeDetails) {
-        const discountAmount = Math.ceil(
-          (amount * paymentData.promoCodeDetails.discount_percentage) / 100
-        );
-        amount = amount - discountAmount;
-      }
-
-      const result = await initiateDirectPayment(
-        programContext.programId!,
-        paymentData.phoneNumber.trim(),
+      // 1. Create the pending payment row (server requires it before charging;
+      //    the DB trigger turns a completed program payment into an enrollment).
+      const payment = await ProgramPaymentService.createPayment(
+        programContext.programId,
+        phoneNumber,
         amount,
-        paymentData.promoCodeDetails?.id,
-        paymentData.isInstallment,
-        normalizedTotalInstallments,
-        1
+        depositId,
+        promoCodeDetails?.id ?? null,
+        isInstallment,
+        isInstallment ? totalInstallments : 1,
+        1,
+        totalAmount
       );
+      setPaymentRowId(payment.id);
 
-      const payment = "payment" in result ? result.payment : result;
-      if (payment && payment.payment_reference) {
-        setShouldIgnoreOldStatus(false);
-        setCurrentTrxReference(payment.payment_reference);
-        setCurrentState(PaymentFlowState.VERIFYING);
-        startStatusCheck(payment.payment_reference);
-      } else {
+      // 2. Initiate the PawaPay deposit (PIN prompt on the customer's phone).
+      const result = await PawaPayService.initiateDeposit({
+        depositId,
+        phoneNumber,
+        amount,
+        customerMessage: "Elearn Prepa",
+      });
+
+      if (!result.ok) {
+        const code = (result.failureReason as { failureCode?: string })?.failureCode;
+        setErrorMessage(
+          code ? pawapayFailureMessage(code) : result.error || "Le paiement n'a pas pu être initié. Réessayez."
+        );
         setCurrentState(PaymentFlowState.FAILED);
-        setErrorMessage("Impossible d'initier le paiement. Veuillez réessayer.");
+        if (payment.id) ProgramPaymentService.setStatus(payment.id, "failed").catch(() => {});
+        return;
       }
+
+      // 3. Accepted → poll for the final status.
+      setCurrentTrxReference(depositId);
+      setShouldIgnoreOldStatus(false);
+      setCurrentState(PaymentFlowState.VERIFYING);
+      startPawaPayPolling(depositId);
     } catch (error) {
-      logger.error("Payment initiation error:", error);
+      logger.error("[Payment] initiation error:", error);
+      setErrorMessage(error instanceof Error ? error.message : "Une erreur est survenue lors du paiement.");
       setCurrentState(PaymentFlowState.FAILED);
-      setErrorMessage(error instanceof Error ? error.message : "Une erreur est survenue lors du paiement");
     }
   };
 
+  // Subsequent installment payment.
   const handleNextPayment = async (phoneNumber: string) => {
+    const parent = programContext.installmentPayment;
+
+    if (!CM_PHONE_REGEX.test(phoneNumber)) {
+      setErrorMessage("Numéro invalide. Utilisez un numéro MTN ou Orange (ex: 650123456).");
+      setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
+      return;
+    }
+    if (!parent || !programContext.programId) {
+      setErrorMessage("Impossible de retrouver le plan de paiement. Contactez le support.");
+      setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
+      return;
+    }
+
     trigger(HapticType.MEDIUM);
-    setCurrentState(PaymentFlowState.NEXT_PAYMENT_PROCESSING);
     setErrorMessage(null);
+    setCurrentState(PaymentFlowState.NEXT_PAYMENT_PROCESSING);
 
     try {
-      const amount = programContext.installmentPayment?.amount || programContext.programPrice;
+      const depositId = Crypto.randomUUID();
+      const total = parent.total_installments ?? 2;
+      const nextNum = (parent.current_installment ?? 1) + 1;
+      const fullTotal = parent.total_amount ?? programContext.programPrice;
+      const baseAmount = Math.ceil(fullTotal / total);
+      const amount = __DEV__ ? DEV_TEST_AMOUNT : baseAmount;
+      const trueParentId = parent.parent_payment_id || parent.id;
 
-      let nextInstallationStartDate = new Date();
-      if (programContext.installmentPayment?.next_payment_due_date) {
-        const nextDueDate = new Date(programContext.installmentPayment.next_payment_due_date);
-        if (nextDueDate > new Date()) {
-          nextInstallationStartDate = nextDueDate;
-        }
-      }
-
-      const result = await initiateDirectPayment(
-        programContext.programId!,
-        phoneNumber.trim(),
+      const payment = await ProgramPaymentService.createPayment(
+        programContext.programId,
+        phoneNumber,
         amount,
-        undefined,
+        depositId,
+        null,
         true,
-        programContext.installmentPayment?.total_installments || 1,
-        (programContext.installmentPayment?.current_installment || 1) + 1,
-        nextInstallationStartDate
+        total,
+        nextNum,
+        fullTotal,
+        trueParentId ?? undefined
       );
+      setPaymentRowId(payment.id);
 
-      const paymentRef = "payment_reference" in result ? result.payment_reference : 
-                         "trxReference" in result ? (result as unknown as { trxReference: string }).trxReference : undefined;
-      
-      if (paymentRef) {
-        setShouldIgnoreOldStatus(false);
-        setCurrentTrxReference(paymentRef);
-        setCurrentState(PaymentFlowState.NEXT_PAYMENT_VERIFYING);
-        startStatusCheck(paymentRef);
-      } else {
+      const result = await PawaPayService.initiateDeposit({
+        depositId,
+        phoneNumber,
+        amount,
+        customerMessage: "Elearn Prepa",
+      });
+
+      if (!result.ok) {
+        const code = (result.failureReason as { failureCode?: string })?.failureCode;
+        setErrorMessage(
+          code ? pawapayFailureMessage(code) : result.error || "Le paiement n'a pas pu être initié. Réessayez."
+        );
         setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
-        setErrorMessage("Impossible d'initier le paiement. Veuillez réessayer.");
+        if (payment.id) ProgramPaymentService.setStatus(payment.id, "failed").catch(() => {});
+        return;
       }
+
+      setCurrentTrxReference(depositId);
+      setShouldIgnoreOldStatus(false);
+      setCurrentState(PaymentFlowState.NEXT_PAYMENT_VERIFYING);
+      startPawaPayPolling(depositId);
     } catch (error) {
-      logger.error("Next payment initiation error:", error);
+      logger.error("[Payment] next installment error:", error);
+      setErrorMessage(error instanceof Error ? error.message : "Une erreur est survenue lors du paiement.");
       setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
-      setErrorMessage(error instanceof Error ? error.message : "Une erreur est survenue lors du paiement");
     }
   };
 
   const handleCancelPayment = async () => {
-    if (currentTrxReference) {
-      try {
-        setShouldIgnoreOldStatus(true);
-        await cancelPayment();
-        stopStatusCheck();
-        setCurrentTrxReference(null);
-
-        if (programContext.hasCompletedFirstInstallment) {
-          setCurrentState(PaymentFlowState.INSTALLMENT_DETAILS);
-        } else {
-          setCurrentState(PaymentFlowState.CANCELED);
-        }
-      } catch (error) {
-        logger.error("Error canceling payment:", error);
+    setShouldIgnoreOldStatus(true);
+    stopPolling();
+    try {
+      if (paymentRowId) {
+        await ProgramPaymentService.setStatus(paymentRowId, "canceled").catch(() => {});
+      } else {
+        await cancelPayment().catch(() => {});
       }
+    } catch (error) {
+      logger.error("Error canceling payment:", error);
     }
+    setCurrentTrxReference(null);
+    setCurrentState(
+      programContext.hasCompletedFirstInstallment
+        ? PaymentFlowState.INSTALLMENT_DETAILS
+        : PaymentFlowState.CANCELED
+    );
   };
 
-  const handlePayNextInstallment = () => {
-    setCurrentState(PaymentFlowState.NEXT_PAYMENT_OPTIONS);
-  };
+  const handlePayNextInstallment = () => setCurrentState(PaymentFlowState.NEXT_PAYMENT_OPTIONS);
+  const handleBack = () => router.back();
 
-  const handleBack = () => {
-    router.back();
-  };
+  // --- Render ---------------------------------------------------------------
 
-  // Render content based on current state
   const renderContent = () => {
     switch (currentState) {
       case PaymentFlowState.LOADING:
         return (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={isDark ? "#6EE7B7" : "#4CAF50"} />
-            <ThemedText style={styles.loadingText}>
-              Chargement des informations de paiement...
-            </ThemedText>
+            <ThemedText style={styles.loadingText}>Chargement des informations de paiement...</ThemedText>
           </View>
         );
 
@@ -533,6 +489,7 @@ const ProgramPaymentPage = () => {
         );
 
       case PaymentFlowState.VERIFYING:
+      case PaymentFlowState.NEXT_PAYMENT_VERIFYING:
         return (
           <PaymentProcessing
             state="verifying"
@@ -542,14 +499,37 @@ const ProgramPaymentPage = () => {
           />
         );
 
-      case PaymentFlowState.NEXT_PAYMENT_VERIFYING:
+      case PaymentFlowState.FAILED:
+      case PaymentFlowState.NEXT_PAYMENT_FAILED:
+      case PaymentFlowState.CANCELED:
         return (
-          <PaymentProcessing
-            state="verifying"
-            isDark={isDark}
-            currentMessage={verificationMessages[currentMessageIndex]}
-            onCancel={handleCancelPayment}
-          />
+          <View style={styles.failedContainer}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={64} color={isDark ? "#F87171" : "#EF4444"} />
+            <ThemedText style={styles.failedTitle}>Paiement échoué</ThemedText>
+            <ThemedText style={styles.failedDescription}>
+              {errorMessage || "Le paiement a échoué ou a été annulé. Veuillez réessayer."}
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: isDark ? theme.color.primary[600] : theme.color.primary[500] }]}
+              onPress={() => {
+                setErrorMessage(null);
+                setCurrentState(
+                  currentState === PaymentFlowState.NEXT_PAYMENT_FAILED
+                    ? PaymentFlowState.NEXT_PAYMENT_OPTIONS
+                    : PaymentFlowState.PAYMENT_OPTIONS
+                );
+              }}
+            >
+              <ThemedText style={styles.retryButtonText}>Réessayer</ThemedText>
+            </TouchableOpacity>
+            <WhatsAppContact
+              message={`Bonjour, j'ai un souci de paiement pour le programme ${programContext.programName}. Pouvez-vous m'aider ?`}
+              style={{ marginTop: 16, width: "100%" }}
+            />
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <ThemedText style={[styles.backButtonText, isDark && styles.backButtonTextDark]}>Retour</ThemedText>
+            </TouchableOpacity>
+          </View>
         );
 
       case PaymentFlowState.INSTALLMENT_DETAILS:
@@ -577,24 +557,11 @@ const ProgramPaymentPage = () => {
     }
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (statusCheckInterval) {
-        clearInterval(statusCheckInterval);
-      }
-    };
-  }, [statusCheckInterval]);
-
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       <View style={[styles.header, isDark && styles.headerDark]}>
         <TouchableOpacity style={styles.backButtonHeader} onPress={handleBack}>
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={24}
-            color={isDark ? "#FFFFFF" : "#111827"}
-          />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={isDark ? "#FFFFFF" : "#111827"} />
         </TouchableOpacity>
         <ThemedText style={styles.headerTitle}>Paiement du programme</ThemedText>
         <View style={{ width: 24 }} />
@@ -651,6 +618,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 16,
     color: "#6B7280",
+  },
+  failedContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+    minHeight: 400,
+  },
+  failedTitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 22,
+    fontWeight: "700",
+    marginTop: 20,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  failedDescription: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 15,
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  retryButton: {
+    marginTop: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  backButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+  },
+  backButtonText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 16,
+    color: "#6B7280",
+  },
+  backButtonTextDark: {
+    color: "#9CA3AF",
   },
 });
 
