@@ -1,6 +1,7 @@
 ﻿import { supabase } from '@/lib/supabase';
 import { logger } from '@/utils/logger';
 import { Payments } from '@/types/type';
+import { isOrangeNumber } from '@/constants/payment.constants';
 
 export const PaymentService = {
     async createPayment(
@@ -18,7 +19,7 @@ export const PaymentService = {
                 amount,
                 status: '',
                 phone_number: phoneNumber,
-                payment_provider: phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'orange' : 'mtn',
+                payment_provider: isOrangeNumber(phoneNumber) ? 'orange' : 'mtn',
                 trx_reference,
                 promo_code_id: promoCodeId // Add promo code ID to the payment record
             })

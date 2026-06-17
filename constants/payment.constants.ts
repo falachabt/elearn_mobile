@@ -96,9 +96,18 @@ export const STORAGE_KEYS = {
 // Phone number validation
 export const PHONE_NUMBER_REGEX = /^(6[4-9]\d{7})$/;
 export const PHONE_NUMBER_PROVIDERS = {
-  ORANGE_PREFIXES: ['64', '655'],
-  MTN_PREFIX: '67',
+  // Orange Cameroun : 655–659 et 69x
+  ORANGE_PREFIXES: ['655', '656', '657', '658', '659', '69'],
+  // MTN Cameroun : 650–654, 67x, 68x
+  MTN_PREFIXES: ['650', '651', '652', '653', '654', '67', '68'],
 } as const;
+
+/** Retourne true si le numéro (9 chiffres, sans indicatif) appartient à Orange Cameroun. */
+export function isOrangeNumber(phone: string): boolean {
+  return PHONE_NUMBER_PROVIDERS.ORANGE_PREFIXES.some((prefix) =>
+    phone.startsWith(prefix)
+  );
+}
 
 // Helper functions for constants
 export const getStatusColor = (status: PaymentStatus): string => {

@@ -4,6 +4,7 @@ import { logger } from '@/utils/logger';
 import { PaymentService } from "@/services/payment.service";
 import { Payments } from "@/types/type";
 import { NotchPayService } from "@/lib/notchpay";
+import { isOrangeNumber } from '@/constants/payment.constants';
 
 export const usePayment = () => {
   const [paymentStatus, setPaymentStatus] = useState("");
@@ -71,7 +72,7 @@ export const usePayment = () => {
       const notchpay = new NotchPayService();
       const result = await notchpay.initiateDirectCharge({
         phone: phoneNumber,
-        channel: network === 'orange' ? 'cm.orange' : 'cm.mtn',
+        channel: isOrangeNumber(phoneNumber) ? 'cm.orange' : 'cm.mtn',
         currency: 'XAF',
         amount: amount,
         customer: {

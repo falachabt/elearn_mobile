@@ -3,6 +3,7 @@ import { NotchPayService } from '@/lib/notchpay';
 import { PURCHASE_VALIDITY_DAYS } from '@/utils/pricing';
 import { logger } from '@/utils/logger';
 import { posthogService } from '@/utils/posthogService';
+import { isOrangeNumber } from '@/constants/payment.constants';
 import type { ProgramPayment as ProgramPaymentRecord } from '@/types/payment.types';
 import type { Database } from '@/types/supabase';
 
@@ -194,7 +195,7 @@ export const ProgramPaymentService = {
     const notchpay = new NotchPayService();
     const result = await notchpay.initiateDirectCharge({
       phone: phoneNumber,
-      channel: phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'cm.orange' : 'cm.mtn',
+      channel: isOrangeNumber(phoneNumber) ? 'cm.orange' : 'cm.mtn',
       currency: 'XAF',
       amount: nextInstallmentAmount,
       customer: {
@@ -350,7 +351,7 @@ export const ProgramPaymentService = {
         amount,
         payment_status: 'pending',
         phone_number: phoneNumber,
-        payment_provider: phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'orange' : 'mtn',
+        payment_provider: isOrangeNumber(phoneNumber) ? 'orange' : 'mtn',
         payment_reference: trx_reference,
         promo_code_id: promoCodeId,
         payment_date: paymentDate.toISOString(),
@@ -375,7 +376,7 @@ export const ProgramPaymentService = {
       'program',
       programId,
       amount,
-      phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'orange' : 'mtn'
+      isOrangeNumber(phoneNumber) ? 'orange' : 'mtn'
     );
 
     return payment;
@@ -845,7 +846,7 @@ export const ProgramPaymentService = {
               'program',
               String(payment.program_id),
               payment.amount,
-              (payment.phone_number ?? '').startsWith('64') || (payment.phone_number ?? '').startsWith('655') ? 'orange' : 'mtn'
+              isOrangeNumber(payment.phone_number ?? '') ? 'orange' : 'mtn'
             );
             // If this is an installment payment, update the parent payment
             if (payment.is_installment) {
