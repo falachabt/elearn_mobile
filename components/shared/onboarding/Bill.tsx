@@ -411,7 +411,6 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
                     currentCart.id,
                     phoneNumber,
                     calculateFinalTotal(), // Use the final discounted total
-                    network,
                     promoCodeDetails?.id // Pass the promo code ID if available
                 );
 

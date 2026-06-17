@@ -61,7 +61,6 @@ export const usePayment = () => {
       cartId: string,
       phoneNumber: string,
       amount: number,
-      network: 'mtn' | 'orange',
       promoCodeId?: string
   ) => {
     setLoading(true);
