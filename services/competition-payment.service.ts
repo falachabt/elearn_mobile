@@ -2,6 +2,7 @@
 import { logger } from '@/utils/logger';
 import { NotchPayService } from '@/lib/notchpay';
 import type { Database } from '@/types/supabase';
+import { isOrangeNumber } from '@/constants/payment.constants';
 
 export type CompetitionPayment = Database['public']['Tables']['user_competition_payments']['Row'];
 
@@ -46,7 +47,7 @@ export const CompetitionPaymentService = {
         expiry_date: expiry.toISOString(),
         payment_status: 'pending',
         phone_number: phoneNumber,
-        payment_provider: phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'orange' : 'mtn',
+        payment_provider: isOrangeNumber(phoneNumber) ? 'orange' : 'mtn',
         payment_reference: trx_reference,
         promo_code_id: promoCodeId
       })
@@ -177,7 +178,7 @@ export const CompetitionPaymentService = {
   ) {
     try {
       const notchpay = new NotchPayService();
-      const network = phoneNumber.startsWith('64') || phoneNumber.startsWith('655') ? 'orange' : 'mtn';
+      const network = isOrangeNumber(phoneNumber) ? 'orange' : 'mtn';
 
       const result = await notchpay.initiateDirectCharge({
         phone: phoneNumber,
