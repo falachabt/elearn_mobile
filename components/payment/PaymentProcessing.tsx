@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import LottieView from "lottie-react-native";
 
@@ -16,6 +17,7 @@ interface PaymentProcessingProps {
   state: "processing" | "verifying";
   isDark: boolean;
   currentMessage?: string;
+  checkoutUrl?: string | null;
   onCancel: () => void;
 }
 
@@ -23,8 +25,15 @@ export const PaymentProcessing: FC<PaymentProcessingProps> = ({
   state,
   isDark,
   currentMessage,
+  checkoutUrl,
   onCancel,
 }) => {
+  const handleOpenCheckout = () => {
+    if (checkoutUrl) {
+      void Linking.openURL(checkoutUrl);
+    }
+  };
+
   if (state === "processing") {
     return (
       <View style={styles.processingContainer}>
@@ -75,6 +84,11 @@ export const PaymentProcessing: FC<PaymentProcessingProps> = ({
       <ThemedText style={styles.verifyingMessage}>
         {currentMessage || "En attente de validation sur votre téléphone..."}
       </ThemedText>
+      {checkoutUrl ? (
+        <TouchableOpacity style={styles.checkoutButton} onPress={handleOpenCheckout}>
+          <Text style={styles.checkoutButtonText}>Ouvrir la page de paiement</Text>
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
         <Text style={styles.cancelButtonText}>Annuler</Text>
       </TouchableOpacity>
@@ -115,6 +129,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.color.error,
     fontWeight: "500",
+  },
+  checkoutButton: {
+    marginTop: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: theme.color.primary[500],
+    borderRadius: 8,
+  },
+  checkoutButtonText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 16,
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
   verifyingContainer: {
     flex: 1,

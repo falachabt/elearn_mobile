@@ -1,4 +1,4 @@
-﻿import React, {useState, useEffect, useCallback, useMemo, memo} from "react";
+import React, {useState, useEffect, useCallback, useMemo, memo} from "react";
 import {
     View,
     StyleSheet,
@@ -97,19 +97,24 @@ const MixedContentRenderer = memo(({
     const containerWidth = customWidth || SCREEN_WIDTH;
 
     // Detect if text contains math expressions
-    const hasMath = String(text)?.includes('$$');
+    // Detect if text contains math expressions (both $$ and unescaped $)
+    const hasMath = /(?<!\\)\$/.test(String(text));
 
     // Hooks are now always called, regardless of conditions
     const convertToLatexExpression = useCallback((mixedText: string) => {
         const tempMarker = "___DOLLAR___";
         const processedText = mixedText.replace(/\\\$/g, tempMarker);
 
-        const segments = processedText.split(/(\$\$[^$]+\$\$)/g);
+        // Split by $$...$$ or $...$
+        const segments = processedText.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g);
 
         let latexExpression = '';
         segments.forEach((segment: string) => {
             if (segment.startsWith('$$') && segment.endsWith('$$')) {
                 const formula = segment.slice(2, -2);
+                latexExpression += formula + ' ';
+            } else if (segment.startsWith('$') && segment.endsWith('$') && segment.length >= 2) {
+                const formula = segment.slice(1, -1);
                 latexExpression += formula + ' ';
             } else if (segment.trim()) {
                 const escapedText = segment

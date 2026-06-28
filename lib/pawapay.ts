@@ -21,6 +21,9 @@ export interface PawaPayDepositResult {
   status?: "accepted" | "rejected";
   depositId?: string;
   provider?: string;
+  processor?: "pawapay" | "geniuspay";
+  checkoutUrl?: string;
+  authorizationUrl?: string;
   failureReason?: { failureCode?: string; failureMessage?: string } | unknown;
   error?: string;
 }
@@ -79,6 +82,10 @@ const PAWAPAY_FAILURE_FALLBACK =
 export function pawapayFailureMessage(code?: string | null): string {
   if (!code) return PAWAPAY_FAILURE_FALLBACK;
   return PAWAPAY_FAILURE_MESSAGES[code] ?? PAWAPAY_FAILURE_FALLBACK;
+}
+
+export function pawapayCheckoutUrl(result?: PawaPayDepositResult | null): string | null {
+  return result?.checkoutUrl || result?.authorizationUrl || null;
 }
 
 export const PawaPayService = {

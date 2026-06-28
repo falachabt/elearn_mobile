@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, TouchableOpacity, ActivityIndicator, useColorScheme, ScrollView, StyleSheet } from "react-native";
+import { View, TouchableOpacity, ActivityIndicator, useColorScheme, ScrollView, StyleSheet, Linking } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Crypto from "expo-crypto";
@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { useUser } from "@/contexts/useUserInfo";
 import { logger } from "@/utils/logger";
 import { ProgramPaymentService } from "@/services/program-payment.service";
-import { PawaPayService, pawapayFailureMessage } from "@/lib/pawapay";
+import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from "@/lib/pawapay";
 import {
   PaymentInstructions,
   PaymentOptions,
@@ -69,6 +69,7 @@ const ProgramPaymentPage = () => {
 
   const [currentTrxReference, setCurrentTrxReference] = useState<string | null>(null);
   const [paymentRowId, setPaymentRowId] = useState<string | null>(null);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [shouldIgnoreOldStatus, setShouldIgnoreOldStatus] = useState(latestPayment?.has_seen_result === true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -85,6 +86,13 @@ const ProgramPaymentPage = () => {
       clearInterval(pollRef.current);
       pollRef.current = null;
     }
+  };
+
+  const openCheckoutUrl = (url: string | null) => {
+    if (!url) return;
+    Linking.openURL(url).catch((error) => {
+      logger.error("[Payment] unable to open checkout URL:", error);
+    });
   };
 
   // Navigate to the result screen (success | failed | canceled).
@@ -275,6 +283,7 @@ const ProgramPaymentPage = () => {
 
     trigger(HapticType.MEDIUM);
     setErrorMessage(null);
+    setCheckoutUrl(null);
     setCurrentState(PaymentFlowState.PROCESSING);
 
     try {
@@ -317,6 +326,10 @@ const ProgramPaymentPage = () => {
         return;
       }
 
+      const nextCheckoutUrl = pawapayCheckoutUrl(result);
+      setCheckoutUrl(nextCheckoutUrl);
+      openCheckoutUrl(nextCheckoutUrl);
+
       // 3. Accepted → poll for the final status.
       setCurrentTrxReference(depositId);
       setShouldIgnoreOldStatus(false);
@@ -346,6 +359,7 @@ const ProgramPaymentPage = () => {
 
     trigger(HapticType.MEDIUM);
     setErrorMessage(null);
+    setCheckoutUrl(null);
     setCurrentState(PaymentFlowState.NEXT_PAYMENT_PROCESSING);
 
     try {
@@ -388,6 +402,10 @@ const ProgramPaymentPage = () => {
         return;
       }
 
+      const nextCheckoutUrl = pawapayCheckoutUrl(result);
+      setCheckoutUrl(nextCheckoutUrl);
+      openCheckoutUrl(nextCheckoutUrl);
+
       setCurrentTrxReference(depositId);
       setShouldIgnoreOldStatus(false);
       setCurrentState(PaymentFlowState.NEXT_PAYMENT_VERIFYING);
@@ -412,6 +430,7 @@ const ProgramPaymentPage = () => {
       logger.error("Error canceling payment:", error);
     }
     setCurrentTrxReference(null);
+    setCheckoutUrl(null);
     setCurrentState(
       programContext.hasCompletedFirstInstallment
         ? PaymentFlowState.INSTALLMENT_DETAILS
@@ -495,6 +514,7 @@ const ProgramPaymentPage = () => {
             state="verifying"
             isDark={isDark}
             currentMessage={verificationMessages[currentMessageIndex]}
+            checkoutUrl={checkoutUrl}
             onCancel={handleCancelPayment}
           />
         );
@@ -513,6 +533,7 @@ const ProgramPaymentPage = () => {
               style={[styles.retryButton, { backgroundColor: isDark ? theme.color.primary[600] : theme.color.primary[500] }]}
               onPress={() => {
                 setErrorMessage(null);
+                setCheckoutUrl(null);
                 setCurrentState(
                   currentState === PaymentFlowState.NEXT_PAYMENT_FAILED
                     ? PaymentFlowState.NEXT_PAYMENT_OPTIONS

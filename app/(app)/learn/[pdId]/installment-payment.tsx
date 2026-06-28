@@ -6,6 +6,7 @@ import {
   useColorScheme,
   StyleSheet,
   Alert,
+  Linking,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -18,7 +19,7 @@ import { logger } from "@/utils/logger";
 import * as Crypto from "expo-crypto";
 
 import { ProgramPaymentService } from "@/services/program-payment.service";
-import { PawaPayService, pawapayFailureMessage } from "@/lib/pawapay";
+import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from "@/lib/pawapay";
 import { ProgramPayment, PaymentFlowState } from "@/types/payment.types";
 import { InstallmentDetails, NextPaymentOptions, PaymentProcessing } from "@/components/payment";
 import { useUser } from "@/contexts/useUserInfo";
@@ -46,6 +47,7 @@ const InstallmentPaymentPage = () => {
   const [installmentPayment, setInstallmentPayment] = useState<ProgramPayment | null>(null);
   const [currentState, setCurrentState] = useState<PaymentFlowState>(PaymentFlowState.INSTALLMENT_DETAILS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
   // Load program and installment data
@@ -120,6 +122,7 @@ const InstallmentPaymentPage = () => {
   // Handle back navigation
   const handleBack = () => {
     trigger(HapticType.LIGHT);
+    setCheckoutUrl(null);
     
     if (currentState === PaymentFlowState.INSTALLMENT_DETAILS) {
       router.back();
@@ -142,6 +145,7 @@ const InstallmentPaymentPage = () => {
 
     setCurrentState(PaymentFlowState.NEXT_PAYMENT_PROCESSING);
     setErrorMessage(null);
+    setCheckoutUrl(null);
 
     try {
       const depositId = Crypto.randomUUID();
@@ -183,6 +187,14 @@ const InstallmentPaymentPage = () => {
         setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
         if (payment.id) ProgramPaymentService.setStatus(payment.id, "failed").catch(() => {});
         return;
+      }
+
+      const nextCheckoutUrl = pawapayCheckoutUrl(result);
+      setCheckoutUrl(nextCheckoutUrl);
+      if (nextCheckoutUrl) {
+        Linking.openURL(nextCheckoutUrl).catch((error) => {
+          logger.error("[InstallmentPayment] unable to open checkout URL:", error);
+        });
       }
 
       // 3. Poll for the final status.
@@ -274,6 +286,7 @@ const InstallmentPaymentPage = () => {
   const handleRetryPayment = () => {
     trigger(HapticType.LIGHT);
     setCurrentState(PaymentFlowState.NEXT_PAYMENT_OPTIONS);
+    setCheckoutUrl(null);
     setErrorMessage(null);
   };
 
@@ -383,6 +396,7 @@ const InstallmentPaymentPage = () => {
                 ? "En attente de validation. Confirmez avec votre code PIN Mobile Money..."
                 : undefined
             }
+            checkoutUrl={checkoutUrl}
             onCancel={handleBack}
           />
         );

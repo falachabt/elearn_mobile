@@ -87,21 +87,20 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                     const params = Object.fromEntries(parsedURL.searchParams.entries());
 
                     // Redirect to the payment callback page with the parameters
-                    if(params?.status === "complete"){
-                    // Navigate to the payment callback page
-
-                    router.replace({
-                        pathname: "/(callbacks)/payment",
-                    });
-
-                    }else {
-                    router.replace({
-                        pathname: "/(callbacks)/payment_failed"
-                    });
-
+                    if (params?.status === "pending") {
+                        return;
                     }
 
-
+                    if (params?.status === "complete" || params?.status === "completed") {
+                        // Navigate to the payment callback page
+                        router.replace({
+                            pathname: "/(callbacks)/payment",
+                        });
+                    } else {
+                        router.replace({
+                            pathname: "/(callbacks)/payment_failed"
+                        });
+                    }
 
                 } catch (error) {
                     logger.error('Error processing payment callback:', error);

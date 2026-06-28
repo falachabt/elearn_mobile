@@ -24,7 +24,7 @@ import { theme } from '@/constants/theme';
 import { useCompetitionPayment } from '@/hooks/useCompetitionPayment';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { CompetitionPaymentService } from '@/services/competition-payment.service';
-import { PawaPayService, pawapayFailureMessage } from '@/lib/pawapay';
+import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from '@/lib/pawapay';
 import WhatsAppContact from '@/components/WhatsappSupport';
 
 interface CompetitionPaymentBottomSheetProps {
@@ -65,6 +65,7 @@ export const CompetitionPaymentBottomSheet = ({
   const [processingState, setProcessingState] = useState<'idle' | 'processing' | 'verifying' | 'success' | 'failed' | 'canceled' | 'existing_payment'>('idle');
   const [currentTrxReference, setCurrentTrxReference] = useState<string | null>(null);
   const [paymentRowId, setPaymentRowId] = useState<string | null>(null);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [isStatusCheckActive, setIsStatusCheckActive] = useState(false);
   const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -300,6 +301,7 @@ export const CompetitionPaymentBottomSheet = ({
     }
 
     setErrorMessage(null);
+    setCheckoutUrl(null);
     setProcessingState('processing');
     trigger(HapticType.MEDIUM);
 
@@ -335,6 +337,14 @@ export const CompetitionPaymentBottomSheet = ({
           CompetitionPaymentService.setStatus(payment.id, 'failed').catch(() => {});
         }
         return;
+      }
+
+      const nextCheckoutUrl = pawapayCheckoutUrl(result);
+      setCheckoutUrl(nextCheckoutUrl);
+      if (nextCheckoutUrl) {
+        Linking.openURL(nextCheckoutUrl).catch((error) => {
+          logger.error('[PaymentSheet] unable to open checkout URL:', error);
+        });
       }
 
       // 3. Deposit accepted → verify by polling the server (the verification effect below).
@@ -391,6 +401,7 @@ export const CompetitionPaymentBottomSheet = ({
     setProcessingState('idle');
     setCurrentTrxReference(null);
     setPaymentRowId(null);
+    setCheckoutUrl(null);
     setIsStatusCheckActive(false);
     setErrorMessage(null);
     setShouldIgnoreOldStatus(false);
@@ -443,6 +454,7 @@ export const CompetitionPaymentBottomSheet = ({
       setProcessingState('idle');
       setErrorMessage(null);
       setCurrentTrxReference(null);
+      setCheckoutUrl(null);
       
       // Don't reload payment here - it will be reloaded when user initiates new payment
     } catch (error) {
@@ -692,10 +704,10 @@ export const CompetitionPaymentBottomSheet = ({
                 {verificationMessages[currentMessageIndex]}
               </Text>
 
-            {authorizationUrl  && (
+            {(checkoutUrl || authorizationUrl) && (
               <TouchableOpacity
                 style={styles.fallbackButton}
-                onPress={() => Linking.openURL(authorizationUrl)}
+                onPress={() => Linking.openURL(checkoutUrl || authorizationUrl || '')}
               >
                 <MaterialCommunityIcons name="open-in-new" size={20} color="#FFFFFF" />
                 <Text style={styles.fallbackButtonText}>Ouvrir la page de paiement</Text>
