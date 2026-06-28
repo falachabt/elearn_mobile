@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Linking,
+  Platform,
 } from "react-native";
 import LottieView from "lottie-react-native";
 
@@ -30,7 +31,11 @@ export const PaymentProcessing: FC<PaymentProcessingProps> = ({
 }) => {
   const handleOpenCheckout = () => {
     if (checkoutUrl) {
-      void Linking.openURL(checkoutUrl);
+      if (Platform.OS === 'web') {
+        window.location.href = checkoutUrl;
+      } else {
+        void Linking.openURL(checkoutUrl);
+      }
     }
   };
 

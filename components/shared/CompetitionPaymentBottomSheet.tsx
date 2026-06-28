@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -342,9 +342,13 @@ export const CompetitionPaymentBottomSheet = ({
       const nextCheckoutUrl = pawapayCheckoutUrl(result);
       setCheckoutUrl(nextCheckoutUrl);
       if (nextCheckoutUrl) {
-        Linking.openURL(nextCheckoutUrl).catch((error) => {
-          logger.error('[PaymentSheet] unable to open checkout URL:', error);
-        });
+        if (Platform.OS === 'web') {
+          window.location.href = nextCheckoutUrl;
+        } else {
+          Linking.openURL(nextCheckoutUrl).catch((error) => {
+            logger.error('[PaymentSheet] unable to open checkout URL:', error);
+          });
+        }
       }
 
       // 3. Deposit accepted → verify by polling the server (the verification effect below).
@@ -707,7 +711,14 @@ export const CompetitionPaymentBottomSheet = ({
             {(checkoutUrl || authorizationUrl) && (
               <TouchableOpacity
                 style={styles.fallbackButton}
-                onPress={() => Linking.openURL(checkoutUrl || authorizationUrl || '')}
+                onPress={() => {
+                  const targetUrl = checkoutUrl || authorizationUrl || '';
+                  if (Platform.OS === 'web') {
+                    window.location.href = targetUrl;
+                  } else {
+                    Linking.openURL(targetUrl);
+                  }
+                }}
               >
                 <MaterialCommunityIcons name="open-in-new" size={20} color="#FFFFFF" />
                 <Text style={styles.fallbackButtonText}>Ouvrir la page de paiement</Text>

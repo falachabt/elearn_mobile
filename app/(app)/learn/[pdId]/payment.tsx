@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, TouchableOpacity, ActivityIndicator, useColorScheme, ScrollView, StyleSheet, Linking } from "react-native";
+import { View, TouchableOpacity, ActivityIndicator, useColorScheme, ScrollView, StyleSheet, Linking, Platform } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Crypto from "expo-crypto";
@@ -90,9 +90,13 @@ const ProgramPaymentPage = () => {
 
   const openCheckoutUrl = (url: string | null) => {
     if (!url) return;
-    Linking.openURL(url).catch((error) => {
-      logger.error("[Payment] unable to open checkout URL:", error);
-    });
+    if (Platform.OS === 'web') {
+      window.location.href = url;
+    } else {
+      Linking.openURL(url).catch((error) => {
+        logger.error("[Payment] unable to open checkout URL:", error);
+      });
+    }
   };
 
   // Navigate to the result screen (success | failed | canceled).
