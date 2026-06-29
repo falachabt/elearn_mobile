@@ -1,75 +1,155 @@
-import {Platform, TouchableOpacity, Text} from 'react-native'
-import * as AppleAuthentication from 'expo-apple-authentication'
-import axios from "axios";
+import React, { useState } from 'react';
+import { Alert, TouchableOpacity, Platform} from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 
 import {supabase} from "@/lib/supabase";
-import {useAuth} from "@/contexts/auth";
-import {ThemedText} from "@/components/ThemedText";
-import {useAppConfig} from "@/contexts/useAppConfig";
+import { logger } from '@/utils/logger';
 
-export function AppleLogin() {
-    const {setIsAccountCreating, signOut} = useAuth();
-    const {getApiBaseUrl} = useAppConfig();
-    const apiBaseUrl = getApiBaseUrl();
-    if (Platform.OS === 'ios')
-        return (
-            <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={12}
-                style={{flex: 1, height: 64}}
-                onPress={async () => {
-                    try {
-                        const credential = await AppleAuthentication.signInAsync({
-                            requestedScopes: [
-                                AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-                                AppleAuthentication.AppleAuthenticationScope.EMAIL,
-                            ],
-                        })
-                        // Sign in via Supabase Auth.
-                        if (credential.identityToken) {
-                            setIsAccountCreating(true);
-                            const {
-                                error,
-                                data: {user},
-                            } = await supabase.auth.signInWithIdToken({
-                                provider: 'apple',
-                                token: credential.identityToken,
-                            })
-                            if (!error) {
-                                setTimeout(async () => {
-                                    const {data: userData} = await supabase.auth.getUser();
-                                    await axios.post(`${apiBaseUrl}/api/mobile/auth/createAccount`,
-                                        {
-                                            email: userData?.user?.email,
-                                            phone: userData?.user?.phone
-                                        },
-                                        {
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                                'Authorization': `Bearer ${credential.identityToken}`
-                                            }
-                                        }
-                                    );
-                                }, 500);
-                            }
+// Register for redirect URI handling
+WebBrowser.maybeCompleteAuthSession();
 
+interface AppleAuthProps {
+    onAuthSuccess?: () => void;
+    children?: React.ReactNode;
+}
 
-                        } else {
-                            throw new Error('No identityToken.')
-                        }
-                    } catch (e) {
-                        // @ts-ignore
-                        setIsAccountCreating(false);
-                        // @ts-ignore
-                        if (e.code === 'ERR_REQUEST_CANCELED') {
-                            // handle that the user canceled the sign-in flow
-                        } else {
-                            throw e
-                        }
+export default function AppleAuth({ onAuthSuccess, children }: AppleAuthProps) {
+    const [loading, setLoading] = useState<boolean>(false);
+
+    const redirectUri = Platform.OS === 'web'
+        ? (typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : '/auth/callback')
+        : 'com.ezadrive.elearn://auth/callback';
+
+    logger.log('[AppleAuth] Redirect URI:', redirectUri);
+
+    const signInWithApple = async (): Promise<void> => {
+        try {
+            setLoading(true);
+
+            // Get authentication URL from Supabase
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'apple',
+                options: {
+                    redirectTo: redirectUri,
+                },
+            });
+
+            if (error) throw error;
+
+            if (!data?.url) throw new Error('No authentication URL returned');
+
+            logger.log('[AppleAuth] Opening auth URL:', data.url);
+
+            // On web, do a direct redirect — openAuthSessionAsync doesn't return a result on web
+            if (Platform.OS === 'web') {
+                window.location.href = data.url;
+                return;
+            }
+
+            // Open browser for authentication
+            const result = await WebBrowser.openAuthSessionAsync(
+                data.url,
+                redirectUri
+            );
+
+            logger.log('[AppleAuth] Browser result:', result);
+
+            if (result.type === 'success') {
+                const url = result.url;
+                logger.log('[AppleAuth] Callback URL:', url);
+
+                // Extraire les tokens ou le code OAuth depuis l'URL de callback
+                let accessToken: string | null = null;
+                let refreshToken: string | null = null;
+                let code: string | null = null;
+
+                try {
+                    const parsedUrl = new URL(url);
+                    code = parsedUrl.searchParams.get('code');
+
+                    // Tokens dans le hash fragment (#access_token=...&refresh_token=...)
+                    if (parsedUrl.hash) {
+                        const hashParams = new URLSearchParams(parsedUrl.hash.substring(1));
+                        accessToken = hashParams.get('access_token');
+                        refreshToken = hashParams.get('refresh_token');
                     }
-                }}
-            />
-        )
-    return null
+
+                    // Tokens dans les query params (?access_token=...&refresh_token=...)
+                    if (!accessToken) {
+                        accessToken = parsedUrl.searchParams.get('access_token');
+                        refreshToken = parsedUrl.searchParams.get('refresh_token');
+                    }
+                } catch (parseError) {
+                    logger.error('[AppleAuth] Error parsing callback URL:', parseError);
+                }
+
+                if (code) {
+                    logger.log('[AppleAuth] Exchanging authorization code for session');
+
+                    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+                    if (exchangeError) {
+                        logger.error('[AppleAuth] Error exchanging code for session:', exchangeError);
+                        throw exchangeError;
+                    }
+
+                    logger.log('[AppleAuth] Session created from authorization code');
+                    if (onAuthSuccess) {
+                        onAuthSuccess();
+                    }
+                } else if (accessToken && refreshToken) {
+                    logger.log('[AppleAuth] Setting session with tokens from callback URL');
+                    const { error: sessionError } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken,
+                    });
+
+                    if (sessionError) {
+                        logger.error('[AppleAuth] Error setting session:', sessionError);
+                        throw sessionError;
+                    }
+
+                    logger.log('[AppleAuth] Session set successfully');
+                    if (onAuthSuccess) {
+                        onAuthSuccess();
+                    }
+                } else {
+                    // Pas de tokens dans l'URL, attendre que Supabase traite le deep link
+                    logger.log('[AppleAuth] No tokens in URL, polling for session...');
+                    let foundUser = null;
+                    for (let i = 0; i < 5; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        const { data: { user }, error: userError } = await supabase.auth.getUser();
+                        if (userError) { logger.error('[AppleAuth] Error getting user:', userError); throw userError; }
+                        if (user) { foundUser = user; break; }
+                    }
+                    logger.log('[AppleAuth] User after polling:', foundUser ? 'Found' : 'Not found');
+                    if (foundUser && onAuthSuccess) {
+                        onAuthSuccess();
+                    } else if (!foundUser) {
+                        throw new Error('Auth session missing!');
+                    }
+                }
+            } else if (result.type === 'cancel') {
+                logger.log('[AppleAuth] User cancelled authentication');
+            } else if (result.type === 'dismiss') {
+                logger.log('[AppleAuth] Browser dismissed');
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+            Alert.alert('Authentication Error', errorMessage);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <TouchableOpacity
+            onPress={signInWithApple}
+            disabled={loading}
+            style={{opacity: loading ? 0.5 : 1, flex: 1, ...(Platform.OS === 'web' && {height: 40})}}
+        >
+            {children}
+        </TouchableOpacity>
+    );
 }

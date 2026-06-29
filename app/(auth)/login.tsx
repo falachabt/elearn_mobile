@@ -24,6 +24,8 @@ import { useAuth } from "@/contexts/auth";
 import { theme } from "@/constants/theme";
 import GoogleAuth from "@/components/GoogleLogin";
 import GoogleLogo from "@/components/GoogleLogo";
+import AppleAuth from "@/components/AppleLogin";
+import AppleLogo from "@/components/AppleLogo";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import WhatsAppContact from "@/components/WhatsappSupport";
 import CountryPickerBottomSheet, { COUNTRIES, Country } from "@/components/ui/CountryPickerBottomSheet";
@@ -139,6 +141,8 @@ export default function Login() {
   const isDark = colorScheme === "dark";
   const { trigger } = useHaptics();
   const showGoogleAuth = Platform.OS !== "ios";
+  const showAppleAuth = Platform.OS === "ios" || Platform.OS === "web";
+  const showSocialAuth = showGoogleAuth || showAppleAuth;
 
   // States
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
@@ -366,17 +370,29 @@ export default function Login() {
             </Text>
           </View>
 
-          {showGoogleAuth && (
+          {showSocialAuth && (
             <View style={styles.socialSection}>
               <View style={styles.socialButtons}>
-                <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
-                  <View style={[styles.socialButton, styles.googleButton]}>
-                    <GoogleLogo size={20} />
-                    <Text style={[styles.socialButtonText, styles.googleButtonText]}>
-                      Google
-                    </Text>
-                  </View>
-                </GoogleAuth>
+                {showGoogleAuth && (
+                  <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                    <View style={[styles.socialButton, styles.googleButton]}>
+                      <GoogleLogo size={20} />
+                      <Text style={[styles.socialButtonText, styles.googleButtonText]}>
+                        Google
+                      </Text>
+                    </View>
+                  </GoogleAuth>
+                )}
+                {showAppleAuth && (
+                  <AppleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                    <View style={[styles.socialButton, styles.appleButton, isDark && styles.appleButtonDark]}>
+                      <AppleLogo size={20} color={isDark ? "#000000" : "#FFFFFF"} />
+                      <Text style={[styles.socialButtonText, styles.appleButtonText, isDark && styles.appleButtonTextDark]}>
+                        Apple
+                      </Text>
+                    </View>
+                  </AppleAuth>
+                )}
               </View>
 
               <View style={styles.divider}>
@@ -779,6 +795,26 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: "600",
+  },
+  googleButtonText: {
+    color: "#666666",
+    fontFamily: "Outfit-Medium",
+  },
+  appleButton: {
+    backgroundColor: "#000000",
+    borderWidth: 1,
+    borderColor: "#000000",
+  },
+  appleButtonDark: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#FFFFFF",
+  },
+  appleButtonText: {
+    color: "#FFFFFF",
+    fontFamily: "Outfit-Medium",
+  },
+  appleButtonTextDark: {
+    color: "#000000",
   },
   socialSection: {
     marginTop: 24,

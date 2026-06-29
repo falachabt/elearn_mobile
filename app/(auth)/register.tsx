@@ -28,7 +28,139 @@ import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth";
 import GoogleAuth from "@/components/GoogleLogin";
 import GoogleLogo from "@/components/GoogleLogo";
-import { AppleLogin } from "@/components/AppleLogin";
+import AppleAuth from "@/components/AppleLogin";
+import AppleLogo from "@/components/AppleLogo";
+import { HapticType, useHaptics } from "@/hooks/useHaptics";
+import WhatsAppContact from "@/components/WhatsappSupport";
+
+interface ToastProps {
+  visible: boolean;
+  message: string;
+  type: "error" | "success" | "warning" | "info";
+  onDismiss: () => void;
+  action?: {
+    label: string;
+    onPress: () => void;
+  } | null;
+}
+
+// Toast Component
+const Toast: React.FC<ToastProps> = ({
+  visible,
+  message,
+  type,
+  onDismiss,
+  action,
+}) => {
+  const translateY = useRef(new Animated.Value(70)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Auto hide after 5 seconds
+      const timer = setTimeout(() => {
+        hideToast();
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [visible]);
+
+  const hideToast = (): void => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 70,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      if (onDismiss) onDismiss();
+    });
+  };
+
+  const getBackgroundColor = (): string => {
+    switch (type) {
+      case "error":
+        return theme.color.error;
+      case "success":
+        return "#4CAF50";
+      case "warning":
+        return "#FF9800";
+      default:
+        return theme.color.primary[500];
+    }
+  };
+
+  const getIcon = (): string => {
+    switch (type) {
+      case "error":
+        return "alert-circle";
+      case "success":
+        return "check-circle";
+      case "warning":
+        return "alert";
+      default:
+        return "information";
+    }
+  };
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View
+      style={[
+        styles.toastContainer,
+        {
+          backgroundColor: getBackgroundColor(),
+          transform: [{ translateY }],
+          opacity,
+        },
+      ]}
+    >
+      <View style={styles.toastContent}>
+        {/* @ts-expect-error dynamic icon name from local mapper */}
+        <MaterialCommunityIcons name={getIcon()} size={24} color="white" />
+        <Text style={styles.toastText}>{message}</Text>
+      </View>
+      {action && (
+        <TouchableOpacity onPress={action.onPress} style={styles.toastAction}>
+          <Text style={styles.toastActionText}>{action.label}</Text>
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity onPress={hideToast} style={styles.toastClose}>
+        <MaterialCommunityIcons name="close" size={20} color="white" />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+interface ToastState {
+  visible: boolean;
+  message: string;
+  type: "error" | "success" | "warning" | "info";
+  action: {
+    label: string;
+    onPress: () => void;
+  } | null;
+import AppleLogo from "@/components/AppleLogo";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import WhatsAppContact from "@/components/WhatsappSupport";
 
@@ -167,6 +299,10 @@ const Register: React.FC = () => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { trigger } = useHaptics();
+
+  const showGoogleAuth = Platform.OS !== "ios";
+  const showAppleAuth = Platform.OS === "ios" || Platform.OS === "web";
+  const showSocialAuth = showGoogleAuth || showAppleAuth;
 
   // States
   const firebaseConfirmation = useRef<PhoneConfirmation | null>(null);
@@ -571,42 +707,57 @@ const Register: React.FC = () => {
                     { transform: [{ translateX: slideOutLeft }] },
                   ]}
                 >
-                  <Text style={[styles.subtitle, isDark && styles.textGray]}>
-                    Inscrivez vous avec
-                  </Text>
+                  {showSocialAuth && (
+                    <>
+                      <Text style={[styles.subtitle, isDark && styles.textGray]}>
+                        Inscrivez vous avec
+                      </Text>
 
-                  {/* Social Login Options */}
-                  <View style={styles.socialButtons}>
-                    <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
-                      <View style={[styles.socialButton, styles.googleButton]}>
-                        <GoogleLogo size={20} />
-                        <Text style={[styles.socialButtonText, styles.googleButtonText]}>
-                          Google
-                        </Text>
+                      {/* Social Login Options */}
+                      <View style={styles.socialButtons}>
+                        {showGoogleAuth && (
+                          <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                            <View style={[styles.socialButton, styles.googleButton]}>
+                              <GoogleLogo size={20} />
+                              <Text style={[styles.socialButtonText, styles.googleButtonText]}>
+                                Google
+                              </Text>
+                            </View>
+                          </GoogleAuth>
+                        )}
+                        {showAppleAuth && (
+                          <AppleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                            <View style={[styles.socialButton, styles.appleButton, isDark && styles.appleButtonDark]}>
+                              <AppleLogo size={20} color={isDark ? "#000000" : "#FFFFFF"} />
+                              <Text style={[styles.socialButtonText, styles.appleButtonText, isDark && styles.appleButtonTextDark]}>
+                                Apple
+                              </Text>
+                            </View>
+                          </AppleAuth>
+                        )}
                       </View>
-                    </GoogleAuth>
-                    <AppleLogin />
-                  </View>
 
-                  <View style={styles.divider}>
-                    <View
-                      style={[
-                        styles.dividerLine,
-                        isDark && styles.dividerLineDark,
-                      ]}
-                    />
-                    <Text
-                      style={[styles.dividerText, isDark && styles.textGray]}
-                    >
-                      ou continuer avec
-                    </Text>
-                    <View
-                      style={[
-                        styles.dividerLine,
-                        isDark && styles.dividerLineDark,
-                      ]}
-                    />
-                  </View>
+                      <View style={styles.divider}>
+                        <View
+                          style={[
+                            styles.dividerLine,
+                            isDark && styles.dividerLineDark,
+                          ]}
+                        />
+                        <Text
+                          style={[styles.dividerText, isDark && styles.textGray]}
+                        >
+                          ou
+                        </Text>
+                        <View
+                          style={[
+                            styles.dividerLine,
+                            isDark && styles.dividerLineDark,
+                          ]}
+                        />
+                      </View>
+                    </>
+                  )}
 
                   {/* Phone Input */}
                   <View style={styles.inputContainer}>
@@ -1294,20 +1445,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#DADCE0",
   },
-  facebookButton: {
-    backgroundColor: "#4267B2",
-  },
   googleButtonText: {
-    color: "#3C4043",
-  },
-  footerText: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  footerLabel: {
     fontSize: 14,
     color: "#666666",
   },
