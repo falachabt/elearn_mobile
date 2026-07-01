@@ -40,14 +40,6 @@
       "@react-native-firebase/auth",
       "expo-router",
       "expo-apple-authentication",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static"
-          }
-        }
-      ],
       "./plugins/withAndroid16KBPageSize.js",
       [
         "expo-splash-screen",

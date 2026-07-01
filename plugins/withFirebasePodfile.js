@@ -9,35 +9,33 @@ module.exports = function withFirebasePodfile(config) {
       const podfile = path.join(config.modRequest.platformProjectRoot, 'Podfile');
       let contents = fs.readFileSync(podfile, 'utf8');
 
-      // 1. Tell React Native Firebase that we are building static frameworks
-      const rnfbStaticPatch = `$RNFirebaseAsStaticFramework = true\n`;
-      if (!contents.includes('$RNFirebaseAsStaticFramework')) {
-        contents = rnfbStaticPatch + contents;
-      }
-
-      // 2. Allow non-modular includes in framework modules AND disable the error globally
-      const postInstallPatch = `
-    installer.pods_project.targets.each do |target|
-      target.build_configurations.each do |config|
-        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-        
-        # Ensure we do not treat this warning as an error
-        cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
-        if cflags.is_a?(Array)
-          cflags << '-Wno-error=non-modular-include-in-framework-module'
-        else
-          cflags = cflags + ' -Wno-error=non-modular-include-in-framework-module'
-        end
-        config.build_settings['OTHER_CFLAGS'] = cflags
-      end
-    end
-`;
-      // We will replace the previous patch
+      // Remove the previous patches
+      contents = contents.replace(/\$RNFirebaseAsStaticFramework = true\n/g, '');
       contents = contents.replace(
-        /installer\.pods_project\.targets\.each do \|target\|[\s\S]*?end\n    end/m,
-        postInstallPatch.trim()
+        /installer\.pods_project\.targets\.each do \|target\|[\s\S]*?end\n    end\n/m,
+        ''
       );
 
+      // Add :modular_headers => true to the pods causing the Swift error
+      const podsToPatch = [
+        "pod 'FirebaseAuth', :modular_headers => true",
+        "pod 'FirebaseCoreInternal', :modular_headers => true",
+        "pod 'FirebaseAuthInterop', :modular_headers => true",
+        "pod 'FirebaseAppCheckInterop', :modular_headers => true",
+        "pod 'GoogleUtilities', :modular_headers => true",
+        "pod 'RecaptchaInterop', :modular_headers => true"
+      ];
+
+      const patchString = podsToPatch.join('\n  ');
+
+      if (!contents.includes('FirebaseAuthInterop')) {
+        // Insert inside the target block, right before use_react_native!
+        contents = contents.replace(
+          /use_react_native!\(/g,
+          `${patchString}\n  use_react_native!(`
+        );
+      }
+      
       fs.writeFileSync(podfile, contents);
       return config;
     },
