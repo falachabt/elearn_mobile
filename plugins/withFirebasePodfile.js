@@ -9,13 +9,13 @@ module.exports = function withFirebasePodfile(config) {
       const podfile = path.join(config.modRequest.platformProjectRoot, 'Podfile');
       let contents = fs.readFileSync(podfile, 'utf8');
 
-      // Remove the previous modular headers patch if it's there
-      contents = contents.replace(/pod 'FirebaseAuthInterop', :modular_headers => true\n\s+/g, '');
-      contents = contents.replace(/pod 'FirebaseAppCheckInterop', :modular_headers => true\n\s+/g, '');
-      contents = contents.replace(/pod 'GoogleUtilities', :modular_headers => true\n\s+/g, '');
-      contents = contents.replace(/pod 'RecaptchaInterop', :modular_headers => true\n\s+/g, '');
+      // 1. Tell React Native Firebase that we are building static frameworks
+      const rnfbStaticPatch = `$RNFirebaseAsStaticFramework = true\n`;
+      if (!contents.includes('$RNFirebaseAsStaticFramework')) {
+        contents = rnfbStaticPatch + contents;
+      }
 
-      // Add post-install hook to allow non-modular includes in RNFBApp and other targets
+      // 2. Allow non-modular includes in framework modules for RNFB to fix React-Core conflict
       const postInstallPatch = `
     installer.pods_project.targets.each do |target|
       if target.name.start_with?("RNFB")
@@ -25,17 +25,14 @@ module.exports = function withFirebasePodfile(config) {
       end
     end
 `;
-
       if (!contents.includes('CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES')) {
-        // Insert inside the post_install hook
-        // Look for the end of the post_install block, or just insert it at the end of react_native_post_install
         contents = contents.replace(
           /react_native_post_install\((.*?)\)/,
           `react_native_post_install($1)\n${postInstallPatch}`
         );
-        fs.writeFileSync(podfile, contents);
       }
-      
+
+      fs.writeFileSync(podfile, contents);
       return config;
     },
   ]);
