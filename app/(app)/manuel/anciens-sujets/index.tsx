@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import useSWR from "swr";
 import { theme } from "@/constants/theme";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/auth";
 import type { Json } from "@/types/supabase";
 
 // Interface for competition data
@@ -116,6 +117,23 @@ const fetchCompetitions = async (): Promise<Competition[]> => {
     });
 };
 
+// Fetch paid competition IDs for the current user
+const fetchPaidCompetitionIds = async (): Promise<string[]> => {
+  const user = (await supabase.auth.getUser()).data.user;
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("user_competition_payments")
+    .select("competition_id")
+    .eq("user_id", user.id)
+    .eq("payment_status", "completed")
+    .gt("expiry_date", new Date().toISOString());
+
+  if (error || !data) return [];
+
+  return data.map((row) => String(row.competition_id));
+};
+
 const AnciensujetsScreen = () => {
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -123,11 +141,18 @@ const AnciensujetsScreen = () => {
   const { trigger } = useHaptics();
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const { user } = useAuth();
 
   // Fetch competitions data
   const { data: competitions, error, isLoading, mutate } = useSWR<Competition[]>(
     "competitions-with-archives",
     fetchCompetitions
+  );
+
+  // Fetch paid competition IDs
+  const { data: paidCompetitionIds, mutate: mutatePaid } = useSWR<string[]>(
+    user ? "paid-competition-ids" : null,
+    fetchPaidCompetitionIds
   );
 
   const handleBack = () => {
@@ -140,70 +165,106 @@ const AnciensujetsScreen = () => {
     router.push(`/manuel/anciens-sujets/${competitionId}`);
   };
 
-  // Filter competitions based on search query
-  const filteredCompetitions = competitions?.filter((competition) =>
-      competition.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      competition.school.sigle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      competition.school.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      getCycleLabel(competition).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter and sort competitions
+  const filteredCompetitions = useMemo(() => {
+    const filtered = competitions?.filter((competition) =>
+        competition.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        competition.school.sigle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        competition.school.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        getCycleLabel(competition).toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (!filtered || !paidCompetitionIds || paidCompetitionIds.length === 0) return filtered;
+
+    return [...filtered].sort((a, b) => {
+      const aPaid = paidCompetitionIds.includes(a.id) ? 0 : 1;
+      const bPaid = paidCompetitionIds.includes(b.id) ? 0 : 1;
+      if (aPaid !== bPaid) {
+        return aPaid - bPaid;
+      }
+      
+      // Fallback to the original sorting criteria if both have same payment status
+      const schoolCompare = a.school.sigle.localeCompare(b.school.sigle, "fr");
+      if (schoolCompare !== 0) return schoolCompare;
+
+      const levelA = a.cycle_level ?? Number.MAX_SAFE_INTEGER;
+      const levelB = b.cycle_level ?? Number.MAX_SAFE_INTEGER;
+      if (levelA !== levelB) return levelA - levelB;
+
+      return a.name.localeCompare(b.name, "fr");
+    });
+  }, [competitions, searchQuery, paidCompetitionIds]);
 
   // Render competition item
-  const renderCompetitionItem = ({ item }: { item: Competition }) => (
-    <TouchableOpacity
-      style={[styles.competitionCard, isDarkMode && styles.competitionCardDark]}
-      onPress={() => handleCompetitionPress(item.id)}
-    >
-      <View style={styles.competitionImageContainer}>
-        {item.image_url ? (
-          <Image
-            source={{ uri: item.image_url }}
-            style={styles.competitionImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={[styles.competitionImagePlaceholder, isDarkMode && styles.competitionImagePlaceholderDark]}>
-            <MaterialCommunityIcons
-              name="school"
-              size={32}
-              color={isDarkMode ? theme.color.gray[400] : theme.color.gray[600]}
+  const renderCompetitionItem = ({ item }: { item: Competition }) => {
+    const isPaid = paidCompetitionIds?.includes(item.id) ?? false;
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.competitionCard,
+          isDarkMode && styles.competitionCardDark,
+          isPaid && (isDarkMode ? styles.competitionCardPaidDark : styles.competitionCardPaid),
+        ]}
+        onPress={() => handleCompetitionPress(item.id)}
+      >
+        <View style={styles.competitionImageContainer}>
+          {item.image_url ? (
+            <Image
+              source={{ uri: item.image_url }}
+              style={styles.competitionImage}
+              resizeMode="cover"
             />
-          </View>
-        )}
-      </View>
-      <View style={styles.competitionContent}>
-        <View style={styles.titleRow}>
-          <Text style={[styles.competitionTitle, isDarkMode && styles.textDark]} numberOfLines={1}>
-            {item.school.sigle}
-          </Text>
-          {getCycleLabel(item) ? (
-            <View style={[styles.levelBadge, isDarkMode && styles.levelBadgeDark]}>
-              <Text style={[styles.levelBadgeText, isDarkMode && styles.levelBadgeTextDark]}>
-                {getCycleLabel(item)}
-              </Text>
+          ) : (
+            <View style={[styles.competitionImagePlaceholder, isDarkMode && styles.competitionImagePlaceholderDark]}>
+              <MaterialCommunityIcons
+                name="school"
+                size={32}
+                color={isDarkMode ? theme.color.gray[400] : theme.color.gray[600]}
+              />
             </View>
-          ) : null}
+          )}
         </View>
-        <Text
-          style={[styles.competitionDescription, isDarkMode && styles.textLightDark]}
-          numberOfLines={2}
-        >
-          {item.school.name}
-        </Text>
-        <Text
-          style={[styles.competitionSchool, isDarkMode && styles.textLightDark]}
-          numberOfLines={1}
-        >
-          {item.name}
-        </Text>
-      </View>
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={24}
-        color={isDarkMode ? theme.color.gray[400] : theme.color.gray[600]}
-      />
-    </TouchableOpacity>
-  );
+        <View style={styles.competitionContent}>
+          <View style={styles.titleRow}>
+            <Text style={[styles.competitionTitle, isDarkMode && styles.textDark]} numberOfLines={1}>
+              {item.school.sigle}
+            </Text>
+            {isPaid && (
+              <View style={[styles.paidBadge, isDarkMode && styles.paidBadgeDark]}>
+                <MaterialCommunityIcons name="check-circle" size={12} color={isDarkMode ? "#4ADE80" : theme.color.primary[700]} />
+                <Text style={[styles.paidBadgeText, isDarkMode && styles.paidBadgeTextDark]}>Acheté</Text>
+              </View>
+            )}
+            {getCycleLabel(item) ? (
+              <View style={[styles.levelBadge, isDarkMode && styles.levelBadgeDark]}>
+                <Text style={[styles.levelBadgeText, isDarkMode && styles.levelBadgeTextDark]}>
+                  {getCycleLabel(item)}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          <Text
+            style={[styles.competitionDescription, isDarkMode && styles.textLightDark]}
+            numberOfLines={2}
+          >
+            {item.school.name}
+          </Text>
+          <Text
+            style={[styles.competitionSchool, isDarkMode && styles.textLightDark]}
+            numberOfLines={1}
+          >
+            {item.name}
+          </Text>
+        </View>
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={24}
+          color={isPaid ? (isDarkMode ? "#4ADE80" : theme.color.primary[600]) : (isDarkMode ? theme.color.gray[400] : theme.color.gray[600])}
+        />
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView
@@ -270,7 +331,7 @@ const AnciensujetsScreen = () => {
           refreshing={refreshing}
           onRefresh={async () => {
             setRefreshing(true);
-            await mutate();
+            await Promise.all([mutate(), mutatePaid()]);
             setRefreshing(false);
           }}
           ListEmptyComponent={
@@ -360,9 +421,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    borderWidth: 1.5,
+    borderColor: "transparent",
   },
   competitionCardDark: {
     backgroundColor: theme.color.dark.background.secondary,
+    borderColor: "transparent",
+  },
+  competitionCardPaid: {
+    borderColor: "#F59E0B",
+    backgroundColor: "#FEF3C7",
+  },
+  competitionCardPaidDark: {
+    borderColor: "#F59E0B",
+    backgroundColor: "rgba(245, 158, 11, 0.08)",
   },
   competitionImageContainer: {
     width: 60,
@@ -400,6 +472,27 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#1A1A1A",
     flexShrink: 1,
+  },
+  paidBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: theme.color.primary[100],
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  paidBadgeDark: {
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+  },
+  paidBadgeText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 10,
+    fontWeight: "700",
+    color: theme.color.primary[700],
+  },
+  paidBadgeTextDark: {
+    color: "#4ADE80",
   },
   levelBadge: {
     backgroundColor: theme.color.primary[100],
