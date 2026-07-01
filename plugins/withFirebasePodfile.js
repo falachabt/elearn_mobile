@@ -15,22 +15,28 @@ module.exports = function withFirebasePodfile(config) {
         contents = rnfbStaticPatch + contents;
       }
 
-      // 2. Allow non-modular includes in framework modules for RNFB to fix React-Core conflict
+      // 2. Allow non-modular includes in framework modules AND disable the error globally
       const postInstallPatch = `
     installer.pods_project.targets.each do |target|
-      if target.name.start_with?("RNFB")
-        target.build_configurations.each do |config|
-          config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      target.build_configurations.each do |config|
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        
+        # Ensure we do not treat this warning as an error
+        cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
+        if cflags.is_a?(Array)
+          cflags << '-Wno-error=non-modular-include-in-framework-module'
+        else
+          cflags = cflags + ' -Wno-error=non-modular-include-in-framework-module'
         end
+        config.build_settings['OTHER_CFLAGS'] = cflags
       end
     end
 `;
-      if (!contents.includes('CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES')) {
-        contents = contents.replace(
-          /react_native_post_install\((.*?)\)/,
-          `react_native_post_install($1)\n${postInstallPatch}`
-        );
-      }
+      // We will replace the previous patch
+      contents = contents.replace(
+        /installer\.pods_project\.targets\.each do \|target\|[\s\S]*?end\n    end/m,
+        postInstallPatch.trim()
+      );
 
       fs.writeFileSync(podfile, contents);
       return config;
