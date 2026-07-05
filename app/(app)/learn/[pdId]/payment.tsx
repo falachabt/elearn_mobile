@@ -26,8 +26,8 @@ import WhatsAppContact from "@/components/WhatsappSupport";
 import { PaymentFlowState, ProgramPayment, PromoCodeDetails, PaymentContextData } from "@/types/payment.types";
 import { MESSAGE_ROTATION_INTERVAL } from "@/constants/payment.constants";
 
-// Phone numbers accepted (Cameroon MTN/Orange, 9 digits starting 64-69).
-const CM_PHONE_REGEX = /^(6[4-9][0-9])[0-9]{6}$/;
+// Phone numbers accepted (Cameroon MTN, 9 digits starting 650-654, 67, 68).
+const CM_PHONE_REGEX = /^6(5[0-4]|7[0-9]|8[0-9])[0-9]{6}$/;
 // In dev builds we charge a tiny test amount instead of the real price so test
 // PawaPay deposits don't cost the full price. PawaPay MTN_MOMO_CMR min = 1 XAF.
 const DEV_TEST_AMOUNT = 100;
@@ -275,7 +275,7 @@ const ProgramPaymentPage = () => {
     const { phoneNumber, promoCodeDetails, isInstallment, totalInstallments } = paymentData;
 
     if (!CM_PHONE_REGEX.test(phoneNumber)) {
-      setErrorMessage("Numéro invalide. Utilisez un numéro MTN ou Orange (ex: 650123456).");
+      setErrorMessage("Numéro invalide. Utilisez un numéro MTN (ex: 650123456).");
       setCurrentState(PaymentFlowState.FAILED);
       return;
     }
@@ -351,7 +351,7 @@ const ProgramPaymentPage = () => {
     const parent = programContext.installmentPayment;
 
     if (!CM_PHONE_REGEX.test(phoneNumber)) {
-      setErrorMessage("Numéro invalide. Utilisez un numéro MTN ou Orange (ex: 650123456).");
+      setErrorMessage("Numéro invalide. Utilisez un numéro MTN (ex: 650123456).");
       setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
       return;
     }

@@ -25,8 +25,8 @@ import { InstallmentDetails, NextPaymentOptions, PaymentProcessing } from "@/com
 import { useUser } from "@/contexts/useUserInfo";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 
-// Cameroon MTN/Orange phone (9 digits, 64-69). In dev we charge a tiny test amount.
-const CM_PHONE_REGEX = /^(6[4-9][0-9])[0-9]{6}$/;
+// Cameroon MTN phone (9 digits, starting 650-654, 67, 68). In dev we charge a tiny test amount.
+const CM_PHONE_REGEX = /^6(5[0-4]|7[0-9]|8[0-9])[0-9]{6}$/;
 const DEV_TEST_AMOUNT = 100;
 const POLL_INTERVAL_MS = 5000;
 const POLL_TIMEOUT_S = 300;
@@ -138,7 +138,7 @@ const InstallmentPaymentPage = () => {
       return;
     }
     if (!CM_PHONE_REGEX.test(phoneNumber)) {
-      setErrorMessage("Numéro invalide. Utilisez un numéro MTN ou Orange (ex: 650123456).");
+      setErrorMessage("Numéro invalide. Utilisez un numéro MTN (ex: 650123456).");
       setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
       return;
     }
