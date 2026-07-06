@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -18,7 +18,7 @@ import { useSecondaryDocument } from "@/hooks/secondary/useSecondaryDocuments";
 import {
   FileViewer,
   type FileViewerFile,
-} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+} from "@/components/shared/learn/anales/FileViewer/FileViewer";
 import { useSecondaryProgram } from "@/hooks/secondary/useSecondaryPrograms";
 import { useDocumentActions } from "@/hooks/secondary/useDocumentActions";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
@@ -46,7 +46,7 @@ const DocumentViewerScreen = () => {
     isToggling,
   } = useDocumentActions(documentId);
 
-  // Programme pour afficher le header cohÃ©rent avec la liste
+  // Programme pour afficher le header cohérent avec la liste
   const { program } = useSecondaryProgram(programId);
   const programTitle = program?.class?.name && program?.serie?.name
     ? `${program.class.name} - ${program.serie.name}`
@@ -106,7 +106,7 @@ const DocumentViewerScreen = () => {
     download_url: activeDocument.download_url ?? undefined,
   };
 
-  // VÃ©rifier que le document actif a un download_url
+  // Vérifier que le document actif a un download_url
   if (!activeDocument.download_url) {
     return (
       <View style={[styles.container, isDark && styles.containerDark, styles.centered]}>
@@ -197,7 +197,7 @@ const DocumentViewerScreen = () => {
                 isDark && styles.actionButtonTextDark,
               ]}
             >
-              {isPinned ? "Ã‰pinglÃ©" : "Ã‰pingler"}
+              {isPinned ? "Épinglé" : "Épingler"}
             </ThemedText>
           </TouchableOpacity>
 
@@ -225,7 +225,7 @@ const DocumentViewerScreen = () => {
                 isDark && styles.actionButtonTextDark,
               ]}
             >
-              {isCompleted ? "ComplÃ©tÃ©" : "Marquer comme complÃ©tÃ©"}
+              {isCompleted ? "Complété" : "Marquer comme complété"}
             </ThemedText>
           </TouchableOpacity>
         </View>

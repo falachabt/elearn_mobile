@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,8 +10,8 @@ import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
-import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
-import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer";
+import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useCompetitionPayment } from "@/hooks/useCompetitionPayment";
 import { useArchiveData } from "@/hooks/useArchiveData";
@@ -247,7 +247,7 @@ export const FileViewerScreen = () => {
       logger.error('Error toggling completion status:', toggleError);
       Alert.alert(
           'Erreur',
-          errorMessage || 'Impossible de mettre Ã  jour le statut de complÃ©tion. Veuillez rÃ©essayer.'
+          errorMessage || 'Impossible de mettre à jour le statut de complétion. Veuillez réessayer.'
       );
     } finally {
       setCompletedLoading(false);
@@ -298,10 +298,10 @@ export const FileViewerScreen = () => {
             color={isDark ? theme.color.primary[400] : theme.color.primary[500]}
           />
           <ThemedText style={viewerStyles.accessDeniedTitle}>
-            AccÃ¨s restreint
+            Accès restreint
           </ThemedText>
           <ThemedText style={viewerStyles.accessDeniedDescription}>
-            {`Vous devez payer pour accÃ©der Ã  ce contenu. DÃ©bloquez ${
+            {`Vous devez payer pour accéder à ce contenu. Débloquez ${
               competitionContext?.documentCount
                 ? `${competitionContext.documentCount} ${
                     competitionContext.documentCount === 1 ? 'document' : 'documents'
@@ -315,7 +315,7 @@ export const FileViewerScreen = () => {
           >
             <MaterialCommunityIcons name="lock-open" size={20} color="#FFFFFF" />
             <ThemedText style={viewerStyles.paymentButtonText}>
-              DÃ©bloquer maintenant
+              Débloquer maintenant
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -371,7 +371,7 @@ export const FileViewerScreen = () => {
                             color="#FFFFFF"
                         />
                         <ThemedText style={viewerStyles.toggleButtonText}>
-                          {isCompleted ? "TerminÃ©" : "Marquer terminÃ©"}
+                          {isCompleted ? "Terminé" : "Marquer terminé"}
                         </ThemedText>
                       </>
                   )}

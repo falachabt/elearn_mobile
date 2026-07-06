@@ -1,4 +1,4 @@
-ï»¿// FileViewerScreen.tsx
+// FileViewerScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
-import { FileViewer } from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+import { FileViewer } from "@/components/shared/learn/anales/FileViewer/FileViewer";
 
 
 // Define TypeScript interfaces for our data
@@ -229,7 +229,7 @@ export const FileViewerScreen = () => {
     } catch (error) {
       const message = error instanceof Error
         ? error.message
-        : 'Impossible de mettre Ã  jour le statut de complÃ©tion. Veuillez rÃ©essayer.';
+        : 'Impossible de mettre à jour le statut de complétion. Veuillez réessayer.';
       logger.error('Error toggling completion status:', error);
       Alert.alert(
           'Erreur',
@@ -294,7 +294,7 @@ export const FileViewerScreen = () => {
                             color="#FFFFFF"
                         />
                         <ThemedText style={viewerStyles.toggleButtonText}>
-                          {isCompleted ? "TerminÃ©" : "Marquer terminÃ©"}
+                          {isCompleted ? "Terminé" : "Marquer terminé"}
                         </ThemedText>
                       </>
                   )}
