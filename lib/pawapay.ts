@@ -21,7 +21,7 @@ export interface PawaPayDepositResult {
   status?: "accepted" | "rejected";
   depositId?: string;
   provider?: string;
-  processor?: "pawapay" | "geniuspay";
+  processor?: "pawapay";
   checkoutUrl?: string;
   authorizationUrl?: string;
   failureReason?: { failureCode?: string; failureMessage?: string } | unknown;

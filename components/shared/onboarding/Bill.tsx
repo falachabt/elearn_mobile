@@ -143,7 +143,7 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [programs, setPrograms] = useState<Program[]>([]);
-    const [network, setNetwork] = useState<"mtn" | "orange" | null>(null);
+    const [network, setNetwork] = useState<"mtn" | null>(null);
     const {cartItems, loading: cartLoading, currentCart} = useCart();
     const {
         paymentStatus,
@@ -1004,12 +1004,6 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
                         {network === "mtn" ? (
                             <Image
                                 source={require("@/assets/images/mtn-logo.png")}
-                                style={styles.networkIcon}
-                                resizeMode="contain"
-                            />
-                        ) : network === "orange" ? (
-                            <Image
-                                source={require("@/assets/images/orange-logo.png")}
                                 style={styles.networkIcon}
                                 resizeMode="contain"
                             />

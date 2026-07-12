@@ -296,7 +296,7 @@ export const CompetitionPaymentBottomSheet = ({
 
     const phoneRegex = /^(6[4-9][0-9])[0-9]{6}$/;
     if (!phoneRegex.test(phoneNumber)) {
-      setErrorMessage('Numéro de téléphone invalide. Utilisez un numéro MTN ou Orange (ex: 650123456)');
+      setErrorMessage('Numéro de téléphone invalide. Utilisez un numéro MTN (ex: 650123456)');
       return;
     }
 
@@ -607,7 +607,7 @@ export const CompetitionPaymentBottomSheet = ({
 
               <View style={styles.inputContainer}>
                 <Text style={[styles.inputLabel, isDark && styles.inputLabelDark]}>
-                  Numéro de téléphone (MTN ou Orange)
+                  Numéro de téléphone (MTN)
                 </Text>
                 <TextInput
                   style={[styles.input, isDark && styles.inputDark]}
@@ -647,7 +647,7 @@ export const CompetitionPaymentBottomSheet = ({
                   color={isDark ? theme.color.gray[400] : theme.color.gray[600]}
                 />
                 <Text style={[styles.securePaymentText, isDark && styles.securePaymentTextDark]}>
-                  Paiement sécurisé via MTN ou Orange Money
+                  Paiement sécurisé via MTN Money
                 </Text>
               </View>
 

@@ -72,7 +72,7 @@ const PaymentGuideModal = ({ visible, onClose } : { visible: boolean, onClose: (
     const steps = [
         {
             title: "Préparez votre paiement",
-            description: "Vérifiez que votre solde Orange Money ou MTN Mobile Money est suffisant pour couvrir le montant de la facture",
+            description: "Vérifiez que votre solde MTN Mobile Money est suffisant pour couvrir le montant de la facture",
             icon: <DollarIcon/>,
             illustration: (
                 <View style={styles.illustrationContainer}>
@@ -99,7 +99,7 @@ const PaymentGuideModal = ({ visible, onClose } : { visible: boolean, onClose: (
         },
         {
             title: "Entrez votre numéro",
-            description: "Renseignez votre numéro Orange Money ou MTN Mobile Money (ou celui de la personne qui va payer pour vous)",
+            description: "Renseignez votre numéro MTN Mobile Money (ou celui de la personne qui va payer pour vous)",
             icon: <PhoneIcon />,
             illustration: (
                 <View style={styles.illustrationContainer}>
@@ -131,7 +131,7 @@ const PaymentGuideModal = ({ visible, onClose } : { visible: boolean, onClose: (
                             <View style={styles.phone}>
                                 <View style={styles.phoneScreen}>
                                     <View style={[styles.notificationHeader, { backgroundColor: '#FF6B35' }]}>
-                                        <Text style={styles.notificationTitle}>Orange Money</Text>
+                                        <Text style={styles.notificationTitle}>MTN MoMo</Text>
                                     </View>
                                     <Text style={styles.notificationMessage}>Autoriser paiement?</Text>
                                     <View style={styles.notificationButtons}>
@@ -249,7 +249,7 @@ const PaymentGuideModal = ({ visible, onClose } : { visible: boolean, onClose: (
                 <View style={[styles.alertContainer, { backgroundColor: '#FFF3CD', borderLeftColor: '#FFC107' }]}>
                     <AlertIcon />
                     <Text style={[styles.alertText, { color: '#856404' }]}>
-                        Assurez-vous d'entrer un numéro de téléphone valide connecté à Orange Money ou MTN Mobile Money.
+                        Assurez-vous d'entrer un numéro de téléphone valide connecté à MTN Mobile Money.
                     </Text>
                 </View>
             );
