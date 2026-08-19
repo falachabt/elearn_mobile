@@ -11,18 +11,20 @@ import {
   useColorScheme,
   View,
   useWindowDimensions,
-  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 const Lottie = Platform.OS !== 'web' ? require("lottie-react-native").default : null;
 const WebLottie = Platform.OS === "web" ? require("@lottiefiles/dotlottie-react").DotLottieReact : null;
 const welcomeAnimation = require("@/assets/lotties/welcome.json");
 const welcomeAnimationData = JSON.stringify(welcomeAnimation);
-import { Link } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import Head from "expo-router/head";
 
-import { HapticType, useHaptics } from "@/hooks/useHaptics";
+import GoogleAuth from "@/components/GoogleLogin";
+import GoogleLogo from "@/components/GoogleLogo";
+import AppleAuth from "@/components/AppleLogin";
+import AppleLogo from "@/components/AppleLogo";
+
 import { theme } from "@/constants/theme";
 import WhatsAppContact from "@/components/WhatsappSupport";
 
@@ -33,18 +35,14 @@ const IOSStartPage = ({
   fadeAnim,
   slideUpAnim,
   scaleAnim,
-  trigger,
 }: {
   dimensions: { width: number; height: number };
   isDark: boolean;
   fadeAnim: Animated.Value;
   slideUpAnim: Animated.Value;
   scaleAnim: Animated.Value;
-  trigger: (type: HapticType) => void;
 }) => {
-  const handleButtonPress = async () => {
-    trigger(HapticType.LIGHT);
-  };
+  const router = useRouter();
 
   return (
     <SafeAreaView
@@ -54,7 +52,7 @@ const IOSStartPage = ({
       ]}
     >
       <Head>
-        <title>Elearn Prepa | Acceuil</title>
+        <title>Elearn Prepa | Accueil</title>
         <meta name="description" content="Préparez les concours de vos reves" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" href="/favicon.ico" />
@@ -80,13 +78,31 @@ const IOSStartPage = ({
                 transform: [{ scale: scaleAnim }],
               },
             ]}
-          ></Animated.View>
-
-          <Image
-            source={require("@/assets/images/icon.png")}
-            style={[styles(dimensions, isDark).logo, { paddingBottom: 20 }]}
-            resizeMode="contain"
-          />
+          >
+            <Image
+              source={require("@/assets/images/icon.png")}
+              style={styles(dimensions, isDark).logo}
+              resizeMode="contain"
+            />
+            <View style={styles(dimensions, isDark).brandingContainer}>
+              <Text
+                style={[
+                  styles(dimensions, isDark).appName,
+                  isDark && styles(dimensions, isDark).textDark,
+                ]}
+              >
+                Elearn Prepa
+              </Text>
+              <Text
+                style={[
+                  styles(dimensions, isDark).tagline,
+                  isDark && styles(dimensions, isDark).textGray,
+                ]}
+              >
+                Votre succès commence ici
+              </Text>
+            </View>
+          </Animated.View>
 
           {/* Welcome Message for iOS */}
           <Animated.View
@@ -101,7 +117,7 @@ const IOSStartPage = ({
                 isDark && styles(dimensions, isDark).textDark,
               ]}
             >
-              Bienvenue sur Elearn Prepa
+              Apprenez, Explorez, Progressez
             </Text>
             <Text
               style={[
@@ -109,7 +125,7 @@ const IOSStartPage = ({
                 isDark && styles(dimensions, isDark).textGray,
               ]}
             >
-              Pour créer un compte, veuillez visiter notre site web.
+              Préparez vos concours avec des contenus de qualité.
             </Text>
           </Animated.View>
 
@@ -123,44 +139,99 @@ const IOSStartPage = ({
               },
             ]}
           >
-            {/* Register Button - Main Action */}
-            <TouchableOpacity
-              style={styles(dimensions, isDark).registerButton}
-              onPress={() =>
-                Linking.openURL("https://app.elearnprepa.com/register")
-              }
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons
-                name="account-plus"
-                size={20}
-                color="white"
-              />
-              <Text style={styles(dimensions, isDark).registerButtonText}>
-                Créer un compte
+            {/* S'inscrire Section */}
+            <View style={{ marginBottom: 20 }}>
+              <Text
+                style={[
+                  styles(dimensions, isDark).sectionLabel,
+                  isDark && styles(dimensions, isDark).textDark,
+                ]}
+              >
+                S'inscrire
               </Text>
-            </TouchableOpacity>
+              <View style={styles(dimensions, isDark).socialRow}>
+                <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                  <View style={styles(dimensions, isDark).socialRowButton}>
+                    <GoogleLogo size={18} />
+                    <Text style={styles(dimensions, isDark).socialRowButtonText}>
+                      Google
+                    </Text>
+                  </View>
+                </GoogleAuth>
+                <AppleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                  <View
+                    style={[
+                      styles(dimensions, isDark).socialRowButton,
+                      styles(dimensions, isDark).appleRowButton,
+                      isDark && styles(dimensions, isDark).appleRowButtonDark,
+                    ]}
+                  >
+                    <AppleLogo size={18} color={isDark ? "#000000" : "#FFFFFF"} />
+                    <Text
+                      style={[
+                        styles(dimensions, isDark).socialRowButtonText,
+                        styles(dimensions, isDark).appleRowButtonText,
+                        isDark && styles(dimensions, isDark).appleRowButtonTextDark,
+                      ]}
+                    >
+                      Apple
+                    </Text>
+                  </View>
+                </AppleAuth>
+              </View>
+            </View>
 
-            {/* Login Button - Secondary Action */}
-            <Link
-              href="/(auth)/login"
-              asChild
-              style={[
-                styles(dimensions, isDark).loginButton,
-                isDark && styles(dimensions, isDark).loginButtonDark,
-              ]}
-            >
-              <TouchableOpacity onPress={handleButtonPress} activeOpacity={0.8}>
-                <MaterialCommunityIcons
-                  name="login"
-                  size={20}
-                  color={theme.color.primary[500]}
-                />
-                <Text style={styles(dimensions, isDark).loginButtonText}>
-                  Déjà inscrit ? Se connecter
-                </Text>
-              </TouchableOpacity>
-            </Link>
+            {/* Se connecter Section */}
+            <View style={{ marginBottom: 16 }}>
+              <Text
+                style={[
+                  styles(dimensions, isDark).sectionLabel,
+                  isDark && styles(dimensions, isDark).textDark,
+                ]}
+              >
+                Se connecter
+              </Text>
+              <View style={styles(dimensions, isDark).socialRow}>
+                <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                  <View
+                    style={[
+                      styles(dimensions, isDark).socialRowButton,
+                      styles(dimensions, isDark).socialRowButtonSecondary,
+                      isDark && styles(dimensions, isDark).socialRowButtonSecondaryDark,
+                    ]}
+                  >
+                    <GoogleLogo size={18} />
+                    <Text
+                      style={[
+                        styles(dimensions, isDark).socialRowButtonText,
+                        styles(dimensions, isDark).socialRowButtonTextSecondary,
+                      ]}
+                    >
+                      Google
+                    </Text>
+                  </View>
+                </GoogleAuth>
+                <AppleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                  <View
+                    style={[
+                      styles(dimensions, isDark).socialRowButton,
+                      styles(dimensions, isDark).socialRowButtonSecondary,
+                      isDark && styles(dimensions, isDark).socialRowButtonSecondaryDark,
+                    ]}
+                  >
+                    <AppleLogo size={18} color={isDark ? "#FFFFFF" : "#000000"} />
+                    <Text
+                      style={[
+                        styles(dimensions, isDark).socialRowButtonText,
+                        styles(dimensions, isDark).socialRowButtonTextSecondary,
+                      ]}
+                    >
+                      Apple
+                    </Text>
+                  </View>
+                </AppleAuth>
+              </View>
+            </View>
           </Animated.View>
         </View>
       </ScrollView>
@@ -175,18 +246,14 @@ const DefaultStartPage = ({
   fadeAnim,
   slideUpAnim,
   scaleAnim,
-  trigger,
 }: {
   dimensions: { width: number; height: number };
   isDark: boolean;
   fadeAnim: Animated.Value;
   slideUpAnim: Animated.Value;
   scaleAnim: Animated.Value;
-  trigger: (type: HapticType) => void;
 }) => {
-  const handleButtonPress = async () => {
-    trigger(HapticType.LIGHT);
-  };
+  const router = useRouter();
 
   return (
     <SafeAreaView
@@ -196,7 +263,7 @@ const DefaultStartPage = ({
       ]}
     >
       <Head>
-        <title>Elearn Prepa | Acceuil</title>
+        <title>Elearn Prepa | Accueil</title>
         <meta name="description" content="Préparez les concours de vos reves" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" href="/favicon.ico" />
@@ -315,50 +382,35 @@ const DefaultStartPage = ({
               },
             ]}
           >
-            {/* Register Button - Main Action */}
-            <Link href="/(auth)/register" asChild>
-              <TouchableOpacity
-                style={styles(dimensions, isDark).registerButton}
-                onPress={handleButtonPress}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons
-                  name="account-plus"
-                  size={20}
-                  color="white"
-                />
+            {/* Google Sign Up Button */}
+            <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+              <View style={styles(dimensions, isDark).registerButton}>
+                <GoogleLogo size={20} />
                 <Text style={styles(dimensions, isDark).registerButtonText}>
-                  Créer un compte
+                  S'inscrire avec Google
                 </Text>
-              </TouchableOpacity>
-            </Link>
+              </View>
+            </GoogleAuth>
 
-            {/* Login Button - Secondary Action */}
-            <Link
-              href="/(auth)/login"
-              asChild
-              style={[
-                styles(dimensions, isDark).loginButton,
-                isDark && styles(dimensions, isDark).loginButtonDark,
-              ]}
-            >
-              <TouchableOpacity onPress={handleButtonPress} activeOpacity={0.8}>
-                <MaterialCommunityIcons
-                  name="login"
-                  size={20}
-                  color={theme.color.primary[500]}
-                />
+            {/* Google Sign In Button */}
+            <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+              <View
+                style={[
+                  styles(dimensions, isDark).loginButton,
+                  isDark && styles(dimensions, isDark).loginButtonDark,
+                ]}
+              >
+                <GoogleLogo size={20} />
                 <Text style={styles(dimensions, isDark).loginButtonText}>
-                  Déjà inscrit ? Se connecter
+                  Se connecter avec Google
                 </Text>
-              </TouchableOpacity>
-            </Link>
-
+              </View>
+            </GoogleAuth>
           </Animated.View>
-            <WhatsAppContact
-              phoneNumber="+237 6 51 05 56 63"
-              message="Bonjour, j'ai besoin d'aide"
-            />
+          <WhatsAppContact
+            phoneNumber="+237 6 51 05 56 63"
+            message="Bonjour, j'ai besoin d'aide"
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -368,7 +420,6 @@ const DefaultStartPage = ({
 const StartPage = () => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { trigger } = useHaptics();
 
   const dimensions = useWindowDimensions();
 
@@ -410,7 +461,6 @@ const StartPage = () => {
       fadeAnim={fadeAnim}
       slideUpAnim={slideUpAnim}
       scaleAnim={scaleAnim}
-      trigger={trigger}
     />
   ) : (
     <DefaultStartPage
@@ -419,7 +469,6 @@ const StartPage = () => {
       fadeAnim={fadeAnim}
       slideUpAnim={slideUpAnim}
       scaleAnim={scaleAnim}
-      trigger={trigger}
     />
   );
 };
@@ -583,6 +632,65 @@ const styles = (
     },
     textGray: {
       color: "#CCCCCC",
+    },
+    // Social Row Styles for iOS
+    sectionLabel: {
+      fontFamily: theme.typography.fontFamily,
+      fontSize: 14,
+      fontWeight: "600",
+      color: "#666666",
+      marginBottom: 8,
+      textAlign: "left",
+      paddingLeft: 4,
+    },
+    socialRow: {
+      flexDirection: "row",
+      gap: 12,
+      width: "100%",
+    },
+    socialRowButton: {
+      flex: 1,
+      flexDirection: "row",
+      height: 50,
+      backgroundColor: "#FFFFFF",
+      borderWidth: 1,
+      borderColor: "#DADCE0",
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 8,
+    },
+    socialRowButtonText: {
+      color: "#3C4043",
+      fontFamily: theme.typography.fontFamily,
+      fontSize: 15,
+      fontWeight: "600",
+    },
+    appleRowButton: {
+      backgroundColor: "#000000",
+      borderColor: "#000000",
+    },
+    appleRowButtonDark: {
+      backgroundColor: "#FFFFFF",
+      borderColor: "#FFFFFF",
+    },
+    appleRowButtonText: {
+      color: "#FFFFFF",
+    },
+    appleRowButtonTextDark: {
+      color: "#000000",
+    },
+    socialRowButtonSecondary: {
+      backgroundColor: "#FFFFFF",
+      borderWidth: 2,
+      borderColor: theme.color.primary[500],
+    },
+    socialRowButtonSecondaryDark: {
+      backgroundColor: theme.color.dark.background.secondary,
+      borderColor: theme.color.primary[100],
+    },
+    socialRowButtonTextSecondary: {
+      color: theme.color.primary[500],
     },
   });
 };
