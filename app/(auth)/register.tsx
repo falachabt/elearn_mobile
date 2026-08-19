@@ -171,9 +171,9 @@ const Register: React.FC = () => {
   const isDark = colorScheme === "dark";
   const { trigger } = useHaptics();
 
-  const showGoogleAuth = Platform.OS !== "ios";
-  const showAppleAuth = Platform.OS === "ios" || Platform.OS === "web";
-  const showSocialAuth = showGoogleAuth || showAppleAuth;
+  const showGoogleAuth = true;
+  const showAppleAuth = Platform.OS === "ios";
+  const showSocialAuth = true;
 
   // States
   const firebaseConfirmation = useRef<PhoneConfirmation | null>(null);
@@ -571,470 +571,56 @@ const Register: React.FC = () => {
             {/* Main content with animations for step transition */}
             <View style={styles.contentContainer}>
               {/* Step 1: Registration Form */}
-              {!isOtpStep && (
-                <Animated.View
-                  style={[
-                    styles.formStep,
-                    { transform: [{ translateX: slideOutLeft }] },
-                  ]}
-                >
-                  {showSocialAuth && (
-                    <>
-                      <Text style={[styles.subtitle, isDark && styles.textGray]}>
-                        Inscrivez vous avec
-                      </Text>
-
-                      {/* Social Login Options */}
-                      <View style={styles.socialButtons}>
-                        {showGoogleAuth && (
-                          <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
-                            <View style={[styles.socialButton, styles.googleButton]}>
-                              <GoogleLogo size={20} />
-                              <Text style={[styles.socialButtonText, styles.googleButtonText]}>
-                                Google
-                              </Text>
-                            </View>
-                          </GoogleAuth>
-                        )}
-                        {showAppleAuth && (
-                          <AppleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
-                            <View style={[styles.socialButton, styles.appleButton, isDark && styles.appleButtonDark]}>
-                              <AppleLogo size={20} color={isDark ? "#000000" : "#FFFFFF"} />
-                              <Text style={[styles.socialButtonText, styles.appleButtonText, isDark && styles.appleButtonTextDark]}>
-                                Apple
-                              </Text>
-                            </View>
-                          </AppleAuth>
-                        )}
-                      </View>
-
-                      <View style={styles.divider}>
-                        <View
-                          style={[
-                            styles.dividerLine,
-                            isDark && styles.dividerLineDark,
-                          ]}
-                        />
-                        <Text
-                          style={[styles.dividerText, isDark && styles.textGray]}
-                        >
-                          ou
-                        </Text>
-                        <View
-                          style={[
-                            styles.dividerLine,
-                            isDark && styles.dividerLineDark,
-                          ]}
-                        />
-                      </View>
-                    </>
-                  )}
-
-                  {/* Phone Input */}
-                  <View style={styles.inputContainer}>
-                    <Text style={[styles.label, isDark && styles.textDark]}>
-                      Numéro de téléphone
+              <Animated.View
+                style={[
+                  styles.formStep,
+                  { transform: [{ translateX: slideOutLeft }] },
+                ]}
+              >
+                {showSocialAuth && (
+                  <>
+                    <Text style={[styles.subtitle, isDark && styles.textGray, { marginBottom: 16, textAlign: "center" }]}>
+                      Inscrivez vous avec
                     </Text>
-                    <View
-                      style={[
-                        styles.inputWrapper,
-                        isDark && styles.inputWrapperDark,
-                        phoneError && styles.inputError,
-                      ]}
-                    >
-                      <TouchableOpacity
-                        onPress={() => setShowCountryPicker(true)}
-                        style={styles.countryCodeButton}
-                      >
-                        <Text style={[styles.countryCodeText, isDark && styles.textDark]}>
-                          {selectedCountry.flag} {selectedCountry.code}
-                        </Text>
-                        <MaterialCommunityIcons name="chevron-down" size={14} color={isDark ? "#CCCCCC" : "#666666"} />
-                      </TouchableOpacity>
-                      <View style={[styles.countryDivider, isDark && { backgroundColor: "#333" }]} />
-                      <TextInput
-                        value={phone?.toString()}
-                        onChangeText={(text) => {
-                          const numericText = text.replace(/[^0-9]/g, "");
-                          if (numericText.length <= selectedCountry.maxLength) {
-                            setPhone(parseInt(numericText) || undefined);
-                            if (phoneError)
-                              validatePhone(parseInt(numericText) || undefined);
-                          }
-                        }}
-                        style={[
-                          styles.input,
-                          isDark && styles.inputDark,
-                          { outline: "none" },
-                        ]}
-                        placeholder={__DEV__ && selectedCountry.code === "+237" ? "694650142" : selectedCountry.placeholder}
-                        placeholderTextColor={isDark ? "#666666" : "#999999"}
-                        keyboardType="numeric"
-                        maxLength={selectedCountry.maxLength}
-                        returnKeyType="next"
-                        onSubmitEditing={() => passwordRef.current?.focus()}
-                      />
-                    </View>
-                    {phoneError && (
-                      <Animated.View
-                        style={[
-                          styles.errorContainer,
-                          {
-                            opacity: phoneErrorAnim,
-                            transform: [
-                              {
-                                translateY: phoneErrorAnim.interpolate({
-                                  inputRange: [0, 1],
-                                  outputRange: [-10, 0],
-                                }),
-                              },
-                            ],
-                          },
-                        ]}
-                      >
-                        <MaterialCommunityIcons
-                          name="alert-circle"
-                          size={16}
-                          color={theme.color.error}
-                        />
-                        <Text style={styles.errorText}>{phoneError}</Text>
-                      </Animated.View>
-                    )}
-                  </View>
 
-                  {/* Password Input */}
-                  <View style={styles.inputContainer}>
-                    <Text style={[styles.label, isDark && styles.textDark]}>
-                      Mot de passe
-                    </Text>
-                    <View
-                      style={[
-                        styles.inputWrapper,
-                        isDark && styles.inputWrapperDark,
-                        passwordError && styles.inputError,
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name="lock-outline"
-                        size={24}
-                        color={
-                          passwordError
-                            ? theme.color.error
-                            : isDark
-                            ? "#CCCCCC"
-                            : "#666666"
-                        }
-                        style={styles.inputIcon}
-                      />
-                      <TextInput
-                        ref={passwordRef}
-                        value={password}
-                        onChangeText={(text) => {
-                          setPassword(text);
-                          if (passwordError) validatePassword(text);
-                          if (confirmPassword && confirmPasswordError)
-                            validateConfirmPassword(text, confirmPassword);
-                        }}
-                        style={[
-                          styles.input,
-                          isDark && styles.inputDark,
-                          { outline: "none" },
-                        ]}
-                        placeholder="Votre mot de passe"
-                        placeholderTextColor={isDark ? "#666666" : "#999999"}
-                        secureTextEntry={!showPassword}
-                        returnKeyType="next"
-                        onSubmitEditing={() =>
-                          confirmPasswordRef.current?.focus()
-                        }
-                      />
-                      <TouchableOpacity
-                        onPress={() => setShowPassword(!showPassword)}
-                        style={styles.eyeIcon}
-                      >
-                        <MaterialCommunityIcons
-                          name={showPassword ? "eye-off" : "eye"}
-                          size={24}
-                          color={isDark ? "#CCCCCC" : "#666666"}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                    {passwordError && (
-                      <Animated.View
-                        style={[
-                          styles.errorContainer,
-                          {
-                            opacity: passwordErrorAnim,
-                            transform: [
-                              {
-                                translateY: passwordErrorAnim.interpolate({
-                                  inputRange: [0, 1],
-                                  outputRange: [-10, 0],
-                                }),
-                              },
-                            ],
-                          },
-                        ]}
-                      >
-                        <MaterialCommunityIcons
-                          name="alert-circle"
-                          size={16}
-                          color={theme.color.error}
-                        />
-                        <Text style={styles.errorText}>{passwordError}</Text>
-                      </Animated.View>
-                    )}
-                  </View>
-
-                  {/* Confirm Password Input */}
-                  <View style={styles.inputContainer}>
-                    <Text style={[styles.label, isDark && styles.textDark]}>
-                      Confirmer le mot de passe
-                    </Text>
-                    <View
-                      style={[
-                        styles.inputWrapper,
-                        isDark && styles.inputWrapperDark,
-                        confirmPasswordError && styles.inputError,
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name="lock-check-outline"
-                        size={24}
-                        color={
-                          confirmPasswordError
-                            ? theme.color.error
-                            : isDark
-                            ? "#CCCCCC"
-                            : "#666666"
-                        }
-                        style={styles.inputIcon}
-                      />
-                      <TextInput
-                        ref={confirmPasswordRef}
-                        value={confirmPassword}
-                        onChangeText={(text) => {
-                          setConfirmPassword(text);
-                          if (confirmPasswordError)
-                            validateConfirmPassword(password, text);
-                        }}
-                        style={[
-                          styles.input,
-                          isDark && styles.inputDark,
-                          { outline: "none" },
-                        ]}
-                        placeholder="Confirmez votre mot de passe"
-                        placeholderTextColor={isDark ? "#666666" : "#999999"}
-                        secureTextEntry={!showPassword}
-                        returnKeyType="done"
-                      />
-                    </View>
-                    {confirmPasswordError && (
-                      <Animated.View
-                        style={[
-                          styles.errorContainer,
-                          {
-                            opacity: confirmPasswordErrorAnim,
-                            transform: [
-                              {
-                                translateY:
-                                  confirmPasswordErrorAnim.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [-10, 0],
-                                  }),
-                              },
-                            ],
-                          },
-                        ]}
-                      >
-                        <MaterialCommunityIcons
-                          name="alert-circle"
-                          size={16}
-                          color={theme.color.error}
-                        />
-                        <Text style={styles.errorText}>
-                          {confirmPasswordError}
-                        </Text>
-                      </Animated.View>
-                    )}
-                  </View>
-
-                  {/* Terms and Conditions Checkbox */}
-                  <View style={styles.checkboxContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.checkbox,
-                        termsError && styles.checkboxError,
-                        isChecked && styles.checkboxChecked,
-                      ]}
-                      onPress={() => {
-                        setIsChecked(!isChecked);
-                        if (termsError) validateTerms();
-                      }}
-                    >
-                      {isChecked && (
-                        <MaterialCommunityIcons
-                          name="check"
-                          size={18}
-                          color="#FFFFFF"
-                        />
+                    {/* Social Login Options */}
+                    <View style={styles.socialButtons}>
+                      {showGoogleAuth && (
+                        <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                          <View style={[styles.socialButton, styles.googleButton]}>
+                            <GoogleLogo size={20} />
+                            <Text style={[styles.socialButtonText, styles.googleButtonText]}>
+                              Google
+                            </Text>
+                          </View>
+                        </GoogleAuth>
                       )}
-                    </TouchableOpacity>
-                    <Text
-                      style={[styles.checkboxLabel, isDark && styles.textGray]}
-                    >
-                      J'accepte les{" "}
-                      <Text
-                        style={styles.link}
-                        onPress={() => router.push("/(cgu_privacy)/cgu" as never)}
-                      >
-                        conditions d'utilisation
-                      </Text>
-                    </Text>
-                  </View>
+                      {showAppleAuth && (
+                        <AppleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                          <View style={[styles.socialButton, styles.appleButton, isDark && styles.appleButtonDark]}>
+                            <AppleLogo size={20} color={isDark ? "#000000" : "#FFFFFF"} />
+                            <Text style={[styles.socialButtonText, styles.appleButtonText, isDark && styles.appleButtonTextDark]}>
+                              Apple
+                            </Text>
+                          </View>
+                        </AppleAuth>
+                      )}
+                    </View>
+                  </>
+                )}
 
-                  {termsError && (
-                    <Animated.View
-                      style={[
-                        styles.errorContainer,
-                        {
-                          opacity: termsErrorAnim,
-                          transform: [
-                            {
-                              translateY: termsErrorAnim.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [-10, 0],
-                              }),
-                            },
-                          ],
-                        },
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name="alert-circle"
-                        size={16}
-                        color={theme.color.error}
-                      />
-                      <Text style={styles.errorText}>{termsError}</Text>
-                    </Animated.View>
-                  )}
-
-                  {/* Sign Up Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryButton,
-                      isLoading && styles.buttonDisabled,
-                    ]}
-                    onPress={handleSignUp}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.primaryButtonText}>S'inscrire</Text>
-                    )}
-                  </TouchableOpacity>
-
-                  {/* Login Link */}
-                  <View style={styles.footerText}>
-                    <Text
-                      style={[styles.footerLabel, isDark && styles.textGray]}
-                    >
-                      Déjà un compte ?{" "}
-                    </Text>
-                    <TouchableOpacity onPress={() => router.push("/login")}>
-                      <Text style={styles.footerLink}>Se connecter</Text>
-                    </TouchableOpacity>
-                  </View>
-                </Animated.View>
-              )}
-
-              {/* Step 2: OTP Verification */}
-              {isOtpStep && (
-                <Animated.View
-                  style={[
-                    styles.formStep,
-                    { transform: [{ translateX: slideInRight }] },
-                  ]}
-                >
-                  <Text style={[styles.otpTitle, isDark && styles.textDark]}>
-                    Vérification
-                  </Text>
-                  <Text style={[styles.subtitle, isDark && styles.textGray]}>
-                    Entrez le code à 6 chiffres envoyé à
-                  </Text>
+                {/* Login Link */}
+                <View style={styles.footerText}>
                   <Text
-                    style={[styles.emailHighlight, isDark && styles.textDark]}
+                    style={[styles.footerLabel, isDark && styles.textGray]}
                   >
-                    {email}
+                    Déjà un compte ?{" "}
                   </Text>
-
-                  <View style={styles.otpContainer}>
-                    <OTPInput
-                      value={otp}
-                      onChangeText={setOtp}
-                      isError={!isOtpValid && otp.length === 6}
-                    />
-
-                    <Text style={[styles.otpValidityText, isDark && styles.textGray]}>
-                      Code valide pendant 10 minutes
-                    </Text>
-
-                    <View style={styles.countdownContainer}>
-                      <TouchableOpacity
-                        onPress={handleResendOtp}
-                        disabled={countdown > 0 || isLoading}
-                        style={[countdown > 0 && styles.resendDisabled]}
-                      >
-                        <Text
-                          style={[
-                            styles.resendLink,
-                            countdown > 0 && styles.resendDisabledText,
-                          ]}
-                        >
-                          {countdown > 0 ? `Renvoyer dans ${formatCountdown()}` : "Renvoyer le code"}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  <View style={styles.otpButtonsContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.primaryButton,
-                        (!isOtpValid || isLoading) && styles.buttonDisabled,
-                      ]}
-                      onPress={handleVerifyOtp}
-                      disabled={!isOtpValid || isLoading}
-                    >
-                      {isLoading ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.primaryButtonText}>Vérifier</Text>
-                      )}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.secondaryButton,
-                        isLoading && styles.buttonDisabled,
-                      ]}
-                      onPress={handleModifyEmail}
-                      disabled={isLoading}
-                    >
-                      <MaterialCommunityIcons
-                        name="email-edit-outline"
-                        size={20}
-                        color={theme.color.primary[500]}
-                        style={styles.buttonIcon}
-                      />
-                      <Text style={styles.secondaryButtonText}>
-                        Modifier le numéro
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </Animated.View>
-              )}
+                  <TouchableOpacity onPress={() => router.push("/login")}>
+                    <Text style={styles.footerLink}>Se connecter</Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
             </View>
           </Animated.View>
           <View style={{ marginTop: 40, alignItems: "center" }}>
@@ -1326,44 +912,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  otpContainer: {
-    alignItems: "center",
-    marginVertical: 24,
-  },
-  countdownContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 20,
-    gap: 10,
-  },
-  countdownText: {
-    fontSize: 16,
-    color: "#666666",
-    fontWeight: "500",
-  },
-  otpValidityText: {
-    fontSize: 13,
-    color: "#666666",
-    textAlign: "center",
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  resendLink: {
-    color: theme.color.primary[500],
-    fontSize: 14,
-    fontWeight: "600",
-    textDecorationLine: "underline",
-  },
-  resendDisabled: {
-    opacity: 0.5,
-  },
-  resendDisabledText: {
-    color: "#999999",
-  },
-  otpButtonsContainer: {
-    gap: 12,
-  },
+
+
   textDark: {
     color: "#FFFFFF",
   },
@@ -1420,6 +970,33 @@ const styles = StyleSheet.create({
   },
   toastClose: {
     padding: 4,
+  },
+  appleButton: {
+    backgroundColor: "#000000",
+    borderWidth: 1,
+    borderColor: "#000000",
+  },
+  appleButtonDark: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#FFFFFF",
+  },
+  appleButtonText: {
+    color: "#FFFFFF",
+  },
+  appleButtonTextDark: {
+    color: "#000000",
+  },
+  footerText: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 24,
+  },
+  footerLabel: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    color: "#666666",
   },
 });
 

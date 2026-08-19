@@ -140,9 +140,9 @@ export default function Login() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { trigger } = useHaptics();
-  const showGoogleAuth = Platform.OS !== "ios";
-  const showAppleAuth = Platform.OS === "ios" || Platform.OS === "web";
-  const showSocialAuth = showGoogleAuth || showAppleAuth;
+  const showGoogleAuth = true;
+  const showAppleAuth = Platform.OS === "ios";
+  const showSocialAuth = true;
 
   // States
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
@@ -394,229 +394,21 @@ export default function Login() {
                   </AppleAuth>
                 )}
               </View>
-
-              <View style={styles.divider}>
-                <View
-                  style={[styles.dividerLine, isDark && styles.dividerLineDark]}
-                />
-                <Text style={[styles.dividerText, isDark && styles.textGray]}>
-                  ou continuer avec
-                </Text>
-                <View
-                  style={[styles.dividerLine, isDark && styles.dividerLineDark]}
-                />
-              </View>
             </View>
           )}
 
-          {/* Form Section */}
-          <View style={styles.form}>
-            {/* Phone Input */}
-            <View style={styles.inputContainer}>
-              <Text style={[styles.label, isDark && styles.textDark]}>
-                Numéro de téléphone
-              </Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  isDark && styles.inputWrapperDark,
-                  phoneError && styles.inputError,
-                ]}
-              >
-                <TouchableOpacity
-                  onPress={() => setShowCountryPicker(true)}
-                  style={styles.countryCodeButton}
-                >
-                  <Text style={[styles.countryCodeText, isDark && styles.textDark]}>
-                    {selectedCountry.flag} {selectedCountry.code}
-                  </Text>
-                  <MaterialCommunityIcons name="chevron-down" size={14} color={isDark ? "#CCCCCC" : "#666666"} />
-                </TouchableOpacity>
-                <TextInput
-                  value={phone}
-                  onChangeText={(text) => {
-                    const sanitized = text.replace(/[^0-9]/g, "");
-                    setPhone(sanitized);
-                    if (phoneError) validatePhone(sanitized);
-                  }}
-                  style={[
-                    styles.input,
-                    isDark && styles.inputDark,
-                    { outline: "none" },
-                  ]}
-                  placeholder={__DEV__ && selectedCountry.code === "+237" ? "694650142" : selectedCountry.placeholder}
-                  placeholderTextColor={isDark ? "#666666" : "#999999"}
-                  keyboardType="numeric"
-                  maxLength={selectedCountry.maxLength}
-                  returnKeyType="next"
-                  onSubmitEditing={() => passwordRef?.current?.focus()}
-                />
-                {phoneError && (
-                  <MaterialCommunityIcons
-                    name="alert-circle"
-                    size={20}
-                    color={theme.color.error}
-                    style={styles.errorIcon}
-                  />
-                )}
-              </View>
-              {phoneError && (
-                <Animated.View
-                  style={[
-                    styles.errorContainer,
-                    {
-                      opacity: phoneErrorAnim,
-                      transform: [
-                        {
-                          translateY: phoneErrorAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [-10, 0],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="alert-circle"
-                    size={16}
-                    color={theme.color.error}
-                  />
-                  <Text style={styles.errorText}>{phoneError}</Text>
-                </Animated.View>
-              )}
-            </View>
-
-            {/* Password Input */}
-            <View style={styles.inputContainer}>
-              <Text style={[styles.label, isDark && styles.textDark]}>
-                Mot de passe
-              </Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  isDark && styles.inputWrapperDark,
-                  passwordError && styles.inputError,
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="lock-outline"
-                  size={24}
-                  color={
-                    passwordError
-                      ? theme.color.error
-                      : isDark
-                      ? "#CCCCCC"
-                      : "#666666"
-                  }
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  ref={passwordRef}
-                  value={password}
-                  onChangeText={(text) => {
-                    setPassword(text);
-                    if (passwordError) validatePassword(text);
-                  }}
-                  style={[
-                    styles.input,
-                    isDark && styles.inputDark,
-                    { outline: "none" },
-                  ]}
-                  placeholder="Votre mot de passe"
-                  placeholderTextColor={isDark ? "#666666" : "#999999"}
-                  secureTextEntry={!showPassword}
-                  returnKeyType="done"
-                  onSubmitEditing={handleLogin}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <MaterialCommunityIcons
-                    name={showPassword ? "eye-off" : "eye"}
-                    size={24}
-                    color={isDark ? "#CCCCCC" : "#666666"}
-                  />
-                </TouchableOpacity>
-              </View>
-              {passwordError && (
-                <Animated.View
-                  style={[
-                    styles.errorContainer,
-                    {
-                      opacity: passwordErrorAnim,
-                      transform: [
-                        {
-                          translateY: passwordErrorAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [-10, 0],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="alert-circle"
-                    size={16}
-                    color={theme.color.error}
-                  />
-                  <Text style={styles.errorText}>{passwordError}</Text>
-                </Animated.View>
-              )}
-            </View>
-
-            {/* Forgot Password */}
-
+          {/* Register Link */}
+          <View style={styles.registerSection}>
+            <Text style={[styles.registerText, isDark && styles.textGray]}>
+              Vous n'avez pas de compte ?
+            </Text>
             <TouchableOpacity
-              style={styles.forgotPassword}
               onPress={() =>
-                Platform.OS === "ios"
-                  ? Linking.openURL(
-                      "https://app.elearnprepa.com/forgot_password?come_from=mobile"
-                    )
-                  : router.push("/(auth)/forgot_password")
+                router.push("/register")
               }
             >
-              <Text style={styles.forgotPasswordText}>
-                Mot de passe oublié ?
-              </Text>
+              <Text style={styles.registerLink}>S'inscrire</Text>
             </TouchableOpacity>
-
-            {/* Login Button */}
-            <Pressable
-              style={[
-                styles.loginButton,
-                isLoading && styles.loginButtonDisabled,
-              ]}
-              onPress={handleLogin}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.loginButtonText}>Se connecter</Text>
-              )}
-            </Pressable>
-
-            {/* Register Link */}
-            <View style={styles.registerSection}>
-              <Text style={[styles.registerText, isDark && styles.textGray]}>
-                Vous n'avez pas de compte ?
-              </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  router.push(Platform.OS === "ios" ? "/(auth)" : "/register")
-                }
-              >
-                {Platform.OS === "ios" ? (
-                  <Text style={styles.registerLink}>Créez votre compte</Text>
-                ) : (
-                  <Text style={styles.registerLink}>S'inscrire</Text>
-                )}
-              </TouchableOpacity>
-            </View>
           </View>
         </Animated.View>
 
@@ -796,10 +588,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  googleButtonText: {
-    color: "#666666",
-    fontFamily: "Outfit-Medium",
-  },
+
   appleButton: {
     backgroundColor: "#000000",
     borderWidth: 1,
