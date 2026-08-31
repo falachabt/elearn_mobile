@@ -32,46 +32,55 @@ export default function OAuthCallbackScreen() {
     try {
       logger.log('[OAuthCallback] Params received:', params);
 
-      const code = getParamValue(params.code);
+      let code = getParamValue(params.code);
+      let accessToken = getParamValue(params.access_token);
+      let refreshToken = getParamValue(params.refresh_token);
+
+      // On Web, extract from window.location (both search query and hash fragment)
+      if (typeof window !== 'undefined') {
+        if (window.location.search) {
+          const searchParams = new URLSearchParams(window.location.search);
+          code = code || searchParams.get('code');
+          accessToken = accessToken || searchParams.get('access_token');
+          refreshToken = refreshToken || searchParams.get('refresh_token');
+        }
+        if (window.location.hash) {
+          const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+          code = code || hashParams.get('code');
+          accessToken = accessToken || hashParams.get('access_token');
+          refreshToken = refreshToken || hashParams.get('refresh_token');
+        }
+      }
 
       if (code) {
         logger.log('[OAuthCallback] Exchanging authorization code for session');
-
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
         if (exchangeError) {
-          logger.error('[OAuthCallback] Code exchange error:', exchangeError);
-          throw exchangeError;
+          logger.warn('[OAuthCallback] Code exchange error (may already be exchanged):', exchangeError);
+        }
+      } else if (accessToken && refreshToken) {
+        logger.log('[OAuthCallback] Setting session from tokens');
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (sessionError) {
+          logger.warn('[OAuthCallback] Set session error:', sessionError);
         }
       }
 
-      // Vérifier si on a déjà une session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError) {
-        logger.error('[OAuthCallback] Session error:', sessionError);
-        throw sessionError;
-      }
-
-      if (session) {
-        logger.log('[OAuthCallback] Session found, redirecting to app');
-        // Rediriger vers l'app
-        router.replace('/(app)');
-      } else {
-        // Attendre un peu et réessayer
-        logger.log('[OAuthCallback] No session yet, waiting...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        const { data: { session: retrySession } } = await supabase.auth.getSession();
-        
-        if (retrySession) {
-          logger.log('[OAuthCallback] Session found after retry, redirecting');
+      // Check session immediately and poll if needed (up to 5 attempts)
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          logger.log('[OAuthCallback] Session found, redirecting to app');
           router.replace('/(app)');
-        } else {
-          logger.error('[OAuthCallback] No session found after retry');
-          throw new Error('Authentication failed - no session created');
+          return;
         }
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
+
+      throw new Error('Authentication failed - no session created');
     } catch (error) {
       logger.error('[OAuthCallback] Error:', error);
       // Rediriger vers login avec erreur

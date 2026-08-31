@@ -257,7 +257,7 @@ const DefaultStartPage = ({
               ]}
             >
               <WebLottie
-                data={welcomeAnimationData}
+                data={welcomeAnimation}
                 autoplay
                 loop
                 style={styles(dimensions, isDark).lottie}

@@ -29,9 +29,7 @@ export default function AppleAuth({ onAuthSuccess, children }: AppleAuthProps) {
             // Get authentication URL from Supabase
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: 'apple',
-                options: {
-                    redirectTo: redirectUri,
-                },
+                ...(Platform.OS !== 'web' && { options: { redirectTo: redirectUri } })
             });
 
             if (error) throw error;

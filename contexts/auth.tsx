@@ -1,4 +1,4 @@
-﻿import {createContext, useContext, useEffect, useState, useRef} from 'react'
+import {createContext, useContext, useEffect, useState, useRef} from 'react'
 import {RealtimeChannel, Session} from '@supabase/supabase-js'
 import axios from 'axios'
 import useSWR from 'swr'
@@ -470,6 +470,23 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
             // Track login event
             posthogService.trackLogin('password');
+
+            // Ensure a session is created
+            const maxAttempts = 3;
+            let sessionCreated = false;
+            for (let i = 0; i < maxAttempts; i++) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                    sessionCreated = true;
+                    break;
+                }
+                await new Promise(res => setTimeout(res, 500));
+            }
+            if (!sessionCreated) {
+                const err = new Error('Authentication failed - no session created');
+                logger.error(err.message);
+                throw err;
+            }
 
             // We don't set isLoading=false here because the useEffect
             // for session/user will handle that after user data loads

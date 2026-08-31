@@ -14,7 +14,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Pressable } from "react-native-gesture-handler";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -136,6 +136,18 @@ const Toast = ({
 
 export default function Login() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  // Show error toast if redirected with an error query param
+  React.useEffect(() => {
+    if (params?.error) {
+      setToast({
+        visible: true,
+        message: typeof params.error === 'string' ? params.error : 'Authentication failed',
+        type: 'error',
+      });
+    }
+  }, [params?.error]);
+
   const { signIn } = useAuth();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -293,6 +305,8 @@ export default function Login() {
         message: "Connexion réussie",
         type: "success",
       });
+      // Navigate to the app after success
+      router.replace('/(app)');
     } catch {
       trigger(HapticType.ERROR);
       shakeForm();
@@ -320,6 +334,9 @@ export default function Login() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Toast notification */}
+      {params?.error && (
+        <Text style={[styles.errorBanner, isDark && styles.textDark]}>{params.error}</Text>
+      )}
       <Toast
         visible={toast.visible}
         message={toast.message}

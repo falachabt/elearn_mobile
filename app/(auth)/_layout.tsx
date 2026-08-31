@@ -31,7 +31,7 @@ export default function AuthLayout() {
         return <Redirect href={"/(app)"} />;
     }
 
-    if (session && user && !user.onboarding_done && !pathname.includes("/onboarding")) {
+    if (session && (!user || !user.onboarding_done) && !pathname.includes("/onboarding")) {
         return <Redirect href={"/(auth)/onboarding"} />;
     }
 

@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
-import { FileViewer } from "@/components/shared/learn/anales/FileViewer/FileViewer";
+import { FileViewer } from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
 
 
 // Define TypeScript interfaces for our data
@@ -229,7 +229,7 @@ export const FileViewerScreen = () => {
     } catch (error) {
       const message = error instanceof Error
         ? error.message
-        : 'Impossible de mettre à jour le statut de complétion. Veuillez réessayer.';
+        : 'Impossible de mettre ï¿½ jour le statut de complï¿½tion. Veuillez rï¿½essayer.';
       logger.error('Error toggling completion status:', error);
       Alert.alert(
           'Erreur',
@@ -294,7 +294,7 @@ export const FileViewerScreen = () => {
                             color="#FFFFFF"
                         />
                         <ThemedText style={viewerStyles.toggleButtonText}>
-                          {isCompleted ? "Terminé" : "Marquer terminé"}
+                          {isCompleted ? "Terminï¿½" : "Marquer terminï¿½"}
                         </ThemedText>
                       </>
                   )}

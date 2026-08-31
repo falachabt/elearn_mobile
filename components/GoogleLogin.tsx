@@ -29,9 +29,7 @@ export default function GoogleAuth({ onAuthSuccess, children }: GoogleAuthProps)
             // Get authentication URL from Supabase
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
-                options: {
-                    redirectTo: redirectUri,
-                },
+                ...(Platform.OS !== 'web' && { options: { redirectTo: redirectUri } })
             });
 
             if (error) throw error;

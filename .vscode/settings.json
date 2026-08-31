@@ -1,19 +1,41 @@
 {
-    "workbench.colorCustomizations": {
-        "activityBar.background": "#053241",
-        "titleBar.activeBackground": "#07465B",
-        "titleBar.activeForeground": "#F3FBFE",
-        "titleBar.inactiveBackground": "#053241",
-        "titleBar.inactiveForeground": "#F3FBFE",
-        "statusBar.background": "#053241",
-        "statusBar.foreground": "#F3FBFE",
-        "statusBar.debuggingBackground": "#053241",
-        "statusBar.debuggingForeground": "#F3FBFE",
-        "statusBar.noFolderBackground": "#053241",
-        "statusBar.noFolderForeground": "#F3FBFE"
-    },
-    "chat.tools.terminal.autoApprove": {
-        "npx expo": true,
-        "eas": true
-    }
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+  "chat.tools.terminal.autoApprove": {
+    "eas": true,
+    "npx expo": true
+  },
+  "deno.enablePaths": [
+    "supabase/functions"
+  ],
+  "deno.lint": true,
+  "deno.unstable": [
+    "bare-node-builtins",
+    "byonm",
+    "sloppy-imports",
+    "unsafe-proto",
+    "webgpu",
+    "broadcast-channel",
+    "worker-options",
+    "cron",
+    "kv",
+    "ffi",
+    "fs",
+    "http",
+    "net"
+  ],
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#053241",
+    "statusBar.background": "#053241",
+    "statusBar.debuggingBackground": "#053241",
+    "statusBar.debuggingForeground": "#F3FBFE",
+    "statusBar.foreground": "#F3FBFE",
+    "statusBar.noFolderBackground": "#053241",
+    "statusBar.noFolderForeground": "#F3FBFE",
+    "titleBar.activeBackground": "#07465B",
+    "titleBar.activeForeground": "#F3FBFE",
+    "titleBar.inactiveBackground": "#053241",
+    "titleBar.inactiveForeground": "#F3FBFE"
+  }
 }

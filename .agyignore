@@ -1,0 +1,19 @@
+# Exclure les dépendances lourdes
+node_modules/
+.expo/
+.gradle/
+build/
+dist/
+
+# Exclure les fichiers d'environnement natifs (générés par EAS ou Android)
+android/
+ios/
+*.apk
+*.aab
+*.ipa
+
+# Exclure les fichiers de données et carnets volumineux
+*.ipynb
+*.log
+package-lock.json
+yarn.lock

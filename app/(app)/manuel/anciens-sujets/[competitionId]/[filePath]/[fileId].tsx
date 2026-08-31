@@ -10,8 +10,8 @@ import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
-import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer";
-import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer";
+import { FileViewer } from "@/components/shared/learn/anales/FileViewer/FileViewer";
+
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useCompetitionPayment } from "@/hooks/useCompetitionPayment";
 import { useArchiveData } from "@/hooks/useArchiveData";
@@ -247,7 +247,7 @@ export const FileViewerScreen = () => {
       logger.error('Error toggling completion status:', toggleError);
       Alert.alert(
           'Erreur',
-          errorMessage || 'Impossible de mettre à jour le statut de complétion. Veuillez réessayer.'
+          errorMessage || 'Impossible de mettre ï¿½ jour le statut de complï¿½tion. Veuillez rï¿½essayer.'
       );
     } finally {
       setCompletedLoading(false);
@@ -298,10 +298,10 @@ export const FileViewerScreen = () => {
             color={isDark ? theme.color.primary[400] : theme.color.primary[500]}
           />
           <ThemedText style={viewerStyles.accessDeniedTitle}>
-            Accès restreint
+            Accï¿½s restreint
           </ThemedText>
           <ThemedText style={viewerStyles.accessDeniedDescription}>
-            {`Vous devez payer pour accéder à ce contenu. Débloquez ${
+            {`Vous devez payer pour accï¿½der ï¿½ ce contenu. Dï¿½bloquez ${
               competitionContext?.documentCount
                 ? `${competitionContext.documentCount} ${
                     competitionContext.documentCount === 1 ? 'document' : 'documents'
@@ -315,7 +315,7 @@ export const FileViewerScreen = () => {
           >
             <MaterialCommunityIcons name="lock-open" size={20} color="#FFFFFF" />
             <ThemedText style={viewerStyles.paymentButtonText}>
-              Débloquer maintenant
+              Dï¿½bloquer maintenant
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -371,7 +371,7 @@ export const FileViewerScreen = () => {
                             color="#FFFFFF"
                         />
                         <ThemedText style={viewerStyles.toggleButtonText}>
-                          {isCompleted ? "Terminé" : "Marquer terminé"}
+                          {isCompleted ? "Terminï¿½" : "Marquer terminï¿½"}
                         </ThemedText>
                       </>
                   )}
@@ -411,17 +411,9 @@ export const FileViewerScreen = () => {
             currentFile ?
 
                 // Use the appropriate FileViewer component based on the platform
-                Platform.OS === 'web' ?
-                    <FileViewer
-                        file={{
-                            file_url: currentFile.file_url
-                        }}
-                        style={viewerStyles.viewer}
-                    />
-                :
-                <FileViewerNative
+                <FileViewer
                     file={{
-                      file_url: currentFile.file_url
+                        file_url: currentFile.file_url
                     }}
                     style={viewerStyles.viewer}
                 />

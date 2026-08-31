@@ -18,7 +18,7 @@ import { useSecondaryDocument } from "@/hooks/secondary/useSecondaryDocuments";
 import {
   FileViewer,
   type FileViewerFile,
-} from "@/components/shared/learn/anales/FileViewer/FileViewer";
+} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
 import { useSecondaryProgram } from "@/hooks/secondary/useSecondaryPrograms";
 import { useDocumentActions } from "@/hooks/secondary/useDocumentActions";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
@@ -46,7 +46,7 @@ const DocumentViewerScreen = () => {
     isToggling,
   } = useDocumentActions(documentId);
 
-  // Programme pour afficher le header cohérent avec la liste
+  // Programme pour afficher le header cohï¿½rent avec la liste
   const { program } = useSecondaryProgram(programId);
   const programTitle = program?.class?.name && program?.serie?.name
     ? `${program.class.name} - ${program.serie.name}`
@@ -106,7 +106,7 @@ const DocumentViewerScreen = () => {
     download_url: activeDocument.download_url ?? undefined,
   };
 
-  // Vérifier que le document actif a un download_url
+  // Vï¿½rifier que le document actif a un download_url
   if (!activeDocument.download_url) {
     return (
       <View style={[styles.container, isDark && styles.containerDark, styles.centered]}>
@@ -197,7 +197,7 @@ const DocumentViewerScreen = () => {
                 isDark && styles.actionButtonTextDark,
               ]}
             >
-              {isPinned ? "Épinglé" : "Épingler"}
+              {isPinned ? "ï¿½pinglï¿½" : "ï¿½pingler"}
             </ThemedText>
           </TouchableOpacity>
 
@@ -225,7 +225,7 @@ const DocumentViewerScreen = () => {
                 isDark && styles.actionButtonTextDark,
               ]}
             >
-              {isCompleted ? "Complété" : "Marquer comme complété"}
+              {isCompleted ? "Complï¿½tï¿½" : "Marquer comme complï¿½tï¿½"}
             </ThemedText>
           </TouchableOpacity>
         </View>

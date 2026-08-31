@@ -723,7 +723,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#EFF6FF",
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 48,
+    shadowColor: theme.color.primary[500],
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
+
   attachButtonDark: { backgroundColor: "#1E3A8A" },
   input: {
     flex: 1,
