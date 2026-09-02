@@ -212,6 +212,14 @@ export default function AppLayout() {
                     name="suivi"
                     options={{ href: null, tabBarStyle: { display: "none" } }}
                 />
+                <Tabs.Screen
+                    name="notifications/index"
+                    options={{ href: null }}
+                />
+                <Tabs.Screen
+                    name="post/[id]"
+                    options={{ href: null }}
+                />
 
                 <Tabs.Screen
                     name="secondary"

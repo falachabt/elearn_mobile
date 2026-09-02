@@ -90,6 +90,16 @@ const Profile = () => {
             route: '/(app)/learn',
         },
         {
+            icon: <MaterialCommunityIcons name="forum-outline" size={24} color={theme.color.primary[500]}/>,
+            label: 'Mes posts',
+            route: '/profile/my-posts',
+        },
+        {
+            icon: <MaterialCommunityIcons name="bell-outline" size={24} color={theme.color.primary[500]}/>,
+            label: 'Notifications',
+            route: '/notifications',
+        },
+        {
             icon: <Ionicons name="settings-outline" size={24} color={theme.color.primary[500]}/>,
             label: 'Paramètres',
             route: '/profile/settings',
