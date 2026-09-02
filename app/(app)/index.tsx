@@ -14,13 +14,12 @@ import {
   TouchableOpacity,
   useColorScheme,
   View,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 
 import CustomizableGoals from "@/components/CustimizableHomeScreenGoals";
-import NewsCard, { NewsCardProps } from "@/components/shared/news/NewsCard";
-import NewsCardConcoursBlanc1 from "@/components/shared/news/NewsCardConcoursBlanc1";
-import NewsCardExam from "@/components/shared/news/NewsCardExam";
-import NewsItem from "@/components/shared/news/NewsItem";
+
 import TopBar from "@/components/TopBar";
 import WhatsAppContact from "@/components/WhatsappSupport";
 import { SECONDARY_WHATSAPP_GROUPS } from "@/constants/secondaryWhatsAppGroups";
@@ -29,7 +28,7 @@ import { useUser } from "@/contexts/useUserInfo";
 import { useAuth } from "@/contexts/auth";
 import { checkAndUpdateNotifications } from "@/utils/notification-utils";
 import { NavigationRoutes } from "@/contexts/NavigationContext";
-import { useActiveNews } from "@/hooks/useNews";
+
 import DailyTodoSection from "@/components/shared/DailyTodoSection";
 import {
   HOME_MENU_TOUR_ID,
@@ -37,6 +36,12 @@ import {
 } from "@/constants/tourGuide";
 import { useTabBarTourRefs } from "@/contexts/TabBarTourContext";
 import { SUIVI_SEEN_KEY } from "./suivi";
+import { getFeedPosts, deleteFeedPost, toggleLikePost, votePollOption, FeedPost } from "@/services/feed.service";
+import { PostCard } from "@/components/shared/feed/PostCard";
+import { CreatePostModal } from "@/components/shared/feed/CreatePostModal";
+import { ImageViewerModal } from "@/components/shared/feed/ImageViewerModal";
+import { UserProfileBottomSheet } from "@/components/shared/feed/UserProfileBottomSheet";
+import { ConfirmDeleteBottomSheet } from "@/components/shared/feed/ConfirmDeleteBottomSheet";
 
 const HORIZONTAL_PADDING = 16;
 
@@ -48,10 +53,93 @@ export default function Index() {
   const isDarkMode = colorScheme === "dark";
   const homeScrollRef = useRef<ScrollView>(null);
   const dailyTodoRef = useRef<View>(null);
-  const newsSectionRef = useRef<View>(null);
+  
   const hasAttemptedHomeTourRef = useRef(false);
   const [hasDailyTodo, setHasDailyTodo] = useState<boolean | null>(null);
   const [homeScrollY, setHomeScrollY] = useState(0);
+
+  const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
+  const [loadingFeed, setLoadingFeed] = useState<boolean>(true);
+  const [refreshingFeed, setRefreshingFeed] = useState<boolean>(false);
+  const [createModalVisible, setCreateModalVisible] = useState<boolean>(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [imageViewerVisible, setImageViewerVisible] = useState<boolean>(false);
+  const [profileSheetUserId, setProfileSheetUserId] = useState<string | null>(null);
+  const [postPendingDelete, setPostPendingDelete] = useState<FeedPost | null>(null);
+  const [deletingPost, setDeletingPost] = useState<boolean>(false);
+
+  const loadFeed = async () => {
+    const posts = await getFeedPosts(authUser?.authId);
+    setFeedPosts(posts || []);
+    setLoadingFeed(false);
+    setRefreshingFeed(false);
+  };
+
+  const handleToggleLike = async (post: FeedPost) => {
+    if (!authUser?.authId) return;
+    const wasLiked = !!post.liked_by_me;
+
+    // Mise à jour optimiste
+    setFeedPosts((prev) =>
+      prev.map((p) =>
+        p.id === post.id
+          ? {
+              ...p,
+              liked_by_me: !wasLiked,
+              likes_count: (p.likes_count || 0) + (wasLiked ? -1 : 1),
+            }
+          : p
+      )
+    );
+
+    await toggleLikePost(post.id, authUser.authId, wasLiked);
+  };
+
+  const handleVotePoll = async (post: FeedPost, optionId: string) => {
+    if (!authUser?.authId || post.poll_voted_option_id) return;
+
+    // Mise à jour optimiste : on marque le vote et incrémente l'option choisie
+    setFeedPosts((prev) =>
+      prev.map((p) =>
+        p.id === post.id
+          ? {
+              ...p,
+              poll_voted_option_id: optionId,
+              poll_total_votes: (p.poll_total_votes ?? 0) + 1,
+              poll_options: p.poll_options?.map((o) =>
+                o.id === optionId ? { ...o, votes_count: o.votes_count + 1 } : o
+              ),
+            }
+          : p
+      )
+    );
+
+    await votePollOption(post.id, optionId, authUser.authId);
+  };
+
+  useEffect(() => {
+    loadFeed();
+  }, [authUser?.authId]);
+
+  const handleRefreshFeed = () => {
+    setRefreshingFeed(true);
+    loadFeed();
+  };
+
+  const handleDeletePost = (post: FeedPost) => {
+    setPostPendingDelete(post);
+  };
+
+  const confirmDeletePost = async () => {
+    if (!postPendingDelete) return;
+    setDeletingPost(true);
+    const success = await deleteFeedPost(postPendingDelete.id);
+    if (success) {
+      setFeedPosts((prev) => prev.filter((p) => p.id !== postPendingDelete.id));
+    }
+    setDeletingPost(false);
+    setPostPendingDelete(null);
+  };
   const {
     manuelTabRef,
     secondaryTabRef,
@@ -70,43 +158,6 @@ export default function Index() {
       (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
     return daysSinceCreation <= 7;
   }, [authUser?.created_at]);
-
-  // Fetch active news from database
-  const { news: dbNews } = useActiveNews({
-    userId: authUser?.id || "",
-    userType: "concours",
-    isNewUser,
-    limit: 5,
-  });
-
-  // Sample news items for the news section
-  const newsItems: NewsCardProps[] = [
-    // Concours Blanc 1 registration card - always visible
-    {
-      id: "1",
-      type: "custom",
-      title: "Concours Blanc 2",
-      description:
-        "Inscris-toi maintenant pour participer au Concours Blanc 2 !",
-      customComponent: <NewsCardConcoursBlanc1 />,
-      endDate: new Date("2025-08-03T08:00:00Z"), // Set the end date for the card
-      actionLabel: "S'inscrire maintenant",
-      onPress: () => router.push("/concours-blanc-register"),
-    },
-    // Exam card - countdown to the official exam
-    {
-      id: "3",
-      type: "custom",
-      title: "Examen Concours Blanc 2",
-      description:
-        "Le concours Blanc 2 est ouvert, Donnez le meilleur de vous-même pour réussir !",
-      customComponent: <NewsCardExam />,
-      startDate: new Date("2025-08-03T08:00:00Z"), // Set the start date for the card
-      endDate: new Date("2025-08-03T23:59:59Z"), // Set the end date for the card
-      actionLabel: "Participer à l'examen",
-      onPress: () => router.push("/concours-blanc-register"),
-    },
-  ];
 
   useEffect(() => {
     checkAndUpdateNotifications();
@@ -131,7 +182,7 @@ export default function Index() {
     if (
       hasAttemptedHomeTourRef.current ||
       hasDailyTodo === null ||
-      !newsSectionRef.current ||
+      
       !manuelTabRef.current ||
       !secondaryTabRef.current ||
       !learnTabRef.current ||
@@ -154,21 +205,7 @@ export default function Index() {
         delayBefore: 350,
         active: hasDailyTodo,
       },
-      {
-        id: "news-section",
-        targetRef: newsSectionRef,
-        title: "Actualites importantes",
-        description:
-          "Les actualites presentent les informations importantes pour les bacheliers, les dates des concours et les evenements.",
-        targetStyle: styles.tourSectionTarget,
-        spotlightPadding: 8,
-        scrollToTarget: {
-          scrollRef: homeScrollRef,
-          offset: 24,
-          animated: true,
-          getCurrentScrollOffset: () => homeScrollY,
-        },
-      },
+
       {
         id: "menu-manuel",
         targetRef: manuelTabRef,
@@ -223,25 +260,6 @@ export default function Index() {
     startHomeTour,
   ]);
 
-  const sortedNews = [...dbNews].sort((a, b) => {
-    const featuredDelta =
-      Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured));
-    if (featuredDelta !== 0) return featuredDelta;
-
-    const priorityDelta = (b.priority ?? 0) - (a.priority ?? 0);
-    if (priorityDelta !== 0) return priorityDelta;
-
-    const orderDelta =
-      (a.display_order ?? Number.MAX_SAFE_INTEGER) -
-      (b.display_order ?? Number.MAX_SAFE_INTEGER);
-    if (orderDelta !== 0) return orderDelta;
-
-    return (
-      new Date(b.published_at ?? b.created_at ?? 0).getTime() -
-      new Date(a.published_at ?? a.created_at ?? 0).getTime()
-    );
-  });
-
   return (
     <View style={isDarkMode ? styles.containerDark : styles.container}>
       <TopBar
@@ -260,240 +278,122 @@ export default function Index() {
           setHomeScrollY(event.nativeEvent.contentOffset.y);
         }}
         scrollEventThrottle={16}
-      >
-        <View style={styles.header}>
-          <Text
-            numberOfLines={1}
-            style={isDarkMode ? styles.welcomeTitleDark : styles.welcomeTitle}
-          >
-            {new Date().getHours() < 12 ? "Bonjour" : "Bonsoir"}{" "}
-            {user?.firstname} 👋
-          </Text>
-          <WhatsAppContact
-            phoneNumber="+237 6 51 05 56 63"
-            message="Bonjour, j'ai besoin d'aide"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshingFeed}
+            onRefresh={handleRefreshFeed}
+            colors={[theme.color.primary[500]]}
+            tintColor={theme.color.primary[500]}
           />
-        </View>
-        {/*<JustificationGenerator />*/}
+        }
+      >
+{loadingFeed ? (
+  <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+    <ActivityIndicator size="large" color={theme.color.primary[500]} />
+  </View>
+) : feedPosts.length > 0 ? (
+  <View style={{ marginTop: 12 }}>
+    {feedPosts.map((post) => (
+      <PostCard
+        key={post.id}
+        post={post}
+        isDarkMode={isDarkMode}
+        currentUserId={authUser?.authId}
+        onPressPost={(p) => router.push(`/post/${p.id}`)}
+        onPressDelete={handleDeletePost}
+        onPressImage={(url) => {
+          setSelectedImageUrl(url);
+          setImageViewerVisible(true);
+        }}
+        onPressAuthor={(authorId) => setProfileSheetUserId(authorId)}
+        onToggleLike={handleToggleLike}
+        onVotePoll={handleVotePoll}
+      />
+    ))}
+  </View>
+) : (
+<View
+  style={[
+    styles.emptyNewsContainer,
+    isDarkMode && styles.emptyNewsContainerDark,
+  ]}
+>
+  <MaterialCommunityIcons
+    name="forum-outline"
+    size={64}
+    color={isDarkMode ? '#334155' : '#E2E8F0'}
+  />
+  <Text
+    style={[
+      styles.emptyNewsText,
+      isDarkMode && styles.emptyNewsTextDark,
+      { fontWeight: '700', fontSize: 16, marginTop: 16 },
+    ]}
+  >
+    Aucune publication pour l'instant
+  </Text>
+  <Text
+    style={[
+      styles.emptyNewsText,
+      isDarkMode && styles.emptyNewsTextDark,
+      { fontSize: 13, marginTop: 6, opacity: 0.7 },
+    ]}
+  >
+    à poser une question ou partager un exercice à la communauté !
+  </Text>
+  <TouchableOpacity
+    style={{
+      marginTop: 20,
+      backgroundColor: theme.color.primary[500],
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 24,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    }}
+    onPress={() => setCreateModalVisible(true)}
+  >
+    <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
+    <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>
+      Poster une question
+    </Text>
+  </TouchableOpacity>
+</View>
+)}
 
-        {/* Current Course */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text
-              numberOfLines={1}
-              style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}
-            >
-              En cours
-            </Text>
-            <TouchableOpacity style={styles.seeAllButton}>
-              <Text style={styles.seeAllText}>
-                <Link href={"/(app)/learn"}>Tout voir</Link>
-              </Text>
-            </TouchableOpacity>
-          </View>
+{authUser?.id && (
+  <CreatePostModal
+    visible={createModalVisible}
+    onClose={() => setCreateModalVisible(false)}
+    onSuccess={loadFeed}
+    userId={authUser.authId}
+    isDarkMode={isDarkMode}
+  />
+)}
 
-          <View
-            style={
-              isDarkMode
-                ? styles.currentCourseCardDark
-                : styles.currentCourseCard
-            }
-          >
-            <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${
-                      lastCourse?.course_progress_summary?.[0]
-                        ?.progress_percentage ?? 0
-                    }%`,
-                  },
-                ]}
-              />
-            </View>
-            <View style={styles.courseContent}>
-              <View style={styles.playIconContainer}>
-                <MaterialCommunityIcons name="play" size={24} color="#FFF" />
-              </View>
-              <View style={styles.courseTitleContainer}>
-                <Text
-                  numberOfLines={1}
-                  style={
-                    isDarkMode ? styles.courseTitleDark : styles.courseTitle
-                  }
-                >
-                  {lastCourse?.name ?? "Aucun cours en cours"}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={
-                    isDarkMode
-                      ? styles.lessonProgressDark
-                      : styles.lessonProgress
-                  }
-                >
-                  Leçon {JSON.stringify(lastCourse?.courses_content?.order)} •{" "}
-                  {lastCourse?.course_progress_summary?.[0]
-                    ?.progress_percentage ?? 0}{" "}
-                  complété
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[
-                  styles.continueButton,
-                  !lastCourse?.id && { backgroundColor: "gray" },
-                ]}
-                disabled={!lastCourse?.id}
-                onPress={() => {
-                  router.push(
-                    NavigationRoutes.learn.lesson(
-                      String(lastCourse?.learning_path?.id),
-                      String(lastCourse?.id),
-                      String(lastCourse?.current_section),
-                    ) as Href,
-                  );
-                }}
-              >
-                <Text style={styles.continueText}>Continuer</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+{/* Modal de zoom/visualisation d'image */}
+<ImageViewerModal
+  visible={imageViewerVisible}
+  imageUrl={selectedImageUrl}
+  onClose={() => setImageViewerVisible(false)}
+/>
 
-        {/* Daily Goals - Replaced with CustomizableGoals component */}
-        <CustomizableGoals
-          isDarkMode={isDarkMode}
-          toDayXp={toDayXp}
-          toDayExo={toDayExo}
-          toDayTime={toDayTime}
-        />
+{/* Profil public (bottom sheet) au clic sur l'avatar d'un auteur */}
+<UserProfileBottomSheet
+  visible={!!profileSheetUserId}
+  userId={profileSheetUserId}
+  onClose={() => setProfileSheetUserId(null)}
+  isDarkMode={isDarkMode}
+/>
 
-        {/* À faire aujourd'hui */}
-        <DailyTodoSection
-          isDarkMode={isDarkMode}
-          tourRef={dailyTodoRef}
-          onVisibilityChange={setHasDailyTodo}
-        />
-
-        <View style={styles.whatsappSection}>
-          <View style={styles.sectionHeader}>
-            <Text
-              numberOfLines={1}
-              style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}
-            >
-              Groupes WhatsApp
-            </Text>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.whatsappGroupsList}
-          >
-            {SECONDARY_WHATSAPP_GROUPS.map((group) => (
-              <TouchableOpacity
-                key={group.label}
-                activeOpacity={0.9}
-                style={[
-                  styles.whatsappGroupChip,
-                  isDarkMode && styles.whatsappGroupChipDark,
-                ]}
-                onPress={() => {
-                  void Linking.openURL(group.url);
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="whatsapp"
-                  size={18}
-                  color="#25D366"
-                />
-                <Text
-                  style={[
-                    styles.whatsappGroupChipText,
-                    isDarkMode && styles.whatsappGroupChipTextDark,
-                  ]}
-                >
-                  {group.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* News Section */}
-        <View
-          ref={newsSectionRef}
-          collapsable={false}
-          style={[styles.section, styles.tourSectionTarget]}
-        >
-          <View style={styles.sectionHeader}>
-            <Text
-              numberOfLines={1}
-              style={isDarkMode ? styles.sectionTitleDark : styles.sectionTitle}
-            >
-              Les actus
-            </Text>
-          </View>
-
-          {/* All News in Horizontal Scroll */}
-          {(() => {
-            // Filtrer les actualités statiques par dates
-            const filteredNewsItems = newsItems.filter((item) => {
-              const now = new Date();
-              if (item.startDate && now < item.startDate) return false;
-              if (item.endDate && now > item.endDate) return false;
-              return true;
-            });
-
-            // Vérifier s'il y a des actualités à afficher
-            const hasNews =
-              filteredNewsItems.length > 0 || (dbNews && dbNews.length > 0);
-
-            return hasNews ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.newsScrollContainer}
-              >
-                {/* Static News Items (Concours Blanc, etc.) */}
-                {filteredNewsItems.map((item) => (
-                  <View key={item.id} style={styles.newsCardWrapper}>
-                    <NewsCard {...item} />
-                  </View>
-                ))}
-
-                {/* Dynamic News from Database */}
-                {sortedNews.map((newsItem) => (
-                  <View key={newsItem.id} style={styles.newsCardWrapper}>
-                    <NewsItem news={newsItem} userId={authUser?.authId || ""} />
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <View
-                style={[
-                  styles.emptyNewsContainer,
-                  isDarkMode && styles.emptyNewsContainerDark,
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="newspaper-variant-outline"
-                  size={48}
-                  color={isDarkMode ? "#666" : "#CCC"}
-                />
-                <Text
-                  style={[
-                    styles.emptyNewsText,
-                    isDarkMode && styles.emptyNewsTextDark,
-                  ]}
-                >
-                  Aucune actualité disponible pour le moment
-                </Text>
-              </View>
-            );
-          })()}
-        </View>
+<ConfirmDeleteBottomSheet
+  visible={!!postPendingDelete}
+  loading={deletingPost}
+  onCancel={() => setPostPendingDelete(null)}
+  onConfirm={confirmDeletePost}
+  isDarkMode={isDarkMode}
+/>
 
         {/*/!* Learning Paths *!/*/}
         {/*<View style={[styles.section, styles.lastSection]}>*/}
@@ -514,6 +414,24 @@ export default function Index() {
 
         {/*</View>*/}
       </ScrollView>
+
+      {homeScrollY > 300 && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.fabBackToTop}
+          onPress={() => homeScrollRef.current?.scrollTo({ y: 0, animated: true })}
+        >
+          <MaterialCommunityIcons name="arrow-up" size={22} color={theme.color.primary[500]} />
+        </TouchableOpacity>
+      )}
+
+      <TouchableOpacity
+        activeOpacity={0.85}
+        style={styles.fab}
+        onPress={() => setCreateModalVisible(true)}
+      >
+        <MaterialCommunityIcons name="plus" size={28} color="#FFFFFF" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -556,11 +474,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: 12,
     paddingBottom: 80, // For bottom tab bar
-  },
-  header: {
-    marginTop: 16,
-    marginBottom: 24,
   },
   tourCardTarget: {
     borderRadius: 18,
@@ -759,6 +674,40 @@ const styles = StyleSheet.create({
   emptyNewsTextDark: {
     color: "#666",
   },
+  feedHeaderBanner: {
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  feedSubHeader: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
+    fontFamily: theme.typography.fontFamily,
+  },
+  createPostHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#059669',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  createPostHeaderBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
+    fontFamily: theme.typography.fontFamily,
+  },
   continueButton: {
     backgroundColor: theme.color.primary[500],
     paddingVertical: 8,
@@ -773,5 +722,39 @@ const styles = StyleSheet.create({
   },
   tourTabTarget: {
     borderRadius: theme.border.radius.small,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 65 + 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.color.primary[500],
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  fabBackToTop: {
+    position: 'absolute',
+    right: 26,
+    bottom: 65 + 16 + 56 + 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
   },
 });

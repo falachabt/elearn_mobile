@@ -1,10 +1,11 @@
-import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Image, Platform} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {View, Text, StyleSheet, TouchableOpacity, Platform} from 'react-native';
 import {MaterialCommunityIcons, FontAwesome5} from '@expo/vector-icons';
-import {Link, useRouter} from 'expo-router';
+import {useRouter} from 'expo-router';
 
 import {theme} from '@/constants/theme';
 import {useAuth} from '@/contexts/auth';
+import {getUnreadNotificationCount} from '@/services/notifications.service';
 
 interface TopBarProps {
     userName: string;
@@ -16,29 +17,27 @@ interface TopBarProps {
 const TopBar: React.FC<TopBarProps> = ({userName, streaks, xp, onChangeProgram}) => {
     const {user,} = useAuth();
     const router = useRouter();
+    void userName;
     void streaks;
     void xp;
     void onChangeProgram;
 
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        let cancelled = false;
+        getUnreadNotificationCount().then((count) => {
+            if (!cancelled) setUnreadCount(count);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     return (
         <View style={styles.container}>
-            {/* Profile and Stats Row */}
+            {/* Stats and Notifications Row */}
             <View style={styles.mainRow}>
-                <View style={styles.profileSection}>
-                    <Link href={'/(app)/profile'}>
-                        <Image
-                            // source={{ uri: `https://avatars.dicebear.com/api/initials/${userName}.png` }}
-                            source={{uri: user?.image?.url || "https://api.dicebear.com/9.x/initials/png?&seed=" + userName}}
-                            style={styles.profileImage}
-                        />
-                    </Link>
-
-                    <View style={styles.userInfo}>
-                        <Text style={styles.userName}>{user?.firstname}</Text>
-                        <Text style={styles.levelText}> ******* </Text>
-                    </View>
-                </View>
-
                 <View style={styles.statsSection}>
                     <View style={styles.statItem}>
                         <MaterialCommunityIcons name="star" size={20} color="#FFD700"/>
@@ -57,6 +56,20 @@ const TopBar: React.FC<TopBarProps> = ({userName, streaks, xp, onChangeProgram})
                         <MaterialCommunityIcons name="book-open-variant" size={20} color="#FFF"/>
                     </TouchableOpacity>
                 </View>
+
+                <TouchableOpacity
+                    style={styles.notificationButton}
+                    onPress={() => router.push('/notifications')}
+                >
+                    <MaterialCommunityIcons name="bell-outline" size={24} color="#FFF"/>
+                    {unreadCount > 0 && (
+                        <View style={styles.notificationBadge}>
+                            <Text style={styles.notificationBadgeText}>
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
             </View>
 
             {/* Progress Bar */}
@@ -83,30 +96,32 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    profileSection: {
-        flexDirection: 'row',
+    notificationButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        justifyContent: 'center',
         alignItems: 'center',
     },
-    profileImage: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+    notificationBadge: {
+        position: 'absolute',
+        top: -2,
+        right: -2,
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        paddingHorizontal: 4,
+        backgroundColor: '#EF4444',
+        justifyContent: 'center',
+        alignItems: 'center',
         borderWidth: 1.5,
-        borderColor: '#FFFFFF',
+        borderColor: theme.color.primary[500],
     },
-    userInfo: {
-        marginLeft: 8,
-    },
-    userName: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 16,
-        fontWeight: 'bold',
+    notificationBadgeText: {
         color: '#FFFFFF',
-    },
-    levelText: {
-        fontFamily : theme.typography.fontFamily,
-fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
+        fontSize: 10,
+        fontWeight: '700',
     },
     statsSection: {
         flexDirection: 'row',
