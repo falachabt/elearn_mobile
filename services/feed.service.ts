@@ -167,9 +167,13 @@ export async function getUserPublicProfile(
  */
 export const FEED_PAGE_SIZE = 12;
 
+// PostgREST ne peut plus deviner la relation implicitement : feed_posts a
+// désormais deux FK vers post_comments (post_comments.post_id -> feed_posts.id
+// ET feed_posts.best_comment_id -> post_comments.id, pour "meilleure réponse").
+// Il faut donc nommer explicitement la contrainte à utiliser pour l'embed.
 const FEED_POST_SELECT = `
   *,
-  comments:post_comments(id, post_id, author_id, content, score, parent_comment_id, created_at),
+  comments:post_comments!post_comments_post_id_fkey(id, post_id, author_id, content, score, parent_comment_id, created_at),
   likes:post_likes(user_id)
 `;
 
@@ -318,7 +322,7 @@ export async function getUserPosts(authorId: string): Promise<FeedPost[]> {
       .from('feed_posts')
       .select(`
         *,
-        comments_count:post_comments(count),
+        comments_count:post_comments!post_comments_post_id_fkey(count),
         likes:post_likes(user_id)
       `)
       .eq('author_id', authorId)
@@ -717,21 +721,49 @@ export type LeaderboardEntry = {
   avatar_url: string | null;
   total_xp: number;
   gradelevel: string | null;
+  rank: number;
 };
 
+export type GradelevelOption = {
+  gradelevel: string;
+  student_count: number;
+};
+
+export const LEADERBOARD_PAGE_SIZE = 30;
+
 /**
- * Classement par XP total, global ou filtré sur une filière (gradelevel).
+ * Classement par XP total, paginé (offset), filtrable par filière et/ou pays.
  */
-export async function getLeaderboard(gradelevel?: string | null): Promise<LeaderboardEntry[]> {
+export async function getLeaderboard(options?: {
+  gradelevel?: string | null;
+  countryId?: string | null;
+  offset?: number;
+}): Promise<LeaderboardEntry[]> {
   try {
     const { data, error } = await (supabase.rpc as any)('get_leaderboard', {
-      p_gradelevel: gradelevel ?? null,
-      p_limit: 50,
+      p_gradelevel: options?.gradelevel ?? null,
+      p_country_id: options?.countryId ?? null,
+      p_limit: LEADERBOARD_PAGE_SIZE,
+      p_offset: options?.offset ?? 0,
     });
     if (error) throw error;
     return data ?? [];
   } catch (err) {
     logger.error('getLeaderboard error:', err);
+    return [];
+  }
+}
+
+/**
+ * Liste des filières disponibles pour le filtre du classement, avec effectif.
+ */
+export async function getLeaderboardGradelevels(): Promise<GradelevelOption[]> {
+  try {
+    const { data, error } = await (supabase.rpc as any)('get_leaderboard_gradelevels');
+    if (error) throw error;
+    return data ?? [];
+  } catch (err) {
+    logger.error('getLeaderboardGradelevels error:', err);
     return [];
   }
 }

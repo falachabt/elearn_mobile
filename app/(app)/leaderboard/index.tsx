@@ -1,5 +1,5 @@
 // app/(app)/leaderboard/index.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -15,9 +15,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';
-import { getLeaderboard, LeaderboardEntry } from '@/services/feed.service';
+import { getLeaderboard, LeaderboardEntry, LEADERBOARD_PAGE_SIZE } from '@/services/feed.service';
+import LeaderboardFilterBottomSheet, {
+  LeaderboardFilters,
+} from '@/components/shared/feed/LeaderboardFilterBottomSheet';
 
 const MEDAL_COLORS = ['#F59E0B', '#94A3B8', '#B45309'];
+const TAB_BAR_HEIGHT = 65;
 
 export default function LeaderboardScreen() {
   const router = useRouter();
@@ -25,19 +29,43 @@ export default function LeaderboardScreen() {
   const isDarkMode = colorScheme === 'dark';
   const { user: authUser } = useAuth();
 
-  const [scope, setScope] = useState<'global' | 'track'>('global');
+  const [filters, setFilters] = useState<LeaderboardFilters>({ gradelevel: null, country: null });
+  const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
-  const myTrack = authUser?.gradelevel || null;
+  const loadPage = useCallback(
+    async (offset: number) => {
+      return getLeaderboard({
+        gradelevel: filters.gradelevel,
+        countryId: filters.country?.id ?? null,
+        offset,
+      });
+    },
+    [filters]
+  );
 
   useEffect(() => {
     setLoading(true);
-    getLeaderboard(scope === 'track' ? myTrack : null).then((data) => {
+    loadPage(0).then((data) => {
       setEntries(data);
+      setHasMore(data.length === LEADERBOARD_PAGE_SIZE);
       setLoading(false);
     });
-  }, [scope, myTrack]);
+  }, [loadPage]);
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore || entries.length === 0) return;
+    setLoadingMore(true);
+    const more = await loadPage(entries.length);
+    setEntries((prev) => [...prev, ...more]);
+    setHasMore(more.length === LEADERBOARD_PAGE_SIZE);
+    setLoadingMore(false);
+  };
+
+  const hasActiveFilters = !!filters.gradelevel || !!filters.country;
 
   return (
     <View style={[styles.container, isDarkMode && styles.containerDark]}>
@@ -52,73 +80,90 @@ export default function LeaderboardScreen() {
 
       <View style={styles.scopeRow}>
         <TouchableOpacity
-          style={[styles.scopeBtn, scope === 'global' && styles.scopeBtnActive]}
-          onPress={() => setScope('global')}
+          style={[styles.scopeBtn, !hasActiveFilters && styles.scopeBtnActive]}
+          onPress={() => setFilters({ gradelevel: null, country: null })}
         >
-          <Text style={[styles.scopeBtnText, scope === 'global' && styles.scopeBtnTextActive]}>
+          <Text style={[styles.scopeBtnText, !hasActiveFilters && styles.scopeBtnTextActive]}>
             Global
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.scopeBtn, scope === 'track' && styles.scopeBtnActive]}
-          onPress={() => setScope('track')}
-          disabled={!myTrack}
+          style={[styles.scopeBtn, hasActiveFilters && styles.scopeBtnActive]}
+          onPress={() => setFilterSheetVisible(true)}
         >
-          <Text
-            style={[
-              styles.scopeBtnText,
-              scope === 'track' && styles.scopeBtnTextActive,
-              !myTrack && styles.scopeBtnTextDisabled,
-            ]}
-          >
-            Ma filière{myTrack ? ` (${myTrack})` : ''}
+          <MaterialCommunityIcons
+            name="filter-variant"
+            size={15}
+            color={hasActiveFilters ? '#FFFFFF' : theme.color.primary[500]}
+          />
+          <Text style={[styles.scopeBtnText, hasActiveFilters && styles.scopeBtnTextActive]}>
+            {filters.gradelevel && filters.country
+              ? `${filters.gradelevel} · ${filters.country.name}`
+              : filters.gradelevel || filters.country?.name || 'Filtrer'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        onScroll={(e) => {
+          const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+          if (contentSize.height - (contentOffset.y + layoutMeasurement.height) < 300) {
+            loadMore();
+          }
+        }}
+        scrollEventThrottle={16}
+      >
         {loading ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color={theme.color.primary[500]} />
           </View>
         ) : entries.length > 0 ? (
-          entries.map((entry, idx) => {
-            const isMe = entry.id === authUser?.id;
-            return (
-              <View
-                key={entry.id}
-                style={[
-                  styles.row,
-                  isDarkMode && styles.rowDark,
-                  isMe && (isDarkMode ? styles.rowMeDark : styles.rowMe),
-                ]}
-              >
-                <View style={styles.rankCol}>
-                  {idx < 3 ? (
-                    <MaterialCommunityIcons name="trophy" size={20} color={MEDAL_COLORS[idx]} />
-                  ) : (
-                    <Text style={[styles.rankText, isDarkMode && styles.textDark]}>{idx + 1}</Text>
-                  )}
-                </View>
-
-                {entry.avatar_url ? (
-                  <Image source={{ uri: entry.avatar_url }} style={styles.avatar} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarText}>
-                      {(entry.full_name || '?').charAt(0).toUpperCase()}
-                    </Text>
+          <>
+            {entries.map((entry) => {
+              const isMe = entry.id === authUser?.id;
+              const medalIdx = entry.rank - 1;
+              return (
+                <View
+                  key={entry.id}
+                  style={[
+                    styles.row,
+                    isDarkMode && styles.rowDark,
+                    isMe && (isDarkMode ? styles.rowMeDark : styles.rowMe),
+                  ]}
+                >
+                  <View style={styles.rankCol}>
+                    {medalIdx >= 0 && medalIdx < 3 ? (
+                      <MaterialCommunityIcons name="trophy" size={20} color={MEDAL_COLORS[medalIdx]} />
+                    ) : (
+                      <Text style={[styles.rankText, isDarkMode && styles.textDark]}>{entry.rank}</Text>
+                    )}
                   </View>
-                )}
 
-                <Text style={[styles.name, isDarkMode && styles.textDark]} numberOfLines={1}>
-                  {entry.full_name || 'Élève'}{isMe ? ' (toi)' : ''}
-                </Text>
+                  {entry.avatar_url ? (
+                    <Image source={{ uri: entry.avatar_url }} style={styles.avatar} />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <Text style={styles.avatarText}>
+                        {(entry.full_name || '?').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
 
-                <Text style={styles.xpText}>{entry.total_xp} XP</Text>
+                  <Text style={[styles.name, isDarkMode && styles.textDark]} numberOfLines={1}>
+                    {entry.full_name || 'Élève'}{isMe ? ' (toi)' : ''}
+                  </Text>
+
+                  <Text style={styles.xpText}>{entry.total_xp} XP</Text>
+                </View>
+              );
+            })}
+            {loadingMore && (
+              <View style={styles.loadingMoreBox}>
+                <ActivityIndicator size="small" color={theme.color.primary[500]} />
               </View>
-            );
-          })
+            )}
+          </>
         ) : (
           <View style={styles.emptyBox}>
             <MaterialCommunityIcons name="trophy-outline" size={56} color="#CBD5E1" />
@@ -128,6 +173,16 @@ export default function LeaderboardScreen() {
           </View>
         )}
       </ScrollView>
+
+      <LeaderboardFilterBottomSheet
+        visible={filterSheetVisible}
+        value={filters}
+        onApply={(next) => {
+          setFilters(next);
+          setFilterSheetVisible(false);
+        }}
+        onClose={() => setFilterSheetVisible(false)}
+      />
     </View>
   );
 }
@@ -135,7 +190,7 @@ export default function LeaderboardScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   containerDark: { backgroundColor: theme.color.dark.background.primary },
-  content: { padding: 16 },
+  content: { padding: 16, paddingBottom: 24 + TAB_BAR_HEIGHT },
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -169,16 +224,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   scopeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 18,
     backgroundColor: '#F1F5F9',
+    maxWidth: '60%',
   },
   scopeBtnActive: { backgroundColor: theme.color.primary[500] },
   scopeBtnText: { fontSize: 13, fontWeight: '600', color: theme.color.primary[500] },
   scopeBtnTextActive: { color: '#FFFFFF' },
-  scopeBtnTextDisabled: { color: '#CBD5E1' },
   loadingBox: { paddingVertical: 60, alignItems: 'center' },
+  loadingMoreBox: { paddingVertical: 20, alignItems: 'center' },
   emptyBox: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 16, fontWeight: '700', color: '#94A3B8', marginTop: 12 },
   textDark: { color: '#F8FAFC' },
