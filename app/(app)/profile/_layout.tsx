@@ -20,6 +20,7 @@ export default function ProgramLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="paiements" />
             <Stack.Screen name="editProfile" />
+            <Stack.Screen name="my-activity" />
             <Stack.Screen name="delete-account" />
             <Stack.Screen name="settings" />
             <Stack.Screen name="weekly-performance" />

@@ -31,6 +31,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ChatProvider } from "@/contexts/chatBotContext";
 import { UpdatesProvider } from "@/contexts/UpdatesContext";
 import UpdatesManager from "@/components/shared/UpdatesManager";
+import XpToastManager from "@/components/shared/XpToastManager";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { posthog } from "@/lib/posthog";
 import { theme } from "@/constants/theme";
@@ -511,6 +512,7 @@ export function Provider({ children }: { children: React.ReactNode }) {
                       <ChatProvider>
                             <UserActivityTracker />
                             <UpdatesManager />
+                            <XpToastManager />
                             {/* <RouteRevalidationManager> */}
                             <BackHandlerManager>{children}</BackHandlerManager>
                             {/* </RouteRevalidationManager> */}

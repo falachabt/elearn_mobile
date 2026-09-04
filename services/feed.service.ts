@@ -754,6 +754,85 @@ export async function getLeaderboard(options?: {
   }
 }
 
+export type WeeklyLeaderboardEntry = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  weekly_xp: number;
+  gradelevel: string | null;
+  rank: number;
+};
+
+/**
+ * Classement XP de la semaine en cours (dimanche 14h -> dimanche 14h suivant).
+ */
+export async function getWeeklyLeaderboard(options?: {
+  gradelevel?: string | null;
+  countryId?: string | null;
+  offset?: number;
+}): Promise<WeeklyLeaderboardEntry[]> {
+  try {
+    const { data, error } = await (supabase.rpc as any)('get_weekly_leaderboard', {
+      p_gradelevel: options?.gradelevel ?? null,
+      p_country_id: options?.countryId ?? null,
+      p_limit: LEADERBOARD_PAGE_SIZE,
+      p_offset: options?.offset ?? 0,
+    });
+    if (error) throw error;
+    return data ?? [];
+  } catch (err) {
+    logger.error('getWeeklyLeaderboard error:', err);
+    return [];
+  }
+}
+
+/**
+ * Position de l'utilisateur courant, même hors de la page chargée, pour
+ * l'épingle "ta position" en bas du classement.
+ */
+export async function getMyLeaderboardRank(
+  scope: 'general' | 'weekly',
+  options?: { gradelevel?: string | null; countryId?: string | null }
+): Promise<LeaderboardEntry | WeeklyLeaderboardEntry | null> {
+  try {
+    const rpcName = scope === 'weekly' ? 'get_my_weekly_leaderboard_rank' : 'get_my_leaderboard_rank';
+    const { data, error } = await (supabase.rpc as any)(rpcName, {
+      p_gradelevel: options?.gradelevel ?? null,
+      p_country_id: options?.countryId ?? null,
+    });
+    if (error) throw error;
+    return data?.[0] ?? null;
+  } catch (err) {
+    logger.error('getMyLeaderboardRank error:', err);
+    return null;
+  }
+}
+
+export type XpHistoryEntry = {
+  id: number;
+  xp_gained: number;
+  source_type: string;
+  source_id: string | null;
+  created_at: string;
+};
+
+/**
+ * Historique XP paginé de l'utilisateur courant, pour "Mon activité".
+ */
+export async function getMyXpHistory(offset = 0): Promise<XpHistoryEntry[]> {
+  try {
+    const { data, error } = await (supabase.rpc as any)('get_my_xp_history', {
+      p_limit: 30,
+      p_offset: offset,
+    });
+    if (error) throw error;
+    return data ?? [];
+  } catch (err) {
+    logger.error('getMyXpHistory error:', err);
+    return [];
+  }
+}
+
 /**
  * Liste des filières disponibles pour le filtre du classement, avec effectif.
  */

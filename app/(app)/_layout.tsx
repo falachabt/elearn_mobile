@@ -156,10 +156,10 @@ export default function AppLayout() {
                 <Tabs.Screen
                     name="index"
                     options={{
-                        title: "Home",
+                        title: "Fil",
                         tabBarIcon: ({color}) => (
                             <MaterialCommunityIcons
-                                name="home-variant"
+                                name="newspaper-variant-outline"
                                 color={color}
                                 size={26}
                             />

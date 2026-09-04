@@ -95,6 +95,11 @@ const Profile = () => {
             route: '/profile/my-posts',
         },
         {
+            icon: <MaterialCommunityIcons name="star-outline" size={24} color={theme.color.primary[500]}/>,
+            label: 'Mon activité',
+            route: '/profile/my-activity',
+        },
+        {
             icon: <MaterialCommunityIcons name="bell-outline" size={24} color={theme.color.primary[500]}/>,
             label: 'Notifications',
             route: '/notifications',

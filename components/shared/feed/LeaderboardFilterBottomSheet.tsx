@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Modal from 'react-native-modal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '@/constants/theme';
 import { getLeaderboardGradelevels, GradelevelOption } from '@/services/feed.service';
@@ -38,6 +39,7 @@ export default function LeaderboardFilterBottomSheet({
 }: LeaderboardFilterBottomSheetProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const [section, setSection] = useState<'gradelevel' | 'country'>('gradelevel');
   const [search, setSearch] = useState('');
@@ -218,7 +220,7 @@ export default function LeaderboardFilterBottomSheet({
           />
         )}
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: 12 + insets.bottom }]}>
           {hasActiveFilters && (
             <TouchableOpacity
               style={styles.resetBtn}
