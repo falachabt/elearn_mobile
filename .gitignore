@@ -34,6 +34,11 @@ yarn-error.*
 .env*.local
 fcm
 google-services
+google-service-account.json
+credentials.json
+
+# local Supabase CLI state (elearn_backoffice owns the real supabase/ project)
+supabase/
 
 # typescript
 *.tsbuildinfo
