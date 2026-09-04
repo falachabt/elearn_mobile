@@ -13,6 +13,7 @@ import {
   StatusBar,
   PixelRatio,
   KeyboardAvoidingView,
+  Alert,
 } from "react-native";
 import * as Animatable from "react-native-animatable";
 import { Ionicons } from "@expo/vector-icons";
@@ -80,7 +81,7 @@ const MainOnboarding = () => {
 
 
   const paymentPageRef = useRef<PaymentPageRef>(null);
-  const { loading, cartItems, currentCart } = useCart();
+  const { cartItems, currentCart } = useCart();
 
   useEffect(() => {
     if (currentCart) {
@@ -106,6 +107,8 @@ const MainOnboarding = () => {
         // Basic info from userInfo
         firstname: userInfo.firstname || null,
         lastname: userInfo.lastname || null,
+        country_id: userInfo.country_id || null,
+        country: userInfo.country || null,
         phone: userInfo.phone || null,
         city: userInfo.city || null,
         birthdate:  null,
@@ -132,7 +135,8 @@ const MainOnboarding = () => {
       // Validate required fields
       const isValid = Boolean(
           sanitizedData.firstname &&
-          sanitizedData.lastname
+          sanitizedData.lastname &&
+          sanitizedData.country_id
       );
 
       setIsDataValid(isValid);
@@ -163,6 +167,8 @@ const MainOnboarding = () => {
           setUserInfo({
             firstname: accountData.firstname || '',
             lastname: accountData.lastname || '',
+            country_id: accountData.country_id || null,
+            country: accountData.country || '',
             phone: accountData.phone ? Number(accountData?.phone) : null,
             city: accountData.city || '',
             birthdate:  null,
@@ -205,6 +211,8 @@ const MainOnboarding = () => {
           setUserInfo({
             firstname: '',
             lastname: '',
+            country_id: null,
+            country: '',
             phone: null,
             city: '',
             birthdate: null,
@@ -234,6 +242,8 @@ const MainOnboarding = () => {
         setUserInfo({
           firstname: '',
           lastname: '',
+          country_id: null,
+          country: '',
           phone: null,
           city: '',
           birthdate: null,
@@ -263,7 +273,11 @@ const MainOnboarding = () => {
   }, [user]);
 
   const updateAccountInDatabase = async () => {
-    if (!isDataValid || !mergedAccountData || !user?.id) return false;
+    if (!user?.id) return false;
+    if (!isDataValid || !mergedAccountData) {
+      Alert.alert('Informations incomplètes', 'Merci de renseigner votre nom et prénom (étape "Créez Votre Profil") avant de continuer.');
+      return false;
+    }
 
     try {
       const { error } = await supabase
@@ -277,6 +291,7 @@ const MainOnboarding = () => {
       return true;
     } catch (error) {
       logger.error('Error updating account:', error);
+      Alert.alert('Erreur', `Impossible d'enregistrer vos informations : ${error instanceof Error ? error.message : 'erreur inconnue'}`);
       return false;
     }
   };
@@ -352,11 +367,22 @@ const MainOnboarding = () => {
       return true;
     } catch (error) {
       logger.error("Error completing onboarding:", error);
+      Alert.alert('Erreur', `Impossible de finaliser votre inscription : ${error instanceof Error ? error.message : 'erreur inconnue'}`);
       return false;
     } finally {
       setIsOnboardingLoading(false);
     }
   }
+
+  const handlePaymentSuccess = async () => {
+    setIsEndingOnboarding(true);
+    const completed = await handleSkipOnboarding();
+    setIsEndingOnboarding(false);
+
+    if (completed) {
+      router.replace('/(app)');
+    }
+  };
 
   const handleNextStep = async () => {
     if (step === 3 && userInfoFormRef.current) {
@@ -466,6 +492,7 @@ const MainOnboarding = () => {
                   selectedProgramIds={programs}
                   onLoadingChange={setIsPaymentLoading}
                   onPaymentStatusChange={setIsWatingForPayment}
+                  onPaymentSuccess={handlePaymentSuccess}
               />
             </View>
         );
@@ -523,7 +550,7 @@ const MainOnboarding = () => {
                         styles.secondaryButton,
                         isDark && styles.secondaryButtonDark
                       ]}
-                      disabled={isPaymentLoading || isOnboardingLoading || loading || isEndingonboarding}
+                      disabled={isPaymentLoading || isOnboardingLoading || isEndingonboarding}
                       onPress={() => {
                         if (step == 7 && knowsProgram) {
                           setStep(step - 2);
@@ -546,10 +573,10 @@ const MainOnboarding = () => {
                   style={[
                     styles.button,
                     styles.primaryButton,
-                    ((step === 5 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding) && styles.disabledButton,
+                    ((step === 5 && knowsProgram === null) || isPaymentLoading || isEndingonboarding) && styles.disabledButton,
                   ]}
                   onPress={handleNextStep}
-                  disabled={(step === 5 && knowsProgram === null) || loading || isPaymentLoading || isEndingonboarding}
+                  disabled={(step === 5 && knowsProgram === null) || isPaymentLoading || isEndingonboarding}
               >
                 <Text style={styles.buttonText}>
                   {renderNextButtonLabel()}

@@ -1,0 +1,36 @@
+name: Send Feed Digest Notifications
+
+on:
+  # Rattrapage : les notifications du fil (commentaire/réponse/like/mention)
+  # sont déjà envoyées immédiatement par un trigger Postgres. Ce job regroupe
+  # en un seul push par utilisateur toute notification restée sent_push=false
+  # (échec transitoire), toutes les 20 minutes.
+  schedule:
+    - cron: '*/20 * * * *'
+
+  workflow_dispatch:
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm install @supabase/supabase-js
+          npm install expo-server-sdk
+
+      - name: Send digest push notifications
+        run: node scripts/sendDigestPushNotifications.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}

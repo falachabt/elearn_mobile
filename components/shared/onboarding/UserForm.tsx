@@ -5,12 +5,16 @@ import {
   StyleSheet,
   ScrollView,
   useColorScheme,
+  TouchableOpacity,
 } from 'react-native';
 import { TextInput } from 'react-native-gesture-handler';
 
 import { theme } from '@/constants/theme';
 import { AccountsInput } from '@/types/type';
 import { useAuth } from '@/contexts/auth';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import CountrySelectBottomSheet from '@/components/ui/CountrySelectBottomSheet';
+import { countryFlagEmoji, type CountryOption } from '@/services/countries.service';
 
 export interface UserInfoFormProps {
   userInfo: AccountsInput | null;
@@ -26,6 +30,10 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
 
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<CountryOption | null>(
+    userInfo?.country_id ? { id: userInfo.country_id, name: userInfo.country || '', code: null } : null
+  );
 
   const validate = () => {
     let valid = true;
@@ -38,6 +46,11 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
 
     if (!userInfo?.lastname) {
       newErrors.lastName = 'Le nom de famille est requis';
+      valid = false;
+    }
+
+    if (!userInfo?.country_id) {
+      newErrors.country = 'Le pays est requis';
       valid = false;
     }
 
@@ -71,6 +84,7 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
   }, [user]);
 
   return (
+    <>
       <ScrollView style={[
         styles.scrollView,
         isDarkMode && styles.scrollViewDark
@@ -134,6 +148,42 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
               />
               {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
             </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={[
+                styles.label,
+                isDarkMode && styles.textDark
+              ]}>Pays</Text>
+              <TouchableOpacity
+                  style={[
+                    styles.input,
+                    styles.countryTrigger,
+                    isDarkMode && styles.inputDark,
+                    errors.country && styles.inputError,
+                  ]}
+                  onPress={() => setCountryPickerVisible(true)}
+                  activeOpacity={0.7}
+              >
+                {selectedCountry ? (
+                  <View style={styles.countryTriggerContent}>
+                    <Text style={styles.countryFlag}>{countryFlagEmoji(selectedCountry.code)}</Text>
+                    <Text style={[styles.countryTriggerText, isDarkMode && styles.textDark]}>
+                      {selectedCountry.name}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={[styles.countryPlaceholder, isDarkMode && { color: theme.color.gray[400] }]}>
+                    Sélectionner ton pays
+                  </Text>
+                )}
+                <MaterialCommunityIcons
+                  name="chevron-down"
+                  size={20}
+                  color={isDarkMode ? theme.color.gray[400] : theme.color.gray[500]}
+                />
+              </TouchableOpacity>
+              {errors.country && <Text style={styles.errorText}>{errors.country}</Text>}
+            </View>
           </View>
 
           {/* Contact Information */}
@@ -192,6 +242,17 @@ const UserInfoForm = forwardRef(({ userInfo, setUserInfo, title, description }: 
           </View>
         </View>
       </ScrollView>
+      <CountrySelectBottomSheet
+        visible={countryPickerVisible}
+        selected={selectedCountry}
+        onSelect={(country) => {
+          setSelectedCountry(country);
+          setUserInfo(prev => prev ? { ...prev, country_id: country.id, country: country.name } : { country_id: country.id, country: country.name, authId: '', email: '' });
+          setCountryPickerVisible(false);
+        }}
+        onClose={() => setCountryPickerVisible(false)}
+      />
+    </>
   );
 });
 
@@ -251,6 +312,29 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: theme.color.error,
+  },
+  countryTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  countryTriggerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  countryFlag: {
+    fontSize: 20,
+  },
+  countryTriggerText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: theme.typography.fontSize.medium,
+    color: theme.color.gray[900],
+  },
+  countryPlaceholder: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: theme.typography.fontSize.medium,
+    color: theme.color.gray[500],
   },
   errorText: {
     color: theme.color.error,
