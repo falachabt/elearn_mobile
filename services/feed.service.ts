@@ -814,6 +814,7 @@ export type XpHistoryEntry = {
   source_type: string;
   source_id: string | null;
   created_at: string;
+  post_id: string | null;
 };
 
 /**

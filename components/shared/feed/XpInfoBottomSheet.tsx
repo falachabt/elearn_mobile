@@ -9,6 +9,8 @@ const XP_WAYS: { icon: keyof typeof MaterialCommunityIcons.glyphMap; label: stri
   { icon: 'comment-text-outline', label: 'Écrire un commentaire', xp: '+2 XP' },
   { icon: 'heart', label: 'Recevoir un like sur ta publication', xp: '+1 XP' },
   { icon: 'medal-outline', label: 'Ta réponse marquée "meilleure réponse"', xp: '+5 XP' },
+  { icon: 'clipboard-check-outline', label: 'Terminer un quiz de cours ou d\'exercice', xp: 'Variable' },
+  { icon: 'school-outline', label: 'Terminer un examen blanc', xp: 'Variable' },
 ];
 
 interface XpInfoBottomSheetProps {

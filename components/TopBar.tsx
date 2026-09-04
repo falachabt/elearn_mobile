@@ -39,10 +39,14 @@ const TopBar: React.FC<TopBarProps> = ({userName, streaks, xp, onChangeProgram})
             {/* Stats and Notifications Row */}
             <View style={styles.mainRow}>
                 <View style={styles.statsSection}>
-                    <TouchableOpacity style={styles.statItem} onPress={() => router.push('/leaderboard' as Href)}>
+                    <TouchableOpacity style={styles.statItem} onPress={() => router.push('/profile/my-activity' as Href)}>
                         <MaterialCommunityIcons name="star" size={20} color="#FFD700"/>
 
                         <Text style={styles.statValue}>{user?.user_xp?.total_xp || 0}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.trophyButton} onPress={() => router.push('/leaderboard' as Href)}>
+                        <MaterialCommunityIcons name="trophy-variant" size={18} color="#FFD700"/>
                     </TouchableOpacity>
 
                     <View style={styles.statDivider}/>
@@ -134,6 +138,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 8,
+    },
+    trophyButton: {
+        paddingHorizontal: 6,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     statValue: {
         color: '#FFFFFF',

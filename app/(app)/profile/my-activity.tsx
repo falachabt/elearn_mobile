@@ -1,5 +1,5 @@
 // app/(app)/profile/my-activity.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,11 @@ const SOURCE_META: Record<string, { label: string; icon: keyof typeof MaterialCo
   quiz: { label: 'Quiz complété', icon: 'clipboard-check-outline' },
   exam: { label: 'Examen complété', icon: 'school-outline' },
 };
+
+const FEED_SOURCE_TYPES = ['feed_post', 'feed_comment', 'feed_like', 'feed_best_answer'];
+const LEARNING_SOURCE_TYPES = ['quiz', 'exam'];
+
+type FilterTab = 'all' | 'feed' | 'learning';
 
 const XP_PAGE_SIZE = 30;
 
@@ -52,6 +57,7 @@ export default function MyActivityScreen() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [filter, setFilter] = useState<FilterTab>('all');
 
   useEffect(() => {
     getMyXpHistory(0).then((data) => {
@@ -70,6 +76,18 @@ export default function MyActivityScreen() {
     setLoadingMore(false);
   };
 
+  const filteredEntries = useMemo(() => {
+    if (filter === 'feed') return entries.filter((e) => FEED_SOURCE_TYPES.includes(e.source_type));
+    if (filter === 'learning') return entries.filter((e) => LEARNING_SOURCE_TYPES.includes(e.source_type));
+    return entries;
+  }, [entries, filter]);
+
+  const handlePressEntry = (entry: XpHistoryEntry) => {
+    if (entry.post_id) {
+      router.push(`/post/${entry.post_id}`);
+    }
+  };
+
   return (
     <View style={[styles.container, isDarkMode && styles.containerDark]}>
       <Stack.Screen options={{ headerTitle: 'Mon activité', headerBackTitle: 'Retour' }} />
@@ -79,6 +97,22 @@ export default function MyActivityScreen() {
           <MaterialCommunityIcons name="arrow-left" size={22} color={isDarkMode ? '#F9FAFB' : '#111827'} />
         </TouchableOpacity>
         <Text style={[styles.topHeaderTitle, isDarkMode && styles.textDark]}>Mon activité</Text>
+      </View>
+
+      <View style={styles.filterRow}>
+        {([
+          ['all', 'Tout'],
+          ['feed', "Fil d'actualité"],
+          ['learning', 'Cours & Quiz'],
+        ] as [FilterTab, string][]).map(([key, label]) => (
+          <TouchableOpacity
+            key={key}
+            style={[styles.filterBtn, filter === key && styles.filterBtnActive]}
+            onPress={() => setFilter(key)}
+          >
+            <Text style={[styles.filterBtnText, filter === key && styles.filterBtnTextActive]}>{label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <ScrollView
@@ -95,12 +129,19 @@ export default function MyActivityScreen() {
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color={theme.color.primary[500]} />
           </View>
-        ) : entries.length > 0 ? (
+        ) : filteredEntries.length > 0 ? (
           <>
-            {entries.map((entry) => {
+            {filteredEntries.map((entry) => {
               const meta = SOURCE_META[entry.source_type] || { label: entry.source_type, icon: 'star-outline' as const };
+              const isTappable = !!entry.post_id;
               return (
-                <View key={entry.id} style={[styles.row, isDarkMode && styles.rowDark]}>
+                <TouchableOpacity
+                  key={entry.id}
+                  style={[styles.row, isDarkMode && styles.rowDark]}
+                  onPress={() => handlePressEntry(entry)}
+                  disabled={!isTappable}
+                  activeOpacity={isTappable ? 0.7 : 1}
+                >
                   <View style={styles.iconWrap}>
                     <MaterialCommunityIcons name={meta.icon} size={18} color={theme.color.primary[500]} />
                   </View>
@@ -109,7 +150,10 @@ export default function MyActivityScreen() {
                     <Text style={styles.rowDate}>{formatDate(entry.created_at)}</Text>
                   </View>
                   <Text style={styles.xpText}>+{entry.xp_gained} XP</Text>
-                </View>
+                  {isTappable && (
+                    <MaterialCommunityIcons name="chevron-right" size={18} color="#CBD5E1" style={{ marginLeft: 4 }} />
+                  )}
+                </TouchableOpacity>
               );
             })}
             {loadingMore && (
@@ -163,6 +207,22 @@ const styles = StyleSheet.create({
   },
   backButtonDark: { backgroundColor: '#374151' },
   topHeaderTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  filterBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+  },
+  filterBtnActive: { backgroundColor: theme.color.primary[500] },
+  filterBtnText: { fontSize: 13, fontWeight: '600', color: theme.color.primary[500] },
+  filterBtnTextActive: { color: '#FFFFFF' },
   loadingBox: { paddingVertical: 60, alignItems: 'center' },
   loadingMoreBox: { paddingVertical: 20, alignItems: 'center' },
   emptyBox: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 24 },
