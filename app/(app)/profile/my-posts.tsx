@@ -1,5 +1,5 @@
 // app/(app)/profile/my-posts.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,7 @@ import {
   ActivityIndicator,
   useColorScheme,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { theme } from '@/constants/theme';
@@ -24,26 +23,32 @@ import { ConfirmDeleteBottomSheet } from '@/components/shared/feed/ConfirmDelete
 export default function MyPostsScreen() {
   const { user: authUser } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'recent' | 'popular'>('recent');
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [profileSheetUserId, setProfileSheetUserId] = useState<string | null>(null);
   const [postPendingDelete, setPostPendingDelete] = useState<FeedPost | null>(null);
   const [deletingPost, setDeletingPost] = useState<boolean>(false);
 
-  useEffect(() => {
+  const loadPosts = useCallback(() => {
     if (!authUser?.authId) return;
     getUserPosts(authUser.authId).then((data) => {
       setPosts(data);
       setLoading(false);
     });
   }, [authUser?.authId]);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
+
+  useFocusEffect(loadPosts);
 
   const handleDeletePost = (post: FeedPost) => {
     setPostPendingDelete(post);
@@ -96,7 +101,7 @@ export default function MyPostsScreen() {
     <View style={[styles.container, isDarkMode && styles.containerDark]}>
       <Stack.Screen options={{ headerTitle: 'Mes posts', headerBackTitle: 'Retour' }} />
 
-      <View style={[styles.topHeader, isDarkMode && styles.topHeaderDark, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.topHeader, isDarkMode && styles.topHeaderDark]}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, isDarkMode && styles.backButtonDark]}>
           <MaterialCommunityIcons name="arrow-left" size={22} color={isDarkMode ? '#F9FAFB' : '#111827'} />
         </TouchableOpacity>
@@ -138,8 +143,9 @@ export default function MyPostsScreen() {
               currentUserId={authUser?.authId}
               onPressPost={(p) => router.push(`/post/${p.id}`)}
               onPressDelete={handleDeletePost}
-              onPressImage={(url) => {
-                setSelectedImageUrl(url);
+              onPressImage={(images, index) => {
+                setSelectedImages(images);
+                setSelectedImageIndex(index);
                 setImageViewerVisible(true);
               }}
               onPressAuthor={(authorId) => setProfileSheetUserId(authorId)}
@@ -162,7 +168,8 @@ export default function MyPostsScreen() {
 
       <ImageViewerModal
         visible={imageViewerVisible}
-        imageUrl={selectedImageUrl}
+        images={selectedImages}
+        initialIndex={selectedImageIndex}
         onClose={() => setImageViewerVisible(false)}
       />
       <UserProfileBottomSheet
@@ -199,6 +206,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 12,
+    paddingTop: 12,
     paddingBottom: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,

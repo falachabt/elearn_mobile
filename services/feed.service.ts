@@ -1,8 +1,28 @@
 // services/feed.service.ts
 // Service de communication avec Supabase pour le fil d'actualité
 
+import { Platform } from 'react-native';
+import { File } from 'expo-file-system';
+
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/utils/logger';
+
+/**
+ * Lit le contenu d'un fichier local en octets, prêt pour l'upload Supabase Storage.
+ * Sur natif, `fetch(uri).blob()` produit souvent un blob vide/corrompu pour les
+ * URI `file://` (bug connu Expo/RN) — on lit directement les octets via
+ * expo-file-system dans ce cas précis. Les URI `content://` (retournées par
+ * expo-document-picker sur Android) ne sont pas supportées par la classe
+ * `File` d'expo-file-system : on garde fetch().blob() pour celles-ci, ainsi
+ * que sur web où l'URI est déjà un blob:/data: valide.
+ */
+async function readFileBytes(fileUri: string): Promise<Blob | Uint8Array> {
+  if (Platform.OS !== 'web' && fileUri.startsWith('file://')) {
+    return new File(fileUri).bytes();
+  }
+  const response = await fetch(fileUri);
+  return response.blob();
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -12,6 +32,7 @@ export type PublicUserInfo = {
   avatar_url: string | null;
   total_xp?: number;
   current_streak?: number;
+  is_online?: boolean;
 };
 
 export type PollOption = {
@@ -39,6 +60,7 @@ export type FeedPost = {
   poll_total_votes?: number;
   // Option choisie par l'utilisateur connecté, ou null s'il n'a pas encore voté
   poll_voted_option_id?: string | null;
+  best_comment_id?: string | null;
 };
 
 export type PostComment = {
@@ -143,54 +165,106 @@ export async function getUserPublicProfile(
  * Inclut auteur, nombre de commentaires, likes, et un aperçu des 2-3
  * meilleurs commentaires (pour affichage direct dans la carte du feed).
  */
-export async function getFeedPosts(currentUserId?: string): Promise<FeedPost[]> {
+export const FEED_PAGE_SIZE = 12;
+
+const FEED_POST_SELECT = `
+  *,
+  comments:post_comments(id, post_id, author_id, content, score, parent_comment_id, created_at),
+  likes:post_likes(user_id)
+`;
+
+async function mapAndEnrichPosts(rows: any[], currentUserId?: string): Promise<FeedPost[]> {
+  const authorIds = new Set<string>();
+  rows.forEach((p: any) => {
+    authorIds.add(p.author_id);
+    (p.comments ?? []).forEach((c: any) => authorIds.add(c.author_id));
+  });
+  const authors = await fetchAuthorsByIds([...authorIds]);
+
+  const mapped = rows.map((post: any) => {
+    const topLevelComments = (post.comments ?? [])
+      .filter((c: any) => !c.parent_comment_id)
+      .sort((a: any, b: any) => b.score - a.score)
+      .slice(0, 3)
+      .map((c: any) => ({ ...c, author: authors[c.author_id] }));
+
+    const likes = post.likes ?? [];
+
+    return {
+      ...post,
+      author: authors[post.author_id],
+      comments_count: (post.comments ?? []).length,
+      likes_count: likes.length,
+      liked_by_me: currentUserId
+        ? likes.some((l: any) => l.user_id === currentUserId)
+        : false,
+      preview_comments: topLevelComments,
+      comments: undefined,
+      likes: undefined,
+    } as FeedPost;
+  });
+
+  await attachPollData(mapped, currentUserId);
+  return mapped;
+}
+
+export async function getFeedPosts(
+  currentUserId?: string,
+  options?: { limit?: number; beforeCreatedAt?: string }
+): Promise<FeedPost[]> {
   try {
-    const { data, error } = await (supabase as any)
+    let query = (supabase as any)
       .from('feed_posts')
-      .select(`
-        *,
-        comments:post_comments(id, post_id, author_id, content, score, parent_comment_id, created_at),
-        likes:post_likes(user_id)
-      `)
-      .order('created_at', { ascending: false });
+      .select(FEED_POST_SELECT)
+      .order('created_at', { ascending: false })
+      .limit(options?.limit ?? FEED_PAGE_SIZE);
+
+    if (options?.beforeCreatedAt) {
+      query = query.lt('created_at', options.beforeCreatedAt);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
-    const posts = data ?? [];
-    const authorIds = new Set<string>();
-    posts.forEach((p: any) => {
-      authorIds.add(p.author_id);
-      (p.comments ?? []).forEach((c: any) => authorIds.add(c.author_id));
-    });
-    const authors = await fetchAuthorsByIds([...authorIds]);
-
-    const mapped = posts.map((post: any) => {
-      const topLevelComments = (post.comments ?? [])
-        .filter((c: any) => !c.parent_comment_id)
-        .sort((a: any, b: any) => b.score - a.score)
-        .slice(0, 3)
-        .map((c: any) => ({ ...c, author: authors[c.author_id] }));
-
-      const likes = post.likes ?? [];
-
-      return {
-        ...post,
-        author: authors[post.author_id],
-        comments_count: (post.comments ?? []).length,
-        likes_count: likes.length,
-        liked_by_me: currentUserId
-          ? likes.some((l: any) => l.user_id === currentUserId)
-          : false,
-        preview_comments: topLevelComments,
-        comments: undefined,
-        likes: undefined,
-      } as FeedPost;
-    });
-
-    await attachPollData(mapped, currentUserId);
-    return mapped;
+    return await mapAndEnrichPosts(data ?? [], currentUserId);
   } catch (err) {
     logger.error('getFeedPosts error:', err);
+    return [];
+  }
+}
+
+/**
+ * Récupère les posts "tendance" des 7 derniers jours (score = likes + 2*commentaires),
+ * via le RPC get_trending_feed_post_ids. Liste bornée (top 20), pas de pagination :
+ * la tendance est une vue "en ce moment", pas un flux à défilement infini.
+ */
+export async function getTrendingFeedPosts(currentUserId?: string): Promise<FeedPost[]> {
+  try {
+    const { data: idRows, error: idError } = await (supabase.rpc as any)(
+      'get_trending_feed_post_ids',
+      { p_limit: 20 }
+    );
+    if (idError) throw idError;
+
+    const ids = (idRows ?? []).map((r: any) => r.id);
+    if (ids.length === 0) return [];
+
+    const { data, error } = await (supabase as any)
+      .from('feed_posts')
+      .select(FEED_POST_SELECT)
+      .in('id', ids);
+
+    if (error) throw error;
+
+    const mapped = await mapAndEnrichPosts(data ?? [], currentUserId);
+
+    const orderIndex = new Map<string, number>(ids.map((id: string, i: number) => [id, i]));
+    mapped.sort((a, b) => (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0));
+
+    return mapped;
+  } catch (err) {
+    logger.error('getTrendingFeedPosts error:', err);
     return [];
   }
 }
@@ -341,6 +415,28 @@ export async function createFeedPost(
  * Un seul vote par utilisateur et par post (contrainte unique côté DB) ;
  * le vote n'est jamais modifiable une fois posé.
  */
+/**
+ * Marque (ou retire, si commentId est null) un commentaire comme "meilleure
+ * réponse" du post. Réservé à l'auteur du post (vérifié côté serveur).
+ */
+export async function markBestAnswer(
+  postId: string,
+  commentId: string | null
+): Promise<boolean> {
+  try {
+    const { error } = await (supabase.rpc as any)('set_best_answer', {
+      p_post_id: postId,
+      p_comment_id: commentId,
+    });
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    logger.error('markBestAnswer error:', err);
+    return false;
+  }
+}
+
 export async function votePollOption(
   postId: string,
   optionId: string,
@@ -383,22 +479,36 @@ export async function deleteFeedPost(postId: string): Promise<boolean> {
  * @param fileUri  - URI locale du fichier (retourné par expo-image-picker)
  * @param userId   - ID de l'utilisateur (pour nommer le fichier de façon unique)
  */
+const MIME_TO_EXTENSION: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+};
+
 export async function uploadPostImage(
   fileUri: string,
-  userId: string
+  userId: string,
+  mimeType?: string
 ): Promise<string | null> {
   try {
-    // Convertir l'URI locale en Blob pour l'upload
-    const response = await fetch(fileUri);
-    const blob = await response.blob();
+    const fileContent = await readFileBytes(fileUri);
 
-    const extension = fileUri.split('.').pop() ?? 'jpg';
+    // Les URI content:// (expo-document-picker sur Android) n'ont souvent pas
+    // d'extension dans l'URI elle-même : on préfère le mimeType renvoyé par le
+    // picker, avec un fallback sur l'extension présente dans l'URI si besoin.
+    const uriExtensionMatch = fileUri.match(/\.([a-zA-Z0-9]{2,5})(?:\?.*)?$/);
+    const extension = (mimeType && MIME_TO_EXTENSION[mimeType]) ?? uriExtensionMatch?.[1] ?? 'jpg';
     const fileName = `${userId}/${Date.now()}.${extension}`;
+    const contentType = mimeType ?? `image/${extension}`;
 
     const { error: uploadError } = await (supabase.storage as any)
       .from('feed-media')
-      .upload(fileName, blob, {
-        contentType: `image/${extension}`,
+      .upload(fileName, fileContent, {
+        contentType,
         upsert: false,
       });
 
@@ -427,16 +537,14 @@ export async function uploadPostAudio(
   userId: string
 ): Promise<string | null> {
   try {
-    // Convertir l'URI locale en Blob pour l'upload
-    const response = await fetch(fileUri);
-    const blob = await response.blob();
+    const fileContent = await readFileBytes(fileUri);
 
     const extension = fileUri.split('.').pop() ?? 'm4a';
     const fileName = `${userId}/${Date.now()}.${extension}`;
 
     const { error: uploadError } = await (supabase.storage as any)
       .from('feed-media')
-      .upload(fileName, blob, {
+      .upload(fileName, fileContent, {
         contentType: `audio/${extension}`,
         upsert: false,
       });
@@ -553,7 +661,8 @@ export async function addComment(
   postId: string,
   content: string,
   authorId: string,
-  parentCommentId?: string | null
+  parentCommentId?: string | null,
+  mentionedUserIds?: string[]
 ): Promise<PostComment | null> {
   try {
     const { data, error } = await (supabase as any)
@@ -563,6 +672,7 @@ export async function addComment(
         content,
         author_id: authorId,
         parent_comment_id: parentCommentId ?? null,
+        mentioned_user_ids: mentionedUserIds ?? [],
       })
       .select('*')
       .single();
@@ -574,6 +684,55 @@ export async function addComment(
   } catch (err) {
     logger.error('addComment error:', err);
     return null;
+  }
+}
+
+export type MentionCandidate = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+};
+
+/**
+ * Recherche des comptes par préfixe prénom/nom, pour l'autocomplete @mention.
+ */
+export async function searchAccountsForMention(query: string): Promise<MentionCandidate[]> {
+  if (!query.trim()) return [];
+  try {
+    const { data, error } = await (supabase.rpc as any)('search_accounts_for_mention', {
+      p_query: query.trim(),
+      p_limit: 8,
+    });
+    if (error) throw error;
+    return (data ?? []).filter((c: MentionCandidate) => !!c.full_name);
+  } catch (err) {
+    logger.error('searchAccountsForMention error:', err);
+    return [];
+  }
+}
+
+export type LeaderboardEntry = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  total_xp: number;
+  gradelevel: string | null;
+};
+
+/**
+ * Classement par XP total, global ou filtré sur une filière (gradelevel).
+ */
+export async function getLeaderboard(gradelevel?: string | null): Promise<LeaderboardEntry[]> {
+  try {
+    const { data, error } = await (supabase.rpc as any)('get_leaderboard', {
+      p_gradelevel: gradelevel ?? null,
+      p_limit: 50,
+    });
+    if (error) throw error;
+    return data ?? [];
+  } catch (err) {
+    logger.error('getLeaderboard error:', err);
+    return [];
   }
 }
 

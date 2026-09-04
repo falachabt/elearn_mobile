@@ -220,6 +220,10 @@ export default function AppLayout() {
                     name="post/[id]"
                     options={{ href: null }}
                 />
+                <Tabs.Screen
+                    name="leaderboard/index"
+                    options={{ href: null }}
+                />
 
                 <Tabs.Screen
                     name="secondary"

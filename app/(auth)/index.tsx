@@ -3,7 +3,6 @@ import {
   Animated,
   Image,
   Platform,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -65,12 +64,7 @@ const IOSStartPage = ({
           isDark ? theme.color.dark.background.primary : "#FFFFFF"
         }
       />
-      <ScrollView
-        contentContainerStyle={styles(dimensions, isDark).scrollViewContent}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        <View style={styles(dimensions, isDark).content}>
+      <View style={styles(dimensions, isDark).content}>
           {/* App Logo and Name */}
           <Animated.View
             style={[
@@ -162,8 +156,7 @@ const IOSStartPage = ({
               </TouchableOpacity>
             </Link>
           </Animated.View>
-        </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -207,12 +200,7 @@ const DefaultStartPage = ({
           isDark ? theme.color.dark.background.primary : "#FFFFFF"
         }
       />
-      <ScrollView
-        contentContainerStyle={styles(dimensions, isDark).scrollViewContent}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        <View style={styles(dimensions, isDark).content}>
+      <View style={styles(dimensions, isDark).content}>
           {/* App Logo and Name */}
           <Animated.View
             style={[
@@ -289,14 +277,6 @@ const DefaultStartPage = ({
           >
             <Text
               style={[
-                styles(dimensions, isDark).title,
-                isDark && styles(dimensions, isDark).textDark,
-              ]}
-            >
-              Apprenez, Explorez, Progressez
-            </Text>
-            <Text
-              style={[
                 styles(dimensions, isDark).subtitle,
                 isDark && styles(dimensions, isDark).textGray,
               ]}
@@ -355,12 +335,13 @@ const DefaultStartPage = ({
             </Link>
 
           </Animated.View>
-            <WhatsAppContact
-              phoneNumber="+237 6 51 05 56 63"
-              message="Bonjour, j'ai besoin d'aide"
-            />
-        </View>
-      </ScrollView>
+      </View>
+      <WhatsAppContact
+        compact
+        phoneNumber="+237 6 51 05 56 63"
+        message="Bonjour, j'ai besoin d'aide"
+        style={styles(dimensions, isDark).whatsAppFooter}
+      />
     </SafeAreaView>
   );
 };
@@ -428,7 +409,7 @@ const styles = (
   dimensions: { width: number; height: number },
   isDark: boolean
 ) => {
-  const illustrationSize = Math.min(280, dimensions.width * 0.8, dimensions.height * 0.28);
+  const illustrationSize = Math.min(220, dimensions.width * 0.65, dimensions.height * 0.22);
 
   return StyleSheet.create({
     container: {
@@ -438,27 +419,23 @@ const styles = (
     containerDark: {
       backgroundColor: theme.color.dark.background.primary,
     },
-    scrollViewContent: {
-      flex: 1,
-      width: dimensions.width,
-      height: dimensions.height,
-      flexGrow: 0,
-      minHeight: "100%",
-    },
     content: {
       flex: 1,
       padding: dimensions.width * 0.05,
       alignItems: "center",
       justifyContent: "center",
-      paddingTop:
-        Platform.OS === "android" ? (StatusBar.currentHeight || 0) + 10 : 10,
+      paddingTop: 10,
       paddingBottom: Platform.select({ ios: 20, android: 10 }),
+    },
+    whatsAppFooter: {
+      alignSelf: "center",
+      marginBottom: Platform.select({ ios: 8, android: 12 }),
     },
     logoSection: {
       flexDirection: dimensions.width < 430 ? "column" : "row",
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: dimensions.height * 0.02,
+      marginBottom: dimensions.height * 0.012,
       width: "100%",
       maxWidth: 400,
       paddingHorizontal: dimensions.width < 430 ? 0 : dimensions.width < 375 ? 5 : 10,
@@ -493,7 +470,7 @@ const styles = (
       height: illustrationSize,
       justifyContent: "center",
       alignItems: "center",
-      marginBottom: dimensions.height * 0.03,
+      marginBottom: dimensions.height * 0.015,
     },
     lottie: {
       width: illustrationSize,
@@ -502,7 +479,7 @@ const styles = (
     messageContainer: {
       width: "100%",
       maxWidth: 400,
-      marginBottom: dimensions.height * 0.03,
+      marginBottom: dimensions.height * 0.015,
       alignItems: "center",
     },
     title: {
@@ -524,7 +501,7 @@ const styles = (
     buttonSection: {
       width: "100%",
       maxWidth: 400,
-      marginBottom: dimensions.height * 0.03,
+      marginBottom: dimensions.height * 0.015,
       paddingHorizontal: dimensions.width < 400 ? dimensions.width * 0.05 : 20,
     },
     // Main CTA - Register button

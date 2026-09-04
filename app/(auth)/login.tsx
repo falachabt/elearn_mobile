@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Pressable } from "react-native-gesture-handler";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Head from "expo-router/head";
@@ -307,6 +308,7 @@ export default function Login() {
   };
 
   return (
+    <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={[styles.container, isDark && styles.containerDark]}
@@ -411,14 +413,14 @@ export default function Login() {
             </TouchableOpacity>
           </View>
         </Animated.View>
-
-        <View style={{ marginTop: 40, alignItems: "center" }}>
-          <WhatsAppContact
-            phoneNumber="+237 6 51 05 56 63"
-            message="Bonjour, j'ai besoin d'aide"
-          />
-        </View>
       </ScrollView>
+
+      <WhatsAppContact
+        compact
+        phoneNumber="+237 6 51 05 56 63"
+        message="Bonjour, j'ai besoin d'aide"
+        style={styles.whatsAppFooter}
+      />
 
       <CountryPickerBottomSheet
         visible={showCountryPicker}
@@ -431,6 +433,7 @@ export default function Login() {
         onClose={() => setShowCountryPicker(false)}
       />
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -447,6 +450,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
   },
+  whatsAppFooter: {
+    alignSelf: "center",
+    marginBottom: 8,
+  },
   content: {
     width: "100%",
     maxWidth: 400,
@@ -454,6 +461,7 @@ const styles = StyleSheet.create({
   },
   logoSection: {
     alignItems: "center",
+    justifyContent: "center",
     marginBottom: 32,
     flexDirection: "row",
     gap: 12,

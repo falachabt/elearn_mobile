@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { theme } from "@/constants/theme";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
@@ -50,7 +49,7 @@ const ManuelScreen = () => {
   ];
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.container,
         isDarkMode && styles.containerDark,
@@ -98,7 +97,7 @@ const ManuelScreen = () => {
           ))}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

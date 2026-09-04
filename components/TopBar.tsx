@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Platform} from 'react-native';
 import {MaterialCommunityIcons, FontAwesome5} from '@expo/vector-icons';
-import {useRouter} from 'expo-router';
+import {useRouter, type Href} from 'expo-router';
 
 import {theme} from '@/constants/theme';
 import {useAuth} from '@/contexts/auth';
@@ -39,11 +39,11 @@ const TopBar: React.FC<TopBarProps> = ({userName, streaks, xp, onChangeProgram})
             {/* Stats and Notifications Row */}
             <View style={styles.mainRow}>
                 <View style={styles.statsSection}>
-                    <View style={styles.statItem}>
+                    <TouchableOpacity style={styles.statItem} onPress={() => router.push('/leaderboard' as Href)}>
                         <MaterialCommunityIcons name="star" size={20} color="#FFD700"/>
 
                         <Text style={styles.statValue}>{user?.user_xp?.total_xp || 0}</Text>
-                    </View>
+                    </TouchableOpacity>
 
                     <View style={styles.statDivider}/>
 

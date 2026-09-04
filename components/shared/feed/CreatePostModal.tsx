@@ -46,7 +46,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const [content, setContent] = useState('');
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] = useState<{ uri: string; mimeType?: string }[]>([]);
   const [bgColor, setBgColor] = useState<string | null>(null);
   const [pollMode, setPollMode] = useState(false);
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
@@ -69,8 +69,8 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       });
 
       if (!result.canceled && result.assets) {
-        const newUris = result.assets.map((asset) => asset.uri);
-        setSelectedImages((prev) => [...prev, ...newUris]);
+        const newImages = result.assets.map((asset) => ({ uri: asset.uri, mimeType: asset.mimeType }));
+        setSelectedImages((prev) => [...prev, ...newImages]);
       }
     } catch (err) {
       Alert.alert('Erreur', "Impossible de sélectionner l'image.");
@@ -120,15 +120,23 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     try {
       // 1. Upload des médias vers Supabase Storage si nécessaire
       const mediaUrls: string[] = [];
+      let failedUploads = 0;
 
-      for (const uri of selectedImages) {
-        const uploadedUrl = await uploadPostImage(uri, userId);
+      for (const img of selectedImages) {
+        const uploadedUrl = await uploadPostImage(img.uri, userId, img.mimeType);
         if (uploadedUrl) {
           mediaUrls.push(uploadedUrl);
+        } else {
+          failedUploads += 1;
         }
       }
 
-
+      if (failedUploads > 0) {
+        Alert.alert(
+          'Attention',
+          `${failedUploads} image${failedUploads > 1 ? 's' : ''} sur ${selectedImages.length} n'${failedUploads > 1 ? 'ont' : 'a'} pas pu être envoyée${failedUploads > 1 ? 's' : ''}.`
+        );
+      }
 
       // 2. Création du post dans la table feed_posts
       const newPost = await createFeedPost(
@@ -165,7 +173,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={[styles.container, isDarkMode && styles.containerDark]}
       >
         {/* Header */}
@@ -225,9 +233,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           {/* Prévisualisation des images sélectionnées */}
           {selectedImages.length > 0 && (
             <View style={styles.imagesGrid}>
-              {selectedImages.map((uri, idx) => (
+              {selectedImages.map((img, idx) => (
                 <View key={idx} style={styles.imageWrapper}>
-                  <Image source={{ uri }} style={styles.previewImage} />
+                  <Image source={{ uri: img.uri }} style={styles.previewImage} />
                   <TouchableOpacity
                     style={styles.removeImageBtn}
                     onPress={() => handleRemoveImage(idx)}
@@ -312,7 +320,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         </ScrollView>
 
         {/* Barre d'outils en bas */}
-        <View style={[styles.toolbar, isDarkMode && styles.toolbarDark]}>
+        <View style={[styles.toolbar, isDarkMode && styles.toolbarDark, { paddingBottom: 12 + insets.bottom }]}>
           {!pollMode && (
             <TouchableOpacity
               style={styles.toolBtn}

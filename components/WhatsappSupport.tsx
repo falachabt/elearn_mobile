@@ -18,6 +18,7 @@ interface WhatsAppContactProps {
     phoneNumber?: string;
     message?: string;
     style?: StyleProp<ViewStyle>;
+    compact?: boolean;
 }
 
 export const DEFAULT_WHATSAPP_SUPPORT_NUMBER = '+237 6 79 15 00 00';
@@ -25,7 +26,8 @@ export const DEFAULT_WHATSAPP_SUPPORT_NUMBER = '+237 6 79 15 00 00';
 const WhatsAppContact: React.FC<WhatsAppContactProps> = ({
                                                              phoneNumber = DEFAULT_WHATSAPP_SUPPORT_NUMBER,
                                                              message = '',
-                                                             style
+                                                             style,
+                                                             compact = false,
                                                          }) => {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
@@ -52,15 +54,20 @@ const WhatsAppContact: React.FC<WhatsAppContactProps> = ({
 
     return (
         <TouchableOpacity
-            style={[styles.container, isDarkMode && styles.containerDark, style]}
+            style={[
+                styles.container,
+                compact && styles.containerCompact,
+                isDarkMode && styles.containerDark,
+                style,
+            ]}
             onPress={handleWhatsAppPress}
             activeOpacity={0.8}
         >
-            <MaterialIcons name="chat" size={18} color="#25D366" />
-            <Text style={[styles.text, isDarkMode && styles.textDark]}>
-                Besoin d'aide ?, appuyez pour nous écrire
+            <MaterialIcons name="chat" size={compact ? 14 : 18} color="#25D366" />
+            <Text style={[styles.text, compact && styles.textCompact, isDarkMode && styles.textDark]}>
+                {compact ? "Besoin d'aide ?" : "Besoin d'aide ?, appuyez pour nous écrire"}
             </Text>
-            <MaterialIcons name="chevron-right" size={16} color="#9CA3AF" />
+            {!compact && <MaterialIcons name="chevron-right" size={16} color="#9CA3AF" />}
         </TouchableOpacity>
     );
 };
@@ -82,6 +89,12 @@ const styles = StyleSheet.create({
         backgroundColor: theme.color.dark.background.secondary,
         borderColor: theme.color.dark.border,
     },
+    containerCompact: {
+        alignSelf: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        marginVertical: 0,
+    },
     text: {
         flex: 1,
         marginLeft: 8,
@@ -89,6 +102,10 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#4B5563',
         fontWeight: '500',
+    },
+    textCompact: {
+        flex: 0,
+        fontSize: 12,
     },
     textDark: {
         color: '#9CA3AF',

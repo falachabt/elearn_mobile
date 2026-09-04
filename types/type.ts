@@ -41,6 +41,7 @@ export interface Accounts {
   state: string | null;
   postalcode: string | null;
   country: string | null;
+  country_id: string | null;
   coursesenrolled: string[] | null;
   coursescompleted: string[] | null;
   status: boolean | null;
@@ -117,6 +118,7 @@ export interface AccountsInput {
   state?: string | null;
   postalcode?: string | null;
   country?: string | null;
+  country_id?: string | null;
   coursesenrolled?: string[] | null;
   coursescompleted?: string[] | null;
   status?: boolean | null;

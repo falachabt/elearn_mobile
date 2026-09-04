@@ -8,6 +8,9 @@ import {
   Image,
   Dimensions,
   Share,
+  ScrollView,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '@/constants/theme';
@@ -27,7 +30,7 @@ interface PostCardProps {
   currentUserId?: string;
   onPressPost?: (post: FeedPost) => void;
   onPressDelete?: (post: FeedPost) => void;
-  onPressImage?: (imageUrl: string) => void;
+  onPressImage?: (images: string[], index: number) => void;
   onPressAuthor?: (authorId: string) => void;
   onToggleLike?: (post: FeedPost) => void;
   onVotePoll?: (post: FeedPost, optionId: string) => void;
@@ -48,6 +51,8 @@ export const PostCard: React.FC<PostCardProps> = ({
   const [previewComments, setPreviewComments] = useState<PostComment[]>(
     post.preview_comments ?? []
   );
+  const [galleryWidth, setGalleryWidth] = useState(Dimensions.get('window').width - 36);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [contentExpanded, setContentExpanded] = useState(false);
 
   const formatDate = (dateString: string) => {
@@ -131,7 +136,7 @@ export const PostCard: React.FC<PostCardProps> = ({
                   </Text>
                 </View>
               )}
-              <View style={styles.onlineBadge} />
+              {post.author?.is_online && <View style={styles.onlineBadge} />}
             </View>
           </TouchableOpacity>
 
@@ -148,8 +153,6 @@ export const PostCard: React.FC<PostCardProps> = ({
               <Text style={[styles.dateText, isDarkMode && styles.subTextDark]}>
                 {formatDate(post.created_at)}
               </Text>
-              <Text style={styles.metaDot}>•</Text>
-              <Text style={styles.categoryTag}>Question / Exo</Text>
             </View>
           </View>
         </View>
@@ -201,28 +204,54 @@ export const PostCard: React.FC<PostCardProps> = ({
 
       {/* Galerie Médias / Photos de brouillon avec badge HD */}
       {post.media_urls && post.media_urls.length > 0 && (
-        <View style={styles.mediaContainer}>
-          {post.media_urls.map((url, idx) => (
-            <TouchableOpacity
-              key={idx}
-              activeOpacity={0.9}
-              onPress={(e) => {
-                e.stopPropagation();
-                onPressImage?.(url);
-              }}
-              style={styles.imageWrapper}
-            >
-              <Image
-                source={{ uri: url }}
-                style={styles.postImage}
-                resizeMode="cover"
-              />
-              <View style={styles.imageOverlayBadge}>
-                <MaterialCommunityIcons name="attachment" size={12} color="#FFF" />
-                <Text style={styles.imageBadgeText}>Brouillon / Exercice (Agrandir 🔍)</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+        <View
+          style={styles.mediaContainer}
+          onLayout={(e) => setGalleryWidth(e.nativeEvent.layout.width)}
+        >
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
+              const idx = Math.round(e.nativeEvent.contentOffset.x / galleryWidth);
+              setActiveImageIndex(idx);
+            }}
+          >
+            {post.media_urls.map((url, idx) => (
+              <TouchableOpacity
+                key={idx}
+                activeOpacity={0.9}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onPressImage?.(post.media_urls!, idx);
+                }}
+                style={[styles.imageWrapper, { width: galleryWidth }]}
+              >
+                <Image
+                  source={{ uri: url }}
+                  style={styles.postImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.imageOverlayBadge}>
+                  <MaterialCommunityIcons name="attachment" size={12} color="#FFF" />
+                  <Text style={styles.imageBadgeText}>Brouillon / Exercice (Agrandir 🔍)</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          {post.media_urls.length > 1 && (
+            <View style={styles.galleryDots}>
+              {post.media_urls.map((_, idx) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.galleryDot,
+                    idx === activeImageIndex && styles.galleryDotActive,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
         </View>
       )}
 
@@ -255,9 +284,17 @@ export const PostCard: React.FC<PostCardProps> = ({
                   </Text>
                 </View>
                 <View style={styles.previewTextCol}>
-                  <Text style={[styles.previewAuthorName, isDarkMode && styles.textDark]}>
-                    {commentAuthorName}
-                  </Text>
+                  <View style={styles.previewAuthorRow}>
+                    <Text style={[styles.previewAuthorName, isDarkMode && styles.textDark]}>
+                      {commentAuthorName}
+                    </Text>
+                    {post.best_comment_id === comment.id && (
+                      <View style={styles.previewBestBadge}>
+                        <MaterialCommunityIcons name="check-decagram" size={11} color="#059669" />
+                        <Text style={styles.previewBestBadgeText}>Meilleure réponse</Text>
+                      </View>
+                    )}
+                  </View>
                   <RichText
                     style={[styles.previewContent, isDarkMode && styles.subTextDark]}
                     content={previewText}
@@ -361,8 +398,10 @@ export const PostCard: React.FC<PostCardProps> = ({
           onPress={async (e) => {
             e.stopPropagation();
             try {
+              const postUrl = `https://app.elearnprepa.com/post/${post.id}`;
               await Share.share({
-                message: `Question sur Elearn Prepa :\n\n${post.content}`,
+                message: `Question sur Elearn Prepa :\n\n${post.content}\n\n${postUrl}`,
+                url: postUrl,
               });
             } catch (error) {
               console.log(error);
@@ -470,20 +509,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#64748B',
   },
-  metaDot: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  categoryTag: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#059669',
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: theme.border.radius.small,
-    overflow: 'hidden',
-  },
   textDark: {
     color: '#F8FAFC',
   },
@@ -526,6 +551,7 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   mediaContainer: {
+    position: 'relative',
     borderRadius: theme.border.radius.small,
     overflow: 'hidden',
     marginBottom: 14,
@@ -558,6 +584,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
+  galleryDots: {
+    position: 'absolute',
+    bottom: 10,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 5,
+  },
+  galleryDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  galleryDotActive: {
+    backgroundColor: '#FFFFFF',
+    width: 16,
+  },
   previewContainer: {
     backgroundColor: '#F8FAFC',
     borderRadius: theme.border.radius.small,
@@ -589,10 +632,29 @@ const styles = StyleSheet.create({
   previewTextCol: {
     flex: 1,
   },
+  previewAuthorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   previewAuthorName: {
     fontSize: 12,
     fontWeight: '700',
     color: '#0F172A',
+  },
+  previewBestBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  previewBestBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#059669',
   },
   previewContent: {
     fontSize: 12,

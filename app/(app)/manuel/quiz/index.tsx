@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { theme } from "@/constants/theme";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
@@ -25,7 +24,7 @@ const QuizScreen = () => {
   };
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.container,
         isDarkMode && styles.containerDark,
@@ -60,7 +59,7 @@ const QuizScreen = () => {
           Cette section est en cours de développement. Revenez bientôt pour tester vos connaissances avec des quiz interactifs.
         </Text>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

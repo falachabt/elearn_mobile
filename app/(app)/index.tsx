@@ -1,11 +1,11 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Href, Link, useRouter } from "expo-router";
+import { Href, Link, useFocusEffect, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   TourStep,
   useTourPersistence,
 } from "@wrack/react-native-tour-guide";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Linking,
   ScrollView,
@@ -36,18 +36,32 @@ import {
 } from "@/constants/tourGuide";
 import { useTabBarTourRefs } from "@/contexts/TabBarTourContext";
 import { SUIVI_SEEN_KEY } from "./suivi";
-import { getFeedPosts, deleteFeedPost, toggleLikePost, votePollOption, FeedPost } from "@/services/feed.service";
+import { getFeedPosts, getTrendingFeedPosts, deleteFeedPost, toggleLikePost, votePollOption, FeedPost, FEED_PAGE_SIZE } from "@/services/feed.service";
 import { PostCard } from "@/components/shared/feed/PostCard";
 import { CreatePostModal } from "@/components/shared/feed/CreatePostModal";
 import { ImageViewerModal } from "@/components/shared/feed/ImageViewerModal";
 import { UserProfileBottomSheet } from "@/components/shared/feed/UserProfileBottomSheet";
 import { ConfirmDeleteBottomSheet } from "@/components/shared/feed/ConfirmDeleteBottomSheet";
+import CountrySelectBottomSheet from "@/components/ui/CountrySelectBottomSheet";
+import { type CountryOption } from "@/services/countries.service";
+import { supabase } from "@/lib/supabase";
 
 const HORIZONTAL_PADDING = 16;
 
 export default function Index() {
   const { user, toDayXp, toDayExo, toDayTime, lastCourse } = useUser();
-  const { user: authUser } = useAuth();
+  const { user: authUser, mutateUser } = useAuth();
+
+  const needsCountryPrompt = !!authUser?.onboarding_done && !authUser?.country_id;
+
+  const handleSelectCountry = async (country: CountryOption) => {
+    if (!authUser?.id) return;
+    await supabase
+      .from('accounts')
+      .update({ country_id: country.id, country: country.name })
+      .eq('id', authUser.id);
+    await mutateUser();
+  };
   const colorScheme = useColorScheme();
   const router = useRouter();
   const isDarkMode = colorScheme === "dark";
@@ -61,18 +75,39 @@ export default function Index() {
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
   const [loadingFeed, setLoadingFeed] = useState<boolean>(true);
   const [refreshingFeed, setRefreshingFeed] = useState<boolean>(false);
+  const [loadingMoreFeed, setLoadingMoreFeed] = useState<boolean>(false);
+  const [hasMoreFeed, setHasMoreFeed] = useState<boolean>(true);
+  const [feedMode, setFeedMode] = useState<'recent' | 'trending'>('recent');
   const [createModalVisible, setCreateModalVisible] = useState<boolean>(false);
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [imageViewerVisible, setImageViewerVisible] = useState<boolean>(false);
   const [profileSheetUserId, setProfileSheetUserId] = useState<string | null>(null);
   const [postPendingDelete, setPostPendingDelete] = useState<FeedPost | null>(null);
   const [deletingPost, setDeletingPost] = useState<boolean>(false);
 
   const loadFeed = async () => {
-    const posts = await getFeedPosts(authUser?.authId);
+    setLoadingFeed(true);
+    const posts =
+      feedMode === 'trending'
+        ? await getTrendingFeedPosts(authUser?.authId)
+        : await getFeedPosts(authUser?.authId);
     setFeedPosts(posts || []);
+    setHasMoreFeed(feedMode === 'recent' && (posts?.length ?? 0) === FEED_PAGE_SIZE);
     setLoadingFeed(false);
     setRefreshingFeed(false);
+  };
+
+  const loadMoreFeedPosts = async () => {
+    if (feedMode !== 'recent' || loadingMoreFeed || !hasMoreFeed || feedPosts.length === 0) return;
+    setLoadingMoreFeed(true);
+    const lastPost = feedPosts[feedPosts.length - 1];
+    const morePosts = await getFeedPosts(authUser?.authId, {
+      beforeCreatedAt: lastPost.created_at,
+    });
+    setFeedPosts((prev) => [...prev, ...(morePosts || [])]);
+    setHasMoreFeed((morePosts?.length ?? 0) === FEED_PAGE_SIZE);
+    setLoadingMoreFeed(false);
   };
 
   const handleToggleLike = async (post: FeedPost) => {
@@ -119,7 +154,15 @@ export default function Index() {
 
   useEffect(() => {
     loadFeed();
-  }, [authUser?.authId]);
+  }, [authUser?.authId, feedMode]);
+
+  // Recharge le feed à chaque retour sur l'onglet Home (app rouverte,
+  // retour depuis le détail d'un post, etc.) sans attendre un pull manuel.
+  useFocusEffect(
+    useCallback(() => {
+      loadFeed();
+    }, [authUser?.authId, feedMode])
+  );
 
   const handleRefreshFeed = () => {
     setRefreshingFeed(true);
@@ -269,13 +312,42 @@ export default function Index() {
         onChangeProgram={() => {}}
       />
 
+      <View style={[styles.feedModeRow, isDarkMode && styles.feedModeRowDark]}>
+        <TouchableOpacity
+          style={[styles.feedModeBtn, feedMode === 'recent' && styles.feedModeBtnActive]}
+          onPress={() => setFeedMode('recent')}
+        >
+          <Text style={[styles.feedModeBtnText, feedMode === 'recent' && styles.feedModeBtnTextActive]}>
+            Récent
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.feedModeBtn, feedMode === 'trending' && styles.feedModeBtnActive]}
+          onPress={() => setFeedMode('trending')}
+        >
+          <MaterialCommunityIcons
+            name="fire"
+            size={15}
+            color={feedMode === 'trending' ? '#FFFFFF' : theme.color.primary[500]}
+          />
+          <Text style={[styles.feedModeBtnText, feedMode === 'trending' && styles.feedModeBtnTextActive]}>
+            Tendance
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         ref={homeScrollRef}
         style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         onScroll={(event) => {
-          setHomeScrollY(event.nativeEvent.contentOffset.y);
+          const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+          setHomeScrollY(contentOffset.y);
+          const distanceToBottom = contentSize.height - (contentOffset.y + layoutMeasurement.height);
+          if (distanceToBottom < 400) {
+            loadMoreFeedPosts();
+          }
         }}
         scrollEventThrottle={16}
         refreshControl={
@@ -301,8 +373,9 @@ export default function Index() {
         currentUserId={authUser?.authId}
         onPressPost={(p) => router.push(`/post/${p.id}`)}
         onPressDelete={handleDeletePost}
-        onPressImage={(url) => {
-          setSelectedImageUrl(url);
+        onPressImage={(images, index) => {
+          setSelectedImages(images);
+          setSelectedImageIndex(index);
           setImageViewerVisible(true);
         }}
         onPressAuthor={(authorId) => setProfileSheetUserId(authorId)}
@@ -310,6 +383,11 @@ export default function Index() {
         onVotePoll={handleVotePoll}
       />
     ))}
+    {loadingMoreFeed && (
+      <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+        <ActivityIndicator size="small" color={theme.color.primary[500]} />
+      </View>
+    )}
   </View>
 ) : (
 <View
@@ -375,7 +453,8 @@ export default function Index() {
 {/* Modal de zoom/visualisation d'image */}
 <ImageViewerModal
   visible={imageViewerVisible}
-  imageUrl={selectedImageUrl}
+  images={selectedImages}
+  initialIndex={selectedImageIndex}
   onClose={() => setImageViewerVisible(false)}
 />
 
@@ -393,6 +472,12 @@ export default function Index() {
   onCancel={() => setPostPendingDelete(null)}
   onConfirm={confirmDeletePost}
   isDarkMode={isDarkMode}
+/>
+
+<CountrySelectBottomSheet
+  visible={needsCountryPrompt}
+  dismissable={false}
+  onSelect={handleSelectCountry}
 />
 
         {/*/!* Learning Paths *!/*/}
@@ -471,6 +556,36 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  feedModeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  feedModeRowDark: {
+    backgroundColor: theme.color.dark.background.primary,
+  },
+  feedModeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+  },
+  feedModeBtnActive: {
+    backgroundColor: theme.color.primary[500],
+  },
+  feedModeBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.color.primary[500],
+  },
+  feedModeBtnTextActive: {
+    color: '#FFFFFF',
   },
   scrollContent: {
     paddingHorizontal: HORIZONTAL_PADDING,

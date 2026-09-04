@@ -1,4 +1,5 @@
 ﻿import {createContext, useContext, useEffect, useState, useRef} from 'react'
+import {AppState} from 'react-native'
 import {RealtimeChannel, Session} from '@supabase/supabase-js'
 import axios from 'axios'
 import useSWR from 'swr'
@@ -390,6 +391,33 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
 
       registerPushNotifications();
     }, [session, user]);
+
+    // Heartbeat: mark account as online (accounts.last_active_at) on mount, app foreground, and every 60s
+    useEffect(() => {
+      const userId = session?.user?.id;
+      if (!userId) return;
+
+      const sendHeartbeat = () => {
+        supabase
+          .from('accounts')
+          .update({ last_active_at: new Date().toISOString() })
+          .eq('id', userId)
+          .then(({ error }) => {
+            if (error) logger.warn('Heartbeat update failed:', error);
+          });
+      };
+
+      sendHeartbeat();
+      const intervalId = setInterval(sendHeartbeat, 60000);
+      const appStateSubscription = AppState.addEventListener('change', (nextState) => {
+        if (nextState === 'active') sendHeartbeat();
+      });
+
+      return () => {
+        clearInterval(intervalId);
+        appStateSubscription.remove();
+      };
+    }, [session?.user?.id]);
 
     // Setup real-time database subscriptions - with stable dependencies
     useEffect(() => {

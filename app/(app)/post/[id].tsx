@@ -1,5 +1,5 @@
 // app/(app)/post/[id].tsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,13 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   useColorScheme,
+  Dimensions,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '@/constants/theme';
 import {
@@ -25,8 +28,11 @@ import {
   voteOnComment,
   toggleLikePost,
   votePollOption,
+  markBestAnswer,
+  searchAccountsForMention,
   PostComment,
   FeedPost,
+  MentionCandidate,
 } from '@/services/feed.service';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
@@ -43,7 +49,6 @@ type ReplyingTo = { id: string; authorName: string } | null;
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const { user: authUser } = useAuth();
@@ -53,19 +58,33 @@ export default function PostDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [newCommentText, setNewCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
+  const [mentionSuggestions, setMentionSuggestions] = useState<MentionCandidate[]>([]);
+  const mentionSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [imageViewerVisible, setImageViewerVisible] = useState<boolean>(false);
+  const [galleryWidth, setGalleryWidth] = useState(Dimensions.get('window').width - 32);
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [replyingTo, setReplyingTo] = useState<ReplyingTo>(null);
   const [profileSheetUserId, setProfileSheetUserId] = useState<string | null>(null);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, [id]);
+  const fetchPostAndComments = async (userIdOverride?: string) => {
+    if (!id) return;
+    const userId = userIdOverride ?? currentUserId ?? '';
+    const [postData, commentList] = await Promise.all([
+      getPost(id, userId),
+      getPostComments(id, userId),
+    ]);
+    if (postData) setPost(postData);
+    setComments(commentList);
+  };
 
   const fetchInitialData = async () => {
     try {
@@ -73,21 +92,32 @@ export default function PostDetailScreen() {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id || '';
       setCurrentUserId(userId);
-
-      if (!id) return;
-
-      const [postData, commentList] = await Promise.all([
-        getPost(id, userId),
-        getPostComments(id, userId),
-      ]);
-
-      if (postData) setPost(postData);
-      setComments(commentList);
+      await fetchPostAndComments(userId);
     } catch (err) {
       Alert.alert('Erreur', 'Impossible de charger la publication.');
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [id]);
+
+  // Recharge post + commentaires à chaque retour sur l'écran (pas besoin de
+  // fermer/rouvrir l'app pour voir un nouveau commentaire ou like).
+  useFocusEffect(
+    useCallback(() => {
+      if (id && currentUserId) {
+        fetchPostAndComments();
+      }
+    }, [id, currentUserId])
+  );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchPostAndComments();
+    setRefreshing(false);
   };
 
   const refreshComments = async () => {
@@ -105,10 +135,13 @@ export default function PostDetailScreen() {
         id,
         newCommentText.trim(),
         currentUserId,
-        replyingTo?.id ?? null
+        replyingTo?.id ?? null,
+        mentionedUserIds
       );
       if (added) {
         setNewCommentText('');
+        setMentionedUserIds([]);
+        setMentionSuggestions([]);
         setReplyingTo(null);
         await refreshComments();
       } else {
@@ -119,6 +152,36 @@ export default function PostDetailScreen() {
     } finally {
       setSubmittingComment(false);
     }
+  };
+
+  // Détecte un "@requête" en fin de saisie et lance une recherche débouncée
+  // pour l'autocomplete de mention.
+  const handleCommentTextChange = (text: string) => {
+    setNewCommentText(text);
+
+    if (mentionSearchTimeout.current) clearTimeout(mentionSearchTimeout.current);
+
+    const match = text.match(/@([\p{L}0-9_ ]{1,30})$/u);
+    if (!match) {
+      setMentionSuggestions([]);
+      return;
+    }
+
+    const query = match[1].trim();
+    mentionSearchTimeout.current = setTimeout(async () => {
+      const results = await searchAccountsForMention(query);
+      setMentionSuggestions(results);
+    }, 250);
+  };
+
+  const handleSelectMention = (candidate: MentionCandidate) => {
+    const match = newCommentText.match(/@([\p{L}0-9_ ]{1,30})$/u);
+    if (!match || !candidate.full_name) return;
+
+    const before = newCommentText.slice(0, match.index);
+    setNewCommentText(`${before}@${candidate.full_name} `);
+    setMentionedUserIds((prev) => (prev.includes(candidate.id) ? prev : [...prev, candidate.id]));
+    setMentionSuggestions([]);
   };
 
   // Applique une mise à jour de vote sur un commentaire, quel que soit son
@@ -160,6 +223,20 @@ export default function PostDetailScreen() {
     });
 
     await voteOnComment(commentId, currentUserId, delta);
+  };
+
+  const handleToggleBestAnswer = async (commentId: string) => {
+    if (!post) return;
+    const nextBestId = post.best_comment_id === commentId ? null : commentId;
+
+    setPost((prev) => (prev ? { ...prev, best_comment_id: nextBestId } : prev));
+
+    const success = await markBestAnswer(post.id, nextBestId);
+    if (!success) {
+      // Revert on failure (ex: tentative sur son propre commentaire)
+      setPost((prev) => (prev ? { ...prev, best_comment_id: post.best_comment_id } : prev));
+      Alert.alert('Erreur', "Impossible de marquer cette réponse.");
+    }
   };
 
   const handleToggleLike = async () => {
@@ -234,7 +311,9 @@ export default function PostDetailScreen() {
   const hasBgColor = !!post?.bg_color && (!post.media_urls || post.media_urls.length === 0);
 
   const renderComment = (comment: PostComment, isReply = false) => {
-    const isTopAnswer = !isReply && comments[0]?.id === comment.id && comment.score > 0;
+    const isTopAnswer = !isReply && post?.best_comment_id === comment.id;
+    const isPostOwner = !!currentUserId && post?.author_id === currentUserId;
+    const canMarkBestAnswer = !isReply && isPostOwner && comment.author_id !== currentUserId;
     const commentAuthorName = comment.author?.full_name || 'Élève';
     const commentAvatarUrl = comment.author?.avatar_url;
 
@@ -280,9 +359,21 @@ export default function PostDetailScreen() {
                 style={[styles.commentText, isDarkMode && styles.subTextDark]}
                 content={comment.content}
               />
-              <TouchableOpacity onPress={() => startReply(comment)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                <Text style={styles.replyLink}>Répondre</Text>
-              </TouchableOpacity>
+              <View style={styles.commentActionsRow}>
+                <TouchableOpacity onPress={() => startReply(comment)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                  <Text style={styles.replyLink}>Répondre</Text>
+                </TouchableOpacity>
+                {canMarkBestAnswer && (
+                  <TouchableOpacity
+                    onPress={() => handleToggleBestAnswer(comment.id)}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  >
+                    <Text style={styles.bestAnswerLink}>
+                      {isTopAnswer ? 'Retirer la meilleure réponse' : 'Marquer meilleure réponse'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
             <View style={[styles.voteContainer, isDarkMode && styles.voteContainerDark]}>
@@ -342,7 +433,7 @@ export default function PostDetailScreen() {
         }}
       />
 
-      <View style={[styles.topHeader, isDarkMode && styles.topHeaderDark, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.topHeader, isDarkMode && styles.topHeaderDark]}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, isDarkMode && styles.backButtonDark]}>
           <MaterialCommunityIcons name="arrow-left" size={22} color={isDarkMode ? '#F9FAFB' : '#111827'} />
         </TouchableOpacity>
@@ -352,7 +443,7 @@ export default function PostDetailScreen() {
       {/* Barre condensée "revoir la question" affichée en scrollant vers les réponses */}
       {showStickyHeader && post && (
         <TouchableOpacity
-          style={[styles.stickyHeader, isDarkMode && styles.stickyHeaderDark, { top: insets.top + 58 }]}
+          style={[styles.stickyHeader, isDarkMode && styles.stickyHeaderDark, { top: 62 }]}
           activeOpacity={0.8}
           onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
         >
@@ -387,7 +478,15 @@ export default function PostDetailScreen() {
           setShowStickyHeader(y > STICKY_HEADER_THRESHOLD);
         }}
         scrollEventThrottle={32}
-        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 80 }}
+        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + 80 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[theme.color.primary[500]]}
+            tintColor={theme.color.primary[500]}
+          />
+        }
       >
         {/* Post original */}
         {post && (
@@ -424,23 +523,51 @@ export default function PostDetailScreen() {
             )}
 
             {post.media_urls && post.media_urls.length > 0 && (
-              <View style={styles.mediaContainer}>
-                {post.media_urls.map((url, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    activeOpacity={0.9}
-                    onPress={() => {
-                      setSelectedImageUrl(url);
-                      setImageViewerVisible(true);
-                    }}
-                  >
-                    <Image
-                      source={{ uri: url }}
-                      style={styles.postImage}
-                      resizeMode="cover"
-                    />
-                  </TouchableOpacity>
-                ))}
+              <View
+                style={styles.mediaContainer}
+                onLayout={(e) => setGalleryWidth(e.nativeEvent.layout.width)}
+              >
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
+                    const idx = Math.round(e.nativeEvent.contentOffset.x / galleryWidth);
+                    setActiveGalleryIndex(idx);
+                  }}
+                >
+                  {post.media_urls.map((url, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      activeOpacity={0.9}
+                      onPress={() => {
+                        setSelectedImages(post.media_urls!);
+                        setSelectedImageIndex(idx);
+                        setImageViewerVisible(true);
+                      }}
+                      style={{ width: galleryWidth }}
+                    >
+                      <Image
+                        source={{ uri: url }}
+                        style={styles.postImage}
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                {post.media_urls.length > 1 && (
+                  <View style={styles.galleryDots}>
+                    {post.media_urls.map((_, idx) => (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.galleryDot,
+                          idx === activeGalleryIndex && styles.galleryDotActive,
+                        ]}
+                      />
+                    ))}
+                  </View>
+                )}
               </View>
             )}
 
@@ -508,6 +635,32 @@ export default function PostDetailScreen() {
         )}
       </ScrollView>
 
+      {/* Autocomplete @mention */}
+      {mentionSuggestions.length > 0 && (
+        <View style={[styles.mentionDropdown, isDarkMode && styles.mentionDropdownDark]}>
+          {mentionSuggestions.map((candidate) => (
+            <TouchableOpacity
+              key={candidate.id}
+              style={styles.mentionItem}
+              onPress={() => handleSelectMention(candidate)}
+            >
+              {candidate.avatar_url ? (
+                <Image source={{ uri: candidate.avatar_url }} style={styles.mentionAvatar} />
+              ) : (
+                <View style={styles.mentionAvatarPlaceholder}>
+                  <Text style={styles.mentionAvatarText}>
+                    {(candidate.full_name || '?').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <Text style={[styles.mentionName, isDarkMode && styles.textDark]}>
+                {candidate.full_name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       {/* Bandeau "réponse à ..." */}
       {replyingTo && (
         <View style={[styles.replyingBanner, isDarkMode && styles.replyingBannerDark]}>
@@ -525,7 +678,7 @@ export default function PostDetailScreen() {
         style={[
           styles.inputBar,
           isDarkMode && styles.inputBarDark,
-          { paddingBottom: 12 + insets.bottom + TAB_BAR_HEIGHT },
+          { paddingBottom: 12 + TAB_BAR_HEIGHT },
         ]}
       >
         {authUser?.image?.url ? (
@@ -544,7 +697,7 @@ export default function PostDetailScreen() {
           }
           placeholderTextColor="#94A3B8"
           value={newCommentText}
-          onChangeText={setNewCommentText}
+          onChangeText={handleCommentTextChange}
           style={[styles.commentInput, isDarkMode && styles.commentInputDark]}
           multiline
         />
@@ -567,7 +720,8 @@ export default function PostDetailScreen() {
       {/* Modal de zoom/visualisation d'image */}
       <ImageViewerModal
         visible={imageViewerVisible}
-        imageUrl={selectedImageUrl}
+        images={selectedImages}
+        initialIndex={selectedImageIndex}
         onClose={() => setImageViewerVisible(false)}
       />
 
@@ -600,6 +754,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 12,
+    paddingTop: 12,
     paddingBottom: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
@@ -746,13 +901,32 @@ const styles = StyleSheet.create({
     lineHeight: 30,
   },
   mediaContainer: {
-    gap: 10,
+    position: 'relative',
     marginTop: 8,
+    borderRadius: theme.border.radius.medium,
+    overflow: 'hidden',
   },
   postImage: {
     width: '100%',
     height: 240,
     borderRadius: theme.border.radius.medium,
+  },
+  galleryDots: {
+    position: 'absolute',
+    bottom: 10,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 5,
+  },
+  galleryDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  galleryDotActive: {
+    backgroundColor: '#FFFFFF',
+    width: 16,
   },
   commentsHeader: {
     paddingHorizontal: 16,
@@ -871,7 +1045,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: theme.color.primary[500],
+  },
+  commentActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
     marginTop: 6,
+  },
+  bestAnswerLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
   },
   voteContainer: {
     alignItems: 'center',
@@ -909,6 +1093,46 @@ const styles = StyleSheet.create({
   },
   scoreActiveDown: {
     color: '#EF4444',
+  },
+  mentionDropdown: {
+    maxHeight: 220,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  mentionDropdownDark: {
+    backgroundColor: '#0F172A',
+    borderTopColor: '#1E293B',
+  },
+  mentionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  mentionAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+  },
+  mentionAvatarPlaceholder: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: theme.color.primary[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mentionAvatarText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.color.primary[600],
+  },
+  mentionName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
   },
   replyingBanner: {
     flexDirection: 'row',

@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   useColorScheme,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -28,7 +27,6 @@ const ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
@@ -75,7 +73,7 @@ export default function NotificationsScreen() {
     <View style={[styles.container, isDarkMode && styles.containerDark]}>
       <Stack.Screen options={{ headerTitle: 'Notifications', headerBackTitle: 'Retour' }} />
 
-      <View style={[styles.topHeader, isDarkMode && styles.topHeaderDark, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.topHeader, isDarkMode && styles.topHeaderDark]}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, isDarkMode && styles.backButtonDark]}>
           <MaterialCommunityIcons name="arrow-left" size={22} color={isDarkMode ? '#F9FAFB' : '#111827'} />
         </TouchableOpacity>
@@ -140,6 +138,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 12,
+    paddingTop: 12,
     paddingBottom: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,

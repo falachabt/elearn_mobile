@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { theme } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -27,6 +28,7 @@ export default function UpdateBottomSheet({ visible, onDismiss }: UpdateBottomSh
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const { downloadAndApplyUpdate, isUpdating, updateError } = useUpdates();
+  const insets = useSafeAreaInsets();
 
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
@@ -96,7 +98,7 @@ export default function UpdateBottomSheet({ visible, onDismiss }: UpdateBottomSh
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               padding: 24,
-              paddingBottom: 40,
+              paddingBottom: 24 + insets.bottom,
               transform: [{ translateY }],
             }}
           >

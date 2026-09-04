@@ -623,14 +623,15 @@ const Register: React.FC = () => {
               </Animated.View>
             </View>
           </Animated.View>
-          <View style={{ marginTop: 40, alignItems: "center" }}>
-            <WhatsAppContact
-              phoneNumber="+237 6 51 05 56 63"
-              message="Bonjour, j'ai besoin d'aide"
-            />
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <WhatsAppContact
+        compact
+        phoneNumber="+237 6 51 05 56 63"
+        message="Bonjour, j'ai besoin d'aide"
+        style={styles.whatsAppFooter}
+      />
 
       <CountryPickerBottomSheet
         visible={showCountryPicker}
@@ -673,8 +674,13 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     alignSelf: "center",
   },
+  whatsAppFooter: {
+    alignSelf: "center",
+    marginBottom: 8,
+  },
   logoSection: {
     alignItems: "center",
+    justifyContent: "center",
     flexDirection: "row",
     gap: 12,
     marginBottom: 20,
