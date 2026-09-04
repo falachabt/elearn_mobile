@@ -45,10 +45,6 @@ const TopBar: React.FC<TopBarProps> = ({userName, streaks, xp, onChangeProgram})
                         <Text style={styles.statValue}>{user?.user_xp?.total_xp || 0}</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.trophyButton} onPress={() => router.push('/leaderboard' as Href)}>
-                        <MaterialCommunityIcons name="trophy-variant" size={18} color="#FFD700"/>
-                    </TouchableOpacity>
-
                     <View style={styles.statDivider}/>
 
                     <View style={styles.statItem}>
@@ -61,19 +57,25 @@ const TopBar: React.FC<TopBarProps> = ({userName, streaks, xp, onChangeProgram})
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity
-                    style={styles.notificationButton}
-                    onPress={() => router.push('/notifications')}
-                >
-                    <MaterialCommunityIcons name="bell-outline" size={24} color="#FFF"/>
-                    {unreadCount > 0 && (
-                        <View style={styles.notificationBadge}>
-                            <Text style={styles.notificationBadgeText}>
-                                {unreadCount > 9 ? '9+' : unreadCount}
-                            </Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
+                <View style={styles.rightIcons}>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/leaderboard' as Href)}>
+                        <MaterialCommunityIcons name="trophy-variant" size={24} color="#FFD700"/>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.iconButton}
+                        onPress={() => router.push('/notifications')}
+                    >
+                        <MaterialCommunityIcons name="bell-outline" size={24} color="#FFF"/>
+                        {unreadCount > 0 && (
+                            <View style={styles.notificationBadge}>
+                                <Text style={styles.notificationBadgeText}>
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {/* Progress Bar */}
@@ -100,7 +102,12 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    notificationButton: {
+    rightIcons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    iconButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
@@ -138,11 +145,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 8,
-    },
-    trophyButton: {
-        paddingHorizontal: 6,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     statValue: {
         color: '#FFFFFF',

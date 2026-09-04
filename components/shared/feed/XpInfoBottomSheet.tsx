@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, Dimensions } from 'react-native';
 import Modal from 'react-native-modal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '@/constants/theme';
 
@@ -23,6 +24,7 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 export default function XpInfoBottomSheet({ visible, onClose }: XpInfoBottomSheetProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const bg = isDark ? theme.color.dark.background.primary : '#FFFFFF';
   const textColor = isDark ? '#FFFFFF' : '#1A1A1A';
@@ -41,7 +43,7 @@ export default function XpInfoBottomSheet({ visible, onClose }: XpInfoBottomShee
       onSwipeComplete={onClose}
       useNativeDriver
     >
-      <View style={[styles.sheet, { backgroundColor: bg, maxHeight: SCREEN_HEIGHT * 0.7 }]}>
+      <View style={[styles.sheet, { backgroundColor: bg, maxHeight: SCREEN_HEIGHT * 0.7, paddingBottom: 28 + insets.bottom }]}>
         <View style={[styles.handle, { backgroundColor: borderColor }]} />
 
         <View style={styles.header}>

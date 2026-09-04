@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import Modal from 'react-native-modal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { theme } from '@/constants/theme';
@@ -22,6 +23,7 @@ export const UserProfileBottomSheet: React.FC<UserProfileBottomSheetProps> = ({
 }) => {
   const [profile, setProfile] = useState<PublicUserInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!visible || !userId) return;
@@ -50,7 +52,7 @@ export const UserProfileBottomSheet: React.FC<UserProfileBottomSheetProps> = ({
       style={styles.modal}
       propagateSwipe
     >
-      <View style={[styles.sheet, isDarkMode && styles.sheetDark]}>
+      <View style={[styles.sheet, isDarkMode && styles.sheetDark, { paddingBottom: 36 + insets.bottom }]}>
         <View style={styles.handle} />
 
         {loading ? (

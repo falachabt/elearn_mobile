@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';
@@ -29,7 +31,7 @@ export default function XpToastManager() {
   const insets = useSafeAreaInsets();
 
   const [toast, setToast] = useState<{ xp: number; label: string } | null>(null);
-  const translateY = useRef(new Animated.Value(-100)).current;
+  const translateX = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const hideTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -63,7 +65,7 @@ export default function XpToastManager() {
     if (hideTimeout.current) clearTimeout(hideTimeout.current);
     setToast({ xp, label });
 
-    Animated.spring(translateY, {
+    Animated.spring(translateX, {
       toValue: 0,
       useNativeDriver: true,
       tension: 70,
@@ -74,8 +76,8 @@ export default function XpToastManager() {
   };
 
   const hideToast = () => {
-    Animated.timing(translateY, {
-      toValue: -100,
+    Animated.timing(translateX, {
+      toValue: SCREEN_WIDTH,
       duration: 250,
       useNativeDriver: true,
     }).start(() => setToast(null));
@@ -91,7 +93,7 @@ export default function XpToastManager() {
   return (
     <Animated.View
       pointerEvents="box-none"
-      style={[styles.wrapper, { top: (Platform.OS === 'android' ? insets.top : insets.top) + 8, transform: [{ translateY }] }]}
+      style={[styles.wrapper, { top: insets.top + 64, transform: [{ translateX }] }]}
     >
       <TouchableOpacity style={styles.toast} onPress={handlePress} activeOpacity={0.9}>
         <View style={styles.iconWrap}>

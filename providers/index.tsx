@@ -512,10 +512,10 @@ export function Provider({ children }: { children: React.ReactNode }) {
                       <ChatProvider>
                             <UserActivityTracker />
                             <UpdatesManager />
-                            <XpToastManager />
                             {/* <RouteRevalidationManager> */}
                             <BackHandlerManager>{children}</BackHandlerManager>
                             {/* </RouteRevalidationManager> */}
+                            <XpToastManager />
                       </ChatProvider>
                     </UpdatesProvider>
                     <TourGuideOverlay />

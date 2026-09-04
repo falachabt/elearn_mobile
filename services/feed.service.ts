@@ -722,6 +722,7 @@ export type LeaderboardEntry = {
   total_xp: number;
   gradelevel: string | null;
   rank: number;
+  is_online: boolean;
 };
 
 export type GradelevelOption = {
@@ -761,6 +762,7 @@ export type WeeklyLeaderboardEntry = {
   weekly_xp: number;
   gradelevel: string | null;
   rank: number;
+  is_online: boolean;
 };
 
 /**

@@ -121,13 +121,16 @@ export default function LeaderboardScreen() {
           )}
         </View>
 
-        {entry.avatar_url ? (
-          <Image source={{ uri: entry.avatar_url }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{(entry.full_name || '?').charAt(0).toUpperCase()}</Text>
-          </View>
-        )}
+        <View style={styles.avatarWrapper}>
+          {entry.avatar_url ? (
+            <Image source={{ uri: entry.avatar_url }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarText}>{(entry.full_name || '?').charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
+          {entry.is_online && <View style={styles.onlineBadge} />}
+        </View>
 
         <Text style={[styles.name, isDarkMode && styles.textDark]} numberOfLines={1}>
           {entry.full_name || 'Élève'}{isMe ? ' (toi)' : ''}
@@ -363,6 +366,7 @@ const styles = StyleSheet.create({
   rowMeDark: { backgroundColor: '#052e22', borderColor: '#065F46' },
   rankCol: { width: 28, alignItems: 'center' },
   rankText: { fontSize: 14, fontWeight: '700', color: '#94A3B8' },
+  avatarWrapper: { width: 36, height: 36 },
   avatar: { width: 36, height: 36, borderRadius: 18 },
   avatarPlaceholder: {
     width: 36,
@@ -371,6 +375,17 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.primary[100],
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   avatarText: { fontSize: 14, fontWeight: '700', color: theme.color.primary[600] },
   name: { flex: 1, fontSize: 14, fontWeight: '600', color: '#0F172A' },
