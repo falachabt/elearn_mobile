@@ -108,6 +108,7 @@ interface PaymentPageProps {
     selectedProgramIds: number[];
     onLoadingChange?: (loading: boolean) => void;
     onPaymentStatusChange?: (status: boolean) => void;
+    onPaymentSuccess?: () => void;
 }
 
 type ProcessingState = 'idle' | 'processing' | 'waiting' | 'fallback' | 'browser_redirect';
@@ -116,7 +117,8 @@ type PromoCodeStatus = 'idle' | 'verifying' | 'valid' | 'invalid';
 const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
                                                                       selectedProgramIds,
                                                                       onLoadingChange,
-                                                                      onPaymentStatusChange
+                                                                      onPaymentStatusChange,
+                                                                      onPaymentSuccess
                                                                   }, ref) => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
@@ -194,6 +196,7 @@ const PaymentPage = forwardRef<PaymentPageRef, PaymentPageProps>(({
             verifyPaymentStatus(reference).then(result => {
                 if (result?.transaction?.status === 'completed') {
                     stopStatusCheck();
+                    onPaymentSuccess?.();
                 }
             });
         }, 5000); // Check every 5 seconds
