@@ -204,7 +204,7 @@ const MilestoneNode = React.memo(
             ]}
           >
             <MaterialCommunityIcons
-              name={isDone ? 'check-bold' : categoryIcon}
+              name={categoryIcon}
               size={isDone ? 22 : 24}
               color={isDone ? '#FFFFFF' : iconColor}
             />
