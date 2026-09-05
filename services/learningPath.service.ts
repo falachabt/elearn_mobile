@@ -118,6 +118,45 @@ export async function getCompletedStepIds(userId: string): Promise<Set<string>> 
   }
 }
 
+export interface CourseProgress {
+  completedSections: number;
+  totalSections: number;
+  isCompleted: boolean;
+}
+
+// Réutilise le suivi de lecture de cours déjà en place (course_progress_summary,
+// tenu à jour par un trigger sur usercourseprogress) plutôt que de réinventer
+// un mécanisme de complétion pour les milestones "lesson".
+export async function getCourseProgressMap(
+  userId: string,
+  courseIds: number[]
+): Promise<Map<number, CourseProgress>> {
+  if (courseIds.length === 0) return new Map();
+  try {
+    const { data, error } = await supabase
+      .from('course_progress_summary')
+      .select('course_id, completed_sections, total_sections, is_completed')
+      .eq('user_id', userId)
+      .in('course_id', courseIds);
+
+    if (error) throw error;
+
+    return new Map(
+      (data ?? []).map((row) => [
+        row.course_id,
+        {
+          completedSections: row.completed_sections,
+          totalSections: row.total_sections,
+          isCompleted: !!row.is_completed,
+        },
+      ])
+    );
+  } catch (error) {
+    logger.error('Error fetching course progress map:', error);
+    return new Map();
+  }
+}
+
 export async function markStepsCompleted(userId: string, stepIds: string[]): Promise<void> {
   if (stepIds.length === 0) return;
   try {

@@ -57,6 +57,33 @@ export const CATEGORY_THEMES: Record<string, CategoryTheme> = {
         secondary: '#5EEAD4',
         cardBg: '#0F766E',
         icon: 'earth'
+    },
+    // Alias exacts des noms utilisés par courses_categories (variantes
+    // singulier/pluriel et SVT vs Biologie) pour que le path Terminale C
+    // retombe sur les vraies couleurs curées plutôt que sur le fallback généré
+    'Mathématique': {
+        primary: '#3B82F6',
+        secondary: '#93C5FD',
+        cardBg: '#1E40AF',
+        icon: 'function'
+    },
+    'SVT': {
+        primary: '#10B981',
+        secondary: '#6EE7B7',
+        cardBg: '#059669',
+        icon: 'dna'
+    },
+    'Philosophie': {
+        primary: '#7C2D12',
+        secondary: '#FED7AA',
+        cardBg: '#92400E',
+        icon: 'thought-bubble'
+    },
+    'Éducation à la Citoyenneté': {
+        primary: '#7E22CE',
+        secondary: '#D8B4FE',
+        cardBg: '#6B21A8',
+        icon: 'account-group'
     }
 };
 

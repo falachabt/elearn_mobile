@@ -12,13 +12,14 @@ import {
   useColorScheme,
   Dimensions,
 } from 'react-native';
-import { Href, useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { Href, useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 import Modal from 'react-native-modal';
 
 import { theme } from '@/constants/theme';
+import { getCategoryTheme } from '@/constants/categoryThemes';
 import { useAuth } from '@/contexts/auth';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
@@ -27,18 +28,66 @@ import {
   getCompletedStepIds,
   getMilestoneSteps,
   markStepsCompleted,
+  getCourseProgressMap,
   LpUnit,
   LpMilestone,
   LpStepWithLabel,
+  CourseProgress,
 } from '@/services/learningPath.service';
 import { supabase } from '@/lib/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BASE_SPACING = 90;
+const BASE_SPACING = 96;
 const CENTER_X = SCREEN_WIDTH / 2;
 const AMPLITUDE = Math.min(SCREEN_WIDTH / 2 - 90, 90);
 
 type MilestoneStatus = 'done' | 'current' | 'locked';
+
+interface PathItem extends LpMilestone {
+  categoryName: string;
+}
+
+// Mélange les catégories entre elles au lieu d'un bloc par matière : chaque
+// jalon reçoit un ratio (sa position relative dans SA matière), puis on
+// trie tout par ratio. Une matière à 20 cours et une à 10 s'entrelacent
+// alors naturellement ~2 pour 1 au lieu que l'une bloque l'autre pendant
+// des mois.
+function interleaveByCategory(units: LpUnit[]): PathItem[] {
+  const enriched = units.flatMap((unit) =>
+    unit.milestones.map((m, i) => ({
+      ...m,
+      categoryName: unit.title,
+      ratio: unit.milestones.length <= 1 ? 0 : i / (unit.milestones.length - 1),
+      unitOrder: unit.order_index,
+    }))
+  );
+  enriched.sort((a, b) => a.ratio - b.ratio || a.unitOrder - b.unitOrder);
+  return enriched.map(({ ratio: _ratio, unitOrder: _unitOrder, ...item }) => item);
+}
+
+function getProgressFraction(
+  item: PathItem,
+  courseProgress: Map<number, CourseProgress>,
+  completedMilestoneIds: Set<string>
+): number {
+  if (item.type === 'lesson' && item.ref_course_id) {
+    const cp = courseProgress.get(item.ref_course_id);
+    if (!cp || cp.totalSections === 0) return 0;
+    return Math.min(1, cp.completedSections / cp.totalSections);
+  }
+  return completedMilestoneIds.has(item.id) ? 1 : 0;
+}
+
+function isItemDone(
+  item: PathItem,
+  courseProgress: Map<number, CourseProgress>,
+  completedMilestoneIds: Set<string>
+): boolean {
+  if (item.type === 'lesson' && item.ref_course_id) {
+    return courseProgress.get(item.ref_course_id)?.isCompleted === true;
+  }
+  return completedMilestoneIds.has(item.id);
+}
 
 // Petit hash déterministe (même seed -> toujours la même valeur) pour
 // varier légèrement chaque nœud sans que la position ne saute d'un
@@ -56,20 +105,20 @@ function hashToSeed(id: string): number {
   return hash;
 }
 
-// Chemin organique : combine deux ondes de fréquences différentes plus
-// un léger bruit par nœud, pour éviter le zigzag parfaitement régulier
-// gauche/droite/gauche/droite qui a l'air artificiel.
+// Chemin organique : alterne toujours de côté (évite qu'un nœud et son
+// voisin atterrissent du même côté et que les étiquettes se chevauchent),
+// mais fait varier l'amplitude du swing pour ne pas retomber sur un
+// zigzag parfaitement régulier gauche/droite/gauche/droite.
 function getOrganicPoints(seed: number, count: number): { x: number; y: number }[] {
   const points: { x: number; y: number }[] = [];
-  let y = 66;
+  let y = 70;
 
   for (let i = 0; i < count; i++) {
-    const wave = Math.sin(i * 0.9 + seed) * 0.65 + Math.sin(i * 0.37 + seed * 1.7) * 0.35;
-    const jitter = (seededRandom(seed * 13.37 + i * 7.91) - 0.5) * 0.35;
-    const t = Math.max(-1, Math.min(1, wave + jitter));
-    const x = CENTER_X + t * AMPLITUDE;
+    const side = i % 2 === 0 ? -1 : 1;
+    const swing = 0.55 + seededRandom(seed * 13.37 + i * 7.91) * 0.45;
+    const x = CENTER_X + side * swing * AMPLITUDE;
 
-    const spacingJitter = (seededRandom(seed * 5.21 + i * 3.13) - 0.5) * 18;
+    const spacingJitter = (seededRandom(seed * 5.21 + i * 3.13) - 0.5) * 10;
     if (i > 0) y += BASE_SPACING + spacingJitter;
 
     points.push({ x, y });
@@ -93,22 +142,22 @@ const MilestoneIcon = (type: LpMilestone['type']): keyof typeof MaterialCommunit
   return 'book-open-variant';
 };
 
-const CurrentPulse = ({ size }: { size: number }) => {
-  const scale = useRef(new Animated.Value(0.86)).current;
-  const opacity = useRef(new Animated.Value(0.55)).current;
+const CurrentPulse = ({ size, radius }: { size: number; radius: number }) => {
+  const scale = useRef(new Animated.Value(0.9)).current;
+  const opacity = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.parallel([
-        Animated.timing(scale, { toValue: 1.28, duration: 1300, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1.22, duration: 1300, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 0, duration: 1300, useNativeDriver: true }),
       ])
     );
     loop.start();
     return () => {
       loop.stop();
-      scale.setValue(0.86);
-      opacity.setValue(0.55);
+      scale.setValue(0.9);
+      opacity.setValue(0.5);
     };
   }, [scale, opacity]);
 
@@ -117,107 +166,159 @@ const CurrentPulse = ({ size }: { size: number }) => {
       pointerEvents="none"
       style={[
         styles.pulseRing,
-        { width: size + 18, height: size + 18, borderRadius: (size + 18) / 2, transform: [{ scale }], opacity },
+        { width: size, height: size, borderRadius: radius, transform: [{ scale }], opacity },
       ]}
     />
   );
 };
 
-const MilestoneNode = ({
-  milestone,
-  status,
-  x,
-  y,
-  isDark,
-  onPress,
+const NODE_RADIUS_RATIO = 0.3;
+const NODE_STROKE_WIDTH = 4;
+
+// Carré aux coins arrondis dont le contour se remplit progressivement
+// (comme un anneau de score, mais sur un tracé rectangulaire) selon la
+// progression réelle de lecture du cours (ou de la pratique associée).
+const ProgressSquare = ({
+  size,
+  fraction,
+  color,
+  trackColor,
+  cardColor,
 }: {
-  milestone: LpMilestone;
-  status: MilestoneStatus;
-  x: number;
-  y: number;
-  isDark: boolean;
-  onPress: (milestone: LpMilestone, status: MilestoneStatus) => void;
+  size: number;
+  fraction: number;
+  color: string;
+  trackColor: string;
+  cardColor: string;
 }) => {
-  const { trigger } = useHaptics();
-  const shakeX = useRef(new Animated.Value(0)).current;
-  const isLocked = status === 'locked';
-  const isCurrent = status === 'current';
-  const size = isCurrent ? 68 : 56;
-
-  const handlePress = () => {
-    if (isLocked) {
-      trigger(HapticType.WARNING);
-      Animated.sequence([
-        Animated.timing(shakeX, { toValue: -5, duration: 55, useNativeDriver: true }),
-        Animated.timing(shakeX, { toValue: 5, duration: 55, useNativeDriver: true }),
-        Animated.timing(shakeX, { toValue: 0, duration: 55, useNativeDriver: true }),
-      ]).start();
-    } else {
-      trigger(HapticType.MEDIUM);
-    }
-    onPress(milestone, status);
-  };
-
-  const baseColor = isLocked ? (isDark ? '#334155' : '#E2E8F0') : isCurrent ? theme.color.primary[500] : theme.color.primary[600];
-  const rimColor = isLocked ? (isDark ? '#475569' : '#CBD5E1') : theme.color.primary[700];
+  const inset = NODE_STROKE_WIDTH / 2 + 1;
+  const w = size - inset * 2;
+  const r = size * NODE_RADIUS_RATIO;
+  const perimeter = 2 * (w - 2 * r) * 2 + 2 * Math.PI * r;
+  const dashOffset = perimeter * (1 - Math.max(0, Math.min(1, fraction)));
 
   return (
-    <View style={[styles.nodeWrap, { left: x - size / 2, top: y - size / 2, width: size, height: size + 6 }]}>
-      {isCurrent && <CurrentPulse size={size} />}
-      <Animated.View style={{ transform: [{ translateX: shakeX }] }}>
-        {/* Base plus sombre décalée vers le bas : illusion de bouton 3D bombé */}
-        <View
-          style={[
-            styles.nodeRim,
-            { width: size, height: size, borderRadius: size / 2, backgroundColor: rimColor, top: 5 },
-          ]}
+    <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+      <Rect x={inset} y={inset} width={w} height={w} rx={r} ry={r} fill={cardColor} />
+      <Rect x={inset} y={inset} width={w} height={w} rx={r} ry={r} stroke={trackColor} strokeWidth={NODE_STROKE_WIDTH} fill="none" />
+      {fraction > 0 && (
+        <Rect
+          x={inset}
+          y={inset}
+          width={w}
+          height={w}
+          rx={r}
+          ry={r}
+          stroke={color}
+          strokeWidth={NODE_STROKE_WIDTH}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${perimeter}, ${perimeter}`}
+          strokeDashoffset={dashOffset}
         />
-        <Pressable
-          onPress={handlePress}
-          style={[
-            styles.node,
-            { width: size, height: size - 5, borderRadius: size / 2, backgroundColor: baseColor },
-          ]}
-        >
-          <MaterialCommunityIcons
-            name={status === 'done' ? 'check-bold' : isLocked ? 'lock' : MilestoneIcon(milestone.type)}
-            size={status === 'done' || isLocked ? 24 : 26}
-            color={isLocked ? (isDark ? '#64748B' : '#94A3B8') : '#FFFFFF'}
-          />
-        </Pressable>
-      </Animated.View>
-      <Text
-        numberOfLines={2}
-        style={[
-          styles.nodeLabel,
-          isDark && styles.nodeLabelDark,
-          { top: size + 6, width: 100, left: size / 2 - 50 },
-        ]}
-      >
-        {milestone.title}
-      </Text>
-    </View>
+      )}
+    </Svg>
   );
 };
 
-const UnitSerpentine = ({
-  unit,
+const MilestoneNode = React.memo(
+  ({
+    item,
+    status,
+    fraction,
+    x,
+    y,
+    isDark,
+    onPress,
+  }: {
+    item: PathItem;
+    status: MilestoneStatus;
+    fraction: number;
+    x: number;
+    y: number;
+    isDark: boolean;
+    onPress: (item: PathItem, status: MilestoneStatus) => void;
+  }) => {
+    const { trigger } = useHaptics();
+    const shakeX = useRef(new Animated.Value(0)).current;
+    const isLocked = status === 'locked';
+    const isCurrent = status === 'current';
+    const size = isCurrent ? 66 : 56;
+    const radius = size * NODE_RADIUS_RATIO;
+
+    const handlePress = () => {
+      if (isLocked) {
+        trigger(HapticType.WARNING);
+        Animated.sequence([
+          Animated.timing(shakeX, { toValue: -5, duration: 55, useNativeDriver: true }),
+          Animated.timing(shakeX, { toValue: 5, duration: 55, useNativeDriver: true }),
+          Animated.timing(shakeX, { toValue: 0, duration: 55, useNativeDriver: true }),
+        ]).start();
+      } else {
+        trigger(HapticType.MEDIUM);
+      }
+      onPress(item, status);
+    };
+
+    const categoryColor = getCategoryTheme(item.categoryName).primary;
+    const cardColor = isLocked ? (isDark ? '#1E293B' : '#F1F5F9') : isDark ? '#0F172A' : '#FFFFFF';
+    const trackColor = isDark ? '#334155' : '#E2E8F0';
+    const ringColor = isLocked ? trackColor : categoryColor;
+    const iconColor = isLocked ? (isDark ? '#64748B' : '#94A3B8') : categoryColor;
+
+    return (
+      <View style={[styles.nodeWrap, { left: x - size / 2, top: y - size / 2, width: size, height: size + 6 }]}>
+        {isCurrent && <CurrentPulse size={size + 16} radius={radius + 8} />}
+        <Animated.View style={{ width: size, height: size, transform: [{ translateX: shakeX }] }}>
+          <ProgressSquare size={size} fraction={isLocked ? 0 : fraction} color={ringColor} trackColor={trackColor} cardColor={cardColor} />
+          <Pressable onPress={handlePress} style={[styles.node, { width: size, height: size }]}>
+            <MaterialCommunityIcons
+              name={status === 'done' ? 'check-bold' : isLocked ? 'lock' : MilestoneIcon(item.type)}
+              size={status === 'done' || isLocked ? 22 : 24}
+              color={iconColor}
+            />
+          </Pressable>
+        </Animated.View>
+        <Text
+          numberOfLines={2}
+          style={[
+            styles.nodeLabel,
+            isDark && styles.nodeLabelDark,
+            { top: size + 6, width: 92, left: size / 2 - 46 },
+          ]}
+        >
+          {item.title}
+        </Text>
+      </View>
+    );
+  },
+  (prev, next) =>
+    prev.status === next.status &&
+    prev.fraction === next.fraction &&
+    prev.x === next.x &&
+    prev.y === next.y &&
+    prev.isDark === next.isDark &&
+    prev.item.id === next.item.id
+);
+
+const PathTrail = ({
+  items,
   statuses,
+  fractions,
   isDark,
   onMilestonePress,
 }: {
-  unit: LpUnit;
+  items: PathItem[];
   statuses: Record<string, MilestoneStatus>;
+  fractions: Record<string, number>;
   isDark: boolean;
-  onMilestonePress: (milestone: LpMilestone, status: MilestoneStatus) => void;
+  onMilestonePress: (item: PathItem, status: MilestoneStatus) => void;
 }) => {
-  const points = useMemo(
-    () => getOrganicPoints(hashToSeed(unit.id), unit.milestones.length),
-    [unit.id, unit.milestones.length]
-  );
+  const seed = useMemo(() => (items[0] ? hashToSeed(items[0].id) : 0), [items]);
+  const points = useMemo(() => getOrganicPoints(seed, items.length), [seed, items.length]);
 
   const height = (points[points.length - 1]?.y ?? 60) + 70;
-  const doneUpTo = unit.milestones.findIndex((m) => statuses[m.id] !== 'done');
+  const doneUpTo = items.findIndex((item) => statuses[item.id] !== 'done');
   const donePoints = doneUpTo === -1 ? points : points.slice(0, doneUpTo + 1);
 
   const pathD = useMemo(() => buildSmoothPath(points), [points]);
@@ -236,11 +337,12 @@ const UnitSerpentine = ({
         />
         <Path d={donePathD} stroke={theme.color.primary[500]} strokeWidth={5} strokeLinecap="round" fill="none" />
       </Svg>
-      {unit.milestones.map((m, i) => (
+      {items.map((item, i) => (
         <MilestoneNode
-          key={m.id}
-          milestone={m}
-          status={statuses[m.id] || 'locked'}
+          key={item.id}
+          item={item}
+          status={statuses[item.id] || 'locked'}
+          fraction={fractions[item.id] || 0}
           x={points[i].x}
           y={points[i].y}
           isDark={isDark}
@@ -338,18 +440,25 @@ export default function LearningPathScreen() {
   const { getCoursePath, getQuizPath, getExercicePath } = useNavigation();
   const insets = useSafeAreaInsets();
 
-  const [units, setUnits] = useState<LpUnit[]>([]);
+  const [pathItems, setPathItems] = useState<PathItem[]>([]);
   const [completedMilestoneIds, setCompletedMilestoneIds] = useState<Set<string>>(new Set());
+  const [courseProgress, setCourseProgress] = useState<Map<number, CourseProgress>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [practiceMilestone, setPracticeMilestone] = useState<LpMilestone | null>(null);
+  const [practiceMilestone, setPracticeMilestone] = useState<PathItem | null>(null);
 
   const loadPath = useCallback(async () => {
     if (!programId) return;
     setLoading(true);
 
-    const [fetchedUnits, completedStepIds] = await Promise.all([
-      getLearningPathUnits(programId),
+    const fetchedUnits = await getLearningPathUnits(programId);
+    const items = interleaveByCategory(fetchedUnits);
+    const courseIds = items
+      .filter((item) => item.type === 'lesson' && item.ref_course_id != null)
+      .map((item) => item.ref_course_id as number);
+
+    const [completedStepIds, progressMap] = await Promise.all([
       user?.id ? getCompletedStepIds(user.id) : Promise.resolve(new Set<string>()),
+      user?.id ? getCourseProgressMap(user.id, courseIds) : Promise.resolve(new Map<number, CourseProgress>()),
     ]);
 
     let completedMilestones = new Set<string>();
@@ -361,50 +470,56 @@ export default function LearningPathScreen() {
       completedMilestones = new Set((data ?? []).map((r) => r.milestone_id));
     }
 
-    setUnits(fetchedUnits);
+    setPathItems(items);
     setCompletedMilestoneIds(completedMilestones);
+    setCourseProgress(progressMap);
     setLoading(false);
   }, [programId, user?.id]);
 
-  useEffect(() => {
-    loadPath();
-  }, [loadPath]);
+  // Recharge à chaque retour sur l'écran (pas juste au montage) : la
+  // progression de lecture d'un cours change pendant qu'on en est sorti.
+  useFocusEffect(
+    useCallback(() => {
+      loadPath();
+    }, [loadPath])
+  );
 
-  // Chaque matière avance indépendamment des autres : le premier jalon
-  // non terminé DE CHAQUE unité est "current", pas un seul jalon
-  // "current" global — sinon il faudrait finir les 39 cours de maths
-  // avant de voir la moindre étape de géographie.
-  const statuses = useMemo(() => {
-    const map: Record<string, MilestoneStatus> = {};
-    units.forEach((unit) => {
-      const currentIndex = unit.milestones.findIndex((m) => !completedMilestoneIds.has(m.id));
-      unit.milestones.forEach((m, i) => {
-        if (completedMilestoneIds.has(m.id)) map[m.id] = 'done';
-        else if (i === currentIndex) map[m.id] = 'current';
-        else map[m.id] = 'locked';
-      });
+  const fractions = useMemo(() => {
+    const map: Record<string, number> = {};
+    pathItems.forEach((item) => {
+      map[item.id] = getProgressFraction(item, courseProgress, completedMilestoneIds);
     });
     return map;
-  }, [units, completedMilestoneIds]);
+  }, [pathItems, courseProgress, completedMilestoneIds]);
+
+  // Un seul chemin séquentiel : puisque les matières sont déjà entrelacées
+  // (interleaveByCategory), avancer dans l'ordre touche naturellement
+  // toutes les matières au lieu d'en finir une avant de voir les autres.
+  const statuses = useMemo(() => {
+    const map: Record<string, MilestoneStatus> = {};
+    const currentIndex = pathItems.findIndex((item) => !isItemDone(item, courseProgress, completedMilestoneIds));
+    pathItems.forEach((item, i) => {
+      if (isItemDone(item, courseProgress, completedMilestoneIds)) map[item.id] = 'done';
+      else if (i === currentIndex) map[item.id] = 'current';
+      else map[item.id] = 'locked';
+    });
+    return map;
+  }, [pathItems, courseProgress, completedMilestoneIds]);
 
   const handleMilestonePress = useCallback(
-    async (milestone: LpMilestone, status: MilestoneStatus) => {
+    async (item: PathItem, status: MilestoneStatus) => {
       if (status === 'locked') return;
 
-      if (milestone.type === 'practice') {
-        setPracticeMilestone(milestone);
+      if (item.type === 'practice') {
+        setPracticeMilestone(item);
         return;
       }
 
-      if (milestone.type === 'lesson' && milestone.ref_course_id) {
-        if (user?.id) {
-          const steps = await getMilestoneSteps(milestone.id);
-          markStepsCompleted(user.id, steps.map((s) => s.id)).then(loadPath);
-        }
-        router.push(getCoursePath(String(milestone.ref_course_id)) as Href);
+      if (item.type === 'lesson' && item.ref_course_id) {
+        router.push(getCoursePath(String(item.ref_course_id)) as Href);
       }
     },
-    [user?.id, router, getCoursePath, loadPath]
+    [router, getCoursePath]
   );
 
   const handlePracticeStepPress = useCallback(
@@ -447,34 +562,24 @@ export default function LearningPathScreen() {
         </View>
       </View>
 
-      {units.length === 0 ? (
+      {pathItems.length === 0 ? (
         <View style={styles.centerContainer}>
           <MaterialCommunityIcons name="map-marker-path" size={48} color="#CBD5E1" />
           <Text style={[styles.emptyText, isDark && styles.textDark]}>Parcours pas encore disponible.</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {units.map((unit) => {
-            const doneCount = unit.milestones.filter((m) => statuses[m.id] === 'done').length;
-            const unitDone = doneCount === unit.milestones.length;
-
-            return (
-              <View key={unit.id} style={styles.unitBlock}>
-                <View style={styles.unitHeaderRow}>
-                  <Text style={[styles.unitTitle, isDark && styles.textDark]}>{unit.title}</Text>
-                  {unitDone ? (
-                    <MaterialCommunityIcons name="check-decagram" size={18} color={theme.color.primary[500]} />
-                  ) : (
-                    <Text style={[styles.unitProgress, isDark && styles.subTextDark]}>
-                      {doneCount}/{unit.milestones.length}
-                    </Text>
-                  )}
-                </View>
-
-                <UnitSerpentine unit={unit} statuses={statuses} isDark={isDark} onMilestonePress={handleMilestonePress} />
-              </View>
-            );
-          })}
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews
+        >
+          <PathTrail
+            items={pathItems}
+            statuses={statuses}
+            fractions={fractions}
+            isDark={isDark}
+            onMilestonePress={handleMilestonePress}
+          />
         </ScrollView>
       )}
 
@@ -522,34 +627,13 @@ const styles = StyleSheet.create({
   textDark: { color: '#F8FAFC' },
   subTextDark: { color: '#94A3B8' },
   emptyText: { fontSize: 15, color: '#94A3B8' },
-  content: { paddingBottom: 60 },
-  unitBlock: { marginTop: 20 },
-  unitHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    paddingHorizontal: 20,
-    marginBottom: 4,
-  },
-  unitTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
-  unitProgress: { fontSize: 13, fontWeight: '700', color: '#94A3B8' },
+  content: { paddingBottom: 60, paddingTop: 20 },
   nodeWrap: { position: 'absolute', alignItems: 'center' },
-  nodeRim: {
-    position: 'absolute',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
   node: {
     position: 'absolute',
     top: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2.5,
-    borderColor: 'rgba(255,255,255,0.35)',
   },
   nodeLabel: {
     position: 'absolute',
