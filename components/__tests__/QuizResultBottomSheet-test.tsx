@@ -1,6 +1,10 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 
+// Les boucles requestAnimationFrame (count-up XP/score, remplissage du
+// cercle) sont pilotées par les timers Jest pour des tests déterministes.
+jest.useFakeTimers();
+
 jest.mock('@expo/vector-icons', () => ({
   MaterialCommunityIcons: ({ name }: { name: string }) => {
     const { Text: MockText } = require('react-native');
@@ -67,7 +71,6 @@ const results = {
 
 describe('QuizResultBottomSheet', () => {
   it('renders the quiz name and score ring', async () => {
-    jest.setTimeout(15000);
     let tree: renderer.ReactTestRenderer;
 
     await act(async () => {
@@ -84,9 +87,17 @@ describe('QuizResultBottomSheet', () => {
       );
     });
 
+    await act(async () => {
+      jest.advanceTimersByTime(2000);
+    });
+
     const scoreNode = tree!.root.findByProps({ testID: 'quiz-result-score' });
 
     expect(scoreNode.props.children.join('')).toBe('8/10');
+
+    act(() => {
+      tree!.unmount();
+    });
   });
 
   it('calls close, retry and continue handlers when pressed', async () => {
@@ -140,5 +151,9 @@ describe('QuizResultBottomSheet', () => {
       await continueButton.props.onPress();
     });
     expect(onContinue).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      tree!.unmount();
+    });
   });
 });
