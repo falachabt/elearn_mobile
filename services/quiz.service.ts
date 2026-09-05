@@ -208,10 +208,46 @@ export class QuizService {
       }
 
       const attempt = mapAttempt(attemptRow);
-      const answers = Object.values(attempt.answers ?? {});
+      const answersMap = attempt.answers ?? {};
+      const answers = Object.values(answersMap);
       const totalQuestions = answers.length;
       const correctAnswers = answers.filter((answer) => answer.isCorrect).length;
       const score = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+
+      let maxCombo = 0;
+      if (attempt.quiz_id) {
+        const { data: orderedQuestions } = await supabase
+          .from('quiz_questions')
+          .select('id')
+          .eq('quizId', attempt.quiz_id)
+          .order('order', { ascending: true, nullsFirst: false });
+
+        let currentCombo = 0;
+        for (const question of orderedQuestions ?? []) {
+          if (answersMap[String(question.id)]?.isCorrect) {
+            currentCombo += 1;
+            maxCombo = Math.max(maxCombo, currentCombo);
+          } else {
+            currentCombo = 0;
+          }
+        }
+      }
+
+      let previousTimeSpent: number | null = null;
+      if (attempt.user_id && attempt.quiz_id) {
+        const { data: previousAttempt } = await supabase
+          .from('quiz_attempts')
+          .select('timeSpent')
+          .eq('quiz_id', attempt.quiz_id)
+          .eq('user_id', attempt.user_id)
+          .eq('status', 'completed')
+          .neq('id', numericAttemptId)
+          .order('end_time', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        previousTimeSpent = previousAttempt?.timeSpent ?? null;
+      }
 
       const baseXP = 100;
       const scoreMultiplier = score / 100;
@@ -258,6 +294,8 @@ export class QuizService {
         correctAnswers,
         timeSpent: attempt.timeSpent ?? 0,
         xpGained,
+        maxCombo,
+        previousTimeSpent,
         status: score >= 70 ? 'passed' : 'failed',
         completedAt: new Date().toISOString(),
       };
@@ -265,6 +303,30 @@ export class QuizService {
       logger.error('Error finishing quiz:', error);
       throw error;
     }
+  }
+
+  static async getQuizLeaderboard(quizId: string, limit = 10) {
+    const { data, error } = await (supabase.rpc as any)('get_quiz_leaderboard', {
+      p_quiz_id: quizId,
+      p_limit: limit,
+    });
+    if (error) {
+      logger.error('Error fetching quiz leaderboard:', error);
+      return [];
+    }
+    return (data ?? []) as import('@/types/quiz.type').QuizLeaderboardEntry[];
+  }
+
+  static async getMyQuizRank(quizId: string) {
+    const { data, error } = await (supabase.rpc as any)('get_my_quiz_rank', {
+      p_quiz_id: quizId,
+    });
+    if (error) {
+      logger.error('Error fetching my quiz rank:', error);
+      return null;
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    return (row ?? null) as import('@/types/quiz.type').QuizLeaderboardEntry | null;
   }
 
   static async getAttemptStatus(attemptId: number) {

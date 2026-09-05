@@ -78,4 +78,17 @@ export interface QuizQuestion {
     completedAt: string;
     timeSpent: number;
     xpGained: number;
+    maxCombo: number;
+    previousTimeSpent: number | null;
+  }
+
+  export interface QuizLeaderboardEntry {
+    user_id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    score: number;
+    time_spent: number;
+    correct_count: number;
+    total_count: number;
+    rank: number;
   }

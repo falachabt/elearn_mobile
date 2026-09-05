@@ -25,7 +25,7 @@ import {
     useQuiz,
 } from "@/hooks/useQuiz";
 import {QuizProvider, useQuizContext} from "@/contexts/quizContext";
-import {QuizResultDialog} from "@/components/shared/learn/quiz/ResultModal";
+import {QuizResultBottomSheet} from "@/components/shared/learn/quiz/QuizResultBottomSheet";
 import {supabase} from "@/lib/supabase";
 import {useAuth} from "@/contexts/auth";
 import QuizResultsDisplay from "@/components/shared/learn/quiz/QuizResultDisplay";
@@ -33,6 +33,7 @@ import BlockNoteContent, { type Block } from "@/components/shared/BlockNoteConte
 import ExerciseInstructionsDrawer from "@/components/shared/learn/quiz/ExerciseInstructionsDrawer";
 import MathLiveTextRenderer from "@/components/shared/learn/quiz/MathLiveTextRender";
 import { useNavigation } from "@/contexts/NavigationContext";
+import type { QuizResults } from "@/types/quiz.type";
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -81,7 +82,7 @@ type QuestionContentProps = {
 
 type QuizFooterProps = {
     isDark: boolean;
-    onFinish: (data: any) => void;
+    onFinish: (data: QuizResults) => void;
 };
 
 // Enhanced mixed content renderer with improved LaTeX rendering
@@ -607,9 +608,9 @@ const QuizContent = () => {
     const { quizId, pdId } = useLocalSearchParams();
     const quizIdParam = Array.isArray(quizId) ? quizId[0] : quizId;
     const { getQuizzesPath, getQuizAttemptPath } = useNavigation();
-    const {currentQuestion, isCompleted, isNewlyCompleted, results} = useQuizContext();
+    const {currentQuestion, isCompleted} = useQuizContext();
     const [showResult, setShowResult] = useState(false);
-    const [quizResults, setQuizResults] = useState<any>(null);
+    const [quizResults, setQuizResults] = useState<QuizResults | null>(null);
     const [showExitModal, setShowExitModal] = useState(false);
     const {quiz} = useQuiz(String(quizIdParam));
     const {user} = useAuth();
@@ -626,14 +627,6 @@ const QuizContent = () => {
         setShowExitModal(false);
         router.back();
     }, [router]);
-
-    // Effect to show results automatically ONLY when quiz is newly completed
-    // useEffect(() => {
-    //     if (isNewlyCompleted && results && !showResult) {
-    //         setQuizResults(results);
-    //         setShowResult(true);
-    //     }
-    // }, [isNewlyCompleted, results, showResult]);
 
     const resetQuiz = useCallback(async () => {
         try {
@@ -665,7 +658,7 @@ const QuizContent = () => {
         }
     }, [quizId, user, router, getQuizAttemptPath]);
 
-    const handleFinish = useCallback((data: any) => {
+    const handleFinish = useCallback((data: QuizResults) => {
         setQuizResults(data);
         setShowResult(true);
     }, []);
@@ -713,7 +706,7 @@ const QuizContent = () => {
             />
 
             {showResult && quizResults && (
-                <QuizResultDialog
+                <QuizResultBottomSheet
                     visible={showResult}
                     isDark={isDark}
                     quizName={quiz?.name || ""}
@@ -939,19 +932,6 @@ const styles = StyleSheet.create({
         flex: 1,
         overflow: "hidden",
     },
-    detailsContainer: {
-        marginTop: 20,
-        padding: 16,
-        backgroundColor: "#F3F4F6",
-        borderRadius: theme.border.radius.small,
-    },
-    detailText: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 14,
-        lineHeight: 20,
-        color: "#4B5563",
-        marginBottom: 8,
-    },
     footer: {
         position: 'absolute',
         flexDirection: 'row',
@@ -977,25 +957,6 @@ const styles = StyleSheet.create({
     footerDark: {
         backgroundColor: "#1F2937",
     },
-    submitButton: {
-        backgroundColor: theme.color.primary[500],
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        borderRadius: theme.border.radius.small,
-        gap: 8,
-    },
-    submitButtonDisabled: {
-        opacity: 0.5,
-    },
-    submitButtonText: {
-        color: "#FFFFFF",
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 16,
-        fontWeight: "600",
-    },
     centerContainer: {
         flex: 1,
         justifyContent: "center",
@@ -1006,145 +967,6 @@ const styles = StyleSheet.create({
         marginTop: 8,
         textAlign: "center",
     },
-    // Result Modal Styles
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 20,
-    },
-    modalContainer: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: theme.border.radius.medium,
-        padding: 24,
-        width: "100%",
-        maxWidth: 400,
-        alignItems: "center",
-        ...Platform.select({
-            ios: {
-                shadowColor: "#000",
-                shadowOffset: {width: 0, height: 2},
-                shadowOpacity: 0.25,
-                shadowRadius: 4,
-            },
-            android: {
-                elevation: 5,
-            },
-        }),
-    },
-    modalContainerDark: {
-        backgroundColor: "#1F2937",
-    },
-    animationContainer: {
-        width: 150,
-        height: 100,
-        marginBottom: 20,
-    },
-    animation: {
-        width: "100%",
-        height: "100%",
-    },
-    scoreContainer: {
-        alignItems: "center",
-        marginBottom: 24,
-    },
-    scoreLabel: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 16,
-        color: "#6B7280",
-        marginBottom: 8,
-    },
-    scoreValue: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 40,
-        height: 65,
-        width: "100%",
-        padding: 0,
-        textAlign: "center",
-        textAlignVertical: "center",
-        fontWeight: "700",
-    },
-    statsGrid: {
-        flexDirection: "row",
-        gap: 8,
-        marginBottom: 24,
-        width: "100%",
-    },
-    statCard: {
-        flex: 1,
-        backgroundColor: "#FFFFFF",
-        padding: 16,
-        borderRadius: theme.border.radius.small,
-        alignItems: "center",
-        ...Platform.select({
-            ios: {
-                shadowColor: "#000",
-                shadowOffset: {width: 0, height: 1},
-                shadowOpacity: 0.1,
-                shadowRadius: 2,
-            },
-            android: {
-                elevation: 2,
-            },
-        }),
-    },
-    statCardDark: {
-        backgroundColor: "#374151",
-    },
-    statValue: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 20,
-        fontWeight: "600",
-        marginTop: 8,
-    },
-    statLabel: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 12,
-        color: "#6B7280",
-        marginTop: 4,
-        textAlign: "center",
-    },
-    message: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 16,
-        textAlign: "center",
-        marginBottom: 24,
-        paddingHorizontal: 20,
-    },
-    buttonContainer: {
-        flexDirection: "row",
-        gap: 12,
-        width: "100%",
-    },
-    button: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 14,
-        borderRadius: theme.border.radius.small,
-        gap: 8,
-    },
-    retryButton: {
-        backgroundColor: `${theme.color.primary[500]}10`,
-    },
-    retryButtonText: {
-        color: theme.color.primary[500],
-        fontWeight: "600",
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 16,
-    },
-    continueButton: {
-        backgroundColor: theme.color.primary[500],
-    },
-    continueButtonText: {
-        color: "#FFFFFF",
-        fontWeight: "600",
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 16,
-    },
-
     // Exercise Instructions Button Styles
     navigationButton: {
         backgroundColor: theme.color.primary[500],
@@ -1155,12 +977,6 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: theme.border.radius.small,
         gap: 8,
-    },
-    buttonText: {
-        color: '#FFFFFF',
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 16,
-        fontWeight: '600',
     },
     buttonDisabled: {
         opacity: 0.5,
