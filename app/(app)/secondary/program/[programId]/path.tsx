@@ -34,11 +34,49 @@ import {
 import { supabase } from '@/lib/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const NODE_SPACING = 92;
-const NODE_X_LEFT = SCREEN_WIDTH / 2 - 46;
-const NODE_X_RIGHT = SCREEN_WIDTH / 2 + 46;
+const BASE_SPACING = 90;
+const CENTER_X = SCREEN_WIDTH / 2;
+const AMPLITUDE = Math.min(SCREEN_WIDTH / 2 - 90, 90);
 
 type MilestoneStatus = 'done' | 'current' | 'locked';
+
+// Petit hash déterministe (même seed -> toujours la même valeur) pour
+// varier légèrement chaque nœud sans que la position ne saute d'un
+// rendu à l'autre.
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+function hashToSeed(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) % 1000000;
+  }
+  return hash;
+}
+
+// Chemin organique : combine deux ondes de fréquences différentes plus
+// un léger bruit par nœud, pour éviter le zigzag parfaitement régulier
+// gauche/droite/gauche/droite qui a l'air artificiel.
+function getOrganicPoints(seed: number, count: number): { x: number; y: number }[] {
+  const points: { x: number; y: number }[] = [];
+  let y = 66;
+
+  for (let i = 0; i < count; i++) {
+    const wave = Math.sin(i * 0.9 + seed) * 0.65 + Math.sin(i * 0.37 + seed * 1.7) * 0.35;
+    const jitter = (seededRandom(seed * 13.37 + i * 7.91) - 0.5) * 0.35;
+    const t = Math.max(-1, Math.min(1, wave + jitter));
+    const x = CENTER_X + t * AMPLITUDE;
+
+    const spacingJitter = (seededRandom(seed * 5.21 + i * 3.13) - 0.5) * 18;
+    if (i > 0) y += BASE_SPACING + spacingJitter;
+
+    points.push({ x, y });
+  }
+
+  return points;
+}
 
 function buildSmoothPath(points: { x: number; y: number }[]): string {
   if (points.length === 0) return '';
@@ -120,17 +158,25 @@ const MilestoneNode = ({
     onPress(milestone, status);
   };
 
+  const baseColor = isLocked ? (isDark ? '#334155' : '#E2E8F0') : isCurrent ? theme.color.primary[500] : theme.color.primary[600];
+  const rimColor = isLocked ? (isDark ? '#475569' : '#CBD5E1') : theme.color.primary[700];
+
   return (
-    <View style={[styles.nodeWrap, { left: x - size / 2, top: y - size / 2, width: size, height: size }]}>
+    <View style={[styles.nodeWrap, { left: x - size / 2, top: y - size / 2, width: size, height: size + 6 }]}>
       {isCurrent && <CurrentPulse size={size} />}
       <Animated.View style={{ transform: [{ translateX: shakeX }] }}>
+        {/* Base plus sombre décalée vers le bas : illusion de bouton 3D bombé */}
+        <View
+          style={[
+            styles.nodeRim,
+            { width: size, height: size, borderRadius: size / 2, backgroundColor: rimColor, top: 5 },
+          ]}
+        />
         <Pressable
           onPress={handlePress}
           style={[
             styles.node,
-            { width: size, height: size, borderRadius: size / 2 },
-            isLocked && (isDark ? styles.nodeLockedDark : styles.nodeLocked),
-            isCurrent && styles.nodeCurrent,
+            { width: size, height: size - 5, borderRadius: size / 2, backgroundColor: baseColor },
           ]}
         >
           <MaterialCommunityIcons
@@ -166,15 +212,11 @@ const UnitSerpentine = ({
   onMilestonePress: (milestone: LpMilestone, status: MilestoneStatus) => void;
 }) => {
   const points = useMemo(
-    () =>
-      unit.milestones.map((m, i) => ({
-        x: i % 2 === 0 ? NODE_X_LEFT : NODE_X_RIGHT,
-        y: 60 + i * NODE_SPACING,
-      })),
-    [unit.milestones]
+    () => getOrganicPoints(hashToSeed(unit.id), unit.milestones.length),
+    [unit.id, unit.milestones.length]
   );
 
-  const height = 60 + unit.milestones.length * NODE_SPACING + 40;
+  const height = (points[points.length - 1]?.y ?? 60) + 70;
   const doneUpTo = unit.milestones.findIndex((m) => statuses[m.id] !== 'done');
   const donePoints = doneUpTo === -1 ? points : points.slice(0, doneUpTo + 1);
 
@@ -328,23 +370,22 @@ export default function LearningPathScreen() {
     loadPath();
   }, [loadPath]);
 
-  const allMilestones = useMemo(() => units.flatMap((u) => u.milestones), [units]);
-
+  // Chaque matière avance indépendamment des autres : le premier jalon
+  // non terminé DE CHAQUE unité est "current", pas un seul jalon
+  // "current" global — sinon il faudrait finir les 39 cours de maths
+  // avant de voir la moindre étape de géographie.
   const statuses = useMemo(() => {
     const map: Record<string, MilestoneStatus> = {};
-    const currentIndex = allMilestones.findIndex((m) => !completedMilestoneIds.has(m.id));
-    allMilestones.forEach((m, i) => {
-      if (completedMilestoneIds.has(m.id)) map[m.id] = 'done';
-      else if (i === currentIndex) map[m.id] = 'current';
-      else map[m.id] = 'locked';
+    units.forEach((unit) => {
+      const currentIndex = unit.milestones.findIndex((m) => !completedMilestoneIds.has(m.id));
+      unit.milestones.forEach((m, i) => {
+        if (completedMilestoneIds.has(m.id)) map[m.id] = 'done';
+        else if (i === currentIndex) map[m.id] = 'current';
+        else map[m.id] = 'locked';
+      });
     });
     return map;
-  }, [allMilestones, completedMilestoneIds]);
-
-  const activeUnitIndex = useMemo(() => {
-    const idx = units.findIndex((u) => u.milestones.some((m) => statuses[m.id] === 'current'));
-    return idx === -1 ? units.length - 1 : idx;
-  }, [units, statuses]);
+  }, [units, completedMilestoneIds]);
 
   const handleMilestonePress = useCallback(
     async (milestone: LpMilestone, status: MilestoneStatus) => {
@@ -393,7 +434,7 @@ export default function LearningPathScreen() {
     <View style={[styles.container, isDark && styles.containerDark]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={[styles.header, isDark && styles.headerDark, { paddingTop: 12 + insets.top }]}>
+      <View style={[styles.header, isDark && styles.headerDark, { paddingTop: insets.top + 4 }]}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, isDark && styles.backButtonDark]}>
           <MaterialCommunityIcons name="arrow-left" size={22} color={isDark ? '#F9FAFB' : '#111827'} />
         </TouchableOpacity>
@@ -413,34 +454,24 @@ export default function LearningPathScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {units.map((unit, index) => {
-            const unitDone = unit.milestones.every((m) => statuses[m.id] === 'done');
-            const isActive = index === activeUnitIndex;
-            const isReached = index <= activeUnitIndex;
+          {units.map((unit) => {
+            const doneCount = unit.milestones.filter((m) => statuses[m.id] === 'done').length;
+            const unitDone = doneCount === unit.milestones.length;
 
             return (
               <View key={unit.id} style={styles.unitBlock}>
                 <View style={styles.unitHeaderRow}>
                   <Text style={[styles.unitTitle, isDark && styles.textDark]}>{unit.title}</Text>
-                  {unitDone && <MaterialCommunityIcons name="check-decagram" size={18} color={theme.color.primary[500]} />}
+                  {unitDone ? (
+                    <MaterialCommunityIcons name="check-decagram" size={18} color={theme.color.primary[500]} />
+                  ) : (
+                    <Text style={[styles.unitProgress, isDark && styles.subTextDark]}>
+                      {doneCount}/{unit.milestones.length}
+                    </Text>
+                  )}
                 </View>
 
-                {isActive ? (
-                  <UnitSerpentine unit={unit} statuses={statuses} isDark={isDark} onMilestonePress={handleMilestonePress} />
-                ) : (
-                  <View style={[styles.collapsedUnit, isDark && styles.collapsedUnitDark]}>
-                    <MaterialCommunityIcons
-                      name={isReached ? 'check-circle' : 'lock'}
-                      size={20}
-                      color={isReached ? theme.color.primary[500] : '#94A3B8'}
-                    />
-                    <Text style={[styles.collapsedUnitText, isDark && styles.subTextDark]}>
-                      {isReached
-                        ? `${unit.milestones.length} étape${unit.milestones.length > 1 ? 's' : ''} terminée${unit.milestones.length > 1 ? 's' : ''}`
-                        : `${unit.milestones.length} étape${unit.milestones.length > 1 ? 's' : ''} verrouillée${unit.milestones.length > 1 ? 's' : ''}`}
-                    </Text>
-                  </View>
-                )}
+                <UnitSerpentine unit={unit} statuses={statuses} isDark={isDark} onMilestonePress={handleMilestonePress} />
               </View>
             );
           })}
@@ -496,37 +527,30 @@ const styles = StyleSheet.create({
   unitHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
     paddingHorizontal: 20,
     marginBottom: 4,
   },
   unitTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
-  collapsedUnit: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginHorizontal: 20,
-    marginTop: 8,
-    padding: 14,
-    borderRadius: theme.border.radius.medium,
-    backgroundColor: '#F1F5F9',
-  },
-  collapsedUnitDark: { backgroundColor: theme.color.dark.background.secondary },
-  collapsedUnitText: { fontSize: 13, fontWeight: '600', color: '#64748B' },
+  unitProgress: { fontSize: 13, fontWeight: '700', color: '#94A3B8' },
   nodeWrap: { position: 'absolute', alignItems: 'center' },
+  nodeRim: {
+    position: 'absolute',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
   node: {
+    position: 'absolute',
+    top: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.color.primary[500],
-    shadowColor: theme.color.primary[700],
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    borderWidth: 2.5,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
-  nodeLocked: { backgroundColor: '#E2E8F0', shadowOpacity: 0 },
-  nodeLockedDark: { backgroundColor: '#334155', shadowOpacity: 0 },
-  nodeCurrent: { backgroundColor: theme.color.primary[600] },
   nodeLabel: {
     position: 'absolute',
     textAlign: 'center',
