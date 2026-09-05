@@ -138,50 +138,13 @@ function buildSmoothPath(points: { x: number; y: number }[]): string {
   }, `M${points[0].x},${points[0].y}`);
 }
 
-const MilestoneIcon = (type: LpMilestone['type']): keyof typeof MaterialCommunityIcons.glyphMap => {
-  if (type === 'practice') return 'dumbbell';
-  if (type === 'checkpoint') return 'flag-checkered';
-  return 'book-open-variant';
-};
+const NODE_RADIUS_RATIO = 0.16;
 
-const CurrentPulse = ({ size, radius }: { size: number; radius: number }) => {
-  const scale = useRef(new Animated.Value(0.9)).current;
-  const opacity = useRef(new Animated.Value(0.5)).current;
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.parallel([
-        Animated.timing(scale, { toValue: 1.22, duration: 1300, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0, duration: 1300, useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => {
-      loop.stop();
-      scale.setValue(0.9);
-      opacity.setValue(0.5);
-    };
-  }, [scale, opacity]);
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        styles.pulseRing,
-        { width: size, height: size, borderRadius: radius, transform: [{ scale }], opacity },
-      ]}
-    />
-  );
-};
-
-const NODE_RADIUS_RATIO = 0.3;
-
-// Nœud en View pure (pas de <Svg> par item) : deux crashs de suite avec
-// un anneau SVG par nœud (même consolidé dans un seul <Svg> parent)
-// pointent vers le nombre de formes à dessiner, pas juste le nombre de
-// contextes Svg — avec 150+ jalons c'était encore trop pour l'appareil.
-// Bordure pleine colorée (pas de remplissage progressif animé) tant que
-// la stabilité n'est pas confirmée ; le "current" affiche son % en texte.
+// Nœud en View pure (pas de <Svg> par item, cause du crash Canvas
+// résolu ailleurs). Icône = celle de la matière (categoryThemes.ts),
+// pas du type lesson/practice : verrouillé = même icône, grisée. Barre
+// de progression fine collée à la bordure basse plutôt qu'un anneau
+// (l'anneau SVG par nœud a été abandonné après les crashs).
 const MilestoneNode = React.memo(
   ({
     item,
@@ -222,15 +185,16 @@ const MilestoneNode = React.memo(
       onPress(item, status);
     };
 
-    const categoryColor = getCategoryTheme(item.categoryName).primary;
+    const categoryTheme = getCategoryTheme(item.categoryName);
+    const categoryColor = categoryTheme.primary;
+    const categoryIcon = categoryTheme.icon as keyof typeof MaterialCommunityIcons.glyphMap;
     const iconColor = isLocked ? (isDark ? '#64748B' : '#94A3B8') : categoryColor;
     const borderColor = isLocked ? (isDark ? '#334155' : '#E2E8F0') : categoryColor;
     const cardColor = isLocked ? (isDark ? '#1E293B' : '#F1F5F9') : isDone ? categoryColor : isDark ? '#0F172A' : '#FFFFFF';
-    const pct = Math.round(fraction * 100);
+    const pct = Math.max(0, Math.min(100, Math.round(fraction * 100)));
 
     return (
       <View style={[styles.nodeWrap, { left: x - size / 2, top: y - size / 2, width: size, height: size + 6 }]}>
-        {isCurrent && <CurrentPulse size={size + 16} radius={radius + 8} />}
         <Animated.View style={{ width: size, height: size, transform: [{ translateX: shakeX }] }}>
           <Pressable
             onPress={handlePress}
@@ -240,12 +204,14 @@ const MilestoneNode = React.memo(
             ]}
           >
             <MaterialCommunityIcons
-              name={isDone ? 'check-bold' : isLocked ? 'lock' : MilestoneIcon(item.type)}
-              size={isDone || isLocked ? 22 : 24}
+              name={isDone ? 'check-bold' : categoryIcon}
+              size={isDone ? 22 : 24}
               color={isDone ? '#FFFFFF' : iconColor}
             />
             {isCurrent && pct > 0 && (
-              <Text style={styles.nodePercent}>{pct}%</Text>
+              <View style={styles.nodeProgressTrack}>
+                <View style={[styles.nodeProgressFill, { width: `${pct}%`, backgroundColor: categoryColor }]} />
+              </View>
             )}
           </Pressable>
         </Animated.View>
@@ -277,6 +243,33 @@ const MilestoneNode = React.memo(
 // ("Canvas: trying to draw too large bitmap", crash confirmé par logcat).
 // Découper en segments plus courts garde chaque bitmap sous la limite.
 const CHUNK_SIZE = 12;
+
+// Position Y (dans le contenu du ScrollView) du jalon "current", en
+// rejouant le même calcul de segments que PathSegment. Utilisé pour
+// déposer l'utilisateur directement sur son étape active à l'ouverture,
+// sans qu'il ait à scroller manuellement s'il est déjà loin dans l'arbre.
+function computeScrollTargetY(items: PathItem[], currentIndex: number): number {
+  if (currentIndex < 0 || items.length === 0) return 0;
+
+  const seed = hashToSeed(items[0].id);
+  const points = getOrganicPoints(seed, items.length);
+
+  let offsetY = 0;
+  for (let start = 0; start < items.length; start += CHUNK_SIZE) {
+    const end = Math.min(start + CHUNK_SIZE, items.length);
+    const chunkPoints = points.slice(start, end);
+    const chunkTop = chunkPoints[0].y - 70;
+
+    if (currentIndex >= start && currentIndex < end) {
+      return offsetY + (points[currentIndex].y - chunkTop);
+    }
+
+    const chunkHeight = chunkPoints[chunkPoints.length - 1].y + 70 - chunkTop;
+    offsetY += chunkHeight;
+  }
+
+  return offsetY;
+}
 
 const PathSegment = ({
   items,
@@ -317,7 +310,14 @@ const PathSegment = ({
           strokeDasharray="2 14"
           fill="none"
         />
-        <Path d={donePathD} stroke={theme.color.primary[500]} strokeWidth={5} strokeLinecap="round" fill="none" />
+        <Path
+          d={donePathD}
+          stroke={theme.color.primary[500]}
+          strokeWidth={5}
+          strokeLinecap="round"
+          strokeDasharray="2 14"
+          fill="none"
+        />
       </Svg>
       {items.map((item, i) => (
         <MilestoneNode
@@ -469,13 +469,14 @@ function LearningPathScreenContent() {
   const isDark = colorScheme === 'dark';
   const { user } = useAuth();
   const { getCoursePath, getQuizPath, getExercicePath } = useNavigation();
-  const insets = useSafeAreaInsets();
 
   const [pathItems, setPathItems] = useState<PathItem[]>([]);
   const [completedMilestoneIds, setCompletedMilestoneIds] = useState<Set<string>>(new Set());
   const [courseProgress, setCourseProgress] = useState<Map<number, CourseProgress>>(new Map());
   const [loading, setLoading] = useState(true);
   const [practiceMilestone, setPracticeMilestone] = useState<PathItem | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const pendingScrollY = useRef<number | null>(null);
 
   const loadPath = useCallback(async () => {
     if (!programId) return;
@@ -502,6 +503,12 @@ function LearningPathScreenContent() {
         if (error) throw error;
         completedMilestones = new Set((data ?? []).map((r) => r.milestone_id));
       }
+
+      const currentIndex = items.findIndex((item) => !isItemDone(item, progressMap, completedMilestones));
+      const targetY = computeScrollTargetY(items, currentIndex);
+      // Laisse de la marge au-dessus de l'étape active plutôt que de la
+      // coller tout en haut de l'écran.
+      pendingScrollY.current = currentIndex === -1 ? null : Math.max(0, targetY - 220);
 
       setPathItems(items);
       setCompletedMilestoneIds(completedMilestones);
@@ -586,17 +593,12 @@ function LearningPathScreenContent() {
     <View style={[styles.container, isDark && styles.containerDark]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={[styles.header, isDark && styles.headerDark, { paddingTop: insets.top + 4 }]}>
+      <View style={[styles.header, isDark && styles.headerDark]}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, isDark && styles.backButtonDark]}>
           <MaterialCommunityIcons name="arrow-left" size={22} color={isDark ? '#F9FAFB' : '#111827'} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, isDark && styles.textDark]}>Parcours</Text>
-        <View style={styles.headerStats}>
-          <MaterialCommunityIcons name="fire" size={18} color="#EF4444" />
-          <Text style={[styles.headerStatText, isDark && styles.textDark]}>{user?.user_streaks?.current_streak || 0}</Text>
-          <MaterialCommunityIcons name="star" size={18} color="#F59E0B" style={{ marginLeft: 10 }} />
-          <Text style={[styles.headerStatText, isDark && styles.textDark]}>{user?.user_xp?.total_xp || 0}</Text>
-        </View>
+        <View style={{ width: 38 }} />
       </View>
 
       {pathItems.length === 0 ? (
@@ -606,9 +608,16 @@ function LearningPathScreenContent() {
         </View>
       ) : (
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           removeClippedSubviews
+          onContentSizeChange={() => {
+            if (pendingScrollY.current != null) {
+              scrollViewRef.current?.scrollTo({ y: pendingScrollY.current, animated: false });
+              pendingScrollY.current = null;
+            }
+          }}
         >
           <PathTrail
             items={pathItems}
@@ -640,6 +649,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 12,
+    paddingTop: 12,
     paddingBottom: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
@@ -659,8 +669,6 @@ const styles = StyleSheet.create({
   },
   backButtonDark: { backgroundColor: '#374151' },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: '#0F172A' },
-  headerStats: { flexDirection: 'row', alignItems: 'center' },
-  headerStatText: { fontSize: 14, fontWeight: '700', color: '#0F172A', marginLeft: 4 },
   textDark: { color: '#F8FAFC' },
   subTextDark: { color: '#94A3B8' },
   emptyText: { fontSize: 15, color: '#94A3B8' },
@@ -672,16 +680,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  nodePercent: {
+  nodeProgressTrack: {
     position: 'absolute',
-    bottom: -4,
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    backgroundColor: theme.color.primary[600],
-    paddingHorizontal: 4,
-    borderRadius: 6,
+    bottom: 5,
+    left: 8,
+    right: 8,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(0,0,0,0.12)',
     overflow: 'hidden',
+  },
+  nodeProgressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   nodeLabel: {
     position: 'absolute',
@@ -691,11 +702,6 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   nodeLabelDark: { color: '#CBD5E1' },
-  pulseRing: {
-    position: 'absolute',
-    borderWidth: 2.5,
-    borderColor: theme.color.primary[500],
-  },
 });
 
 const sheetStyles = StyleSheet.create({
