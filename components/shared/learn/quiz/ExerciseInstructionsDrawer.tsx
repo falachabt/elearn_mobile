@@ -5,12 +5,13 @@ import {
     Dimensions,
     Image,
     Modal,
-    SafeAreaView,
     ScrollView,
+    StatusBar,
     StyleSheet,
     TouchableOpacity,
     View,
 } from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import Markdown, {RenderImageFunction} from 'react-native-markdown-display';
 import FitImage from "react-native-fit-image";
@@ -336,6 +337,7 @@ export default function ExerciseInstructionsDrawer({
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const {trigger} = useHaptics();
+    const insets = useSafeAreaInsets();
     const [exerciseData, setExerciseData] = useState<ExerciseData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -546,7 +548,8 @@ export default function ExerciseInstructionsDrawer({
             animationType="none"
             onRequestClose={handleClose}
         >
-            <SafeAreaView style={styles.modalContainer}>
+            <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'}/>
+            <View style={styles.modalContainer}>
                 <Animated.View
                     style={[
                         styles.contentContainer,
@@ -564,7 +567,7 @@ export default function ExerciseInstructionsDrawer({
                     ]}
                 >
                     {/* Header */}
-                    <View style={[styles.header, isDark && styles.headerDark]}>
+                    <View style={[styles.header, isDark && styles.headerDark, {paddingTop: 12 + insets.top}]}>
                         <ThemedText style={styles.title}>Instructions de l'exercice</ThemedText>
                         <TouchableOpacity
                             style={styles.closeButton}
@@ -636,7 +639,7 @@ export default function ExerciseInstructionsDrawer({
                         )}
                     </ScrollView>
                 </Animated.View>
-            </SafeAreaView>
+            </View>
         </Modal>
     );
 }

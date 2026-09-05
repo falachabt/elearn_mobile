@@ -162,34 +162,34 @@ export default function LeaderboardScreen() {
         <Text style={[styles.topHeaderTitle, isDarkMode && styles.textDark]}>Classement</Text>
       </View>
 
-      <View style={styles.timeScopeRow}>
+      <View style={[styles.timeScopeRow, isDarkMode && styles.timeScopeRowDark]}>
         <TouchableOpacity
-          style={[styles.timeScopeBtn, timeScope === 'general' && styles.timeScopeBtnActive]}
+          style={[styles.timeScopeBtn, isDarkMode && styles.timeScopeBtnDark, timeScope === 'general' && styles.timeScopeBtnActive]}
           onPress={() => setTimeScope('general')}
         >
-          <Text style={[styles.timeScopeBtnText, timeScope === 'general' && styles.timeScopeBtnTextActive]}>
+          <Text style={[styles.timeScopeBtnText, isDarkMode && styles.timeScopeBtnTextDark, timeScope === 'general' && styles.timeScopeBtnTextActive]}>
             Général
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.timeScopeBtn, timeScope === 'weekly' && styles.timeScopeBtnActive]}
+          style={[styles.timeScopeBtn, isDarkMode && styles.timeScopeBtnDark, timeScope === 'weekly' && styles.timeScopeBtnActive]}
           onPress={() => setTimeScope('weekly')}
         >
-          <Text style={[styles.timeScopeBtnText, timeScope === 'weekly' && styles.timeScopeBtnTextActive]}>
+          <Text style={[styles.timeScopeBtnText, isDarkMode && styles.timeScopeBtnTextDark, timeScope === 'weekly' && styles.timeScopeBtnTextActive]}>
             Cette semaine
           </Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.scopeRow}>
+      <View style={[styles.scopeRow, isDarkMode && styles.scopeRowDark]}>
         <TouchableOpacity
-          style={[styles.scopeBtn, !hasActiveFilters && styles.scopeBtnActive]}
+          style={[styles.scopeBtn, isDarkMode && styles.scopeBtnDark, !hasActiveFilters && styles.scopeBtnActive]}
           onPress={() => setFilters({ gradelevel: null, country: null })}
         >
-          <Text style={[styles.scopeBtnText, !hasActiveFilters && styles.scopeBtnTextActive]}>Global</Text>
+          <Text style={[styles.scopeBtnText, isDarkMode && styles.scopeBtnTextDark, !hasActiveFilters && styles.scopeBtnTextActive]}>Global</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.scopeBtn, hasActiveFilters && styles.scopeBtnActive]}
+          style={[styles.scopeBtn, isDarkMode && styles.scopeBtnDark, hasActiveFilters && styles.scopeBtnActive]}
           onPress={() => setFilterSheetVisible(true)}
         >
           <MaterialCommunityIcons
@@ -197,7 +197,7 @@ export default function LeaderboardScreen() {
             size={15}
             color={hasActiveFilters ? '#FFFFFF' : theme.color.primary[500]}
           />
-          <Text style={[styles.scopeBtnText, hasActiveFilters && styles.scopeBtnTextActive]}>
+          <Text style={[styles.scopeBtnText, isDarkMode && styles.scopeBtnTextDark, hasActiveFilters && styles.scopeBtnTextActive]}>
             {filters.gradelevel && filters.country
               ? `${filters.gradelevel} · ${filters.country.name}`
               : filters.gradelevel || filters.country?.name || 'Filtrer'}
@@ -321,8 +321,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F1F5F9',
   },
+  timeScopeRowDark: { backgroundColor: theme.color.dark.background.secondary },
+  timeScopeBtnDark: { backgroundColor: '#334155' },
   timeScopeBtnActive: { backgroundColor: '#0F172A' },
   timeScopeBtnText: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  timeScopeBtnTextDark: { color: '#F8FAFC' },
   timeScopeBtnTextActive: { color: '#FFFFFF' },
   scopeRow: {
     flexDirection: 'row',
@@ -331,6 +334,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     backgroundColor: '#FFFFFF',
   },
+  scopeRowDark: { backgroundColor: theme.color.dark.background.secondary },
   scopeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -341,8 +345,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     maxWidth: '60%',
   },
+  scopeBtnDark: { backgroundColor: '#334155' },
   scopeBtnActive: { backgroundColor: theme.color.primary[500] },
   scopeBtnText: { fontSize: 13, fontWeight: '600', color: theme.color.primary[500] },
+  scopeBtnTextDark: { color: '#F8FAFC' },
   scopeBtnTextActive: { color: '#FFFFFF' },
   loadingBox: { paddingVertical: 60, alignItems: 'center' },
   loadingMoreBox: { paddingVertical: 20, alignItems: 'center' },

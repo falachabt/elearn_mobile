@@ -99,7 +99,7 @@ export default function MyActivityScreen() {
         <Text style={[styles.topHeaderTitle, isDarkMode && styles.textDark]}>Mon activité</Text>
       </View>
 
-      <View style={styles.filterRow}>
+      <View style={[styles.filterRow, isDarkMode && styles.filterRowDark]}>
         {([
           ['all', 'Tout'],
           ['feed', "Fil d'actualité"],
@@ -107,10 +107,10 @@ export default function MyActivityScreen() {
         ] as [FilterTab, string][]).map(([key, label]) => (
           <TouchableOpacity
             key={key}
-            style={[styles.filterBtn, filter === key && styles.filterBtnActive]}
+            style={[styles.filterBtn, isDarkMode && styles.filterBtnDark, filter === key && styles.filterBtnActive]}
             onPress={() => setFilter(key)}
           >
-            <Text style={[styles.filterBtnText, filter === key && styles.filterBtnTextActive]}>{label}</Text>
+            <Text style={[styles.filterBtnText, isDarkMode && styles.filterBtnTextDark, filter === key && styles.filterBtnTextActive]}>{label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -214,14 +214,17 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     backgroundColor: '#FFFFFF',
   },
+  filterRowDark: { backgroundColor: theme.color.dark.background.secondary },
   filterBtn: {
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 18,
     backgroundColor: '#F1F5F9',
   },
+  filterBtnDark: { backgroundColor: '#334155' },
   filterBtnActive: { backgroundColor: theme.color.primary[500] },
   filterBtnText: { fontSize: 13, fontWeight: '600', color: theme.color.primary[500] },
+  filterBtnTextDark: { color: '#F8FAFC' },
   filterBtnTextActive: { color: '#FFFFFF' },
   loadingBox: { paddingVertical: 60, alignItems: 'center' },
   loadingMoreBox: { paddingVertical: 20, alignItems: 'center' },
