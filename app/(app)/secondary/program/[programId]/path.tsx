@@ -175,57 +175,23 @@ const CurrentPulse = ({ size, radius }: { size: number; radius: number }) => {
 const NODE_RADIUS_RATIO = 0.3;
 const NODE_STROKE_WIDTH = 4;
 
-// Carré aux coins arrondis dont le contour se remplit progressivement
-// (comme un anneau de score, mais sur un tracé rectangulaire) selon la
-// progression réelle de lecture du cours (ou de la pratique associée).
-const ProgressSquare = ({
-  size,
-  fraction,
-  color,
-  trackColor,
-  cardColor,
-}: {
-  size: number;
-  fraction: number;
-  color: string;
-  trackColor: string;
-  cardColor: string;
-}) => {
+function computeSquareGeometry(size: number) {
   const inset = NODE_STROKE_WIDTH / 2 + 1;
   const w = size - inset * 2;
   const r = size * NODE_RADIUS_RATIO;
-  const perimeter = 2 * (w - 2 * r) * 2 + 2 * Math.PI * r;
-  const dashOffset = perimeter * (1 - Math.max(0, Math.min(1, fraction)));
+  const perimeter = 4 * (w - 2 * r) + 2 * Math.PI * r;
+  return { inset, w, r, perimeter };
+}
 
-  return (
-    <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-      <Rect x={inset} y={inset} width={w} height={w} rx={r} ry={r} fill={cardColor} />
-      <Rect x={inset} y={inset} width={w} height={w} rx={r} ry={r} stroke={trackColor} strokeWidth={NODE_STROKE_WIDTH} fill="none" />
-      {fraction > 0 && (
-        <Rect
-          x={inset}
-          y={inset}
-          width={w}
-          height={w}
-          rx={r}
-          ry={r}
-          stroke={color}
-          strokeWidth={NODE_STROKE_WIDTH}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={`${perimeter}, ${perimeter}`}
-          strokeDashoffset={dashOffset}
-        />
-      )}
-    </Svg>
-  );
-};
-
+// Un nœud = juste l'icône + le label + la zone tapable ; le carré et son
+// anneau de progression sont dessinés dans le <Svg> unique du parent
+// (NodeRects) pour éviter de monter un contexte SVG natif par nœud —
+// avec 150+ nœuds ça faisait 150+ vues natives supplémentaires, cause
+// probable du lag/crash au scroll.
 const MilestoneNode = React.memo(
   ({
     item,
     status,
-    fraction,
     x,
     y,
     isDark,
@@ -233,7 +199,6 @@ const MilestoneNode = React.memo(
   }: {
     item: PathItem;
     status: MilestoneStatus;
-    fraction: number;
     x: number;
     y: number;
     isDark: boolean;
@@ -261,16 +226,12 @@ const MilestoneNode = React.memo(
     };
 
     const categoryColor = getCategoryTheme(item.categoryName).primary;
-    const cardColor = isLocked ? (isDark ? '#1E293B' : '#F1F5F9') : isDark ? '#0F172A' : '#FFFFFF';
-    const trackColor = isDark ? '#334155' : '#E2E8F0';
-    const ringColor = isLocked ? trackColor : categoryColor;
     const iconColor = isLocked ? (isDark ? '#64748B' : '#94A3B8') : categoryColor;
 
     return (
       <View style={[styles.nodeWrap, { left: x - size / 2, top: y - size / 2, width: size, height: size + 6 }]}>
         {isCurrent && <CurrentPulse size={size + 16} radius={radius + 8} />}
         <Animated.View style={{ width: size, height: size, transform: [{ translateX: shakeX }] }}>
-          <ProgressSquare size={size} fraction={isLocked ? 0 : fraction} color={ringColor} trackColor={trackColor} cardColor={cardColor} />
           <Pressable onPress={handlePress} style={[styles.node, { width: size, height: size }]}>
             <MaterialCommunityIcons
               name={status === 'done' ? 'check-bold' : isLocked ? 'lock' : MilestoneIcon(item.type)}
@@ -294,7 +255,6 @@ const MilestoneNode = React.memo(
   },
   (prev, next) =>
     prev.status === next.status &&
-    prev.fraction === next.fraction &&
     prev.x === next.x &&
     prev.y === next.y &&
     prev.isDark === next.isDark &&
@@ -324,25 +284,64 @@ const PathTrail = ({
   const pathD = useMemo(() => buildSmoothPath(points), [points]);
   const donePathD = useMemo(() => buildSmoothPath(donePoints), [donePoints]);
 
+  const trackColor = isDark ? '#334155' : '#E2E8F0';
+  const cardColor = isDark ? '#0F172A' : '#FFFFFF';
+  const lockedCardColor = isDark ? '#1E293B' : '#F1F5F9';
+
   return (
     <View style={{ width: SCREEN_WIDTH, height }}>
       <Svg width={SCREEN_WIDTH} height={height} style={StyleSheet.absoluteFill}>
         <Path
           d={pathD}
-          stroke={isDark ? '#334155' : '#E2E8F0'}
+          stroke={trackColor}
           strokeWidth={5}
           strokeLinecap="round"
           strokeDasharray="2 14"
           fill="none"
         />
         <Path d={donePathD} stroke={theme.color.primary[500]} strokeWidth={5} strokeLinecap="round" fill="none" />
+
+        {items.map((item, i) => {
+          const status = statuses[item.id] || 'locked';
+          const isLocked = status === 'locked';
+          const isCurrent = status === 'current';
+          const size = isCurrent ? 66 : 56;
+          const { inset, w, r, perimeter } = computeSquareGeometry(size);
+          const fraction = isLocked ? 0 : Math.max(0, Math.min(1, fractions[item.id] || 0));
+          const dashOffset = perimeter * (1 - fraction);
+          const ringColor = isLocked ? trackColor : getCategoryTheme(item.categoryName).primary;
+          const x = points[i].x - size / 2 + inset;
+          const y = points[i].y - size / 2 + inset;
+
+          return (
+            <React.Fragment key={item.id}>
+              <Rect x={x} y={y} width={w} height={w} rx={r} ry={r} fill={isLocked ? lockedCardColor : cardColor} />
+              <Rect x={x} y={y} width={w} height={w} rx={r} ry={r} stroke={trackColor} strokeWidth={NODE_STROKE_WIDTH} fill="none" />
+              {fraction > 0 && (
+                <Rect
+                  x={x}
+                  y={y}
+                  width={w}
+                  height={w}
+                  rx={r}
+                  ry={r}
+                  stroke={ringColor}
+                  strokeWidth={NODE_STROKE_WIDTH}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={`${perimeter}, ${perimeter}`}
+                  strokeDashoffset={dashOffset}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
       </Svg>
       {items.map((item, i) => (
         <MilestoneNode
           key={item.id}
           item={item}
           status={statuses[item.id] || 'locked'}
-          fraction={fractions[item.id] || 0}
           x={points[i].x}
           y={points[i].y}
           isDark={isDark}
