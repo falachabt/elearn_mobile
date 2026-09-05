@@ -23,6 +23,7 @@ interface NavigationContextValue {
   getExercicesPath: () => string;
   getExercicePath: (exerciceId: string) => string;
   getDocumentsPath: () => string;
+  getPathPath: () => string;
 }
 
 const NavigationContext = createContext<NavigationContextValue | undefined>(undefined);
@@ -85,6 +86,7 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
     const getExercicesPath = () => `${basePath}/exercices`;
     const getExercicePath = (eId: string) => `${basePath}/exercices/${eId}`;
     const getDocumentsPath = () => `${basePath}/documents`;
+    const getPathPath = () => `${basePath}/path`;
 
     return {
       type,
@@ -106,6 +108,7 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
       getExercicesPath,
       getExercicePath,
       getDocumentsPath,
+      getPathPath,
     };
   }, [
     segments.join('/'),

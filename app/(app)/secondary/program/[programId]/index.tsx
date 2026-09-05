@@ -45,7 +45,7 @@ const SecondaryProgramDetails = () => {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { trigger } = useHaptics();
-  const { getCoursesPath, getQuizzesPath, getExercicesPath, getDocumentsPath } = useNavigation();
+  const { getCoursesPath, getQuizzesPath, getExercicesPath, getDocumentsPath, getPathPath } = useNavigation();
   const { user } = useAuth();
 
   const { program, isLoading, isError } = useSecondaryProgram(programId);
@@ -103,6 +103,20 @@ const SecondaryProgramDetails = () => {
     if (!program) return [];
 
     const cards: ActionCard[] = [
+      {
+        id: "path",
+        title: "Parcours",
+        subtitle: "Progresse étape par étape",
+        icon: (
+          <MaterialCommunityIcons
+            name="map-marker-path"
+            size={24}
+            color={isDark ? "#5EEAD4" : "#0D9488"}
+          />
+        ),
+        route: getPathPath(),
+        color: isDark ? "#5EEAD4" : "#0D9488",
+      },
       {
         id: "courses",
         title: "Cours",

@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       accounts: {
@@ -1283,6 +1308,7 @@ export type Database = {
           last_modify_at: string | null
           name: string | null
           order: number | null
+          reading_time_minutes: number | null
         }
         Insert: {
           content?: Json | null
@@ -1292,6 +1318,7 @@ export type Database = {
           last_modify_at?: string | null
           name?: string | null
           order?: number | null
+          reading_time_minutes?: number | null
         }
         Update: {
           content?: Json | null
@@ -1301,6 +1328,7 @@ export type Database = {
           last_modify_at?: string | null
           name?: string | null
           order?: number | null
+          reading_time_minutes?: number | null
         }
         Relationships: [
           {
@@ -1888,6 +1916,7 @@ export type Database = {
       feed_posts: {
         Row: {
           author_id: string
+          best_comment_id: string | null
           bg_color: string | null
           content: string
           created_at: string
@@ -1897,6 +1926,7 @@ export type Database = {
         }
         Insert: {
           author_id?: string
+          best_comment_id?: string | null
           bg_color?: string | null
           content: string
           created_at?: string
@@ -1906,6 +1936,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          best_comment_id?: string | null
           bg_color?: string | null
           content?: string
           created_at?: string
@@ -1913,7 +1944,15 @@ export type Database = {
           media_urls?: string[]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "feed_posts_best_comment_id_fkey"
+            columns: ["best_comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       generation_jobs: {
         Row: {
@@ -2327,6 +2366,138 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      lp_milestones: {
+        Row: {
+          created_at: string
+          id: string
+          order_index: number
+          ref_course_id: number | null
+          title: string
+          type: string
+          unit_id: string
+          xp_reward: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          ref_course_id?: number | null
+          title: string
+          type: string
+          unit_id: string
+          xp_reward?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          ref_course_id?: number | null
+          title?: string
+          type?: string
+          unit_id?: string
+          xp_reward?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lp_milestones_ref_course_id_fkey"
+            columns: ["ref_course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lp_milestones_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "lp_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lp_steps: {
+        Row: {
+          created_at: string
+          id: string
+          milestone_id: string
+          order_index: number
+          ref_id: string
+          step_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          milestone_id: string
+          order_index?: number
+          ref_id: string
+          step_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          milestone_id?: string
+          order_index?: number
+          ref_id?: string
+          step_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lp_steps_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "lp_milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lp_units: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          order_index: number
+          secondary_program_id: string
+          title: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          secondary_program_id: string
+          title: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          secondary_program_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lp_units_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "courses_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lp_units_secondary_program_id_fkey"
+            columns: ["secondary_program_id"]
+            isOneToOne: false
+            referencedRelation: "secondary_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lp_units_secondary_program_id_fkey"
+            columns: ["secondary_program_id"]
+            isOneToOne: false
+            referencedRelation: "vw_available_secondary_programs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
@@ -2876,6 +3047,7 @@ export type Database = {
           created_at: string
           id: string
           media_urls: string[]
+          mentioned_user_ids: string[]
           parent_comment_id: string | null
           post_id: string
           score: number
@@ -2887,6 +3059,7 @@ export type Database = {
           created_at?: string
           id?: string
           media_urls?: string[]
+          mentioned_user_ids?: string[]
           parent_comment_id?: string | null
           post_id: string
           score?: number
@@ -2898,6 +3071,7 @@ export type Database = {
           created_at?: string
           id?: string
           media_urls?: string[]
+          mentioned_user_ids?: string[]
           parent_comment_id?: string | null
           post_id?: string
           score?: number
@@ -5512,6 +5686,57 @@ export type Database = {
           },
         ]
       }
+      user_step_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          score: number | null
+          status: string
+          step_id: string
+          updated_at: string
+          user_id: string
+          xp_earned: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          score?: number | null
+          status?: string
+          step_id: string
+          updated_at?: string
+          user_id: string
+          xp_earned?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          score?: number | null
+          status?: string
+          step_id?: string
+          updated_at?: string
+          user_id?: string
+          xp_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_step_progress_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "lp_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_step_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_streaks: {
         Row: {
           created_at: string | null
@@ -6026,11 +6251,83 @@ export type Database = {
           secondary_program_id: string
         }[]
       }
+      get_leaderboard: {
+        Args: {
+          p_country_id?: string
+          p_gradelevel?: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          gradelevel: string
+          id: string
+          is_online: boolean
+          rank: number
+          total_xp: number
+        }[]
+      }
+      get_leaderboard_gradelevels: {
+        Args: never
+        Returns: {
+          gradelevel: string
+          student_count: number
+        }[]
+      }
       get_learningpath_enrollment_counts: {
         Args: never
         Returns: {
           enrolled_count: number
           learning_path_id: string
+        }[]
+      }
+      get_my_leaderboard_rank: {
+        Args: { p_country_id?: string; p_gradelevel?: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          gradelevel: string
+          id: string
+          is_online: boolean
+          rank: number
+          total_xp: number
+        }[]
+      }
+      get_my_quiz_rank: {
+        Args: { p_quiz_id: string }
+        Returns: {
+          avatar_url: string
+          correct_count: number
+          full_name: string
+          rank: number
+          score: number
+          time_spent: number
+          total_count: number
+          user_id: string
+        }[]
+      }
+      get_my_weekly_leaderboard_rank: {
+        Args: { p_country_id?: string; p_gradelevel?: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          gradelevel: string
+          id: string
+          is_online: boolean
+          rank: number
+          weekly_xp: number
+        }[]
+      }
+      get_my_xp_history: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          id: number
+          post_id: string
+          source_id: string
+          source_type: string
+          xp_gained: number
         }[]
       }
       get_news_statistics: {
@@ -6050,6 +6347,19 @@ export type Database = {
         }[]
       }
       get_program_details: { Args: { p_program_id: number }; Returns: Json }
+      get_quiz_leaderboard: {
+        Args: { p_limit?: number; p_quiz_id: string }
+        Returns: {
+          avatar_url: string
+          correct_count: number
+          full_name: string
+          rank: number
+          score: number
+          time_spent: number
+          total_count: number
+          user_id: string
+        }[]
+      }
       get_schools_by_city: {
         Args: { city_name: string }
         Returns: {
@@ -6103,6 +6413,12 @@ export type Database = {
           total_schools: number
         }[]
       }
+      get_trending_feed_post_ids: {
+        Args: { p_limit?: number }
+        Returns: {
+          id: string
+        }[]
+      }
       get_upcoming_concours_by_city: {
         Args: { city_name: string }
         Returns: {
@@ -6125,6 +6441,23 @@ export type Database = {
           total_xp: number
         }[]
       }
+      get_weekly_leaderboard: {
+        Args: {
+          p_country_id?: string
+          p_gradelevel?: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          gradelevel: string
+          id: string
+          is_online: boolean
+          rank: number
+          weekly_xp: number
+        }[]
+      }
       increment_comment_score: {
         Args: { comment_id: string; delta: number }
         Returns: undefined
@@ -6144,6 +6477,19 @@ export type Database = {
           p_user_type?: string
         }
         Returns: boolean
+      }
+      lp_next_step_order: { Args: { p_milestone_id: string }; Returns: number }
+      lp_sync_lesson_milestone: {
+        Args: { p_course_id: number; p_unit_id: string }
+        Returns: string
+      }
+      lp_sync_practice_milestone: {
+        Args: { p_unit_id: string }
+        Returns: string
+      }
+      lp_sync_unit: {
+        Args: { p_category_id: string; p_program_id: string }
+        Returns: string
       }
       mark_notification_read: {
         Args: { p_notification_id: string }
@@ -6196,7 +6542,19 @@ export type Database = {
         }
         Returns: number
       }
+      search_accounts_for_mention: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+        }[]
+      }
       secondary_track_key: { Args: { p: string }; Returns: string }
+      set_best_answer: {
+        Args: { p_comment_id: string; p_post_id: string }
+        Returns: undefined
+      }
       set_secondary_daily_content: {
         Args: {
           p_course_ids?: number[]
@@ -6350,6 +6708,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       image: ["url", "id", "path", "uploadthing_id"],

@@ -8,6 +8,7 @@ export default function LearnLayout() {
       <Stack.Screen name="courses" options={{ headerShown: false }} />
       <Stack.Screen name="quizzes" options={{ headerShown: false }} />
       <Stack.Screen name="exercices" options={{ headerShown: false }} />
+      <Stack.Screen name="path" options={{ headerShown: false }} />
       {/* <Stack.Screen name="flashcards/index" options={{ headerShown: false }} /> */}
     </Stack>
   );
