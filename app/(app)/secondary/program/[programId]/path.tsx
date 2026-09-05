@@ -271,27 +271,37 @@ const MilestoneNode = React.memo(
     prev.item.id === next.item.id
 );
 
-const PathTrail = ({
+// Nombre de jalons par segment de <Svg>. Un seul grand Svg couvrant tout
+// le chemin (150+ jalons ≈ 15 000dp de haut) se transforme, sur un écran
+// haute densité, en un bitmap qui dépasse la limite de Canvas d'Android
+// ("Canvas: trying to draw too large bitmap", crash confirmé par logcat).
+// Découper en segments plus courts garde chaque bitmap sous la limite.
+const CHUNK_SIZE = 12;
+
+const PathSegment = ({
   items,
+  points,
   statuses,
   fractions,
   isDark,
   onMilestonePress,
 }: {
   items: PathItem[];
+  points: { x: number; y: number }[];
   statuses: Record<string, MilestoneStatus>;
   fractions: Record<string, number>;
   isDark: boolean;
   onMilestonePress: (item: PathItem, status: MilestoneStatus) => void;
 }) => {
-  const seed = useMemo(() => (items[0] ? hashToSeed(items[0].id) : 0), [items]);
-  const points = useMemo(() => getOrganicPoints(seed, items.length), [seed, items.length]);
+  const top = points[0].y - 70;
+  const bottom = points[points.length - 1].y + 70;
+  const height = bottom - top;
+  const localPoints = useMemo(() => points.map((p) => ({ x: p.x, y: p.y - top })), [points, top]);
 
-  const height = (points[points.length - 1]?.y ?? 60) + 70;
   const doneUpTo = items.findIndex((item) => statuses[item.id] !== 'done');
-  const donePoints = doneUpTo === -1 ? points : points.slice(0, doneUpTo + 1);
+  const donePoints = doneUpTo === -1 ? localPoints : localPoints.slice(0, doneUpTo + 1);
 
-  const pathD = useMemo(() => buildSmoothPath(points), [points]);
+  const pathD = useMemo(() => buildSmoothPath(localPoints), [localPoints]);
   const donePathD = useMemo(() => buildSmoothPath(donePoints), [donePoints]);
 
   const trackColor = isDark ? '#334155' : '#E2E8F0';
@@ -315,10 +325,51 @@ const PathTrail = ({
           item={item}
           status={statuses[item.id] || 'locked'}
           fraction={fractions[item.id] || 0}
-          x={points[i].x}
-          y={points[i].y}
+          x={localPoints[i].x}
+          y={localPoints[i].y}
           isDark={isDark}
           onPress={onMilestonePress}
+        />
+      ))}
+    </View>
+  );
+};
+
+const PathTrail = ({
+  items,
+  statuses,
+  fractions,
+  isDark,
+  onMilestonePress,
+}: {
+  items: PathItem[];
+  statuses: Record<string, MilestoneStatus>;
+  fractions: Record<string, number>;
+  isDark: boolean;
+  onMilestonePress: (item: PathItem, status: MilestoneStatus) => void;
+}) => {
+  const seed = useMemo(() => (items[0] ? hashToSeed(items[0].id) : 0), [items]);
+  const points = useMemo(() => getOrganicPoints(seed, items.length), [seed, items.length]);
+
+  const chunks = useMemo(() => {
+    const result: { items: PathItem[]; points: { x: number; y: number }[] }[] = [];
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+      result.push({ items: items.slice(i, i + CHUNK_SIZE), points: points.slice(i, i + CHUNK_SIZE) });
+    }
+    return result;
+  }, [items, points]);
+
+  return (
+    <View>
+      {chunks.map((chunk, i) => (
+        <PathSegment
+          key={i}
+          items={chunk.items}
+          points={chunk.points}
+          statuses={statuses}
+          fractions={fractions}
+          isDark={isDark}
+          onMilestonePress={onMilestonePress}
         />
       ))}
     </View>
