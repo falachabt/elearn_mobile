@@ -15,9 +15,11 @@ import {
 import { Href, useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import Modal from 'react-native-modal';
 
+import { logger } from '@/utils/logger';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { theme } from '@/constants/theme';
 import { getCategoryTheme } from '@/constants/categoryThemes';
 import { useAuth } from '@/contexts/auth';
@@ -173,25 +175,18 @@ const CurrentPulse = ({ size, radius }: { size: number; radius: number }) => {
 };
 
 const NODE_RADIUS_RATIO = 0.3;
-const NODE_STROKE_WIDTH = 4;
 
-function computeSquareGeometry(size: number) {
-  const inset = NODE_STROKE_WIDTH / 2 + 1;
-  const w = size - inset * 2;
-  const r = size * NODE_RADIUS_RATIO;
-  const perimeter = 4 * (w - 2 * r) + 2 * Math.PI * r;
-  return { inset, w, r, perimeter };
-}
-
-// Un nœud = juste l'icône + le label + la zone tapable ; le carré et son
-// anneau de progression sont dessinés dans le <Svg> unique du parent
-// (NodeRects) pour éviter de monter un contexte SVG natif par nœud —
-// avec 150+ nœuds ça faisait 150+ vues natives supplémentaires, cause
-// probable du lag/crash au scroll.
+// Nœud en View pure (pas de <Svg> par item) : deux crashs de suite avec
+// un anneau SVG par nœud (même consolidé dans un seul <Svg> parent)
+// pointent vers le nombre de formes à dessiner, pas juste le nombre de
+// contextes Svg — avec 150+ jalons c'était encore trop pour l'appareil.
+// Bordure pleine colorée (pas de remplissage progressif animé) tant que
+// la stabilité n'est pas confirmée ; le "current" affiche son % en texte.
 const MilestoneNode = React.memo(
   ({
     item,
     status,
+    fraction,
     x,
     y,
     isDark,
@@ -199,6 +194,7 @@ const MilestoneNode = React.memo(
   }: {
     item: PathItem;
     status: MilestoneStatus;
+    fraction: number;
     x: number;
     y: number;
     isDark: boolean;
@@ -208,6 +204,7 @@ const MilestoneNode = React.memo(
     const shakeX = useRef(new Animated.Value(0)).current;
     const isLocked = status === 'locked';
     const isCurrent = status === 'current';
+    const isDone = status === 'done';
     const size = isCurrent ? 66 : 56;
     const radius = size * NODE_RADIUS_RATIO;
 
@@ -227,17 +224,29 @@ const MilestoneNode = React.memo(
 
     const categoryColor = getCategoryTheme(item.categoryName).primary;
     const iconColor = isLocked ? (isDark ? '#64748B' : '#94A3B8') : categoryColor;
+    const borderColor = isLocked ? (isDark ? '#334155' : '#E2E8F0') : categoryColor;
+    const cardColor = isLocked ? (isDark ? '#1E293B' : '#F1F5F9') : isDone ? categoryColor : isDark ? '#0F172A' : '#FFFFFF';
+    const pct = Math.round(fraction * 100);
 
     return (
       <View style={[styles.nodeWrap, { left: x - size / 2, top: y - size / 2, width: size, height: size + 6 }]}>
         {isCurrent && <CurrentPulse size={size + 16} radius={radius + 8} />}
         <Animated.View style={{ width: size, height: size, transform: [{ translateX: shakeX }] }}>
-          <Pressable onPress={handlePress} style={[styles.node, { width: size, height: size }]}>
+          <Pressable
+            onPress={handlePress}
+            style={[
+              styles.node,
+              { width: size, height: size, borderRadius: radius, borderWidth: 3, borderColor, backgroundColor: cardColor },
+            ]}
+          >
             <MaterialCommunityIcons
-              name={status === 'done' ? 'check-bold' : isLocked ? 'lock' : MilestoneIcon(item.type)}
-              size={status === 'done' || isLocked ? 22 : 24}
-              color={iconColor}
+              name={isDone ? 'check-bold' : isLocked ? 'lock' : MilestoneIcon(item.type)}
+              size={isDone || isLocked ? 22 : 24}
+              color={isDone ? '#FFFFFF' : iconColor}
             />
+            {isCurrent && pct > 0 && (
+              <Text style={styles.nodePercent}>{pct}%</Text>
+            )}
           </Pressable>
         </Animated.View>
         <Text
@@ -255,6 +264,7 @@ const MilestoneNode = React.memo(
   },
   (prev, next) =>
     prev.status === next.status &&
+    prev.fraction === next.fraction &&
     prev.x === next.x &&
     prev.y === next.y &&
     prev.isDark === next.isDark &&
@@ -285,8 +295,6 @@ const PathTrail = ({
   const donePathD = useMemo(() => buildSmoothPath(donePoints), [donePoints]);
 
   const trackColor = isDark ? '#334155' : '#E2E8F0';
-  const cardColor = isDark ? '#0F172A' : '#FFFFFF';
-  const lockedCardColor = isDark ? '#1E293B' : '#F1F5F9';
 
   return (
     <View style={{ width: SCREEN_WIDTH, height }}>
@@ -300,48 +308,13 @@ const PathTrail = ({
           fill="none"
         />
         <Path d={donePathD} stroke={theme.color.primary[500]} strokeWidth={5} strokeLinecap="round" fill="none" />
-
-        {items.map((item, i) => {
-          const status = statuses[item.id] || 'locked';
-          const isLocked = status === 'locked';
-          const isCurrent = status === 'current';
-          const size = isCurrent ? 66 : 56;
-          const { inset, w, r, perimeter } = computeSquareGeometry(size);
-          const fraction = isLocked ? 0 : Math.max(0, Math.min(1, fractions[item.id] || 0));
-          const dashOffset = perimeter * (1 - fraction);
-          const ringColor = isLocked ? trackColor : getCategoryTheme(item.categoryName).primary;
-          const x = points[i].x - size / 2 + inset;
-          const y = points[i].y - size / 2 + inset;
-
-          return (
-            <React.Fragment key={item.id}>
-              <Rect x={x} y={y} width={w} height={w} rx={r} ry={r} fill={isLocked ? lockedCardColor : cardColor} />
-              <Rect x={x} y={y} width={w} height={w} rx={r} ry={r} stroke={trackColor} strokeWidth={NODE_STROKE_WIDTH} fill="none" />
-              {fraction > 0 && (
-                <Rect
-                  x={x}
-                  y={y}
-                  width={w}
-                  height={w}
-                  rx={r}
-                  ry={r}
-                  stroke={ringColor}
-                  strokeWidth={NODE_STROKE_WIDTH}
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeDasharray={`${perimeter}, ${perimeter}`}
-                  strokeDashoffset={dashOffset}
-                />
-              )}
-            </React.Fragment>
-          );
-        })}
       </Svg>
       {items.map((item, i) => (
         <MilestoneNode
           key={item.id}
           item={item}
           status={statuses[item.id] || 'locked'}
+          fraction={fractions[item.id] || 0}
           x={points[i].x}
           y={points[i].y}
           isDark={isDark}
@@ -431,6 +404,14 @@ const PracticeSheet = ({
 };
 
 export default function LearningPathScreen() {
+  return (
+    <ErrorBoundary>
+      <LearningPathScreenContent />
+    </ErrorBoundary>
+  );
+}
+
+function LearningPathScreenContent() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -449,30 +430,36 @@ export default function LearningPathScreen() {
     if (!programId) return;
     setLoading(true);
 
-    const fetchedUnits = await getLearningPathUnits(programId);
-    const items = interleaveByCategory(fetchedUnits);
-    const courseIds = items
-      .filter((item) => item.type === 'lesson' && item.ref_course_id != null)
-      .map((item) => item.ref_course_id as number);
+    try {
+      const fetchedUnits = await getLearningPathUnits(programId);
+      const items = interleaveByCategory(fetchedUnits);
+      const courseIds = items
+        .filter((item) => item.type === 'lesson' && item.ref_course_id != null)
+        .map((item) => item.ref_course_id as number);
 
-    const [completedStepIds, progressMap] = await Promise.all([
-      user?.id ? getCompletedStepIds(user.id) : Promise.resolve(new Set<string>()),
-      user?.id ? getCourseProgressMap(user.id, courseIds) : Promise.resolve(new Map<number, CourseProgress>()),
-    ]);
+      const [completedStepIds, progressMap] = await Promise.all([
+        user?.id ? getCompletedStepIds(user.id) : Promise.resolve(new Set<string>()),
+        user?.id ? getCourseProgressMap(user.id, courseIds) : Promise.resolve(new Map<number, CourseProgress>()),
+      ]);
 
-    let completedMilestones = new Set<string>();
-    if (completedStepIds.size > 0) {
-      const { data } = await supabase
-        .from('lp_steps')
-        .select('milestone_id')
-        .in('id', Array.from(completedStepIds));
-      completedMilestones = new Set((data ?? []).map((r) => r.milestone_id));
+      let completedMilestones = new Set<string>();
+      if (completedStepIds.size > 0) {
+        const { data, error } = await supabase
+          .from('lp_steps')
+          .select('milestone_id')
+          .in('id', Array.from(completedStepIds));
+        if (error) throw error;
+        completedMilestones = new Set((data ?? []).map((r) => r.milestone_id));
+      }
+
+      setPathItems(items);
+      setCompletedMilestoneIds(completedMilestones);
+      setCourseProgress(progressMap);
+    } catch (error) {
+      logger.error('Error loading learning path:', error);
+    } finally {
+      setLoading(false);
     }
-
-    setPathItems(items);
-    setCompletedMilestoneIds(completedMilestones);
-    setCourseProgress(progressMap);
-    setLoading(false);
   }, [programId, user?.id]);
 
   // Recharge à chaque retour sur l'écran (pas juste au montage) : la
@@ -633,6 +620,17 @@ const styles = StyleSheet.create({
     top: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  nodePercent: {
+    position: 'absolute',
+    bottom: -4,
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    backgroundColor: theme.color.primary[600],
+    paddingHorizontal: 4,
+    borderRadius: 6,
+    overflow: 'hidden',
   },
   nodeLabel: {
     position: 'absolute',
