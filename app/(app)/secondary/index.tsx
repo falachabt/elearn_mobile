@@ -14,6 +14,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import useSWR from "swr";
 
 import NoProgram from "@/components/shared/catalogue/NoProgramCard";
@@ -22,6 +23,7 @@ import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth";
 import { useSecondaryDailyContentForPrograms } from "@/hooks/secondary/useSecondaryDailyContent";
 import { supabase } from "@/lib/supabase";
+import { countryFlagEmoji, getCountries } from "@/services/countries.service";
 import { getSecondaryPrograms } from "@/services/secondary/program.service";
 import {
   enrollSecondary,
@@ -45,10 +47,17 @@ const SecondaryPrograms = () => {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
 
   const [additionalSearchQuery, setAdditionalSearchQuery] = useState("");
   const [isSavingPreference, setIsSavingPreference] = useState(false);
   const [isClassPickerVisible, setIsClassPickerVisible] = useState(false);
+
+  const { data: countries } = useSWR("countries-list", getCountries);
+  const userCountry = useMemo(
+    () => countries?.find((country) => country.id === user?.country_id) ?? null,
+    [countries, user?.country_id]
+  );
 
   const secondaryPreferences = useMemo(
     () => {
@@ -454,7 +463,13 @@ const SecondaryPrograms = () => {
             style={styles.modalBackdrop}
             onPress={() => setIsClassPickerVisible(false)}
           />
-          <View style={[styles.modalSheet, isDarkMode && styles.modalSheetDark]}>
+          <View
+            style={[
+              styles.modalSheet,
+              isDarkMode && styles.modalSheetDark,
+              { paddingBottom: 24 + insets.bottom },
+            ]}
+          >
             <View style={[styles.modalHandle, isDarkMode && styles.modalHandleDark]} />
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderCopy}>
@@ -462,7 +477,9 @@ const SecondaryPrograms = () => {
                   Gérer mes classes
                 </Text>
                 <Text style={[styles.sheetText, isDarkMode && styles.sheetTextDark]}>
-                  Recherchez et sélectionnez les classes que vous souhaitez suivre.
+                  {userCountry
+                    ? `${countryFlagEmoji(userCountry.code)} Classes disponibles pour ${userCountry.name}.`
+                    : "Recherchez et sélectionnez les classes que vous souhaitez suivre."}
                 </Text>
               </View>
               <Pressable
