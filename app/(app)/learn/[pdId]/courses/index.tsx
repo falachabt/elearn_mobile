@@ -76,7 +76,7 @@ const CourseScreen: React.FC<null> = () => {
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isEnrolled, setIsEnrolled] = useState(false);
   const { isLearningPathEnrolled } = useUser();
 

@@ -9,7 +9,14 @@ export async function getSecondaryPrograms(): Promise<SecondaryProgram[]> {
     .select("*, class:secondary_classes(*), serie:secondary_series(*)")
     .filter("is_active", "eq", true);
   if (error) throw error;
-  return data || [];
+
+  // secondary_classes.level va de 1 (Terminale) à 7 (6eme) : tri croissant
+  // pour afficher Terminale -> 6eme partout où ces programmes sont listés.
+  return (data || []).sort((a, b) => {
+    const levelA = a.class?.level ?? Number.MAX_SAFE_INTEGER;
+    const levelB = b.class?.level ?? Number.MAX_SAFE_INTEGER;
+    return levelA - levelB;
+  });
 }
 
 export interface ClassTrackOption {

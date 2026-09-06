@@ -228,7 +228,7 @@ export default function AppLayout() {
                 <Tabs.Screen
                     name="secondary"
                     options={{
-                        title: "College",
+                        title: "Secondaire",
                         tabBarIcon: ({color}) => (
                             <MaterialCommunityIcons
                                 name="book-open-variant"
@@ -248,7 +248,7 @@ export default function AppLayout() {
                 <Tabs.Screen
                     name="learn"
                     options={{
-                        title: "Prepa",
+                        title: "Concours",
                         tabBarIcon: ({color}) => (
                             <MaterialCommunityIcons
                                 name="book-open-variant"
