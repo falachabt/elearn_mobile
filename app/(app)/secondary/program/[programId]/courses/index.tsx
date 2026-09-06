@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
@@ -331,13 +331,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "700",
   },
   headerSubtitle: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    marginTop: 2,
+    fontSize: 12,
+    marginTop: 1,
   },
   concoursText: {
     color: theme.color.primary[500],

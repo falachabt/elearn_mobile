@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
     fontFamily: theme.typography.fontFamily,
     color: "#111827",
@@ -570,9 +570,9 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#6B7280",
-    marginTop: 2,
+    marginTop: 1,
   },
   headerSubtitleDark: {
     color: "#9CA3AF",

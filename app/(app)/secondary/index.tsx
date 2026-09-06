@@ -24,7 +24,10 @@ import { useAuth } from "@/contexts/auth";
 import { useSecondaryDailyContentForPrograms } from "@/hooks/secondary/useSecondaryDailyContent";
 import { supabase } from "@/lib/supabase";
 import { countryFlagEmoji, getCountries } from "@/services/countries.service";
-import { getSecondaryPrograms } from "@/services/secondary/program.service";
+import {
+  getClassTracksByCountry,
+  getSecondaryPrograms,
+} from "@/services/secondary/program.service";
 import {
   enrollSecondary,
   unenrollSecondary,
@@ -38,7 +41,6 @@ import {
   mergeSecondaryPreferences,
   matchesPreferredSecondaryProgram,
   parseSecondaryPreferences,
-  TERMINALE_TRACK_OPTIONS,
 } from "@/utils/secondaryPreferences";
 import { syncSecondaryDailyReminder } from "@/utils/secondaryDailyReminder";
 
@@ -92,6 +94,11 @@ const SecondaryPrograms = () => {
   );
 
   const { mutate: mutateEnrollments } = useSecondaryEnrollments();
+
+  const { data: classTracks } = useSWR(
+    user?.country_id ? `class-tracks-${user.country_id}` : null,
+    () => getClassTracksByCountry(user!.country_id!)
+  );
 
   // Map a track label (e.g. "Terminale A") to its secondary program id.
   const findProgramIdByTrack = (trackValue: string): string | null => {
@@ -328,8 +335,8 @@ const SecondaryPrograms = () => {
           </Text>
           <Text style={[styles.subtitle, isDarkMode && styles.subtitleDark]}>
             {secondaryPreferences.preferredTrack
-              ? `Vos programmes de terminale`
-              : "Choisissez votre Terminale pour afficher le contenu"}
+              ? `Vos programmes`
+              : "Choisissez votre classe pour afficher le contenu"}
           </Text>
         </View>
 
@@ -343,43 +350,41 @@ const SecondaryPrograms = () => {
             <Text
               style={[styles.selectorTitle, isDarkMode && styles.selectorTitleDark]}
             >
-              Sélectionnez votre Terminale
+              Choisissez votre classe
             </Text>
             <Text style={[styles.selectorText, isDarkMode && styles.selectorTextDark]}>
-              Pour accéder aux programmes, sujets et exercices adaptés à votre classe, sélectionnez votre Terminale parmi les options ci-dessous. Vous pourrez également ajouter d'autres classes ou séries si vous le souhaitez.
+              Pour accéder aux programmes, sujets et exercices adaptés à votre classe, sélectionnez-la parmi les options ci-dessous. Vous pourrez également ajouter d'autres classes ou séries si vous le souhaitez.
             </Text>
 
             <View style={styles.trackOptions}>
-              {TERMINALE_TRACK_OPTIONS.filter((option) => option.value).map(
-                (option) => (
-                  <Pressable
-                    key={option.value}
-                    onPress={() => void handleTrackSelection(option.value as string)}
-                    disabled={isSavingPreference}
+              {(classTracks ?? []).map((option) => (
+                <Pressable
+                  key={option.value}
+                  onPress={() => void handleTrackSelection(option.value)}
+                  disabled={isSavingPreference}
+                  style={[
+                    styles.trackChip,
+                    isDarkMode && styles.trackChipDark,
+                    isSavingPreference && styles.trackChipDisabled,
+                  ]}
+                >
+                  <Text
                     style={[
-                      styles.trackChip,
-                      isDarkMode && styles.trackChipDark,
-                      isSavingPreference && styles.trackChipDisabled,
+                      styles.trackChipText,
+                      isDarkMode && styles.trackChipTextDark,
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.trackChipText,
-                        isDarkMode && styles.trackChipTextDark,
-                      ]}
-                    >
-                      {option.value}
-                    </Text>
-                  </Pressable>
-                )
-              )}
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
 
             {isSavingPreference ? (
               <View style={styles.savingRow}>
                 <ActivityIndicator size="small" color={theme.color.primary[500]} />
                 <Text style={[styles.savingText, isDarkMode && styles.selectorTextDark]}>
-                  Enregistrement de votre Terminale...
+                  Enregistrement de votre classe...
                 </Text>
               </View>
             ) : null}
@@ -600,7 +605,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.dark.background.primary,
   },
   header: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
@@ -611,8 +617,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "700",
     color: "#111827",
   },
   titleDark: {
@@ -620,7 +626,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
+    fontSize: 13,
     color: "#6B7280",
     marginTop: 4,
   },

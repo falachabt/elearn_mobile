@@ -389,12 +389,12 @@ const SecondaryProgramDetails = () => {
             >
               <MaterialCommunityIcons
                 name="arrow-left"
-                size={24}
+                size={20}
                 color={isDark ? "#F9FAFB" : "#111827"}
               />
             </Pressable>
             <View style={styles.headerTitleContainer}>
-              <ThemedText style={[styles.title, isDark && styles.titleDark]}>
+              <ThemedText style={[styles.title, isDark && styles.titleDark]} numberOfLines={1}>
                 {program.class?.name} - {program.serie?.name}
               </ThemedText>
               <ThemedText
@@ -408,6 +408,7 @@ const SecondaryProgramDetails = () => {
           {program.description && (
             <ThemedText
               style={[styles.description, isDark && styles.descriptionDark]}
+              numberOfLines={1}
             >
               {program.description}
             </ThemedText>
@@ -522,11 +523,12 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#FFFFFF",
-    padding: 16,
-    paddingTop: Platform.OS === 'ios' ? 44 : 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingTop: Platform.OS === 'ios' ? 50 : 10,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   headerDark: {
     backgroundColor: theme.color.dark.background.secondary,
@@ -535,16 +537,16 @@ const styles = StyleSheet.create({
   headerTop: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 34,
+    height: 34,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#F3F4F6",
-    borderRadius: 20,
-    marginRight: 12,
+    borderRadius: 17,
+    marginRight: 10,
   },
   backButtonDark: {
     backgroundColor: "#374151",
@@ -556,8 +558,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   title: {
-    fontSize: 20,
-    fontWeight: "800",
+    fontSize: 16,
+    fontWeight: "700",
     color: "#111827",
     fontFamily: theme.typography.fontFamily,
     flex: 1,
@@ -566,12 +568,12 @@ const styles = StyleSheet.create({
     color: "#F9FAFB",
   },
   priceTag: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "700",
     color: theme.color.primary[600],
     backgroundColor: "rgba(37, 99, 235, 0.1)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 6,
     overflow: "hidden",
   },
@@ -581,10 +583,10 @@ const styles = StyleSheet.create({
   },
   headerProgressContainer: {
     width: "100%",
-    marginTop: 12,
+    marginTop: 8,
   },
   headerProgressBackground: {
-    height: 6,
+    height: 5,
     backgroundColor: "#E5E7EB",
     borderRadius: 3,
     overflow: "hidden",
@@ -595,10 +597,10 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   description: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#6B7280",
     fontFamily: theme.typography.fontFamily,
-    lineHeight: 20,
+    lineHeight: 16,
   },
   descriptionDark: {
     color: "#9CA3AF",
