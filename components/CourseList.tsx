@@ -12,6 +12,7 @@ import { useNavigation } from "@/contexts/NavigationContext";
 interface CourseListProps {
     courses: CourseItem[];
     pdId: string;
+    type?: "secondary" | "prepa";
     onCoursePress?: (courseItem: CourseItem) => void;
     emptyMessage?: string;
     isEnrolled?: boolean;
@@ -25,6 +26,7 @@ interface CourseListProps {
 const CourseList: React.FC<CourseListProps> = ({
                                                    courses,
                                                    pdId,
+                                                   type = "prepa",
                                                    onCoursePress,
                                                    emptyMessage = "Aucun cours disponible",
                                                    isEnrolled = false
@@ -68,6 +70,7 @@ const CourseList: React.FC<CourseListProps> = ({
                     pdId={pdId}
                     baseRoute={getCoursesPath()}
                     isDark={isDark}
+                    type={type}
                     isEnrolled={isEnrolled}
                     onCoursePress={onCoursePress}
                 />

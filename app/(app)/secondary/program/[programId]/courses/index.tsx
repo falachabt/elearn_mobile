@@ -341,6 +341,7 @@ const CourseScreen: React.FC<null> = () => {
         <CourseList
           pdId={String(programId)}
           courses={filteredCourses()}
+          type="secondary"
           onCoursePress={handleCoursePress}
           isEnrolled={isEnrolled}
         />

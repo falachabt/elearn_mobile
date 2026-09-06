@@ -5,6 +5,9 @@ import {Href, useRouter} from "expo-router";
 
 import {ThemedText} from "@/components/ThemedText";
 import {theme} from "@/constants/theme";
+import {getCategoryTheme} from "@/constants/categoryThemes";
+import type {MaterialIconName} from "@/constants/iconNames";
+import {useCategories} from "@/hooks/global/useCategories";
 import {useCourseProgress} from "@/hooks/useCourseProgress";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import type { CourseItem } from '@/types/course.type';
@@ -14,11 +17,12 @@ interface CourseRowItemProps {
     pdId: string;
     baseRoute: string;
     isDark: boolean;
+    type?: "secondary" | "prepa";
     isEnrolled?: boolean;
     onCoursePress?: (courseItem: CourseItem) => void;
 }
 
-const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRoute, isDark, isEnrolled = false, onCoursePress}) => {
+const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRoute, isDark, type = "prepa", isEnrolled = false, onCoursePress}) => {
     const router = useRouter();
     void pdId;
     const course = courseItem.course ?? undefined;
@@ -38,8 +42,15 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRout
                 : undefined;
     const {progress} = useCourseProgress(courseId);
     const {trigger} = useHaptics();
-    const categoryName = typeof course?.category === 'string' ? course.category : course?.category?.name;
-    const categoryIcon = typeof course?.category === 'object' ? course.category?.icon : null;
+    const {categories} = useCategories();
+    // Pour secondary, course.category est un id (string) à résoudre via
+    // courses_categories ; pour prepa, c'est déjà un objet {name, icon}.
+    const categoryName =
+        type === "secondary"
+            ? categories?.find((cat) => cat.id === course?.category)?.name || "Général"
+            : (typeof course?.category === 'string' ? course.category : course?.category?.name);
+    const categoryIcon = type === "prepa" && typeof course?.category === 'object' ? course.category?.icon : null;
+    const categoryTheme = getCategoryTheme(categoryName);
 
     return (
         <Pressable
@@ -60,7 +71,8 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRout
                     <View
                         style={[
                             progress?.is_completed ? styles.courseIcon : styles.courseIconIncomplete,
-                            isDark && (progress?.is_completed ? styles.courseIconDark : styles.courseIconIncompleteDark)
+                            !progress?.is_completed && {backgroundColor: categoryTheme.cardBg},
+                            progress?.is_completed && isDark && styles.courseIconDark,
                         ]}
                     >
                         {
@@ -73,9 +85,9 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRout
                                     />
                                 ) : (
                                     <MaterialCommunityIcons
-                                        name="book"
+                                        name={categoryTheme.icon as MaterialIconName}
                                         size={24}
-                                        color={isDark ? "#9CA3AF" : theme.color.gray[600]}
+                                        color="#FFFFFF"
                                     />
 
                                 )
