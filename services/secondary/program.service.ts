@@ -12,6 +12,65 @@ export async function getSecondaryPrograms(): Promise<SecondaryProgram[]> {
   return data || [];
 }
 
+export interface ClassTrackOption {
+  label: string;
+  value: string;
+}
+
+/**
+ * Classes (toutes, pas seulement terminale) réellement disponibles pour
+ * un pays, construites depuis secondary_classes/series plutôt qu'une
+ * liste statique — évite de proposer une classe qui n'existe pas encore
+ * pour ce pays. value = "<classe> <série>" (ex. "Terminale Cmr Série C"),
+ * ce que matchesPreferredSecondaryProgram compare plus tard ; label
+ * n'affiche la série que si la classe en a plusieurs (les petites classes
+ * n'ont souvent qu'une seule "série" qui duplique juste le nom de la
+ * classe, ex. "4eme Cmr" / "4eme Fr" — inutile de le répéter).
+ */
+export async function getClassTracksByCountry(
+  countryId: string
+): Promise<ClassTrackOption[]> {
+  const { data: classes, error: classError } = await supabase
+    .from("secondary_classes")
+    .select("id, name")
+    .eq("country_id", countryId)
+    .order("level", { ascending: true });
+
+  if (classError) throw classError;
+  if (!classes || classes.length === 0) return [];
+
+  const { data: series, error: seriesError } = await supabase
+    .from("secondary_series")
+    .select("id, name, class_id")
+    .in(
+      "class_id",
+      classes.map((c) => c.id)
+    );
+
+  if (seriesError) throw seriesError;
+
+  const seriesByClassId = new Map<string, { id: string; name: string }[]>();
+  (series || []).forEach((s) => {
+    if (!s.class_id) return;
+    const list = seriesByClassId.get(s.class_id) ?? [];
+    list.push({ id: s.id, name: s.name });
+    seriesByClassId.set(s.class_id, list);
+  });
+
+  const options: ClassTrackOption[] = [];
+  classes.forEach((cls) => {
+    const classSeries = seriesByClassId.get(cls.id) ?? [];
+    if (classSeries.length === 0) return; // pas de série -> aucun programme rattachable
+    const showSeriesInLabel = classSeries.length > 1;
+    classSeries.forEach((s) => {
+      const value = `${cls.name} ${s.name}`.trim();
+      options.push({ label: showSeriesInLabel ? value : cls.name, value });
+    });
+  });
+
+  return options;
+}
+
 export async function getSecondaryProgramById(
   id: string
 ): Promise<SecondaryProgram> {

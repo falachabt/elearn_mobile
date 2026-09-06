@@ -124,9 +124,13 @@ const SecondaryPrograms = () => {
   const manageablePrograms = useMemo(
     () =>
       (secondaryPrograms ?? []).filter(
-        (program) => !preferredPrograms.some((preferredProgram) => preferredProgram.id === program.id)
+        (program) =>
+          // Uniquement les classes de son propre pays dans "Gérer mes
+          // classes" — pas celles de tous les pays.
+          program.class?.country_id === user?.country_id &&
+          !preferredPrograms.some((preferredProgram) => preferredProgram.id === program.id)
       ),
-    [secondaryPrograms, preferredPrograms]
+    [secondaryPrograms, preferredPrograms, user?.country_id]
   );
 
   const filteredManageablePrograms = useMemo(() => {

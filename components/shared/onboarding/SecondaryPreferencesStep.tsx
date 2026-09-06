@@ -17,14 +17,23 @@ import {
   mergeSecondaryPreferences,
   parseSecondaryPreferences,
   reminderTimeToDate,
-  TERMINALE_TRACK_OPTIONS,
 } from "@/utils/secondaryPreferences";
+import { ClassTrackOption } from "@/services/secondary/program.service";
+
+const NOT_NOW_OPTION = {
+  label: "Pas maintenant",
+  value: null as string | null,
+};
 
 interface SecondaryPreferencesStepProps {
   title: string;
   description: string;
   userInfo: AccountsInput | null;
   setUserInfo: React.Dispatch<React.SetStateAction<AccountsInput | null>>;
+  // Classes réellement disponibles pour le pays choisi à l'étape
+  // précédente ; null tant que non résolu (on affiche alors uniquement
+  // "pas maintenant" en attendant).
+  trackOptions: ClassTrackOption[] | null;
 }
 
 const SecondaryPreferencesStep: React.FC<SecondaryPreferencesStepProps> = ({
@@ -32,6 +41,7 @@ const SecondaryPreferencesStep: React.FC<SecondaryPreferencesStepProps> = ({
   description,
   userInfo,
   setUserInfo,
+  trackOptions,
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -40,6 +50,7 @@ const SecondaryPreferencesStep: React.FC<SecondaryPreferencesStepProps> = ({
   const reminderDate = reminderTimeToDate(secondaryPreferences.reminderTime);
   const [draftHour, setDraftHour] = useState(reminderDate.getHours());
   const [draftMinute, setDraftMinute] = useState(reminderDate.getMinutes());
+  const trackChoices = [NOT_NOW_OPTION, ...(trackOptions ?? [])];
 
   const updateUserInfo = (
     field: string,
@@ -118,7 +129,7 @@ const SecondaryPreferencesStep: React.FC<SecondaryPreferencesStepProps> = ({
          
 
           <View style={styles.trackOptions}>
-            {TERMINALE_TRACK_OPTIONS.map((option) => {
+            {trackChoices.map((option) => {
               const isSelected =
                 option.value === null
                   ? secondaryPreferences.hasAnsweredTerminaleStep &&

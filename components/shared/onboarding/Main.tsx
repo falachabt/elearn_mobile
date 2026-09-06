@@ -34,6 +34,7 @@ import { theme } from "@/constants/theme";
 import { useCart } from "@/hooks/useCart";
 import { useCustomRouter } from "@/hooks/useCustomRouter";
 import { parseSecondaryPreferences } from "@/utils/secondaryPreferences";
+import { getClassTracksByCountry, ClassTrackOption } from "@/services/secondary/program.service";
 
 
 // Get screen dimensions
@@ -77,6 +78,9 @@ const MainOnboarding = () => {
   const [isOnboardingLoading, setIsOnboardingLoading] = useState(false);
   const [mergedAccountData, setMergedAccountData] = useState<Record<string, unknown> | null>(null);
   const [isDataValid, setIsDataValid] = useState(false);
+  // null = pas encore vérifié pour ce pays (défaut prudent : on montre
+  // l'étape classe) ; [] = vérifié, aucune classe pour ce pays.
+  const [classTracks, setClassTracks] = useState<ClassTrackOption[] | null>(null);
 
 
 
@@ -88,6 +92,29 @@ const MainOnboarding = () => {
       setPrograms(currentCart?.items?.map(item => Number(item?.program_id)));
     }
   }, [cartItems, currentCart]);
+
+  useEffect(() => {
+    const countryId = userInfo?.country_id;
+    if (!countryId) {
+      setClassTracks(null);
+      return;
+    }
+
+    let cancelled = false;
+    getClassTracksByCountry(countryId)
+      .then((tracks) => {
+        if (!cancelled) setClassTracks(tracks);
+      })
+      .catch((error) => {
+        logger.error("Error fetching class tracks for country:", error);
+        // Prudence : en cas d'erreur on ne bloque pas l'étape classe.
+        if (!cancelled) setClassTracks(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userInfo?.country_id]);
 
   useEffect(() => {
     if (!userInfo || !profile) return;
@@ -319,7 +346,7 @@ const MainOnboarding = () => {
     {
       title: "Espace Collège",
       description:
-          "Choisissez la Terminale et l'heure du rappel.",
+          "Choisissez votre classe et l'heure du rappel.",
       icon: "🏫",
     },
     {
@@ -388,6 +415,24 @@ const MainOnboarding = () => {
     if (step === 3 && userInfoFormRef.current) {
       const isValid = userInfoFormRef.current.validate();
       if (!isValid) {
+        return;
+      }
+
+      // Pays sans aucune classe disponible : on saute l'étape "Espace
+      // Collège" plutôt que de proposer un choix vide/hors-sujet.
+      if (classTracks !== null && classTracks.length === 0) {
+        const accountUpdated = await updateAccountInDatabase();
+        if (!accountUpdated) {
+          return;
+        }
+
+        setIsEndingOnboarding(true);
+        const completed = await handleSkipOnboarding();
+        setIsEndingOnboarding(false);
+
+        if (completed) {
+          router.replace('/(app)');
+        }
         return;
       }
 
@@ -466,6 +511,7 @@ const MainOnboarding = () => {
             description={stepsContent[step - 1].description}
             userInfo={userInfo}
             setUserInfo={setUserInfo}
+            trackOptions={classTracks}
         />;
       case 5:
         return (
