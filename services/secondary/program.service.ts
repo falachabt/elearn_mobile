@@ -2,6 +2,7 @@
 import { logger } from '@/utils/logger';
 import { SecondaryProgram } from "@/types/secondary.type";
 import type { Database } from "@/types/supabase";
+import { getClassNameRank } from "@/utils/secondaryPreferences";
 
 export async function getSecondaryPrograms(): Promise<SecondaryProgram[]> {
   const { data, error } = await supabase
@@ -10,13 +11,12 @@ export async function getSecondaryPrograms(): Promise<SecondaryProgram[]> {
     .filter("is_active", "eq", true);
   if (error) throw error;
 
-  // secondary_classes.level va de 1 (Terminale) à 7 (6eme) : tri croissant
-  // pour afficher Terminale -> 6eme partout où ces programmes sont listés.
-  return (data || []).sort((a, b) => {
-    const levelA = a.class?.level ?? Number.MAX_SAFE_INTEGER;
-    const levelB = b.class?.level ?? Number.MAX_SAFE_INTEGER;
-    return levelA - levelB;
-  });
+  // secondary_classes.level n'est pas fiable (Terminale et Première sont
+  // toutes deux level=1 pour le Cameroun) : on trie sur le nom de la classe
+  // pour garantir Terminale -> 6eme partout où ces programmes sont listés.
+  return (data || []).sort(
+    (a, b) => getClassNameRank(a.class?.name) - getClassNameRank(b.class?.name)
+  );
 }
 
 export interface ClassTrackOption {
@@ -37,14 +37,19 @@ export interface ClassTrackOption {
 export async function getClassTracksByCountry(
   countryId: string
 ): Promise<ClassTrackOption[]> {
-  const { data: classes, error: classError } = await supabase
+  const { data: classesData, error: classError } = await supabase
     .from("secondary_classes")
     .select("id, name")
-    .eq("country_id", countryId)
-    .order("level", { ascending: true });
+    .eq("country_id", countryId);
 
   if (classError) throw classError;
-  if (!classes || classes.length === 0) return [];
+  if (!classesData || classesData.length === 0) return [];
+
+  // secondary_classes.level n'est pas fiable (cf. getSecondaryPrograms) :
+  // on trie sur le nom pour garantir Terminale -> 6eme.
+  const classes = [...classesData].sort(
+    (a, b) => getClassNameRank(a.name) - getClassNameRank(b.name)
+  );
 
   const { data: series, error: seriesError } = await supabase
     .from("secondary_series")

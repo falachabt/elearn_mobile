@@ -28,6 +28,28 @@ export const TERMINALE_TRACK_OPTIONS = [
   { label: "Terminale D", value: "Terminale D" },
 ] as const;
 
+// secondary_classes.level est peu fiable (ex: Terminale et Première sont
+// toutes deux enregistrées à level=1 pour le Cameroun) : on déduit le rang
+// Terminale -> 6eme depuis le nom de la classe plutôt que depuis level.
+const CLASS_NAME_RANKS: [RegExp, number][] = [
+  [/terminale/i, 1],
+  [/premi[eè]re|\b1ere\b/i, 2],
+  [/seconde|\b2nde\b/i, 3],
+  [/troisi[eè]me|\b3eme\b/i, 4],
+  [/quatri[eè]me|\b4eme\b/i, 5],
+  [/cinqui[eè]me|\b5eme\b/i, 6],
+  [/sixi[eè]me|\b6eme\b/i, 7],
+];
+
+export const getClassNameRank = (
+  className: string | null | undefined,
+  fallback: number = Number.MAX_SAFE_INTEGER
+): number => {
+  if (!className) return fallback;
+  const match = CLASS_NAME_RANKS.find(([pattern]) => pattern.test(className));
+  return match ? match[1] : fallback;
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
