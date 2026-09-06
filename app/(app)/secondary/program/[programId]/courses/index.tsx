@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Href, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -133,27 +133,6 @@ const CourseScreen: React.FC<null> = () => {
     router.push(route as Href);
   };
 
-  const featuredCourse = useMemo(() => {
-    const primaryDailyCourse = dailyContent?.courses?.[0];
-    if (!primaryDailyCourse || !courses?.length) return null;
-
-    return (
-      courses.find(
-        (courseItem) =>
-          String(courseItem.course?.id) === String(primaryDailyCourse.courseId)
-      ) ?? null
-    );
-  }, [courses, dailyContent?.courses]);
-
-  const featuredCourseRoute = useMemo(() => {
-    if (!featuredCourse?.course?.id) return null;
-    const dailyContentItemId = findDailyCourseItemId(featuredCourse.course.id);
-
-    return `/secondary/program/${programId}/courses/${featuredCourse.course.id}${
-      dailyContentItemId ? `?dailyContentItemId=${dailyContentItemId}` : ""
-    }`;
-  }, [featuredCourse, findDailyCourseItemId, programId]);
-
   // Toggle view mode between grid and list
   const toggleViewMode = () => {
     trigger(HapticType.LIGHT);
@@ -280,52 +259,6 @@ const CourseScreen: React.FC<null> = () => {
           {filteredCourses().length} cours disponibles
         </ThemedText>
       </View>
-
-      {featuredCourse && featuredCourseRoute ? (
-        <View style={[styles.featuredCardWrapper, isDark && styles.featuredCardWrapperDark]}>
-          <Pressable
-            style={[styles.featuredCard, isDark && styles.featuredCardDark]}
-            onPress={() => {
-              trigger(HapticType.LIGHT);
-              router.push(featuredCourseRoute as Href);
-            }}
-          >
-            <View style={styles.featuredBadge}>
-              <MaterialCommunityIcons
-                name="book-open-page-variant"
-                size={16}
-                color="#FFFFFF"
-              />
-              <ThemedText style={styles.featuredBadgeText}>
-                Cours du jour
-              </ThemedText>
-            </View>
-
-            <ThemedText style={[styles.featuredTitle, isDark && styles.featuredTitleDark]}>
-              {featuredCourse.course?.name || "Cours du jour"}
-            </ThemedText>
-
-            <ThemedText
-              style={[styles.featuredSubtitle, isDark && styles.featuredSubtitleDark]}
-            >
-              Le même cours est mis en avant aujourd&apos;hui pour tous les élèves de {programTitle}.
-            </ThemedText>
-
-            <View style={styles.featuredFooter}>
-              <ThemedText style={[styles.featuredMeta, isDark && styles.featuredMetaDark]}>
-                {dailyContent?.courses?.[0]
-                  ? `${Math.round(dailyContent.courses[0].progressPercentage)}% de progression`
-                  : "À faire aujourd'hui"}
-              </ThemedText>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={theme.color.primary[500]}
-              />
-            </View>
-          </Pressable>
-        </View>
-      ) : null}
 
       {/* Courses display (grid or list) */}
       {viewMode === "grid" ? (

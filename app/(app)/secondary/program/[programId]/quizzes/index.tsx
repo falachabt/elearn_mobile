@@ -103,15 +103,6 @@ export default function QuizzesList() {
     }).filter(Boolean);
   }, [allQuizzes, bestScoreMap, dailyContent?.quizzes, pinnedMap, programId]);
 
-  const dailyQuiz = useMemo(() => {
-    const primaryDailyQuiz = dailyContent?.quizzes?.[0];
-    if (!primaryDailyQuiz) return undefined;
-
-    return (quizzesWithProgress as NonNullable<typeof quizzesWithProgress>).find(
-      (item) => item?.quizId === primaryDailyQuiz.quizId
-    );
-  }, [dailyContent?.quizzes, quizzesWithProgress]);
-
   // Get program info
   const getProgramInfo = () => {
     const programClass = program?.class;
@@ -138,7 +129,6 @@ export default function QuizzesList() {
       programTitle={programTitle}
       programId={programId}
       baseRoute={`/(app)/secondary/program/${programId}/quizzes`}
-      featuredQuiz={dailyQuiz ?? undefined}
     />
   );
 }

@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Href, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 
 import EnhancedQuizCard from "./QuizCard";
 import EnhancedQuizRowItem from "./QuizRowItem";
@@ -61,7 +61,6 @@ export interface QuizListViewProps {
   programId?: string;
   baseRoute: string;
   onBack?: () => void;
-  featuredQuiz?: QuizListItem;
 }
 
 export const QuizListView: React.FC<QuizListViewProps> = ({
@@ -77,7 +76,6 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
   programId = "",
   baseRoute,
   onBack,
-  featuredQuiz,
 }) => {
   const router = useRouter();
   const { trigger } = useHaptics();
@@ -153,14 +151,6 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
   const clearSearch = () => {
     setSearchQuery("");
   };
-  const featuredQuizRoute = featuredQuiz
-    ? `${baseRoute}/${featuredQuiz.quizId}${
-        featuredQuiz.dailyContentItemId
-          ? `?dailyContentItemId=${featuredQuiz.dailyContentItemId}`
-          : ""
-      }`
-    : null;
-
   // Handle back button
   const handleBack = () => {
     trigger(HapticType.LIGHT);
@@ -396,61 +386,6 @@ export const QuizListView: React.FC<QuizListViewProps> = ({
         </ThemedText>
       </Animated.View>
 
-      {featuredQuiz && featuredQuizRoute && (
-        <Animated.View
-          style={[
-            styles.featuredCardWrapper,
-            isDark && styles.featuredCardWrapperDark,
-            { opacity: fadeAnim },
-          ]}
-        >
-          <Pressable
-            style={[styles.featuredCard, isDark && styles.featuredCardDark]}
-            onPress={() => router.push(featuredQuizRoute as Href)}
-          >
-            <View style={styles.featuredBadge}>
-              <MaterialCommunityIcons
-                name="calendar-star"
-                size={16}
-                color="#FFFFFF"
-              />
-              <ThemedText style={styles.featuredBadgeText}>
-                Quiz du jour
-              </ThemedText>
-            </View>
-
-            <ThemedText
-              style={[styles.featuredTitle, isDark && styles.featuredTitleDark]}
-            >
-              {featuredQuiz.quiz.name}
-            </ThemedText>
-
-            <ThemedText
-              style={[
-                styles.featuredSubtitle,
-                isDark && styles.featuredSubtitleDark,
-              ]}
-            >
-              Le même quiz est proposé aujourd&apos;hui à tous les élèves de {programTitle}.
-            </ThemedText>
-
-            <View style={styles.featuredFooter}>
-              <ThemedText
-                style={[styles.featuredMeta, isDark && styles.featuredMetaDark]}
-              >
-                {featuredQuiz.progress
-                  ? `${Math.round(featuredQuiz.progress)}% meilleur score`
-                  : "Nouveau défi du jour"}
-              </ThemedText>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={theme.color.primary[500]}
-              />
-            </View>
-          </Pressable>
-        </Animated.View>
-      )}
 
       {/* Quiz list */}
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>

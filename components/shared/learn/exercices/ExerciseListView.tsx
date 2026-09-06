@@ -68,7 +68,6 @@ export interface ExerciseListViewProps {
   onBack?: () => void;
   onPinToggle?: (exerciseId: number) => Promise<void>;
   onCompletionToggle?: (exerciseId: number) => Promise<void>;
-  featuredExercise?: ExerciseListItem;
 }
 
 type FilterType = "all" | "pinned" | "uncompleted";
@@ -88,7 +87,6 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
   onBack,
   onPinToggle,
   onCompletionToggle,
-  featuredExercise,
 }) => {
   const router = useRouter();
   const { trigger } = useHaptics();
@@ -150,14 +148,6 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
   const clearSearch = () => {
     setSearchQuery("");
   };
-  const featuredExerciseRoute = featuredExercise
-    ? `${baseRoute}/${featuredExercise.exercise.id}${
-        featuredExercise.dailyContentItemId
-          ? `?dailyContentItemId=${featuredExercise.dailyContentItemId}`
-          : ""
-      }`
-    : null;
-
   // Handle back button
   const handleBack = () => {
     trigger(HapticType.LIGHT);
@@ -451,48 +441,6 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
           {(totalCount || filteredExercises.length) !== 1 ? "s" : ""}
         </ThemedText>
       </View>
-
-      {featuredExercise && featuredExerciseRoute && (
-        <View style={[styles.featuredCardWrapper, isDark && styles.featuredCardWrapperDark]}>
-          <Pressable
-            style={[styles.featuredCard, isDark && styles.featuredCardDark]}
-            onPress={() => {
-              trigger(HapticType.LIGHT);
-              router.push(featuredExerciseRoute as Href);
-            }}
-          >
-            <View style={styles.featuredBadge}>
-              <MaterialCommunityIcons
-                name="flash-outline"
-                size={16}
-                color="#FFFFFF"
-              />
-              <ThemedText style={styles.featuredBadgeText}>
-                Exercice du jour
-              </ThemedText>
-            </View>
-
-            <ThemedText style={[styles.featuredTitle, isDark && styles.featuredTitleDark]}>
-              {featuredExercise.exercise.title}
-            </ThemedText>
-
-            <ThemedText style={[styles.featuredSubtitle, isDark && styles.featuredSubtitleDark]}>
-              Le même exercice est proposé aujourd&apos;hui à tous les élèves de {programTitle}.
-            </ThemedText>
-
-            <View style={styles.featuredFooter}>
-              <ThemedText style={[styles.featuredMeta, isDark && styles.featuredMetaDark]}>
-                {featuredExercise.isCompleted ? "Déjà terminé" : "À faire aujourd'hui"}
-              </ThemedText>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={theme.color.primary[500]}
-              />
-            </View>
-          </Pressable>
-        </View>
-      )}
 
       {/* Exercise list */}
       <FlatList

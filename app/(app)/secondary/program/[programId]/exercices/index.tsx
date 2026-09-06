@@ -171,18 +171,6 @@ export default function ExercisesList() {
     }).filter(Boolean);
   }, [allExercises, dailyContent?.exercises, programId]);
 
-  const dailyExercise = useMemo(() => {
-    const primaryDailyExercise = dailyContent?.exercises?.[0];
-    if (!primaryDailyExercise) return undefined;
-
-    return (
-      exercisesWithDetails as NonNullable<typeof exercisesWithDetails>
-    ).find(
-      (item) =>
-        String(item?.exercise?.id) === primaryDailyExercise.exerciseId
-    );
-  }, [dailyContent?.exercises, exercisesWithDetails]);
-
   // Extract unique categories from exercises
   const categories = useMemo(() => {
     if (!exercisesWithDetails || !allCategories) return [];
@@ -322,7 +310,6 @@ export default function ExercisesList() {
       programTitle={programTitle}
       programId={programId}
       baseRoute={`/(app)/secondary/program/${programId}/exercices`}
-      featuredExercise={dailyExercise ?? undefined}
       onPinToggle={handlePinToggle}
       onCompletionToggle={handleCompletionToggle}
     />
