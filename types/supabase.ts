@@ -912,18 +912,21 @@ export type Database = {
         Row: {
           code: string | null
           created_at: string | null
+          currency_code: string | null
           id: string
           name: string
         }
         Insert: {
           code?: string | null
           created_at?: string | null
+          currency_code?: string | null
           id?: string
           name: string
         }
         Update: {
           code?: string | null
           created_at?: string | null
+          currency_code?: string | null
           id?: string
           name?: string
         }
@@ -1791,6 +1794,27 @@ export type Database = {
           title?: string
           updated_at?: string | null
           url?: string
+        }
+        Relationships: []
+      }
+      exchange_rates: {
+        Row: {
+          currency_code: string
+          source: string | null
+          units_per_xaf: number
+          updated_at: string | null
+        }
+        Insert: {
+          currency_code: string
+          source?: string | null
+          units_per_xaf: number
+          updated_at?: string | null
+        }
+        Update: {
+          currency_code?: string
+          source?: string | null
+          units_per_xaf?: number
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -5557,35 +5581,56 @@ export type Database = {
       user_secondary_payments: {
         Row: {
           amount: number
+          created_at: string | null
           expiry_date: string | null
+          has_seen_result: boolean | null
           id: string
           payment_date: string | null
+          payment_provider: string | null
+          payment_reference: string | null
           payment_status: string | null
+          phone_number: string | null
+          plan: string | null
           program_id: string | null
           promo_code_id: string | null
           transaction_id: string | null
+          updated_at: string | null
           user_id: string | null
         }
         Insert: {
           amount: number
+          created_at?: string | null
           expiry_date?: string | null
+          has_seen_result?: boolean | null
           id?: string
           payment_date?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
           payment_status?: string | null
+          phone_number?: string | null
+          plan?: string | null
           program_id?: string | null
           promo_code_id?: string | null
           transaction_id?: string | null
+          updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           amount?: number
+          created_at?: string | null
           expiry_date?: string | null
+          has_seen_result?: boolean | null
           id?: string
           payment_date?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
           payment_status?: string | null
+          phone_number?: string | null
+          plan?: string | null
           program_id?: string | null
           promo_code_id?: string | null
           transaction_id?: string | null
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -6719,3 +6764,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.117.0 (currently installed v2.116.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
