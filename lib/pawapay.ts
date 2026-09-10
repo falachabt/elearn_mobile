@@ -1,4 +1,5 @@
 import axios from "axios";
+import * as Updates from "expo-updates";
 
 import { logger } from "@/utils/logger";
 
@@ -8,6 +9,14 @@ import { logger } from "@/utils/logger";
  * talks to PawaPay directly. We call our own backoffice endpoints instead.
  */
 const API_BASE = "https://staff.elearnprepa.com/api/payments/pawapay";
+
+/**
+ * "preview" EAS Update channel (and local dev) route through PawaPay's
+ * sandbox environment server-side, so testers never move real money.
+ * Only the "production" channel (real Play Store/App Store builds) hits
+ * the live PawaPay account.
+ */
+export const isSandboxPawaPay = (): boolean => __DEV__ || Updates.channel === "preview";
 
 export interface PawaPayDepositParams {
   depositId: string;
@@ -95,7 +104,11 @@ export const PawaPayService = {
    */
   async initiateDeposit(params: PawaPayDepositParams): Promise<PawaPayDepositResult> {
     try {
-      const { data } = await axios.post(`${API_BASE}/deposit`, params, { timeout: 30000 });
+      const { data } = await axios.post(
+        `${API_BASE}/deposit`,
+        { ...params, sandbox: isSandboxPawaPay() },
+        { timeout: 30000 }
+      );
       return data as PawaPayDepositResult;
     } catch (error) {
       const axErr = axios.isAxiosError(error) ? error.response?.data : null;
@@ -112,7 +125,10 @@ export const PawaPayService = {
    */
   async checkStatus(depositId: string): Promise<PawaPayStatusResult> {
     try {
-      const { data } = await axios.get(`${API_BASE}/status/${depositId}`, { timeout: 20000 });
+      const { data } = await axios.get(`${API_BASE}/status/${depositId}`, {
+        params: { sandbox: isSandboxPawaPay() },
+        timeout: 20000,
+      });
       return data as PawaPayStatusResult;
     } catch (error) {
       const axErr = axios.isAxiosError(error) ? error.response?.data : null;
