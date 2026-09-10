@@ -51,10 +51,21 @@ export const CourseHeader = ({
             </ThemedText>
           </View>
         </View>
-        <ThemedText style={[styles.courseInfo, isDark && styles.courseInfoDark]}>
-          {categoryName ? `${categoryName} • ` : ""}
-          {sectionsCount} sections • {videosCount} vidéos
-        </ThemedText>
+        <View style={styles.courseInfoRow}>
+          {categoryName ? (
+            <ThemedText
+              style={[styles.courseInfo, isDark && styles.courseInfoDark, styles.categoryNameText]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {categoryName}
+            </ThemedText>
+          ) : null}
+          <ThemedText style={[styles.courseInfo, isDark && styles.courseInfoDark]}>
+            {categoryName ? " • " : ""}
+            {sectionsCount} sections • {videosCount} vidéos
+          </ThemedText>
+        </View>
       </View>
     </View>
   );
@@ -96,6 +107,10 @@ const styles = StyleSheet.create({
   courseTitleDark: {
     color: "#FFFFFF",
   },
+  courseInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   courseInfo: {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
@@ -103,6 +118,9 @@ const styles = StyleSheet.create({
   },
   courseInfoDark: {
     color: "#9CA3AF",
+  },
+  categoryNameText: {
+    flexShrink: 1,
   },
   badge: {
     flexDirection: "row",

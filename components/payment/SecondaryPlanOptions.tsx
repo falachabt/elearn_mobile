@@ -15,10 +15,9 @@ import { theme } from "@/constants/theme";
 import { ThemedText } from "@/components/ThemedText";
 import WhatsAppContact from "@/components/WhatsappSupport";
 import {
-  SECONDARY_PLAN_DESCRIPTIONS,
   SECONDARY_PLAN_LABELS,
-  SECONDARY_PLAN_PRICES_XAF,
   SecondaryPlan,
+  secondaryPlanDescription,
 } from "@/types/secondaryPayment.types";
 import {
   convertXafToLocal,
@@ -26,6 +25,10 @@ import {
   getExchangeRates,
   ExchangeRate,
 } from "@/services/currency.service";
+import {
+  getSecondaryPlansConfig,
+  SecondaryPlanConfig,
+} from "@/services/secondary/secondaryPlansConfig.service";
 
 const PLANS: SecondaryPlan[] = ["monthly", "quarterly", "semiannual"];
 
@@ -34,7 +37,7 @@ interface SecondaryPlanOptionsProps {
   currencyCode: string;
   isDark: boolean;
   isLoading: boolean;
-  onPayment: (data: { phoneNumber: string; plan: SecondaryPlan }) => void;
+  onPayment: (data: { phoneNumber: string; plan: SecondaryPlan; amountXaf: number }) => void;
   /** Si fourni, le plan a déjà été choisi (SecondaryPlanPickerSheet) -- on
    * saute le choix de plan et va direct au numéro de téléphone. */
   preselectedPlan?: SecondaryPlan;
@@ -51,19 +54,31 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<SecondaryPlan>(preselectedPlan ?? "monthly");
   const [rates, setRates] = useState<ExchangeRate[]>([]);
+  const [plansConfig, setPlansConfig] = useState<Record<SecondaryPlan, SecondaryPlanConfig> | null>(null);
 
   useEffect(() => {
     getExchangeRates().then(setRates);
+    getSecondaryPlansConfig().then(setPlansConfig);
   }, []);
 
+  const priceXafFor = (plan: SecondaryPlan) => plansConfig?.[plan]?.price_xaf;
+
   const localPriceLabel = (plan: SecondaryPlan) => {
-    const priceXaf = SECONDARY_PLAN_PRICES_XAF[plan];
+    const priceXaf = priceXafFor(plan);
+    if (priceXaf === undefined) return "…";
     if (currencyCode === "XAF") return `${priceXaf} FCFA`;
     const local = convertXafToLocal(priceXaf, currencyCode, rates);
     return `${formatLocalPrice(local, currencyCode)} (${priceXaf} FCFA)`;
   };
 
-  const handlePayment = () => onPayment({ phoneNumber, plan: selectedPlan });
+  const descriptionFor = (plan: SecondaryPlan) =>
+    plansConfig ? secondaryPlanDescription(plansConfig[plan].duration_months) : "";
+
+  const handlePayment = () => {
+    const amountXaf = priceXafFor(selectedPlan);
+    if (amountXaf === undefined) return; // config pas encore chargée
+    onPayment({ phoneNumber, plan: selectedPlan, amountXaf });
+  };
 
   return (
     <KeyboardAvoidingView
@@ -93,7 +108,7 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
                   {SECONDARY_PLAN_LABELS[preselectedPlan]} — {localPriceLabel(preselectedPlan)}
                 </ThemedText>
                 <ThemedText style={styles.planDescription}>
-                  {SECONDARY_PLAN_DESCRIPTIONS[preselectedPlan]}
+                  {descriptionFor(preselectedPlan)}
                 </ThemedText>
               </View>
             </View>
@@ -122,7 +137,7 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
                     {SECONDARY_PLAN_LABELS[plan]} — {localPriceLabel(plan)}
                   </ThemedText>
                   <ThemedText style={styles.planDescription}>
-                    {SECONDARY_PLAN_DESCRIPTIONS[plan]}
+                    {descriptionFor(plan)}
                   </ThemedText>
                 </View>
               </TouchableOpacity>
@@ -147,11 +162,11 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
             styles.payButton,
             {
               backgroundColor: isDark ? theme.color.primary[600] : theme.color.primary[500],
-              opacity: isLoading || !phoneNumber.trim() ? 0.5 : 1,
+              opacity: isLoading || !phoneNumber.trim() || !plansConfig ? 0.5 : 1,
             },
           ]}
           onPress={handlePayment}
-          disabled={isLoading || !phoneNumber.trim()}
+          disabled={isLoading || !phoneNumber.trim() || !plansConfig}
         >
           <View style={styles.payButtonContent}>
             <MaterialCommunityIcons name="cellphone" size={24} color="#FFFFFF" />

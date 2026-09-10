@@ -4,6 +4,9 @@
 
 export type SecondaryPlan = 'monthly' | 'quarterly' | 'semiannual';
 
+// Prix par défaut/fallback : le vrai prix + durée affichés viennent de
+// services/secondary/secondaryPlansConfig.service.ts (app_config.data.secondary_plans,
+// éditable depuis le backoffice). Ces constantes ne servent que si la lecture DB échoue.
 export const SECONDARY_PLAN_PRICES_XAF: Record<SecondaryPlan, number> = {
   monthly: 1000,
   quarterly: 2000,
@@ -16,11 +19,8 @@ export const SECONDARY_PLAN_LABELS: Record<SecondaryPlan, string> = {
   semiannual: 'Semestriel',
 };
 
-export const SECONDARY_PLAN_DESCRIPTIONS: Record<SecondaryPlan, string> = {
-  monthly: '1 mois d\'accès',
-  quarterly: '3 mois d\'accès',
-  semiannual: '6 mois d\'accès',
-};
+export const secondaryPlanDescription = (durationMonths: number): string =>
+  `${durationMonths} mois d'accès`;
 
 export type SecondaryPaymentStatus =
   | 'pending'

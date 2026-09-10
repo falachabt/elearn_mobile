@@ -17,10 +17,7 @@ import { PawaPayService, pawapayFailureMessage } from "@/lib/pawapay";
 import { PaymentProcessing } from "@/components/payment";
 import { SecondaryPlanOptions } from "@/components/payment/SecondaryPlanOptions";
 import WhatsAppContact from "@/components/WhatsappSupport";
-import {
-  SECONDARY_PLAN_PRICES_XAF,
-  SecondaryPlan,
-} from "@/types/secondaryPayment.types";
+import { SecondaryPlan } from "@/types/secondaryPayment.types";
 
 // Numéros MTN Cameroun (mêmes restrictions que le paiement concours -- voir
 // app/(app)/learn/[pdId]/payment.tsx : seul MTN MoMo Cameroun est supporté
@@ -111,7 +108,15 @@ const SecondaryPaymentPage = () => {
     }, POLL_INTERVAL_MS);
   };
 
-  const handlePayment = async ({ phoneNumber, plan }: { phoneNumber: string; plan: SecondaryPlan }) => {
+  const handlePayment = async ({
+    phoneNumber,
+    plan,
+    amountXaf,
+  }: {
+    phoneNumber: string;
+    plan: SecondaryPlan;
+    amountXaf: number;
+  }) => {
     if (!CM_PHONE_REGEX.test(phoneNumber)) {
       setErrorMessage("Numéro invalide. Utilisez un numéro MTN (ex: 650123456).");
       setState("failed");
@@ -124,7 +129,7 @@ const SecondaryPaymentPage = () => {
 
     try {
       const depositId = Crypto.randomUUID();
-      const amount = __DEV__ ? DEV_TEST_AMOUNT : SECONDARY_PLAN_PRICES_XAF[plan];
+      const amount = __DEV__ ? DEV_TEST_AMOUNT : amountXaf;
 
       const payment = await SecondaryPaymentService.createPayment(
         programId,

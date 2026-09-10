@@ -25,6 +25,7 @@ interface CourseRowItemProps {
 const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRoute, isDark, type = "prepa", isEnrolled = false, onCoursePress}) => {
     const router = useRouter();
     void pdId;
+    void type;
     const course = courseItem.course ?? undefined;
     const sections =
         course && 'courses_content' in course && Array.isArray(course.courses_content)
@@ -44,12 +45,13 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRout
     const {trigger} = useHaptics();
     const {categories} = useCategories();
     // Pour secondary, course.category est un id (string) à résoudre via
-    // courses_categories ; pour prepa, c'est déjà un objet {name, icon}.
-    const categoryName =
-        type === "secondary"
-            ? categories?.find((cat) => cat.id === course?.category)?.name || "Général"
-            : (typeof course?.category === 'string' ? course.category : course?.category?.name);
-    const categoryIcon = type === "prepa" && typeof course?.category === 'object' ? course.category?.icon : null;
+    // courses_categories ; pour prepa, c'est déjà un objet {name, icon} joint.
+    const categoryObj =
+        course?.category && typeof course.category === 'object'
+            ? course.category
+            : categories?.find((cat) => cat.id === course?.category);
+    const categoryName = categoryObj?.name || "Général";
+    const categoryIcon = categoryObj?.icon || null;
     const categoryTheme = getCategoryTheme(categoryName);
 
     return (
@@ -127,26 +129,31 @@ const CourseRowItem: React.FC<CourseRowItemProps> = ({courseItem, pdId, baseRout
                             {course?.name}
                         </ThemedText>
                         <View style={styles.courseMetricsContainer}>
-                            <ThemedText style={[styles.courseMetrics, isDark && styles.courseMetricsDark]}>
-                                {categoryName} • {sections} sections • {videos} vidéos
+                            <ThemedText
+                                style={[styles.courseMetrics, isDark && styles.courseMetricsDark, styles.categoryNameText]}
+                                numberOfLines={1}
+                                ellipsizeMode="tail"
+                            >
+                                {categoryName}
                             </ThemedText>
-                            {!isEnrolled && (
-                                <View style={[styles.previewBadge, isDark && styles.previewBadgeDark]}>
-                                    <MaterialCommunityIcons
-                                        name="eye-outline"
-                                        size={12}
-                                        color="#FFFFFF"
-                                    />
-                                    <ThemedText style={styles.previewText}>Aperçu</ThemedText>
-                                </View>
-                            )}
+                            <ThemedText style={[styles.courseMetrics, isDark && styles.courseMetricsDark]}>
+                                {" "}• {sections} sections • {videos} vidéos
+                            </ThemedText>
                         </View>
                     </View>
-                    <MaterialCommunityIcons
-                        name="chevron-right"
-                        size={24}
-                        color={isDark ? "#6B7280" : "#9CA3AF"}
-                    />
+                    {isEnrolled ? (
+                        <MaterialCommunityIcons
+                            name="chevron-right"
+                            size={24}
+                            color={isDark ? "#6B7280" : "#9CA3AF"}
+                        />
+                    ) : (
+                        <MaterialCommunityIcons
+                            name="lock-outline"
+                            size={20}
+                            color={isDark ? "#6B7280" : "#9CA3AF"}
+                        />
+                    )}
                 </View>
 
                 {isEnrolled && (
@@ -178,26 +185,9 @@ const styles = StyleSheet.create({
     courseMetricsContainer: {
         flexDirection: "row",
         alignItems: "center",
-        flexWrap: "wrap",
     },
-    previewBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(16, 185, 129, 0.8)',
-        borderRadius: 12,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        marginLeft: 8,
-    },
-    previewBadgeDark: {
-        backgroundColor: 'rgba(16, 185, 129, 0.6)',
-    },
-    previewText: {
-        color: '#FFFFFF',
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 10,
-        fontWeight: '600',
-        marginLeft: 2,
+    categoryNameText: {
+        flexShrink: 1,
     },
     courseContent: {
         padding: 16,

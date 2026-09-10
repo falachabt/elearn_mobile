@@ -6,10 +6,9 @@ import Modal from "react-native-modal";
 import { ThemedText } from "@/components/ThemedText";
 import { theme } from "@/constants/theme";
 import {
-  SECONDARY_PLAN_DESCRIPTIONS,
   SECONDARY_PLAN_LABELS,
-  SECONDARY_PLAN_PRICES_XAF,
   SecondaryPlan,
+  secondaryPlanDescription,
 } from "@/types/secondaryPayment.types";
 import {
   convertXafToLocal,
@@ -17,6 +16,10 @@ import {
   getExchangeRates,
   ExchangeRate,
 } from "@/services/currency.service";
+import {
+  getSecondaryPlansConfig,
+  SecondaryPlanConfig,
+} from "@/services/secondary/secondaryPlansConfig.service";
 
 const { height } = Dimensions.get("window");
 const PLANS: SecondaryPlan[] = ["monthly", "quarterly", "semiannual"];
@@ -46,17 +49,25 @@ export const SecondaryPlanPickerSheet: React.FC<SecondaryPlanPickerSheetProps> =
 }) => {
   const [selectedPlan, setSelectedPlan] = useState<SecondaryPlan>("monthly");
   const [rates, setRates] = useState<ExchangeRate[]>([]);
+  const [plansConfig, setPlansConfig] = useState<Record<SecondaryPlan, SecondaryPlanConfig> | null>(null);
 
   useEffect(() => {
-    if (visible) getExchangeRates().then(setRates);
+    if (visible) {
+      getExchangeRates().then(setRates);
+      getSecondaryPlansConfig().then(setPlansConfig);
+    }
   }, [visible]);
 
   const localPriceLabel = (plan: SecondaryPlan) => {
-    const priceXaf = SECONDARY_PLAN_PRICES_XAF[plan];
+    const priceXaf = plansConfig?.[plan]?.price_xaf;
+    if (priceXaf === undefined) return "…";
     if (currencyCode === "XAF") return `${priceXaf} FCFA`;
     const local = convertXafToLocal(priceXaf, currencyCode, rates);
     return `${formatLocalPrice(local, currencyCode)} (${priceXaf} FCFA)`;
   };
+
+  const descriptionFor = (plan: SecondaryPlan) =>
+    plansConfig ? secondaryPlanDescription(plansConfig[plan].duration_months) : "";
 
   return (
     <Modal
@@ -105,7 +116,7 @@ export const SecondaryPlanPickerSheet: React.FC<SecondaryPlanPickerSheetProps> =
                   {SECONDARY_PLAN_LABELS[plan]} — {localPriceLabel(plan)}
                 </ThemedText>
                 <ThemedText style={styles.planDescription}>
-                  {SECONDARY_PLAN_DESCRIPTIONS[plan]}
+                  {descriptionFor(plan)}
                 </ThemedText>
               </View>
             </Pressable>
