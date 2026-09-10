@@ -35,6 +35,11 @@ type FlowState = "loading" | "plan_selection" | "processing" | "verifying" | "su
 const SecondaryPaymentPage = () => {
   const local = useLocalSearchParams();
   const programId = local.programId as string;
+  const preselectedPlan = (["monthly", "quarterly", "semiannual"] as const).includes(
+    local.plan as never
+  )
+    ? (local.plan as SecondaryPlan)
+    : undefined;
   const router = useRouter();
   const { user } = useAuth();
   const scheme = useColorScheme();
@@ -181,6 +186,7 @@ const SecondaryPaymentPage = () => {
             currencyCode={currencyCode}
             isDark={isDark}
             isLoading={false}
+            preselectedPlan={preselectedPlan}
             onPayment={handlePayment}
           />
         );

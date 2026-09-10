@@ -35,6 +35,9 @@ interface SecondaryPlanOptionsProps {
   isDark: boolean;
   isLoading: boolean;
   onPayment: (data: { phoneNumber: string; plan: SecondaryPlan }) => void;
+  /** Si fourni, le plan a déjà été choisi (SecondaryPlanPickerSheet) -- on
+   * saute le choix de plan et va direct au numéro de téléphone. */
+  preselectedPlan?: SecondaryPlan;
 }
 
 export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
@@ -43,9 +46,10 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
   isDark,
   isLoading,
   onPayment,
+  preselectedPlan,
 }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState<SecondaryPlan>("monthly");
+  const [selectedPlan, setSelectedPlan] = useState<SecondaryPlan>(preselectedPlan ?? "monthly");
   const [rates, setRates] = useState<ExchangeRate[]>([]);
 
   useEffect(() => {
@@ -70,39 +74,61 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
         <View style={styles.header}>
           <ThemedText style={styles.title}>Abonnement pour {programName}</ThemedText>
           <ThemedText style={styles.subtitle}>
-            Choisissez la durée de votre abonnement
+            {preselectedPlan
+              ? "Confirmez votre numéro pour finaliser l'abonnement"
+              : "Choisissez la durée de votre abonnement"}
           </ThemedText>
         </View>
 
-        <View style={[styles.planList, isDark && styles.planListDark]}>
-          {PLANS.map((plan) => (
-            <TouchableOpacity
-              key={plan}
-              style={[styles.planOption, selectedPlan === plan && styles.planSelected]}
-              onPress={() => setSelectedPlan(plan)}
-            >
+        {preselectedPlan ? (
+          <View style={[styles.planList, isDark && styles.planListDark]}>
+            <View style={[styles.planOption, styles.planSelected]}>
               <MaterialCommunityIcons
-                name={selectedPlan === plan ? "radiobox-marked" : "radiobox-blank"}
+                name="check-circle"
                 size={24}
-                color={
-                  selectedPlan === plan
-                    ? isDark
-                      ? theme.color.primary[300]
-                      : theme.color.primary[500]
-                    : theme.color.gray[400]
-                }
+                color={isDark ? theme.color.primary[300] : theme.color.primary[500]}
               />
               <View style={styles.planTextContainer}>
                 <ThemedText style={styles.planTitle}>
-                  {SECONDARY_PLAN_LABELS[plan]} — {localPriceLabel(plan)}
+                  {SECONDARY_PLAN_LABELS[preselectedPlan]} — {localPriceLabel(preselectedPlan)}
                 </ThemedText>
                 <ThemedText style={styles.planDescription}>
-                  {SECONDARY_PLAN_DESCRIPTIONS[plan]}
+                  {SECONDARY_PLAN_DESCRIPTIONS[preselectedPlan]}
                 </ThemedText>
               </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+            </View>
+          </View>
+        ) : (
+          <View style={[styles.planList, isDark && styles.planListDark]}>
+            {PLANS.map((plan) => (
+              <TouchableOpacity
+                key={plan}
+                style={[styles.planOption, selectedPlan === plan && styles.planSelected]}
+                onPress={() => setSelectedPlan(plan)}
+              >
+                <MaterialCommunityIcons
+                  name={selectedPlan === plan ? "radiobox-marked" : "radiobox-blank"}
+                  size={24}
+                  color={
+                    selectedPlan === plan
+                      ? isDark
+                        ? theme.color.primary[300]
+                        : theme.color.primary[500]
+                      : theme.color.gray[400]
+                  }
+                />
+                <View style={styles.planTextContainer}>
+                  <ThemedText style={styles.planTitle}>
+                    {SECONDARY_PLAN_LABELS[plan]} — {localPriceLabel(plan)}
+                  </ThemedText>
+                  <ThemedText style={styles.planDescription}>
+                    {SECONDARY_PLAN_DESCRIPTIONS[plan]}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         <View style={styles.inputContainer}>
           <ThemedText style={styles.inputLabel}>Numéro de téléphone (MTN Mobile Money)</ThemedText>

@@ -23,6 +23,10 @@ import { useSecondaryDailyContent } from "@/hooks/secondary/useSecondaryDailyCon
 import { useSecondaryEnrollments } from "@/hooks/secondary/useSecondaryEnrollments";
 import { useMyDiscussionGroup } from "@/hooks/useDiscussionGroup";
 import { useGroupUnread } from "@/hooks/useGroupUnread";
+import { useUser } from "@/contexts/useUserInfo";
+import { getCountryCurrency } from "@/services/currency.service";
+import { SecondaryPlanPickerSheet } from "@/components/shared/secondary/SecondaryPlanPickerSheet";
+import { SecondaryPlan } from "@/types/secondaryPayment.types";
 
 interface ActionCard {
   id: string;
@@ -63,6 +67,22 @@ const SecondaryProgramDetails = () => {
 
   // Inscription réelle depuis user_secondary_enrollments (source de vérité)
   const { isEnrolled: checkEnrolled } = useSecondaryEnrollments();
+
+  // Accès payant réel (abonnement) -- distinct de checkEnrolled ci-dessus,
+  // qui ne reflète que la sélection gratuite de classe.
+  const { isSecondaryProgramEnrolled } = useUser();
+  const hasPaidAccess = programId ? isSecondaryProgramEnrolled(programId) : false;
+  const [showPlanSheet, setShowPlanSheet] = React.useState(false);
+  const [currencyCode, setCurrencyCode] = React.useState("XAF");
+
+  React.useEffect(() => {
+    getCountryCurrency(user?.country_id).then(setCurrencyCode);
+  }, [user?.country_id]);
+
+  const handleSelectPlan = (plan: SecondaryPlan) => {
+    setShowPlanSheet(false);
+    router.push(`/secondary/program/${programId}/payment?plan=${plan}` as Href);
+  };
   const isEnrolled = programId ? checkEnrolled(programId) : false;
 
   // Groupe de discussion du programme (assigné par trigger à l'inscription)
@@ -400,7 +420,7 @@ const SecondaryProgramDetails = () => {
               <ThemedText
                 style={[styles.priceTag, isDark && styles.priceTagDark]}
               >
-                {program.price ? `${program.price} FCFA` : "Gratuit"}
+                {hasPaidAccess ? "Abonné" : "Verrouillé"}
               </ThemedText>
             </View>
           </View>
@@ -425,6 +445,20 @@ const SecondaryProgramDetails = () => {
             </View>
           </View>
         </View>
+
+        {/* Débloquer la formation (abonnement payant) */}
+        {!hasPaidAccess && (
+          <Pressable
+            style={[styles.unlockButton, isDark && styles.unlockButtonDark]}
+            onPress={() => {
+              trigger(HapticType.SELECTION);
+              setShowPlanSheet(true);
+            }}
+          >
+            <MaterialCommunityIcons name="lock-open-variant-outline" size={20} color="#FFFFFF" />
+            <ThemedText style={styles.unlockButtonText}>Débloquer la formation</ThemedText>
+          </Pressable>
+        )}
 
         {/* Enrollment Status */}
         {!isEnrolled && (
@@ -497,6 +531,15 @@ const SecondaryProgramDetails = () => {
           ))}
         </View>
       </ScrollView>
+
+      <SecondaryPlanPickerSheet
+        visible={showPlanSheet}
+        onClose={() => setShowPlanSheet(false)}
+        programName={`${program.class?.name ?? ""} ${program.serie?.name ?? ""}`.trim() || "votre classe"}
+        currencyCode={currencyCode}
+        isDark={isDark}
+        onNext={handleSelectPlan}
+      />
     </View>
   );
 };
@@ -604,6 +647,26 @@ const styles = StyleSheet.create({
   },
   descriptionDark: {
     color: "#9CA3AF",
+  },
+  unlockButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: theme.color.primary[500],
+  },
+  unlockButtonDark: {
+    backgroundColor: theme.color.primary[600],
+  },
+  unlockButtonText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   statusBanner: {
     padding: 12,
