@@ -1,8 +1,4 @@
 const { createClient } = require('@supabase/supabase-js');
-const { Expo } = require('expo-server-sdk');
-
-// Initialize Expo SDK
-const expo = new Expo();
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -45,6 +41,11 @@ const inactivityMessages = [
 
 async function sendInactivityReminders() {
   try {
+    // Dynamically import expo-server-sdk to support both ESM and CommonJS
+    const expoSdk = await import('expo-server-sdk');
+    const Expo = expoSdk.Expo || expoSdk.default;
+    const expo = new Expo();
+
     console.log('Starting inactivity reminder process...');
 
     // Get current time

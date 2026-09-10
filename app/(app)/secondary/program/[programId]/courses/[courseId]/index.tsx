@@ -91,8 +91,7 @@ const SecondaryCourseDetail = () => {
   // Handle purchase or enrollment flow
   const handlePurchaseFlow = () => {
     trigger(HapticType.SELECTION);
-    // Navigate to secondary program purchase page
-    router.push(`/(app)/secondary/program/${programId}`);
+    router.navigateToSecondaryPayment(String(programId));
   };
 
   // Handle locked content access attempts

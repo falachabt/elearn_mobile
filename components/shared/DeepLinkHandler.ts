@@ -3,6 +3,7 @@ import {Linking} from 'react-native';
 import {useRouter} from "expo-router";
 
 import {supabase} from '@/lib/supabase';
+import { exchangeCodeForSessionOnce } from '@/lib/oauthExchange';
 import { logger } from '@/utils/logger';
 
 
@@ -50,7 +51,7 @@ const AuthDeepLinkHandler: React.FC<AuthDeepLinkHandlerProps> = ({onAuthSuccess,
                     // If there's a code/token, process the authentication
                     if (params.access_token || params.refresh_token || params.code) {
                         if (params.code) {
-                            const { error } = await supabase.auth.exchangeCodeForSession(params.code);
+                            const { error } = await exchangeCodeForSessionOnce(params.code);
 
                             if (error) {
                                 logger.error('Error exchanging OAuth code:', error);

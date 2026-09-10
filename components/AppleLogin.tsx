@@ -3,6 +3,7 @@ import { Alert, TouchableOpacity, Platform} from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 
 import {supabase} from "@/lib/supabase";
+import { exchangeCodeForSessionOnce } from '@/lib/oauthExchange';
 import { logger } from '@/utils/logger';
 
 // Register for redirect URI handling
@@ -86,7 +87,7 @@ export default function AppleAuth({ onAuthSuccess, children }: AppleAuthProps) {
                 if (code) {
                     logger.log('[AppleAuth] Exchanging authorization code for session');
 
-                    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+                    const { error: exchangeError } = await exchangeCodeForSessionOnce(code);
 
                     if (exchangeError) {
                         logger.error('[AppleAuth] Error exchanging code for session:', exchangeError);

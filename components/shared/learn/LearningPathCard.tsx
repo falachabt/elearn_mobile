@@ -180,58 +180,18 @@ const ModernLearningPathCard = ({path, previewMode = false}: { path: LearningPat
                         </View>
                     </View>
 
-                    {/* Course statistics */}
-                    <View style={[styles.statsRow, isDarkMode && styles.statsRowDark]}>
-                        <View style={styles.statItem}>
+                    {enrolledCount > 0 && (
+                        <View style={styles.socialProofRow}>
                             <MaterialCommunityIcons
-                                name="book-open-page-variant"
-                                size={16}
-                                color={!isEnrolled && !previewMode ? '#9CA3AF' : theme.color.primary[500]}
+                                name="account-group-outline"
+                                size={14}
+                                color={isDarkMode ? '#9CA3AF' : '#6B7280'}
                             />
-                            <Text style={[styles.statText, isDarkMode && styles.statTextDark]}>
-                                {path.course_count}
-                            </Text>
-                            <Text style={[styles.statLabel, isDarkMode && styles.statLabelDark]}>
-                                cours
+                            <Text style={[styles.socialProofText, isDarkMode && styles.socialProofTextDark]}>
+                                {enrolledCount} {enrolledCount > 1 ? 'inscrits' : 'inscrit'}
                             </Text>
                         </View>
-
-                        <View style={styles.statDivider}/>
-
-                        <View style={styles.statItem}>
-                            <MaterialCommunityIcons
-                                name="help-circle-outline"
-                                size={16}
-                                color={!isEnrolled && !previewMode ? '#9CA3AF' : theme.color.primary[500]}
-                            />
-                            <Text style={[styles.statText, isDarkMode && styles.statTextDark]}>
-                                {path.quiz_count}
-                            </Text>
-                            <Text style={[styles.statLabel, isDarkMode && styles.statLabelDark]}>
-                                quiz
-                            </Text>
-                        </View>
-
-                        {enrolledCount > 0 && (
-                            <>
-                                <View style={styles.statDivider}/>
-
-                                <View style={styles.statItem}>
-                                    <MaterialCommunityIcons
-                                        name="account-group"
-                                        size={16}
-                                        color={!isEnrolled && !previewMode ? '#9CA3AF' : theme.color.primary[500]}
-                                    />
-                                    <Text style={[styles.statText, isDarkMode && styles.statTextDark]}>
-                                        {enrolledCount}
-                                    </Text>
-                                    <Text style={[styles.statLabel, isDarkMode && styles.statLabelDark]}>
-                                        inscrits
-                                    </Text>
-                                </View>
-                            </>
-                        )}
-                    </View>
+                    )}
 
                     {(isEnrolled || previewMode) && (
                         <View style={styles.progressSection}>
@@ -404,13 +364,13 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         flex: 1,
-        padding: 16,
+        padding: 20,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
     },
     schoolBadge: {
         flexDirection: 'row',
@@ -451,50 +411,23 @@ const styles = StyleSheet.create({
     schoolTextDark: {
         color: '#D1D5DB',
     },
-    statsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#F9FAFB',
-        borderRadius: 5,
-        padding: 10,
-        marginBottom: 12,
-    },
-    statsRowDark: {
-        backgroundColor: '#374151',
-    },
-    statItem: {
+    socialProofRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        flex: 1,
+        gap: 5,
+        marginBottom: 16,
     },
-    statDivider: {
-        height: 20,
-        width: 1,
-        backgroundColor: '#E5E7EB',
-    },
-    statText: {
+    socialProofText: {
         fontFamily: theme.typography.fontFamily,
         fontSize: 12,
         fontWeight: '500',
-        color: '#1F2937',
-        marginLeft: 4,
-    },
-    statTextDark: {
-        color: '#F9FAFB',
-    },
-    statLabel: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 12,
         color: '#6B7280',
-        marginLeft: 2,
     },
-    statLabelDark: {
-        color: '#D1D5DB',
+    socialProofTextDark: {
+        color: '#9CA3AF',
     },
     progressSection: {
-        marginBottom: 12,
+        marginBottom: 18,
     },
     progressHeader: {
         flexDirection: 'row',

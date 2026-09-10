@@ -75,6 +75,7 @@ type UserContextType = {
   isSecondaryProgramEnrolled: (programId: string) => boolean;
   getProgramAccessStatus: (learningPathId: string) => Promise<ProgramAccessStatus>;
   mutateProgramAccessMap: () => Promise<ProgramAccessMap | undefined>;
+  mutateSecondaryProgramAccessMap: () => Promise<ProgramAccessMap | undefined>;
 };
 
 type ProgramAccessStatus = {
@@ -505,10 +506,64 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return status.hasAccess;
   }, [userPrograms, generousWeekLearningPathId, user?.metadata?.generousWeek, isGenerousWeekActive, getProgramAccessStatus]);
 
-  // Check if user is enrolled in a secondary program - mémorisée
+  // Accès payant secondaire : construit à partir de TOUTES les lignes
+  // completed de user_secondary_payments, indépendamment de
+  // user_secondary_enrollments (qui ne sert qu'à la sélection gratuite de
+  // classe, jamais au paiement -- voir 2_secondary_school.sql). Un même
+  // program_id peut avoir plusieurs lignes completed (renouvellements) :
+  // on retient l'expiry_date la plus tardive.
+  const { data: secondaryProgramAccessMap, mutate: mutateSecondaryProgramAccessMap } = useSWR<
+    ProgramAccessMap
+  >(
+    authUser?.id ? `secondary-program-access-map-${authUser.id}` : null,
+    async () => {
+      if (!authUser?.id) return {};
+
+      const { data: payments, error } = await supabase
+        .from('user_secondary_payments')
+        .select('program_id, expiry_date')
+        .eq('user_id', authUser.id)
+        .eq('payment_status', 'completed');
+
+      if (error) {
+        logger.error('[UserContext] Error fetching secondary payments:', error);
+        return {};
+      }
+
+      const accessMap: Record<string, ProgramAccessStatus> = {};
+      const now = new Date();
+
+      payments?.forEach((payment) => {
+        if (!payment.program_id || !payment.expiry_date) return;
+        const programId = payment.program_id.toString();
+        const expiryDate = new Date(payment.expiry_date);
+        const existing = accessMap[programId];
+
+        // Garder la ligne à l'expiry la plus tardive pour ce programme.
+        if (existing?.expiryDate && new Date(existing.expiryDate) >= expiryDate) return;
+
+        accessMap[programId] = {
+          hasAccess: now <= expiryDate,
+          isExpired: now > expiryDate,
+          expiryDate: payment.expiry_date,
+        };
+      });
+
+      return accessMap;
+    },
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 5000,
+    }
+  );
+
+  // Check if user has paid access to a secondary program - mémorisée.
+  // Reste synchrone (pas de réseau au moment de l'appel) : le map est déjà
+  // chargé par le SWR ci-dessus.
   const isSecondaryProgramEnrolled = useCallback((programId: string) => {
-    return programId == programId; // user do not pay for secondary courses for now 
-  }, []);
+    return secondaryProgramAccessMap?.[programId]?.hasAccess ?? false;
+  }, [secondaryProgramAccessMap]);
 
   useEffect(() => {
     setIsLoading(
@@ -528,6 +583,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const mutateTodayTimeRef = useRef(mutateTodayTime);
   const mutateUserProgramsRef = useRef(mutateUserPrograms);
   const mutateProgramAccessMapRef = useRef(mutateProgramAccessMap);
+  const mutateSecondaryProgramAccessMapRef = useRef(mutateSecondaryProgramAccessMap);
 
   // Update refs when functions change
   useEffect(() => {
@@ -538,7 +594,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     mutateTodayTimeRef.current = mutateTodayTime;
     mutateUserProgramsRef.current = mutateUserPrograms;
     mutateProgramAccessMapRef.current = mutateProgramAccessMap;
-  }, [mutateUser, mutateLastCourse, mutateTodayXp, mutateTodayExercises, mutateTodayTime, mutateUserPrograms, mutateProgramAccessMap]);
+    mutateSecondaryProgramAccessMapRef.current = mutateSecondaryProgramAccessMap;
+  }, [mutateUser, mutateLastCourse, mutateTodayXp, mutateTodayExercises, mutateTodayTime, mutateUserPrograms, mutateProgramAccessMap, mutateSecondaryProgramAccessMap]);
 
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | undefined;
@@ -682,6 +739,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
           }
         )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "user_secondary_payments",
+            filter: `user_id=eq.${authUser.id}`,
+          },
+          async () => {
+            if (authUser.id) {
+              logger.log('[UserContext] Realtime: user_secondary_payments changed, mutating...');
+              mutateSecondaryProgramAccessMapRef.current();
+            }
+          }
+        )
         .subscribe();
     }
 
@@ -709,6 +781,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     getProgramAccessStatus,
     // Expose mutate pour accès map et userPrograms
     mutateProgramAccessMap,
+    mutateSecondaryProgramAccessMap,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

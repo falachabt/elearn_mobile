@@ -17,7 +17,6 @@ import {useAuth} from "@/contexts/auth";
 import {theme} from "@/constants/theme";
 import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useColorScheme} from '@/hooks/useColorScheme';
-import {LoadingAnimation} from "@/components/shared/LoadingAnimation1";
 import RatingModal from '@/components/RatingModal';
 import { TabBarTourContext } from "@/contexts/TabBarTourContext";
 
@@ -69,60 +68,18 @@ export default function AppLayout() {
         return <Redirect href="/(auth)"/>;
     }
 
-    if (isLoading) {
-        return (
-            <View style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: isDarkMode ? theme.color.dark.background.primary : theme.color.light.background.primary
-            }}>
-                <LoadingAnimation isDarkMode={isDarkMode}/>
-            </View>
-        );
-    }
-
-    if (!user) {
-        return (
-            <View style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                paddingHorizontal: 24,
-                backgroundColor: isDarkMode ? theme.color.dark.background.primary : theme.color.light.background.primary
-            }}>
-                <LoadingAnimation isDarkMode={isDarkMode}/>
-                <Text style={[styles.accountStatusTitle, {color: isDarkMode ? '#F8FAFC' : '#0F172A'}]}>
-                    Finalisation de votre compte
-                </Text>
-                <Text style={[styles.accountStatusText, {color: isDarkMode ? '#CBD5E1' : '#475569'}]}>
-                    La session est ouverte, mais le profil n&apos;est pas encore prêt.
-                </Text>
-                <TouchableOpacity
-                    style={styles.accountStatusPrimaryButton}
-                    onPress={() => {
-                        void ensureSessionAccount();
-                    }}
-                >
-                    <Text style={styles.accountStatusPrimaryButtonText}>Réessayer</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.accountStatusSecondaryButton}
-                    onPress={() => {
-                        void signOut();
-                    }}
-                >
-                    <Text style={[styles.accountStatusSecondaryButtonText, {color: isDarkMode ? '#E2E8F0' : '#334155'}]}>
-                        Se déconnecter
-                    </Text>
-                </TouchableOpacity>
-            </View>
-        );
-    }
-
+    // Onboarding gating only applies once we actually know the flag — until
+    // then we render the app shell below rather than blocking on it.
     if (user && !user.onboarding_done) {
         return <Redirect href="/(auth)/onboarding"/>;
     }
+
+    // Session is live: show the app immediately instead of a full-screen
+    // blocker. `user` (the synced accounts row) streams in in the background —
+    // every screen already treats it as nullable — so we only surface a small,
+    // non-blocking banner while it's syncing, with a real retry if it stalls.
+    const isProfileSyncing = !user && isLoading;
+    const isProfileSyncFailed = !user && !isLoading;
 
     return (
         <TabBarTourContext.Provider
@@ -137,6 +94,25 @@ export default function AppLayout() {
             <SafeAreaView
                 style={{flex: 1, backgroundColor: isDarkMode ? theme.color.dark.background.primary : "transparent"}}
             >
+                {(isProfileSyncing || isProfileSyncFailed) && (
+                    <View style={[styles.syncBanner, {backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9'}]}>
+                        <Text style={[styles.syncBannerText, {color: isDarkMode ? '#E2E8F0' : '#334155'}]}>
+                            {isProfileSyncFailed ? "Profil non synchronisé" : "Synchronisation de votre profil…"}
+                        </Text>
+                        {isProfileSyncFailed && (
+                            <View style={styles.syncBannerActions}>
+                                <TouchableOpacity onPress={() => { void ensureSessionAccount(); }}>
+                                    <Text style={styles.syncBannerRetry}>Réessayer</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => { void signOut(); }}>
+                                    <Text style={[styles.syncBannerRetry, {color: isDarkMode ? '#94A3B8' : '#64748B'}]}>
+                                        Se déconnecter
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+                )}
                 <RatingModal />
                 <Tabs
                 screenOptions={{
@@ -402,50 +378,28 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit",
         backgroundColor: `${theme.color.primary[500]}10`,
     },
-    accountStatusTitle: {
-        marginTop: 24,
-        textAlign: 'center',
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 20,
-        fontWeight: '700',
-    },
-    accountStatusText: {
-        marginTop: 12,
-        marginBottom: 24,
-        textAlign: 'center',
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 14,
-        lineHeight: 20,
-    },
-    accountStatusPrimaryButton: {
-        minWidth: 180,
+    syncBanner: {
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderRadius: theme.border.radius.small,
-        backgroundColor: theme.color.primary[500],
+        justifyContent: 'space-between',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
     },
-    accountStatusPrimaryButtonText: {
-        color: '#FFFFFF',
+    syncBannerText: {
         fontFamily: theme.typography.fontFamily,
-        fontSize: 15,
-        fontWeight: '700',
-    },
-    accountStatusSecondaryButton: {
-        minWidth: 180,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: theme.border.radius.small,
-        marginTop: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(148, 163, 184, 0.35)',
-    },
-    accountStatusSecondaryButtonText: {
-        fontFamily: theme.typography.fontFamily,
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
+        flexShrink: 1,
+    },
+    syncBannerActions: {
+        flexDirection: 'row',
+        gap: 16,
+        marginLeft: 12,
+    },
+    syncBannerRetry: {
+        fontFamily: theme.typography.fontFamily,
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.color.primary[500],
     },
 });

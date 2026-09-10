@@ -8,13 +8,12 @@ import {
   ActivityIndicator,
   Modal,
   useColorScheme,
-  SafeAreaView,
   Platform,
-  StatusBar,
   PixelRatio,
   KeyboardAvoidingView,
   Alert,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Animatable from "react-native-animatable";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -54,6 +53,7 @@ const MainOnboarding = () => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useCustomRouter();
+  const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState(1);
   const { user, markOnboardingCompleted, mutateUser } = useAuth();
@@ -588,7 +588,7 @@ const MainOnboarding = () => {
               {renderStepContent()}
             </View>
 
-            <View style={[styles.footer, isDark && styles.footerDark]}>
+            <View style={[styles.footer, isDark && styles.footerDark, { paddingBottom: insets.bottom + rs(10) }]}>
               {step > 1 && (
                   <TouchableOpacity
                       style={[
@@ -712,7 +712,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   safeAreaDark: {
     backgroundColor: theme.color.dark.background.primary,
@@ -777,7 +776,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
     borderTopColor: "#E1E1E1",
-    paddingBottom: Platform.OS === 'ios' ? rs(10) : rs(20),
   },
   footerDark: {
     backgroundColor: theme.color.dark.background.primary,

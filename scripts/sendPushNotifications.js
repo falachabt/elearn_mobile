@@ -1,8 +1,4 @@
 const { createClient } = require('@supabase/supabase-js');
-const { Expo } = require('expo-server-sdk');
-
-// Initialize Expo SDK
-const expo = new Expo();
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -32,6 +28,9 @@ const promotionalMessage = customMessage ? {
 
 async function sendPushNotifications() {
   try {
+    const expoSdk = await import('expo-server-sdk');
+    const Expo = expoSdk.Expo || expoSdk.default;
+    const expo = new Expo();
     // Log which type of message will be sent
     if (customMessage) {
       console.log('Using custom notification message:', customMessage);

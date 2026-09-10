@@ -1,0 +1,216 @@
+import React, { useEffect, useState, FC } from "react";
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  KeyboardAvoidingView,
+  StyleSheet,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+import { theme } from "@/constants/theme";
+import { ThemedText } from "@/components/ThemedText";
+import WhatsAppContact from "@/components/WhatsappSupport";
+import {
+  SECONDARY_PLAN_DESCRIPTIONS,
+  SECONDARY_PLAN_LABELS,
+  SECONDARY_PLAN_PRICES_XAF,
+  SecondaryPlan,
+} from "@/types/secondaryPayment.types";
+import {
+  convertXafToLocal,
+  formatLocalPrice,
+  getExchangeRates,
+  ExchangeRate,
+} from "@/services/currency.service";
+
+const PLANS: SecondaryPlan[] = ["monthly", "quarterly", "semiannual"];
+
+interface SecondaryPlanOptionsProps {
+  programName: string;
+  currencyCode: string;
+  isDark: boolean;
+  isLoading: boolean;
+  onPayment: (data: { phoneNumber: string; plan: SecondaryPlan }) => void;
+}
+
+export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
+  programName,
+  currencyCode,
+  isDark,
+  isLoading,
+  onPayment,
+}) => {
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState<SecondaryPlan>("monthly");
+  const [rates, setRates] = useState<ExchangeRate[]>([]);
+
+  useEffect(() => {
+    getExchangeRates().then(setRates);
+  }, []);
+
+  const localPriceLabel = (plan: SecondaryPlan) => {
+    const priceXaf = SECONDARY_PLAN_PRICES_XAF[plan];
+    if (currencyCode === "XAF") return `${priceXaf} FCFA`;
+    const local = convertXafToLocal(priceXaf, currencyCode, rates);
+    return `${formatLocalPrice(local, currencyCode)} (${priceXaf} FCFA)`;
+  };
+
+  const handlePayment = () => onPayment({ phoneNumber, plan: selectedPlan });
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <ThemedText style={styles.title}>Abonnement pour {programName}</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Choisissez la durée de votre abonnement
+          </ThemedText>
+        </View>
+
+        <View style={[styles.planList, isDark && styles.planListDark]}>
+          {PLANS.map((plan) => (
+            <TouchableOpacity
+              key={plan}
+              style={[styles.planOption, selectedPlan === plan && styles.planSelected]}
+              onPress={() => setSelectedPlan(plan)}
+            >
+              <MaterialCommunityIcons
+                name={selectedPlan === plan ? "radiobox-marked" : "radiobox-blank"}
+                size={24}
+                color={
+                  selectedPlan === plan
+                    ? isDark
+                      ? theme.color.primary[300]
+                      : theme.color.primary[500]
+                    : theme.color.gray[400]
+                }
+              />
+              <View style={styles.planTextContainer}>
+                <ThemedText style={styles.planTitle}>
+                  {SECONDARY_PLAN_LABELS[plan]} — {localPriceLabel(plan)}
+                </ThemedText>
+                <ThemedText style={styles.planDescription}>
+                  {SECONDARY_PLAN_DESCRIPTIONS[plan]}
+                </ThemedText>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.inputContainer}>
+          <ThemedText style={styles.inputLabel}>Numéro de téléphone (MTN Mobile Money)</ThemedText>
+          <TextInput
+            style={[styles.input, isDark && styles.inputDark]}
+            placeholder="Ex: 6XXXXXXXX"
+            placeholderTextColor={isDark ? theme.color.gray[600] : theme.color.gray[400]}
+            keyboardType="phone-pad"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+          />
+        </View>
+
+        <TouchableOpacity
+          style={[
+            styles.payButton,
+            {
+              backgroundColor: isDark ? theme.color.primary[600] : theme.color.primary[500],
+              opacity: isLoading || !phoneNumber.trim() ? 0.5 : 1,
+            },
+          ]}
+          onPress={handlePayment}
+          disabled={isLoading || !phoneNumber.trim()}
+        >
+          <View style={styles.payButtonContent}>
+            <MaterialCommunityIcons name="cellphone" size={24} color="#FFFFFF" />
+            <ThemedText style={styles.payButtonText}>Payer maintenant</ThemedText>
+          </View>
+          {isLoading && <ActivityIndicator size="small" color="#FFFFFF" />}
+        </TouchableOpacity>
+
+        <WhatsAppContact
+          message={`Bonjour, j'ai besoin d'aide pour m'abonner à ${programName}`}
+          style={{ marginTop: 16, marginBottom: 16 }}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 16 },
+  header: { marginBottom: 24 },
+  title: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    color: theme.color.gray[600],
+  },
+  planList: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+      android: { elevation: 2 },
+    }),
+  },
+  planListDark: { backgroundColor: theme.color.dark.background.secondary },
+  planOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  planSelected: { backgroundColor: "rgba(76, 175, 80, 0.1)" },
+  planTextContainer: { marginLeft: 12, flex: 1 },
+  planTitle: { fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: "600" },
+  planDescription: { fontFamily: theme.typography.fontFamily, fontSize: 13, color: theme.color.gray[600] },
+  inputContainer: { marginBottom: 16, paddingHorizontal: 4 },
+  inputLabel: { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: "500", marginBottom: 8 },
+  input: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: theme.color.gray[200],
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 16,
+  },
+  inputDark: {
+    backgroundColor: theme.color.dark.background.secondary,
+    borderColor: theme.color.gray[600],
+    color: "#FFFFFF",
+  },
+  payButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  payButtonContent: { flexDirection: "row", alignItems: "center" },
+  payButtonText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 12,
+    color: "#FFFFFF",
+  },
+});

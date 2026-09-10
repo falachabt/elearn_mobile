@@ -362,7 +362,11 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({
     // Handle purchase flow
     const handlePurchaseFlow = () => {
         trigger(HapticType.SELECTION);
-        router.navigateToShop(programId);
+        if (isSecondaryContext) {
+            router.navigateToSecondaryPayment(programId);
+        } else {
+            router.navigateToShop(programId);
+        }
     };
 
     // Animation refs

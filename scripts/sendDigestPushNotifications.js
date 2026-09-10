@@ -7,9 +7,6 @@
 // aucun autre mécanisme de retry n'existe aujourd'hui).
 
 const { createClient } = require('@supabase/supabase-js');
-const { Expo } = require('expo-server-sdk');
-
-const expo = new Expo();
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
@@ -54,6 +51,10 @@ function buildDigestMessage(userNotifications) {
 }
 
 async function sendDigestPushNotifications() {
+  const expoSdk = await import('expo-server-sdk');
+  const Expo = expoSdk.Expo || expoSdk.default;
+  const expo = new Expo();
+
   console.log('Fetching pending (sent_push=false) feed notifications...');
 
   const { data: pending, error } = await supabase

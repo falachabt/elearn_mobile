@@ -944,7 +944,7 @@ const SecondaryExercisePage = () => {
           >
             <TouchableOpacity
               style={[styles.nextButton, { backgroundColor: "#F59E0B" }]}
-              onPress={() => router.navigateToShop(secondaryProgramId ?? "")}
+              onPress={() => router.navigateToSecondaryPayment(secondaryProgramId ?? "")}
             >
               <MaterialCommunityIcons name="cart" size={24} color="#FFFFFF" />
             </TouchableOpacity>

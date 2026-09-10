@@ -1,8 +1,4 @@
 const { createClient } = require('@supabase/supabase-js');
-const { Expo } = require('expo-server-sdk');
-
-// Initialize Expo SDK
-const expo = new Expo();
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -184,6 +180,10 @@ function hashMessage(message) {
 // FONCTION PRINCIPALE INTELLIGENTE
 async function sendIntelligentStreakReminders() {
   try {
+    const expoSdk = await import('expo-server-sdk');
+    const Expo = expoSdk.Expo || expoSdk.default;
+    const expo = new Expo();
+
     console.log('🧠 SYSTÈME INTELLIGENT DE NOTIFICATIONS ACTIVÉ');
 
     const now = new Date();

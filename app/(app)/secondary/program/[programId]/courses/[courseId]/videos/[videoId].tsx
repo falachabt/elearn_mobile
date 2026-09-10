@@ -156,7 +156,7 @@ const SecondaryVideoPlayerScreen = () => {
   const handlePurchaseFlow = () => {
     trigger(HapticType.SELECTION);
     if (programIdParam) {
-      router.push(`/(app)/secondary/program/${programIdParam}`);
+      router.navigateToSecondaryPayment(programIdParam);
     }
   };
 

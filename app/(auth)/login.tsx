@@ -376,7 +376,7 @@ export default function Login() {
             <View style={styles.socialSection}>
               <View style={styles.socialButtons}>
                 {showGoogleAuth && (
-                  <GoogleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                  <GoogleAuth onAuthSuccess={() => router.replace("/(app)")}>
                     <View style={[styles.socialButton, styles.googleButton]}>
                       <GoogleLogo size={20} />
                       <Text style={[styles.socialButtonText, styles.googleButtonText]}>
@@ -386,7 +386,7 @@ export default function Login() {
                   </GoogleAuth>
                 )}
                 {showAppleAuth && (
-                  <AppleAuth onAuthSuccess={() => router.replace("/(auth)/onboarding")}>
+                  <AppleAuth onAuthSuccess={() => router.replace("/(app)")}>
                     <View style={[styles.socialButton, styles.appleButton, isDark && styles.appleButtonDark]}>
                       <AppleLogo size={20} color={isDark ? "#000000" : "#FFFFFF"} />
                       <Text style={[styles.socialButtonText, styles.appleButtonText, isDark && styles.appleButtonTextDark]}>

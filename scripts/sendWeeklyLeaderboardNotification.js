@@ -3,9 +3,6 @@
 // est disponible. Le tap ouvre le classement en scope "hebdo".
 
 const { createClient } = require('@supabase/supabase-js');
-const { Expo } = require('expo-server-sdk');
-
-const expo = new Expo();
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
@@ -18,6 +15,10 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function sendWeeklyLeaderboardNotification() {
+  const expoSdk = await import('expo-server-sdk');
+  const Expo = expoSdk.Expo || expoSdk.default;
+  const expo = new Expo();
+
   console.log('Fetching users with Expo push tokens...');
 
   const { data: users, error } = await supabase

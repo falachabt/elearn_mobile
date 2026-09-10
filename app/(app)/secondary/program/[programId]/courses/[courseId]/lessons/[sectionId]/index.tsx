@@ -61,7 +61,7 @@ const SecondarySectionDetail = () => {
   const sectionIdParam = Array.isArray(sectionId) ? sectionId[0] : sectionId;
   const courseIdParam = Array.isArray(courseId) ? courseId[0] : courseId;
   const secondaryProgramId = Array.isArray(programId) ? programId[0] : programId;
-  const { getCoursePath, getLessonPath, getBasePath } = useNavigation();
+  const { getCoursePath, getLessonPath } = useNavigation();
   const { session } = useAuth();
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -193,7 +193,7 @@ const SecondarySectionDetail = () => {
 //   Handle purchase flow  TOOD: later reidrect to the payment page
   const handlePurchaseFlow = () => {
     trigger(HapticType.SELECTION);
-    router.push(getBasePath() as Href);
+    router.navigateToSecondaryPayment(secondaryProgramId ?? "");
   };
 
   // Preload next section data

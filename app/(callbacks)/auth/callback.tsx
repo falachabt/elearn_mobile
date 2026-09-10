@@ -14,6 +14,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { supabase } from '@/lib/supabase';
+import { exchangeCodeForSessionOnce } from '@/lib/oauthExchange';
 import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
 
@@ -37,7 +38,7 @@ export default function OAuthCallbackScreen() {
       if (code) {
         logger.log('[OAuthCallback] Exchanging authorization code for session');
 
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        const { error: exchangeError } = await exchangeCodeForSessionOnce(code);
 
         if (exchangeError) {
           logger.error('[OAuthCallback] Code exchange error:', exchangeError);

@@ -4,8 +4,6 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
-  ImageSourcePropType,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -16,17 +14,6 @@ import { SecondaryProgram } from "@/types/secondary.type";
 import { useSecondaryProgramProgress } from "@/hooks/secondary/useSecondaryProgramProgress";
 import { useSecondaryEnrollmentCounts } from "@/hooks/secondary/useSecondaryEnrollmentCounts";
 import { useAuth } from "@/contexts/auth";
-
-
-// Import des icônes
-const courseIcon =
-  require("@/assets/images/icons/course.png") as ImageSourcePropType;
-const quizIcon =
-  require("@/assets/images/icons/quiz.png") as ImageSourcePropType;
-const exerciceIcon =
-  require("@/assets/images/icons/exercice.png") as ImageSourcePropType;
-const documentIcon =
-  require("@/assets/images/icons/document.png") as ImageSourcePropType;
 
 interface SecondaryProgramCardProps {
   program: SecondaryProgram;
@@ -144,40 +131,6 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
           </Text>
         )}
 
-      {!minimalist && (
-        <View
-          style={[styles.statsRow, isDarkMode && styles.statsRowDark]}
-          accessible={true}
-          accessibilityLabel="Statistiques du programme"
-        >
-          <StatItem
-            label="Cours"
-            value={program.course_count ?? 0}
-            icon={courseIcon}
-            isDarkMode={isDarkMode}
-          />
-          <StatItem
-            label="Quiz"
-            value={program.quiz_count ?? 0}
-            icon={quizIcon}
-            isDarkMode={isDarkMode}
-          />
-          <StatItem
-            label="Exercices"
-            value={program.exercise_count ?? 0}
-            icon={exerciceIcon}
-            isDarkMode={isDarkMode}
-          />
-          <StatItem
-            label="Sujets"
-            value={program.document_count ?? 0}
-            icon={documentIcon}
-            isDarkMode={isDarkMode}
-          />
-
-        </View>
-      )}
-
         <View
           style={[
             styles.actionRow,
@@ -234,37 +187,6 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
   );
 };
 
-const StatItem = ({
-  label,
-  value,
-  icon,
-  isDarkMode,
-}: {
-  label: string;
-  value: number;
-  icon: ImageSourcePropType;
-  isDarkMode: boolean;
-}) => (
-  <View
-    style={styles.statItem}
-    accessible={true}
-    accessibilityLabel={`${value} ${label}`}
-  >
-    <Image
-      source={icon}
-      style={[styles.statIcon, isDarkMode && styles.statIconDark]}
-    />
-    <Text style={[styles.statValue, isDarkMode && styles.statValueDark]}>
-      {value}
-    </Text>
-    <Text style={[styles.statLabel, isDarkMode && styles.statLabelDark]}>
-      {label}
-    </Text>
-  </View>
-);
-
-
-
 const styles = StyleSheet.create({
   examIcon: {
     width: 18,
@@ -275,7 +197,7 @@ const styles = StyleSheet.create({
   },
   progressContainerFull: {
     width: "100%",
-    marginBottom: 8,
+    marginBottom: 14,
   },
   headerRight: {
     flexDirection: "row",
@@ -388,22 +310,22 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   cardContent: {
-    padding: 16,
+    padding: 20,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 14,
     gap: 8,
   },
   title: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
     color: "#111827",
     fontFamily: theme.typography.fontFamily,
-    lineHeight: 22,
+    lineHeight: 23,
   },
   titleDark: {
     color: "#F9FAFB",
@@ -425,28 +347,15 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     color: "#4B5563",
-    marginBottom: 12,
+    marginBottom: 18,
     fontFamily: theme.typography.fontFamily,
-    lineHeight: 20,
+    lineHeight: 21,
   },
   descriptionDark: {
     color: "#D1D5DB",
   },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "stretch",
-    flexWrap: "wrap",
-    backgroundColor: "#F3F4F6",
-    borderRadius: 8,
-    padding: 10,
-    gap: 8,
-  },
-  statsRowDark: {
-    backgroundColor: "rgba(55, 65, 81, 0.5)",
-  },
   actionRow: {
-    marginTop: 14,
+    marginTop: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -505,54 +414,6 @@ const styles = StyleSheet.create({
   },
   actionButtonTextContinueDark: {
     color: theme.color.primary[100],
-  },
-  statItem: {
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-    minWidth: 56,
-    gap: 4,
-  },
-  actionStatItem: {
-    borderRadius: 8,
-    backgroundColor: "#ECFDF5",
-    borderWidth: 1,
-    borderColor: "#BBF7D0",
-    paddingVertical: 6,
-  },
-  actionStatItemDark: {
-    backgroundColor: "#0F2A20",
-    borderColor: "#1E5C45",
-  },
-  actionStatItemPressed: {
-    opacity: 0.8,
-  },
-  statIcon: {
-    width: 20,
-    height: 20,
-    opacity: 0.8,
-  },
-  statIconDark: {
-    opacity: 0.9,
-  },
-  statValue: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.color.primary[700],
-    fontFamily: theme.typography.fontFamily,
-  },
-  statValueDark: {
-    color: theme.color.primary[300],
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontFamily: theme.typography.fontFamily,
-    fontWeight: "500",
-  },
-  statLabelDark: {
-    color: "#9CA3AF",
   },
 });
 
