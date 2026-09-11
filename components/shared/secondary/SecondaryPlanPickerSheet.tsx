@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Pressable, Dimensions, Platform } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Modal from "react-native-modal";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/ThemedText";
 import { theme } from "@/constants/theme";
@@ -47,6 +48,7 @@ export const SecondaryPlanPickerSheet: React.FC<SecondaryPlanPickerSheetProps> =
   isDark,
   onNext,
 }) => {
+  const insets = useSafeAreaInsets();
   const [selectedPlan, setSelectedPlan] = useState<SecondaryPlan>("monthly");
   const [rates, setRates] = useState<ExchangeRate[]>([]);
   const [plansConfig, setPlansConfig] = useState<Record<SecondaryPlan, SecondaryPlanConfig> | null>(null);
@@ -85,7 +87,7 @@ export const SecondaryPlanPickerSheet: React.FC<SecondaryPlanPickerSheetProps> =
       deviceHeight={height}
       propagateSwipe={Platform.OS === "ios"}
     >
-      <View style={[styles.sheet, isDark && styles.sheetDark]}>
+      <View style={[styles.sheet, isDark && styles.sheetDark, { paddingBottom: 32 + insets.bottom }]}>
         <View style={[styles.handle, isDark && styles.handleDark]} />
 
         <ThemedText style={styles.title}>Débloquer {programName}</ThemedText>
