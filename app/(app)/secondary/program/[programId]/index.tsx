@@ -70,8 +70,9 @@ const SecondaryProgramDetails = () => {
 
   // Accès payant réel (abonnement) -- distinct de checkEnrolled ci-dessus,
   // qui ne reflète que la sélection gratuite de classe.
-  const { isSecondaryProgramEnrolled } = useUser();
+  const { isSecondaryProgramEnrolled, isSecondaryProgramExpired } = useUser();
   const hasPaidAccess = programId ? isSecondaryProgramEnrolled(programId) : false;
+  const hasExpiredAccess = programId ? isSecondaryProgramExpired(programId) : false;
   const [showPlanSheet, setShowPlanSheet] = React.useState(false);
   const [currencyCode, setCurrencyCode] = React.useState("XAF");
 
@@ -420,7 +421,7 @@ const SecondaryProgramDetails = () => {
               <ThemedText
                 style={[styles.priceTag, isDark && styles.priceTagDark]}
               >
-                {hasPaidAccess ? "Abonné" : "Verrouillé"}
+                {hasPaidAccess ? "Abonné" : hasExpiredAccess ? "Abonnement expiré" : "Verrouillé"}
               </ThemedText>
             </View>
           </View>
@@ -446,7 +447,16 @@ const SecondaryProgramDetails = () => {
           </View>
         </View>
 
-        {/* Débloquer la formation (abonnement payant) */}
+        {/* Abonnement expiré : message explicite, distinct du "jamais payé" */}
+        {hasExpiredAccess && (
+          <View style={[styles.statusBanner, styles.expiredBanner]}>
+            <ThemedText style={styles.expiredText}>
+              Votre abonnement à cette formation a expiré. Renouvelez-le pour continuer.
+            </ThemedText>
+          </View>
+        )}
+
+        {/* Débloquer / renouveler la formation (abonnement payant) */}
         {!hasPaidAccess && (
           <Pressable
             style={[styles.unlockButton, isDark && styles.unlockButtonDark]}
@@ -456,7 +466,9 @@ const SecondaryProgramDetails = () => {
             }}
           >
             <MaterialCommunityIcons name="lock-open-variant-outline" size={20} color="#FFFFFF" />
-            <ThemedText style={styles.unlockButtonText}>Débloquer la formation</ThemedText>
+            <ThemedText style={styles.unlockButtonText}>
+              {hasExpiredAccess ? "Renouveler l'abonnement" : "Débloquer la formation"}
+            </ThemedText>
           </Pressable>
         )}
 
@@ -675,6 +687,16 @@ const styles = StyleSheet.create({
   },
   notEnrolledBanner: {
     backgroundColor: "rgba(59, 130, 246, 0.1)",
+  },
+  expiredBanner: {
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+  },
+  expiredText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#DC2626",
+    fontFamily: theme.typography.fontFamily,
+    textAlign: "center",
   },
   statusText: {
     fontSize: 14,

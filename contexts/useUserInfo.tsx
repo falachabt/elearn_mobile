@@ -73,6 +73,7 @@ type UserContextType = {
   mutateUserPrograms: () => Promise<LearningPaths[] | undefined>;
   isLearningPathEnrolled: (learningPathId: string) => Promise<boolean>;
   isSecondaryProgramEnrolled: (programId: string) => boolean;
+  isSecondaryProgramExpired: (programId: string) => boolean;
   getProgramAccessStatus: (learningPathId: string) => Promise<ProgramAccessStatus>;
   mutateProgramAccessMap: () => Promise<ProgramAccessMap | undefined>;
   mutateSecondaryProgramAccessMap: () => Promise<ProgramAccessMap | undefined>;
@@ -565,6 +566,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return secondaryProgramAccessMap?.[programId]?.hasAccess ?? false;
   }, [secondaryProgramAccessMap]);
 
+  // Distingue "jamais payé" de "a payé mais expiré" -- pour afficher un
+  // message de renouvellement plutôt que le CTA générique de premier achat.
+  const isSecondaryProgramExpired = useCallback((programId: string) => {
+    return secondaryProgramAccessMap?.[programId]?.isExpired ?? false;
+  }, [secondaryProgramAccessMap]);
+
   useEffect(() => {
     setIsLoading(
       !user ||
@@ -778,6 +785,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     mutateUserPrograms,
     isLearningPathEnrolled,
     isSecondaryProgramEnrolled,
+    isSecondaryProgramExpired,
     getProgramAccessStatus,
     // Expose mutate pour accès map et userPrograms
     mutateProgramAccessMap,
