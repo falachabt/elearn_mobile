@@ -417,7 +417,7 @@ export default function Login() {
 
       <WhatsAppContact
         compact
-        phoneNumber="+237 6 51 05 56 63"
+        phoneNumber="+237 6 94 05 18 93"
         message="Bonjour, j'ai besoin d'aide"
         style={styles.whatsAppFooter}
       />

@@ -21,7 +21,7 @@ interface WhatsAppContactProps {
     compact?: boolean;
 }
 
-export const DEFAULT_WHATSAPP_SUPPORT_NUMBER = '+237 6 79 15 00 00';
+export const DEFAULT_WHATSAPP_SUPPORT_NUMBER = '+237 6 94 05 18 93';
 
 const WhatsAppContact: React.FC<WhatsAppContactProps> = ({
                                                              phoneNumber = DEFAULT_WHATSAPP_SUPPORT_NUMBER,

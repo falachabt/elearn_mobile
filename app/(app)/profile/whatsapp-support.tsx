@@ -35,13 +35,13 @@ const WHATSAPP_CONFIG = {
 const contactNumbers: ContactInfo[] = [
     {
         title: 'Support Technique',
-        number: '+237657273753',
+        number: '+237694051893',
         hours: 'Lun-Ven: 9h-18h',
         description: 'Pour toute assistance technique avec la plateforme'
     },
     {
         title: 'Support Commercial',
-        number: '+237651055663',
+        number: '+237694051893',
         hours: 'Lun-Ven: 9h-17h',
         description: 'Pour les questions concernant votre abonnement'
     }
