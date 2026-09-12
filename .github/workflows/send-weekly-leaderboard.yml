@@ -1,9 +1,13 @@
 name: Send Weekly Leaderboard Notification
 
 on:
-  # Dimanche 14h heure du Cameroun (UTC+1, pas d'heure d'été) = 13h UTC.
+  # Doit matcher la frontiere de semaine cote DB (date_trunc('week', now())
+  # + interval '6 days 14 hours', calculee en UTC puisque le fuseau de la DB
+  # est UTC) = dimanche 14h UTC. Ne PAS aligner sur "14h heure du Cameroun"
+  # (13h UTC) -- ca desynchronise la notif de la donnee reellement revelee
+  # d'une heure (verifie en direct sur la DB le 2026-09-12).
   schedule:
-    - cron: '0 13 * * 0'
+    - cron: '0 14 * * 0'
 
   workflow_dispatch:
 

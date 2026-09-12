@@ -5,7 +5,7 @@
   "scripts": {
     "start": "expo start ",
     "reset-project": "node ./scripts/reset-project.js",
-    "generate-types": "pg-to-ts generate -c \"postgresql://postgres.yhznbitjlzeslvudbsil:a6AuGzmldCIXzyGV@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" -o ./types/type.ts",
+    "generate-types": "pg-to-ts generate -c \"postgresql://postgres.yhznbitjlzeslvudbsil:$SUPABASE_DB_PASSWORD@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" -o ./types/type.ts",
     "convert:android": "node ./scripts/switch-platform.js native",
     "android": "node ./scripts/switch-platform.js native && expo start --android",
     "ios": "node ./scripts/switch-platform.js native && expo start --ios",

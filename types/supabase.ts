@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       accounts: {
@@ -5983,6 +5958,45 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_top3_likes: {
+        Row: {
+          created_at: string
+          id: string
+          liker_id: string
+          target_id: string
+          week_boundary: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          liker_id: string
+          target_id: string
+          week_boundary: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          liker_id?: string
+          target_id?: string
+          week_boundary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_top3_likes_liker_id_fkey"
+            columns: ["liker_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_top3_likes_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       xp_history: {
         Row: {
           created_at: string | null
@@ -6296,6 +6310,23 @@ export type Database = {
           secondary_program_id: string
         }[]
       }
+      get_last_completed_week_leaderboard: {
+        Args: {
+          p_country_id?: string
+          p_gradelevel?: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          gradelevel: string
+          id: string
+          is_online: boolean
+          rank: number
+          weekly_xp: number
+        }[]
+      }
       get_leaderboard: {
         Args: {
           p_country_id?: string
@@ -6325,6 +6356,18 @@ export type Database = {
         Returns: {
           enrolled_count: number
           learning_path_id: string
+        }[]
+      }
+      get_my_last_completed_week_rank: {
+        Args: { p_country_id?: string; p_gradelevel?: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          gradelevel: string
+          id: string
+          is_online: boolean
+          rank: number
+          weekly_xp: number
         }[]
       }
       get_my_leaderboard_rank: {
@@ -6364,6 +6407,7 @@ export type Database = {
           weekly_xp: number
         }[]
       }
+      get_my_weekly_like_cooldown_seconds: { Args: never; Returns: number }
       get_my_xp_history: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: {
@@ -6753,9 +6797,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       image: ["url", "id", "path", "uploadthing_id"],
@@ -6764,5 +6805,3 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.117.0 (currently installed v2.116.0)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
