@@ -119,9 +119,12 @@ export async function getMyLastCompletedWeekRank(options?: {
   }
 }
 
-export async function getMyWeeklyLikeCooldownSeconds(): Promise<number> {
+/** Cooldown restant (secondes) avant de pouvoir reliker CETTE cible précise -- par (liker, cible), pas global. */
+export async function getMyWeeklyLikeCooldownSeconds(targetId: string): Promise<number> {
   try {
-    const { data, error } = await (supabase.rpc as any)('get_my_weekly_like_cooldown_seconds');
+    const { data, error } = await (supabase.rpc as any)('get_my_weekly_like_cooldown_seconds', {
+      p_target_id: targetId,
+    });
     if (error) throw error;
     return typeof data === 'number' ? data : 0;
   } catch (err) {

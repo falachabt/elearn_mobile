@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Pressable, Dimensions, Platform, Image } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Modal from "react-native-modal";
+import { useRouter, type Href } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -34,8 +35,9 @@ function formatCooldown(seconds: number): string {
 
 /**
  * Révélation hebdo : top 3 de la dernière semaine complète, avec la
- * possibilité de liker un profil (1 like max toutes les 24h, tous profils
- * confondus -- voir services/weeklyReveal.service.ts).
+ * possibilité de liker un profil (1 like max toutes les 24h PAR CIBLE --
+ * pas global, on peut liker une autre personne dans l'intervalle -- voir
+ * services/weeklyReveal.service.ts).
  */
 export const WeeklyRevealBottomSheet: React.FC<WeeklyRevealBottomSheetProps> = ({
   visible,
@@ -43,38 +45,44 @@ export const WeeklyRevealBottomSheet: React.FC<WeeklyRevealBottomSheetProps> = (
   isDark,
 }) => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user: authUser } = useAuth();
   const [top3, setTop3] = useState<WeeklyLeaderboardEntry[]>([]);
-  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [likedId, setLikedId] = useState<string | null>(null);
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!visible) return;
     setLoading(true);
-    setLikedId(null);
-    Promise.all([
-      getLastCompletedWeekLeaderboard({ limit: 3 }),
-      getMyWeeklyLikeCooldownSeconds(),
-    ]).then(([entries, cooldown]) => {
+    setLikedIds(new Set());
+    getLastCompletedWeekLeaderboard({ limit: 3 }).then(async (entries) => {
       setTop3(entries);
-      setCooldownSeconds(cooldown);
+      const pairs = await Promise.all(
+        entries.map(async (e) => [e.id, await getMyWeeklyLikeCooldownSeconds(e.id)] as const)
+      );
+      setCooldowns(Object.fromEntries(pairs));
       setLoading(false);
     });
   }, [visible]);
 
   const handleLike = async (targetId: string) => {
-    if (cooldownSeconds > 0) return;
+    if ((cooldowns[targetId] ?? 0) > 0) return;
     const { weekBoundaryKey } = getWeeklyRevealState();
     try {
       await likeProfile(targetId, weekBoundaryKey);
-      setLikedId(targetId);
-      setCooldownSeconds(24 * 3600);
+      setLikedIds((prev) => new Set(prev).add(targetId));
+      setCooldowns((prev) => ({ ...prev, [targetId]: 24 * 3600 }));
     } catch (err) {
       if (err instanceof Error && err.message === LIKE_COOLDOWN_ERROR) {
-        setCooldownSeconds(24 * 3600);
+        setCooldowns((prev) => ({ ...prev, [targetId]: 24 * 3600 }));
       }
     }
+  };
+
+  const handleViewFullLeaderboard = () => {
+    onClose();
+    router.push('/leaderboard?scope=weekly' as Href);
   };
 
   return (
@@ -104,7 +112,8 @@ export const WeeklyRevealBottomSheet: React.FC<WeeklyRevealBottomSheetProps> = (
 
         {!loading && top3.map((entry, idx) => {
           const isMe = entry.id === authUser?.id;
-          const isLiked = likedId === entry.id;
+          const isLiked = likedIds.has(entry.id);
+          const cooldown = cooldowns[entry.id] ?? 0;
           return (
             <View key={entry.id} style={[styles.row, isDark && styles.rowDark]}>
               <MaterialCommunityIcons name="trophy" size={22} color={MEDAL_COLORS[idx]} />
@@ -124,18 +133,23 @@ export const WeeklyRevealBottomSheet: React.FC<WeeklyRevealBottomSheetProps> = (
                   {entry.full_name || "Élève"}{isMe ? " (toi)" : ""}
                 </ThemedText>
                 <ThemedText style={styles.xp}>{entry.weekly_xp} XP</ThemedText>
+                {cooldown > 0 && (
+                  <ThemedText style={styles.cooldownText}>
+                    Prochain like dans {formatCooldown(cooldown)}
+                  </ThemedText>
+                )}
               </View>
               {!isMe && (
                 <Pressable
                   onPress={() => handleLike(entry.id)}
-                  disabled={cooldownSeconds > 0}
+                  disabled={cooldown > 0}
                   style={styles.heartButton}
                   hitSlop={8}
                 >
                   <MaterialCommunityIcons
                     name={isLiked ? "heart" : "heart-outline"}
                     size={26}
-                    color={isLiked ? "#EF4444" : cooldownSeconds > 0 ? "#CBD5E1" : "#EF4444"}
+                    color={isLiked ? "#EF4444" : cooldown > 0 ? "#CBD5E1" : "#EF4444"}
                   />
                 </Pressable>
               )}
@@ -147,18 +161,24 @@ export const WeeklyRevealBottomSheet: React.FC<WeeklyRevealBottomSheetProps> = (
           <ThemedText style={styles.emptyText}>Pas encore de classement pour la semaine dernière.</ThemedText>
         )}
 
-        {cooldownSeconds > 0 && (
-          <ThemedText style={styles.cooldownText}>
-            Prochain like possible dans {formatCooldown(cooldownSeconds)}
-          </ThemedText>
-        )}
-
-        <Pressable
-          style={[styles.closeButton, { backgroundColor: isDark ? theme.color.primary[600] : theme.color.primary[500] }]}
-          onPress={onClose}
-        >
-          <ThemedText style={styles.closeButtonText}>Fermer</ThemedText>
-        </Pressable>
+        <View style={styles.actionsRow}>
+          <Pressable
+            style={[styles.actionButton, styles.closeButton, isDark && styles.closeButtonDark]}
+            onPress={onClose}
+          >
+            <ThemedText style={[styles.closeButtonText, isDark && styles.textDark]}>Fermer</ThemedText>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.actionButton,
+              styles.viewAllButton,
+              { backgroundColor: isDark ? theme.color.primary[600] : theme.color.primary[500] },
+            ]}
+            onPress={handleViewFullLeaderboard}
+          >
+            <ThemedText style={styles.viewAllButtonText}>Voir tout le classement</ThemedText>
+          </Pressable>
+        </View>
       </View>
     </Modal>
   );
@@ -229,24 +249,43 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   cooldownText: {
-    textAlign: "center",
-    fontSize: 12,
-    color: theme.color.gray[600],
+    fontSize: 11,
+    color: theme.color.gray[500],
     fontFamily: theme.typography.fontFamily,
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: 2,
   },
-  closeButton: {
+  actionsRow: {
+    flexDirection: "row",
+    gap: 10,
     marginTop: 12,
+  },
+  actionButton: {
+    flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
   },
+  closeButton: {
+    backgroundColor: "#F1F5F9",
+  },
+  closeButtonDark: {
+    backgroundColor: theme.color.dark.background.primary,
+  },
   closeButtonText: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#334155",
+  },
+  viewAllButton: {},
+  viewAllButtonText: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 15,
     fontWeight: "600",
     color: "#FFFFFF",
+  },
+  textDark: {
+    color: "#F8FAFC",
   },
 });
 
