@@ -12,7 +12,6 @@ import { useUser } from "@/contexts/useUserInfo";
 import { useSecondaryProgram } from "@/hooks/secondary/useSecondaryPrograms";
 import { logger } from "@/utils/logger";
 import { SecondaryPaymentService } from "@/services/secondary/secondary-payment.service";
-import { getCountryCurrency } from "@/services/currency.service";
 import { PawaPayService, pawapayFailureMessage } from "@/lib/pawapay";
 import { PaymentProcessing } from "@/components/payment";
 import { SecondaryPlanOptions } from "@/components/payment/SecondaryPlanOptions";
@@ -42,7 +41,6 @@ const SecondaryPaymentPage = () => {
   const { program, isLoading: programLoading } = useSecondaryProgram(programId);
 
   const [state, setState] = useState<FlowState>("loading");
-  const [currencyCode, setCurrencyCode] = useState("XAF");
   const [paymentRowId, setPaymentRowId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
@@ -61,10 +59,6 @@ const SecondaryPaymentPage = () => {
   useEffect(() => {
     if (!programLoading) setState((prev) => (prev === "loading" ? "plan_selection" : prev));
   }, [programLoading]);
-
-  useEffect(() => {
-    getCountryCurrency(user?.country_id).then(setCurrencyCode);
-  }, [user?.country_id]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -181,7 +175,6 @@ const SecondaryPaymentPage = () => {
         return (
           <SecondaryPlanOptions
             programName={programName}
-            currencyCode={currencyCode}
             isDark={isDark}
             isLoading={false}
             defaultCountryName={user?.country}

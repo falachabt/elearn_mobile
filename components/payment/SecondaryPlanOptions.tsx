@@ -28,14 +28,19 @@ import {
   getSecondaryPlansConfig,
   SecondaryPlanConfig,
 } from "@/services/secondary/secondaryPlansConfig.service";
-import { PhoneNumberField, findPhoneCountryByName } from "@/components/payment/PhoneNumberField";
+import {
+  PhoneNumberField,
+  findPhoneCountryByName,
+  isProfileCountrySupported,
+} from "@/components/payment/PhoneNumberField";
+import { UnsupportedCountryBanner } from "@/components/payment/UnsupportedCountryBanner";
 import type { Country } from "@/components/ui/CountryPickerBottomSheet";
+import { currencyForCountryName } from "@/constants/pawapayCountries";
 
 const PLANS: SecondaryPlan[] = ["monthly", "quarterly", "semiannual"];
 
 interface SecondaryPlanOptionsProps {
   programName: string;
-  currencyCode: string;
   isDark: boolean;
   isLoading: boolean;
   defaultCountryName?: string | null;
@@ -47,7 +52,6 @@ interface SecondaryPlanOptionsProps {
 
 export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
   programName,
-  currencyCode,
   isDark,
   isLoading,
   defaultCountryName,
@@ -57,6 +61,7 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
   const [phoneNumber, setPhoneNumber] = useState("");
   const [country, setCountry] = useState<Country>(() => findPhoneCountryByName(defaultCountryName));
   const isPhoneValid = phoneNumber.trim().length > 0 && country.regex.test(phoneNumber);
+  const currencyCode = currencyForCountryName(country.name);
   const [selectedPlan, setSelectedPlan] = useState<SecondaryPlan>(preselectedPlan ?? "monthly");
   const [rates, setRates] = useState<ExchangeRate[]>([]);
   const [plansConfig, setPlansConfig] = useState<Record<SecondaryPlan, SecondaryPlanConfig> | null>(null);
@@ -71,7 +76,8 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
   const localPriceLabel = (plan: SecondaryPlan) => {
     const priceXaf = priceXafFor(plan);
     if (priceXaf === undefined) return "…";
-    if (currencyCode === "XAF") return `${priceXaf} FCFA`;
+    const hasRate = rates.some((r) => r.currency_code === currencyCode);
+    if (currencyCode === "XAF" || !hasRate) return `${priceXaf} FCFA`;
     const local = convertXafToLocal(priceXaf, currencyCode, rates);
     return `${formatLocalPrice(local, currencyCode)} (${priceXaf} FCFA)`;
   };
@@ -148,6 +154,10 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
               </TouchableOpacity>
             ))}
           </View>
+        )}
+
+        {!isProfileCountrySupported(defaultCountryName) && (
+          <UnsupportedCountryBanner countryName={defaultCountryName} isDark={isDark} />
         )}
 
         <PhoneNumberField

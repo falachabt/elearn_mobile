@@ -20,7 +20,7 @@ import * as Crypto from "expo-crypto";
 
 import { ProgramPaymentService } from "@/services/program-payment.service";
 import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from "@/lib/pawapay";
-import { getCountryCurrency, getExchangeRates, ExchangeRate } from "@/services/currency.service";
+import { getExchangeRates, ExchangeRate } from "@/services/currency.service";
 import { ProgramPayment, PaymentFlowState } from "@/types/payment.types";
 import { InstallmentDetails, NextPaymentOptions, PaymentProcessing } from "@/components/payment";
 import { useUser } from "@/contexts/useUserInfo";
@@ -49,13 +49,11 @@ const InstallmentPaymentPage = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
-  const [currencyCode, setCurrencyCode] = useState("XAF");
   const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
 
   useEffect(() => {
-    getCountryCurrency(user?.country_id).then(setCurrencyCode);
     getExchangeRates().then(setExchangeRates);
-  }, [user?.country_id]);
+  }, []);
 
   // Load program and installment data
   useEffect(() => {
@@ -381,7 +379,6 @@ const InstallmentPaymentPage = () => {
               isDark={isDark}
               isLoading={false}
               defaultCountryName={user?.country}
-              currencyCode={currencyCode}
               exchangeRates={exchangeRates}
             />
           </View>

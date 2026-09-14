@@ -13,8 +13,14 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "@/constants/theme";
 import { ThemedText } from "@/components/ThemedText";
 import WhatsAppContact from "@/components/WhatsappSupport";
-import { PhoneNumberField, findPhoneCountryByName } from "@/components/payment/PhoneNumberField";
+import {
+  PhoneNumberField,
+  findPhoneCountryByName,
+  isProfileCountrySupported,
+} from "@/components/payment/PhoneNumberField";
+import { UnsupportedCountryBanner } from "@/components/payment/UnsupportedCountryBanner";
 import type { Country } from "@/components/ui/CountryPickerBottomSheet";
+import { currencyForCountryName } from "@/constants/pawapayCountries";
 import { convertXafToLocal, formatLocalPrice } from "@/services/currency.service";
 import type { ExchangeRate } from "@/services/currency.service";
 
@@ -26,7 +32,6 @@ interface NextPaymentOptionsProps {
   isDark: boolean;
   isLoading: boolean;
   defaultCountryName?: string | null;
-  currencyCode?: string;
   exchangeRates?: ExchangeRate[];
   onPayment: (phoneNumber: string, callingCode: string) => void;
 }
@@ -39,16 +44,17 @@ export const NextPaymentOptions: FC<NextPaymentOptionsProps> = ({
   isDark,
   isLoading,
   defaultCountryName,
-  currencyCode = "XAF",
   exchangeRates = [],
   onPayment,
 }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [country, setCountry] = useState<Country>(() => findPhoneCountryByName(defaultCountryName));
   const isPhoneValid = phoneNumber.trim().length > 0 && country.regex.test(phoneNumber);
+  const currencyCode = currencyForCountryName(country.name);
 
   const localPriceLabel = (amountXaf: number) => {
-    if (currencyCode === "XAF") return `${amountXaf} FCFA`;
+    const hasRate = exchangeRates.some((r) => r.currency_code === currencyCode);
+    if (currencyCode === "XAF" || !hasRate) return `${amountXaf} FCFA`;
     const local = convertXafToLocal(amountXaf, currencyCode, exchangeRates);
     return `${formatLocalPrice(local, currencyCode)} (${amountXaf} FCFA)`;
   };
@@ -74,6 +80,10 @@ export const NextPaymentOptions: FC<NextPaymentOptionsProps> = ({
             Versement {currentInstallment + 1}/{totalInstallments}
           </ThemedText>
         </View>
+
+        {!isProfileCountrySupported(defaultCountryName) && (
+          <UnsupportedCountryBanner countryName={defaultCountryName} isDark={isDark} />
+        )}
 
         <PhoneNumberField
           localNumber={phoneNumber}

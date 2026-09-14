@@ -19,8 +19,14 @@ import { PromoCode } from "@/types/payment.types";
 import { logger } from "@/utils/logger";
 import { PromoCodeService } from "@/services/promo-code.service";
 import { supabase } from "@/lib/supabase";
-import { PhoneNumberField, findPhoneCountryByName } from "@/components/payment/PhoneNumberField";
+import {
+  PhoneNumberField,
+  findPhoneCountryByName,
+  isProfileCountrySupported,
+} from "@/components/payment/PhoneNumberField";
+import { UnsupportedCountryBanner } from "@/components/payment/UnsupportedCountryBanner";
 import type { Country } from "@/components/ui/CountryPickerBottomSheet";
+import { currencyForCountryName } from "@/constants/pawapayCountries";
 import { convertXafToLocal, formatLocalPrice } from "@/services/currency.service";
 import type { ExchangeRate } from "@/services/currency.service";
 
@@ -29,9 +35,8 @@ interface PaymentOptionsProps {
   programPrice: number;
   isDark: boolean;
   isLoading: boolean;
-  /** Pays du profil utilisateur -- pré-sélectionne l'indicatif téléphonique. */
+  /** Pays du profil utilisateur -- pré-sélectionne l'indicatif téléphonique et la devise. */
   defaultCountryName?: string | null;
-  currencyCode?: string;
   exchangeRates?: ExchangeRate[];
   onPayment: (paymentData: {
     phoneNumber: string;
@@ -49,13 +54,13 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
   isDark,
   isLoading,
   defaultCountryName,
-  currencyCode = "XAF",
   exchangeRates = [],
   onPayment,
 }) => {
   const INSTALLMENT_COUNT = 2;
   const [phoneNumber, setPhoneNumber] = useState("");
   const [country, setCountry] = useState<Country>(() => findPhoneCountryByName(defaultCountryName));
+  const currencyCode = currencyForCountryName(country.name);
   const [promoCode, setPromoCode] = useState("");
   const [promoCodeStatus, setPromoCodeStatus] = useState<
     "idle" | "verifying" | "valid" | "invalid"
@@ -82,7 +87,8 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
   };
 
   const localPriceLabel = (amountXaf: number) => {
-    if (currencyCode === "XAF") return `${amountXaf} FCFA`;
+    const hasRate = exchangeRates.some((r) => r.currency_code === currencyCode);
+    if (currencyCode === "XAF" || !hasRate) return `${amountXaf} FCFA`;
     const local = convertXafToLocal(amountXaf, currencyCode, exchangeRates);
     return `${formatLocalPrice(local, currencyCode)} (${amountXaf} FCFA)`;
   };
@@ -221,6 +227,10 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
             </View>
           </TouchableOpacity>
         </View>
+
+        {!isProfileCountrySupported(defaultCountryName) && (
+          <UnsupportedCountryBanner countryName={defaultCountryName} isDark={isDark} />
+        )}
 
         <PhoneNumberField
           localNumber={phoneNumber}

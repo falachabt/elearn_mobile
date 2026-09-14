@@ -1,17 +1,31 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 
 import { theme } from '@/constants/theme';
 import CountryPickerBottomSheet, { Country, COUNTRIES } from '@/components/ui/CountryPickerBottomSheet';
+import { isPawaPaySupportedCountryName } from '@/constants/pawapayCountries';
+import { getLiveSupportedCountryNames } from '@/services/pawapaySupportedCountries.service';
 
-const DEFAULT_COUNTRY = COUNTRIES.find((c) => c.name === 'Cameroun') ?? COUNTRIES[0];
+/** Countries PawaPay actually supports (static, refined live -- see below).
+ * Keeps the picker from listing countries a payment can never succeed in. */
+export const PAYMENT_COUNTRIES: Country[] = COUNTRIES.filter((c) => isPawaPaySupportedCountryName(c.name));
+
+export const DEFAULT_PAYMENT_COUNTRY =
+  PAYMENT_COUNTRIES.find((c) => c.name === 'Cameroun') ?? PAYMENT_COUNTRIES[0];
 
 /** Best-effort match of a free-text country name (e.g. accounts.country) to
- * the phone-country list, used only to pre-select a sensible default. */
+ * a PawaPay-supported phone country, used only to pre-select a sensible
+ * default. Falls back to Cameroun when the profile country isn't supported
+ * -- pair with isProfileCountrySupported() to show a "contact support" hint. */
 export function findPhoneCountryByName(name?: string | null): Country {
-  if (!name) return DEFAULT_COUNTRY;
+  if (!name) return DEFAULT_PAYMENT_COUNTRY;
   const q = name.trim().toLowerCase();
-  return COUNTRIES.find((c) => c.name.toLowerCase() === q) ?? DEFAULT_COUNTRY;
+  return PAYMENT_COUNTRIES.find((c) => c.name.toLowerCase() === q) ?? DEFAULT_PAYMENT_COUNTRY;
+}
+
+/** True if the given profile country name is one PawaPay supports for deposits. */
+export function isProfileCountrySupported(name?: string | null): boolean {
+  return isPawaPaySupportedCountryName(name);
 }
 
 interface PhoneNumberFieldProps {
@@ -26,7 +40,9 @@ interface PhoneNumberFieldProps {
 
 /** Phone number input with a country dial-code picker (flag + regex per
  * country) -- used on every mobile-money payment screen so the number sent
- * to PawaPay matches the country the customer actually picked. */
+ * to PawaPay matches the country the customer actually picked. The picker
+ * only lists PawaPay-supported countries, refined at runtime from PawaPay's
+ * live active configuration when reachable. */
 export const PhoneNumberField: React.FC<PhoneNumberFieldProps> = ({
   label = 'Numéro de téléphone',
   localNumber,
@@ -37,6 +53,20 @@ export const PhoneNumberField: React.FC<PhoneNumberFieldProps> = ({
   error,
 }) => {
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerCountries, setPickerCountries] = useState<Country[]>(PAYMENT_COUNTRIES);
+
+  useEffect(() => {
+    let cancelled = false;
+    getLiveSupportedCountryNames().then((names) => {
+      if (cancelled) return;
+      const live = PAYMENT_COUNTRIES.filter((c) => names.includes(c.name));
+      // Never end up with an empty picker if the live list is unexpectedly thin.
+      if (live.length > 0) setPickerCountries(live);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const isValid = useMemo(
     () => (localNumber ? country.regex.test(localNumber) : true),
@@ -77,6 +107,7 @@ export const PhoneNumberField: React.FC<PhoneNumberFieldProps> = ({
       <CountryPickerBottomSheet
         visible={pickerVisible}
         selected={country}
+        countries={pickerCountries}
         onSelect={onChangeCountry}
         onClose={() => setPickerVisible(false)}
       />

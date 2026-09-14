@@ -15,7 +15,7 @@ import { useUser } from "@/contexts/useUserInfo";
 import { logger } from "@/utils/logger";
 import { ProgramPaymentService } from "@/services/program-payment.service";
 import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from "@/lib/pawapay";
-import { getCountryCurrency, getExchangeRates, ExchangeRate } from "@/services/currency.service";
+import { getExchangeRates, ExchangeRate } from "@/services/currency.service";
 import {
   PaymentInstructions,
   PaymentOptions,
@@ -70,7 +70,6 @@ const ProgramPaymentPage = () => {
   const [paymentRowId, setPaymentRowId] = useState<string | null>(null);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [currencyCode, setCurrencyCode] = useState("XAF");
   const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
   const [shouldIgnoreOldStatus, setShouldIgnoreOldStatus] = useState(latestPayment?.has_seen_result === true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -249,9 +248,8 @@ const ProgramPaymentPage = () => {
   }, [pdId, programId, latestPaymentLoading, pricing.FIXED_PRICE]);
 
   useEffect(() => {
-    getCountryCurrency(user?.country_id).then(setCurrencyCode);
     getExchangeRates().then(setExchangeRates);
-  }, [user?.country_id]);
+  }, []);
 
   // Message rotation while verifying
   useEffect(() => {
@@ -476,7 +474,6 @@ const ProgramPaymentPage = () => {
             isDark={isDark}
             isLoading={loading}
             defaultCountryName={user?.country}
-            currencyCode={currencyCode}
             exchangeRates={exchangeRates}
             onPayment={handlePayment}
           />
@@ -492,7 +489,6 @@ const ProgramPaymentPage = () => {
             isDark={isDark}
             isLoading={loading}
             defaultCountryName={user?.country}
-            currencyCode={currencyCode}
             exchangeRates={exchangeRates}
             onPayment={handleNextPayment}
           />

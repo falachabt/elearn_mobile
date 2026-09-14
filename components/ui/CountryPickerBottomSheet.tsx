@@ -211,6 +211,8 @@ interface CountryPickerBottomSheetProps {
   selected: Country;
   onSelect: (country: Country) => void;
   onClose: () => void;
+  /** Restrict the list (e.g. to PawaPay-supported countries). Defaults to the full COUNTRIES list. */
+  countries?: Country[];
 }
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -220,6 +222,7 @@ export default function CountryPickerBottomSheet({
   selected,
   onSelect,
   onClose,
+  countries = COUNTRIES,
 }: CountryPickerBottomSheetProps) {
   const [search, setSearch] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -245,11 +248,11 @@ export default function CountryPickerBottomSheet({
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return COUNTRIES;
-    return COUNTRIES.filter(
+    if (!q) return countries;
+    return countries.filter(
       (c) => c.name.toLowerCase().includes(q) || c.code.includes(q)
     );
-  }, [search]);
+  }, [search, countries]);
 
   const handleSelect = (country: Country) => {
     onSelect(country);

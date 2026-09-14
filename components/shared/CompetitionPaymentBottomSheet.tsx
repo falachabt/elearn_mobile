@@ -25,9 +25,15 @@ import { useCompetitionPayment } from '@/hooks/useCompetitionPayment';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { CompetitionPaymentService } from '@/services/competition-payment.service';
 import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from '@/lib/pawapay';
-import { getCountryCurrency, convertXafToLocal, formatLocalPrice, ExchangeRate, getExchangeRates } from '@/services/currency.service';
+import { convertXafToLocal, formatLocalPrice, ExchangeRate, getExchangeRates } from '@/services/currency.service';
+import { currencyForCountryName } from '@/constants/pawapayCountries';
 import WhatsAppContact from '@/components/WhatsappSupport';
-import { PhoneNumberField, findPhoneCountryByName } from '@/components/payment/PhoneNumberField';
+import {
+  PhoneNumberField,
+  findPhoneCountryByName,
+  isProfileCountrySupported,
+} from '@/components/payment/PhoneNumberField';
+import { UnsupportedCountryBanner } from '@/components/payment/UnsupportedCountryBanner';
 import type { Country } from '@/components/ui/CountryPickerBottomSheet';
 
 interface CompetitionPaymentBottomSheetProps {
@@ -66,7 +72,7 @@ export const CompetitionPaymentBottomSheet = ({
   const { user } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [country, setCountry] = useState<Country>(() => findPhoneCountryByName(user?.country));
-  const [currencyCode, setCurrencyCode] = useState('XAF');
+  const currencyCode = currencyForCountryName(country.name);
   const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
   const [promoCode, setPromoCode] = useState('');
   const [processingState, setProcessingState] = useState<'idle' | 'processing' | 'verifying' | 'success' | 'failed' | 'canceled' | 'existing_payment'>('idle');
@@ -112,7 +118,8 @@ export const CompetitionPaymentBottomSheet = ({
     ? `${documentCount} ${documentCount === 1 ? 'sujet' : 'sujets'}`
     : 'tous les sujets disponibles';
   const localPriceLabel = (amountXaf: number) => {
-    if (currencyCode === 'XAF') return `${amountXaf} FCFA`;
+    const hasRate = exchangeRates.some((r) => r.currency_code === currencyCode);
+    if (currencyCode === 'XAF' || !hasRate) return `${amountXaf} FCFA`;
     const local = convertXafToLocal(amountXaf, currencyCode, exchangeRates);
     return `${formatLocalPrice(local, currencyCode)} (${amountXaf} FCFA)`;
   };
@@ -122,9 +129,8 @@ export const CompetitionPaymentBottomSheet = ({
     : `Payez ${priceLabel} pour accéder à tous les sujets du concours ${normalizedCompetitionName}.`;
 
   useEffect(() => {
-    getCountryCurrency(user?.country_id).then(setCurrencyCode);
     getExchangeRates().then(setExchangeRates);
-  }, [user?.country_id]);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -621,6 +627,10 @@ export const CompetitionPaymentBottomSheet = ({
                   </Text>
                 </View>
               </View>
+
+              {!isProfileCountrySupported(user?.country) && (
+                <UnsupportedCountryBanner countryName={user?.country} isDark={isDark} />
+              )}
 
               <PhoneNumberField
                 label="Numéro de téléphone (Mobile Money)"
