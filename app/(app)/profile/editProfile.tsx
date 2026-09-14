@@ -21,6 +21,8 @@ import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';
 import {supabase} from "@/lib/supabase";
 import type { Database } from '@/types/supabase';
+import CountrySelectBottomSheet from '@/components/ui/CountrySelectBottomSheet';
+import { countryFlagEmoji, type CountryOption } from '@/services/countries.service';
 
 
 const { width } = Dimensions.get('window');
@@ -60,7 +62,6 @@ export default function EditProfile() {
     const phoneRef = useRef<TextInput>(null);
     const addressRef = useRef<TextInput>(null);
     const cityRef = useRef<TextInput>(null);
-    const countryRef = useRef<TextInput>(null);
     const schoolRef = useRef<TextInput>(null);
     const schoolLevelRef = useRef<TextInput>(null);
     const gradeLevelRef = useRef<TextInput>(null);
@@ -75,6 +76,7 @@ export default function EditProfile() {
         address: user?.address || '',
         city: user?.city || '',
         country: user?.country || '',
+        country_id: user?.country_id || '',
         school: user?.school || '',
         schoollevel: user?.schoollevel || '',
         gradelevel: user?.gradelevel || '',
@@ -84,6 +86,10 @@ export default function EditProfile() {
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [countryPickerVisible, setCountryPickerVisible] = useState(false);
+    const [selectedCountry, setSelectedCountry] = useState<CountryOption | null>(
+        user?.country_id ? { id: user.country_id, name: user.country || '', code: null } : null
+    );
 
 
 
@@ -97,6 +103,7 @@ export default function EditProfile() {
                 address: userInfos.address || '',
                 city: userInfos.city || '',
                 country: userInfos.country || '',
+                country_id: userInfos.country_id || '',
                 school: userInfos.school || '',
                 schoollevel: userInfos.schoollevel || '',
                 gradelevel: userInfos.gradelevel || '',
@@ -104,6 +111,9 @@ export default function EditProfile() {
                 learningstyle: userInfos.learningstyle || '',
                 maingoal: userInfos.maingoal || '',
             });
+            setSelectedCountry(
+                userInfos.country_id ? { id: userInfos.country_id, name: userInfos.country || '', code: null } : null
+            );
         }
     }, [userInfos]);
 
@@ -155,6 +165,7 @@ export default function EditProfile() {
            const updatePayload: Database["public"]["Tables"]["accounts"]["Update"] = {
                 ...formData,
                 phone: formData.phone ? Number(formData.phone) : null,
+                country_id: formData.country_id || null,
            };
            const {error} = await supabase.from('accounts').update({
                 ...updatePayload
@@ -317,12 +328,38 @@ export default function EditProfile() {
                         })}
                         {renderInput('Ville', 'city', 'Votre ville', {
                             ref: cityRef,
-                            nextRef: countryRef
+                            returnKeyType: 'done',
                         })}
-                        {renderInput('Pays', 'country', 'Votre pays', {
-                            ref: countryRef,
-                            nextRef: schoolRef
-                        })}
+
+                        <View style={styles.inputContainer}>
+                            <Text style={isDarkMode ? styles.labelDark : styles.label}>Pays</Text>
+                            <TouchableOpacity
+                                style={[
+                                    isDarkMode ? styles.inputDark : styles.input,
+                                    styles.countryTrigger,
+                                ]}
+                                onPress={() => setCountryPickerVisible(true)}
+                                activeOpacity={0.7}
+                            >
+                                {selectedCountry ? (
+                                    <View style={styles.countryTriggerContent}>
+                                        <Text style={styles.countryFlag}>{countryFlagEmoji(selectedCountry.code)}</Text>
+                                        <Text style={isDarkMode ? styles.inputTextDark : styles.inputText}>
+                                            {selectedCountry.name}
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <Text style={[isDarkMode ? styles.inputTextDark : styles.inputText, { opacity: 0.5 }]}>
+                                        Sélectionner ton pays
+                                    </Text>
+                                )}
+                                <MaterialCommunityIcons
+                                    name="chevron-down"
+                                    size={20}
+                                    color={isDarkMode ? '#AAAAAA' : '#666666'}
+                                />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     <View style={styles.section}>
@@ -374,8 +411,16 @@ export default function EditProfile() {
                     </TouchableOpacity>
                 </View>
 
-
-
+                <CountrySelectBottomSheet
+                    visible={countryPickerVisible}
+                    selected={selectedCountry}
+                    onSelect={(country) => {
+                        setSelectedCountry(country);
+                        setFormData(prev => ({ ...prev, country: country.name, country_id: country.id }));
+                        setCountryPickerVisible(false);
+                    }}
+                    onClose={() => setCountryPickerVisible(false)}
+                />
 
 
         </View>
@@ -498,6 +543,19 @@ fontSize: 16,
     },
     inputError: {
         borderColor: theme.color.error,
+    },
+    countryTrigger: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    countryTriggerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    countryFlag: {
+        fontSize: 20,
     },
     errorText: {
 

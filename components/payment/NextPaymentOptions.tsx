@@ -2,7 +2,6 @@ import React, { useState, FC } from "react";
 import {
   View,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   Platform,
@@ -14,6 +13,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "@/constants/theme";
 import { ThemedText } from "@/components/ThemedText";
 import WhatsAppContact from "@/components/WhatsappSupport";
+import { PhoneNumberField, findPhoneCountryByName } from "@/components/payment/PhoneNumberField";
+import type { Country } from "@/components/ui/CountryPickerBottomSheet";
+import { convertXafToLocal, formatLocalPrice } from "@/services/currency.service";
+import type { ExchangeRate } from "@/services/currency.service";
 
 interface NextPaymentOptionsProps {
   programName: string;
@@ -22,7 +25,10 @@ interface NextPaymentOptionsProps {
   totalInstallments: number;
   isDark: boolean;
   isLoading: boolean;
-  onPayment: (phoneNumber: string) => void;
+  defaultCountryName?: string | null;
+  currencyCode?: string;
+  exchangeRates?: ExchangeRate[];
+  onPayment: (phoneNumber: string, callingCode: string) => void;
 }
 
 export const NextPaymentOptions: FC<NextPaymentOptionsProps> = ({
@@ -32,12 +38,23 @@ export const NextPaymentOptions: FC<NextPaymentOptionsProps> = ({
   totalInstallments,
   isDark,
   isLoading,
+  defaultCountryName,
+  currencyCode = "XAF",
+  exchangeRates = [],
   onPayment,
 }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [country, setCountry] = useState<Country>(() => findPhoneCountryByName(defaultCountryName));
+  const isPhoneValid = phoneNumber.trim().length > 0 && country.regex.test(phoneNumber);
+
+  const localPriceLabel = (amountXaf: number) => {
+    if (currencyCode === "XAF") return `${amountXaf} FCFA`;
+    const local = convertXafToLocal(amountXaf, currencyCode, exchangeRates);
+    return `${formatLocalPrice(local, currencyCode)} (${amountXaf} FCFA)`;
+  };
 
   const handlePayment = () => {
-    onPayment(phoneNumber);
+    onPayment(phoneNumber, country.code.replace('+', ''));
   };
 
   return (
@@ -51,24 +68,20 @@ export const NextPaymentOptions: FC<NextPaymentOptionsProps> = ({
             Prochain versement - {programName}
           </ThemedText>
           <ThemedText style={styles.paymentAmount}>
-            {installmentAmount} FCFA
+            {localPriceLabel(installmentAmount)}
           </ThemedText>
           <ThemedText style={styles.installmentInfo}>
             Versement {currentInstallment + 1}/{totalInstallments}
           </ThemedText>
         </View>
 
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.inputLabel}>Numéro de téléphone</ThemedText>
-          <TextInput
-            style={[styles.input, isDark && styles.inputDark]}
-            placeholder="Ex: 6XXXXXXXX"
-            placeholderTextColor={isDark ? theme.color.gray[600] : theme.color.gray[400]}
-            keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-          />
-        </View>
+        <PhoneNumberField
+          localNumber={phoneNumber}
+          onChangeLocalNumber={setPhoneNumber}
+          country={country}
+          onChangeCountry={setCountry}
+          isDark={isDark}
+        />
 
         <View style={styles.promoCodeDisabledContainer}>
           <ThemedText style={styles.promoCodeDisabledText}>
@@ -87,11 +100,11 @@ export const NextPaymentOptions: FC<NextPaymentOptionsProps> = ({
               styles.paymentMethodButton,
               {
                 backgroundColor: isDark ? theme.color.primary[600] : theme.color.primary[500],
-                opacity: isLoading || !phoneNumber.trim() ? 0.5 : 1,
+                opacity: isLoading || !isPhoneValid ? 0.5 : 1,
               },
             ]}
             onPress={handlePayment}
-            disabled={isLoading || !phoneNumber.trim()}
+            disabled={isLoading || !isPhoneValid}
           >
             <View style={styles.paymentMethodContent}>
               <MaterialCommunityIcons

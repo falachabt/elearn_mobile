@@ -15,6 +15,7 @@ import { useUser } from "@/contexts/useUserInfo";
 import { logger } from "@/utils/logger";
 import { ProgramPaymentService } from "@/services/program-payment.service";
 import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from "@/lib/pawapay";
+import { getCountryCurrency, getExchangeRates, ExchangeRate } from "@/services/currency.service";
 import {
   PaymentInstructions,
   PaymentOptions,
@@ -26,8 +27,6 @@ import WhatsAppContact from "@/components/WhatsappSupport";
 import { PaymentFlowState, ProgramPayment, PromoCodeDetails, PaymentContextData } from "@/types/payment.types";
 import { MESSAGE_ROTATION_INTERVAL } from "@/constants/payment.constants";
 
-// Phone numbers accepted (Cameroon MTN, 9 digits starting 650-654, 67, 68).
-const CM_PHONE_REGEX = /^6(5[0-4]|7[0-9]|8[0-9])[0-9]{6}$/;
 // In dev builds we charge a tiny test amount instead of the real price so test
 // PawaPay deposits don't cost the full price. PawaPay MTN_MOMO_CMR min = 1 XAF.
 const DEV_TEST_AMOUNT = 100;
@@ -71,6 +70,8 @@ const ProgramPaymentPage = () => {
   const [paymentRowId, setPaymentRowId] = useState<string | null>(null);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [currencyCode, setCurrencyCode] = useState("XAF");
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
   const [shouldIgnoreOldStatus, setShouldIgnoreOldStatus] = useState(latestPayment?.has_seen_result === true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -247,6 +248,11 @@ const ProgramPaymentPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdId, programId, latestPaymentLoading, pricing.FIXED_PRICE]);
 
+  useEffect(() => {
+    getCountryCurrency(user?.country_id).then(setCurrencyCode);
+    getExchangeRates().then(setExchangeRates);
+  }, [user?.country_id]);
+
   // Message rotation while verifying
   useEffect(() => {
     const interval = setInterval(() => {
@@ -267,18 +273,14 @@ const ProgramPaymentPage = () => {
   // First payment — full price OR first of 2 installments.
   const handlePayment = async (paymentData: {
     phoneNumber: string;
+    callingCode: string;
     promoCode: string;
     promoCodeDetails: PromoCodeDetails | null;
     isInstallment: boolean;
     totalInstallments: number;
   }) => {
-    const { phoneNumber, promoCodeDetails, isInstallment, totalInstallments } = paymentData;
+    const { phoneNumber, callingCode, promoCodeDetails, isInstallment, totalInstallments } = paymentData;
 
-    if (!CM_PHONE_REGEX.test(phoneNumber)) {
-      setErrorMessage("Numéro invalide. Utilisez un numéro MTN (ex: 650123456).");
-      setCurrentState(PaymentFlowState.FAILED);
-      return;
-    }
     if (!programContext.programId) {
       setErrorMessage("Programme introuvable. Réessayez.");
       setCurrentState(PaymentFlowState.FAILED);
@@ -316,6 +318,7 @@ const ProgramPaymentPage = () => {
       const result = await PawaPayService.initiateDeposit({
         depositId,
         phoneNumber,
+        callingCode,
         amount,
         customerMessage: "Elearn Prepa",
       });
@@ -347,14 +350,9 @@ const ProgramPaymentPage = () => {
   };
 
   // Subsequent installment payment.
-  const handleNextPayment = async (phoneNumber: string) => {
+  const handleNextPayment = async (phoneNumber: string, callingCode: string) => {
     const parent = programContext.installmentPayment;
 
-    if (!CM_PHONE_REGEX.test(phoneNumber)) {
-      setErrorMessage("Numéro invalide. Utilisez un numéro MTN (ex: 650123456).");
-      setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
-      return;
-    }
     if (!parent || !programContext.programId) {
       setErrorMessage("Impossible de retrouver le plan de paiement. Contactez le support.");
       setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
@@ -392,6 +390,7 @@ const ProgramPaymentPage = () => {
       const result = await PawaPayService.initiateDeposit({
         depositId,
         phoneNumber,
+        callingCode,
         amount,
         customerMessage: "Elearn Prepa",
       });
@@ -476,6 +475,9 @@ const ProgramPaymentPage = () => {
             programPrice={programContext.programPrice}
             isDark={isDark}
             isLoading={loading}
+            defaultCountryName={user?.country}
+            currencyCode={currencyCode}
+            exchangeRates={exchangeRates}
             onPayment={handlePayment}
           />
         );
@@ -489,6 +491,9 @@ const ProgramPaymentPage = () => {
             totalInstallments={programContext.installmentPayment?.total_installments || 1}
             isDark={isDark}
             isLoading={loading}
+            defaultCountryName={user?.country}
+            currencyCode={currencyCode}
+            exchangeRates={exchangeRates}
             onPayment={handleNextPayment}
           />
         );

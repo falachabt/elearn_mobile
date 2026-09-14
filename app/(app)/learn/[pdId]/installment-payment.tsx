@@ -20,13 +20,13 @@ import * as Crypto from "expo-crypto";
 
 import { ProgramPaymentService } from "@/services/program-payment.service";
 import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from "@/lib/pawapay";
+import { getCountryCurrency, getExchangeRates, ExchangeRate } from "@/services/currency.service";
 import { ProgramPayment, PaymentFlowState } from "@/types/payment.types";
 import { InstallmentDetails, NextPaymentOptions, PaymentProcessing } from "@/components/payment";
 import { useUser } from "@/contexts/useUserInfo";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 
-// Cameroon MTN phone (9 digits, starting 650-654, 67, 68). In dev we charge a tiny test amount.
-const CM_PHONE_REGEX = /^6(5[0-4]|7[0-9]|8[0-9])[0-9]{6}$/;
+// In dev we charge a tiny test amount instead of the real price.
 const DEV_TEST_AMOUNT = 100;
 const POLL_INTERVAL_MS = 5000;
 const POLL_TIMEOUT_S = 300;
@@ -49,6 +49,13 @@ const InstallmentPaymentPage = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [statusCheckInterval, setStatusCheckInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [currencyCode, setCurrencyCode] = useState("XAF");
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
+
+  useEffect(() => {
+    getCountryCurrency(user?.country_id).then(setCurrencyCode);
+    getExchangeRates().then(setExchangeRates);
+  }, [user?.country_id]);
 
   // Load program and installment data
   useEffect(() => {
@@ -132,14 +139,9 @@ const InstallmentPaymentPage = () => {
   };
 
   // Handle payment submission (next installment via PawaPay).
-  const handlePaymentSubmit = async (phoneNumber: string) => {
+  const handlePaymentSubmit = async (phoneNumber: string, callingCode: string) => {
     if (!installmentPayment?.id || !programId) {
       setErrorMessage("Paiement non trouvé");
-      return;
-    }
-    if (!CM_PHONE_REGEX.test(phoneNumber)) {
-      setErrorMessage("Numéro invalide. Utilisez un numéro MTN (ex: 650123456).");
-      setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
       return;
     }
 
@@ -175,6 +177,7 @@ const InstallmentPaymentPage = () => {
       const result = await PawaPayService.initiateDeposit({
         depositId,
         phoneNumber,
+        callingCode,
         amount,
         customerMessage: "Elearn Prepa",
       });
@@ -377,6 +380,9 @@ const InstallmentPaymentPage = () => {
               onPayment={handlePaymentSubmit}
               isDark={isDark}
               isLoading={false}
+              defaultCountryName={user?.country}
+              currencyCode={currencyCode}
+              exchangeRates={exchangeRates}
             />
           </View>
         );

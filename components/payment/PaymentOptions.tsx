@@ -19,14 +19,23 @@ import { PromoCode } from "@/types/payment.types";
 import { logger } from "@/utils/logger";
 import { PromoCodeService } from "@/services/promo-code.service";
 import { supabase } from "@/lib/supabase";
+import { PhoneNumberField, findPhoneCountryByName } from "@/components/payment/PhoneNumberField";
+import type { Country } from "@/components/ui/CountryPickerBottomSheet";
+import { convertXafToLocal, formatLocalPrice } from "@/services/currency.service";
+import type { ExchangeRate } from "@/services/currency.service";
 
 interface PaymentOptionsProps {
   programName: string;
   programPrice: number;
   isDark: boolean;
   isLoading: boolean;
+  /** Pays du profil utilisateur -- pré-sélectionne l'indicatif téléphonique. */
+  defaultCountryName?: string | null;
+  currencyCode?: string;
+  exchangeRates?: ExchangeRate[];
   onPayment: (paymentData: {
     phoneNumber: string;
+    callingCode: string;
     promoCode: string;
     promoCodeDetails: PromoCode | null;
     isInstallment: boolean;
@@ -39,10 +48,14 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
   programPrice,
   isDark,
   isLoading,
+  defaultCountryName,
+  currencyCode = "XAF",
+  exchangeRates = [],
   onPayment,
 }) => {
   const INSTALLMENT_COUNT = 2;
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [country, setCountry] = useState<Country>(() => findPhoneCountryByName(defaultCountryName));
   const [promoCode, setPromoCode] = useState("");
   const [promoCodeStatus, setPromoCodeStatus] = useState<
     "idle" | "verifying" | "valid" | "invalid"
@@ -66,6 +79,12 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
       return Math.ceil(programPrice / INSTALLMENT_COUNT);
     }
     return programPrice;
+  };
+
+  const localPriceLabel = (amountXaf: number) => {
+    if (currencyCode === "XAF") return `${amountXaf} FCFA`;
+    const local = convertXafToLocal(amountXaf, currencyCode, exchangeRates);
+    return `${formatLocalPrice(local, currencyCode)} (${amountXaf} FCFA)`;
   };
 
   const verifyPromoCode = async () => {
@@ -118,9 +137,12 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
     }
   };
 
+  const isPhoneValid = phoneNumber.trim().length > 0 && country.regex.test(phoneNumber);
+
   const handlePayment = () => {
     onPayment({
       phoneNumber,
+      callingCode: country.code.replace('+', ''),
       promoCode,
       promoCodeDetails,
       isInstallment,
@@ -139,7 +161,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
             Paiement pour {programName}
           </ThemedText>
           <ThemedText style={styles.paymentAmount}>
-            {displayAmount()} FCFA
+            {localPriceLabel(displayAmount())}
             {isInstallment && ` (Versement 1/${INSTALLMENT_COUNT})`}
           </ThemedText>
         </View>
@@ -169,7 +191,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
                 Paiement complet
               </ThemedText>
               <ThemedText style={styles.paymentTypeDescription}>
-                Payez {programPrice} FCFA en une seule fois
+                Payez {localPriceLabel(programPrice)} en une seule fois
               </ThemedText>
             </View>
           </TouchableOpacity>
@@ -194,23 +216,19 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
               </ThemedText>
               <ThemedText style={styles.paymentTypeDescription}>
                 Payez en {INSTALLMENT_COUNT} versements de{" "}
-                {Math.ceil(programPrice / INSTALLMENT_COUNT)} FCFA
+                {localPriceLabel(Math.ceil(programPrice / INSTALLMENT_COUNT))}
               </ThemedText>
             </View>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.inputLabel}>Numéro de téléphone</ThemedText>
-          <TextInput
-            style={[styles.input, isDark && styles.inputDark]}
-            placeholder="Ex: 6XXXXXXXX"
-            placeholderTextColor={isDark ? theme.color.gray[600] : theme.color.gray[400]}
-            keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-          />
-        </View>
+        <PhoneNumberField
+          localNumber={phoneNumber}
+          onChangeLocalNumber={setPhoneNumber}
+          country={country}
+          onChangeCountry={setCountry}
+          isDark={isDark}
+        />
 
         <View style={styles.inputContainer}>
           <ThemedText style={styles.inputLabel}>
@@ -295,11 +313,11 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
               isDark && { backgroundColor: theme.color.dark.background.secondary, borderColor: theme.color.gray[600] },
               {
                 backgroundColor: isDark ? theme.color.primary[600] : theme.color.primary[500],
-                opacity: isLoading || !phoneNumber.trim() ? 0.5 : 1,
+                opacity: isLoading || !isPhoneValid ? 0.5 : 1,
               },
             ]}
             onPress={handlePayment}
-            disabled={isLoading || !phoneNumber.trim()}
+            disabled={isLoading || !isPhoneValid}
           >
             <View style={styles.paymentMethodContent}>
               <MaterialCommunityIcons

@@ -1,7 +1,6 @@
 import React, { useEffect, useState, FC } from "react";
 import {
   View,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   Platform,
@@ -29,6 +28,8 @@ import {
   getSecondaryPlansConfig,
   SecondaryPlanConfig,
 } from "@/services/secondary/secondaryPlansConfig.service";
+import { PhoneNumberField, findPhoneCountryByName } from "@/components/payment/PhoneNumberField";
+import type { Country } from "@/components/ui/CountryPickerBottomSheet";
 
 const PLANS: SecondaryPlan[] = ["monthly", "quarterly", "semiannual"];
 
@@ -37,7 +38,8 @@ interface SecondaryPlanOptionsProps {
   currencyCode: string;
   isDark: boolean;
   isLoading: boolean;
-  onPayment: (data: { phoneNumber: string; plan: SecondaryPlan; amountXaf: number }) => void;
+  defaultCountryName?: string | null;
+  onPayment: (data: { phoneNumber: string; callingCode: string; plan: SecondaryPlan; amountXaf: number }) => void;
   /** Si fourni, le plan a déjà été choisi (SecondaryPlanPickerSheet) -- on
    * saute le choix de plan et va direct au numéro de téléphone. */
   preselectedPlan?: SecondaryPlan;
@@ -48,10 +50,13 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
   currencyCode,
   isDark,
   isLoading,
+  defaultCountryName,
   onPayment,
   preselectedPlan,
 }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [country, setCountry] = useState<Country>(() => findPhoneCountryByName(defaultCountryName));
+  const isPhoneValid = phoneNumber.trim().length > 0 && country.regex.test(phoneNumber);
   const [selectedPlan, setSelectedPlan] = useState<SecondaryPlan>(preselectedPlan ?? "monthly");
   const [rates, setRates] = useState<ExchangeRate[]>([]);
   const [plansConfig, setPlansConfig] = useState<Record<SecondaryPlan, SecondaryPlanConfig> | null>(null);
@@ -77,7 +82,7 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
   const handlePayment = () => {
     const amountXaf = priceXafFor(selectedPlan);
     if (amountXaf === undefined) return; // config pas encore chargée
-    onPayment({ phoneNumber, plan: selectedPlan, amountXaf });
+    onPayment({ phoneNumber, callingCode: country.code.replace('+', ''), plan: selectedPlan, amountXaf });
   };
 
   return (
@@ -145,28 +150,25 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
           </View>
         )}
 
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.inputLabel}>Numéro de téléphone (MTN Mobile Money)</ThemedText>
-          <TextInput
-            style={[styles.input, isDark && styles.inputDark]}
-            placeholder="Ex: 6XXXXXXXX"
-            placeholderTextColor={isDark ? theme.color.gray[600] : theme.color.gray[400]}
-            keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-          />
-        </View>
+        <PhoneNumberField
+          label="Numéro de téléphone (Mobile Money)"
+          localNumber={phoneNumber}
+          onChangeLocalNumber={setPhoneNumber}
+          country={country}
+          onChangeCountry={setCountry}
+          isDark={isDark}
+        />
 
         <TouchableOpacity
           style={[
             styles.payButton,
             {
               backgroundColor: isDark ? theme.color.primary[600] : theme.color.primary[500],
-              opacity: isLoading || !phoneNumber.trim() || !plansConfig ? 0.5 : 1,
+              opacity: isLoading || !isPhoneValid || !plansConfig ? 0.5 : 1,
             },
           ]}
           onPress={handlePayment}
-          disabled={isLoading || !phoneNumber.trim() || !plansConfig}
+          disabled={isLoading || !isPhoneValid || !plansConfig}
         >
           <View style={styles.payButtonContent}>
             <MaterialCommunityIcons name="cellphone" size={24} color="#FFFFFF" />

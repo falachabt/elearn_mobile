@@ -19,10 +19,6 @@ import { SecondaryPlanOptions } from "@/components/payment/SecondaryPlanOptions"
 import WhatsAppContact from "@/components/WhatsappSupport";
 import { SecondaryPlan } from "@/types/secondaryPayment.types";
 
-// Numéros MTN Cameroun (mêmes restrictions que le paiement concours -- voir
-// app/(app)/learn/[pdId]/payment.tsx : seul MTN MoMo Cameroun est supporté
-// aujourd'hui, la conversion de devise ici n'est qu'un affichage).
-const CM_PHONE_REGEX = /^6(5[0-4]|7[0-9]|8[0-9])[0-9]{6}$/;
 const DEV_TEST_AMOUNT = 100;
 const POLL_INTERVAL_MS = 5000;
 const POLL_TIMEOUT_S = 300;
@@ -110,19 +106,15 @@ const SecondaryPaymentPage = () => {
 
   const handlePayment = async ({
     phoneNumber,
+    callingCode,
     plan,
     amountXaf,
   }: {
     phoneNumber: string;
+    callingCode: string;
     plan: SecondaryPlan;
     amountXaf: number;
   }) => {
-    if (!CM_PHONE_REGEX.test(phoneNumber)) {
-      setErrorMessage("Numéro invalide. Utilisez un numéro MTN (ex: 650123456).");
-      setState("failed");
-      return;
-    }
-
     trigger(HapticType.MEDIUM);
     setErrorMessage(null);
     setState("processing");
@@ -143,6 +135,7 @@ const SecondaryPaymentPage = () => {
       const result = await PawaPayService.initiateDeposit({
         depositId,
         phoneNumber,
+        callingCode,
         amount,
         customerMessage: "Elearn Prepa",
       });
@@ -191,6 +184,7 @@ const SecondaryPaymentPage = () => {
             currencyCode={currencyCode}
             isDark={isDark}
             isLoading={false}
+            defaultCountryName={user?.country}
             preselectedPlan={preselectedPlan}
             onPayment={handlePayment}
           />

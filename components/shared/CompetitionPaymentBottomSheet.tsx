@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   useColorScheme,
@@ -21,11 +20,15 @@ import * as Crypto from 'expo-crypto';
 
 import { logger } from '@/utils/logger';
 import { theme } from '@/constants/theme';
+import { useAuth } from '@/contexts/auth';
 import { useCompetitionPayment } from '@/hooks/useCompetitionPayment';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { CompetitionPaymentService } from '@/services/competition-payment.service';
 import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from '@/lib/pawapay';
+import { getCountryCurrency, convertXafToLocal, formatLocalPrice, ExchangeRate, getExchangeRates } from '@/services/currency.service';
 import WhatsAppContact from '@/components/WhatsappSupport';
+import { PhoneNumberField, findPhoneCountryByName } from '@/components/payment/PhoneNumberField';
+import type { Country } from '@/components/ui/CountryPickerBottomSheet';
 
 interface CompetitionPaymentBottomSheetProps {
   visible: boolean;
@@ -60,7 +63,11 @@ export const CompetitionPaymentBottomSheet = ({
     'En attente de validation sur votre téléphone...',
     'Une fois validé , La vérification peut prendre jusqu\'à 5 minutes...'
   ];
+  const { user } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [country, setCountry] = useState<Country>(() => findPhoneCountryByName(user?.country));
+  const [currencyCode, setCurrencyCode] = useState('XAF');
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
   const [promoCode, setPromoCode] = useState('');
   const [processingState, setProcessingState] = useState<'idle' | 'processing' | 'verifying' | 'success' | 'failed' | 'canceled' | 'existing_payment'>('idle');
   const [currentTrxReference, setCurrentTrxReference] = useState<string | null>(null);
@@ -104,10 +111,20 @@ export const CompetitionPaymentBottomSheet = ({
   const subjectCountLabel = hasDocumentCount
     ? `${documentCount} ${documentCount === 1 ? 'sujet' : 'sujets'}`
     : 'tous les sujets disponibles';
+  const localPriceLabel = (amountXaf: number) => {
+    if (currencyCode === 'XAF') return `${amountXaf} FCFA`;
+    const local = convertXafToLocal(amountXaf, currencyCode, exchangeRates);
+    return `${formatLocalPrice(local, currencyCode)} (${amountXaf} FCFA)`;
+  };
+  const priceLabel = localPriceLabel(COMPETITION_PRICE);
   const paymentDescription = hasDocumentCount
-    ? `Payez 2000 FCFA pour débloquer ${subjectCountLabel} du concours ${normalizedCompetitionName}.`
-    : `Payez 2000 FCFA pour accéder à tous les sujets du concours ${normalizedCompetitionName}.`;
+    ? `Payez ${priceLabel} pour débloquer ${subjectCountLabel} du concours ${normalizedCompetitionName}.`
+    : `Payez ${priceLabel} pour accéder à tous les sujets du concours ${normalizedCompetitionName}.`;
 
+  useEffect(() => {
+    getCountryCurrency(user?.country_id).then(setCurrencyCode);
+    getExchangeRates().then(setExchangeRates);
+  }, [user?.country_id]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -294,9 +311,8 @@ export const CompetitionPaymentBottomSheet = ({
       return;
     }
 
-    const phoneRegex = /^(6[4-9][0-9])[0-9]{6}$/;
-    if (!phoneRegex.test(phoneNumber)) {
-      setErrorMessage('Numéro de téléphone invalide. Utilisez un numéro MTN (ex: 650123456)');
+    if (!country.regex.test(phoneNumber)) {
+      setErrorMessage(`Numéro de téléphone invalide pour ${country.name}.`);
       return;
     }
 
@@ -321,6 +337,7 @@ export const CompetitionPaymentBottomSheet = ({
       const result = await PawaPayService.initiateDeposit({
         depositId,
         phoneNumber,
+        callingCode: country.code.replace('+', ''),
         amount: COMPETITION_PAYMENT_AMOUNT,
         customerMessage: 'Elearn Prepa',
       });
@@ -605,21 +622,14 @@ export const CompetitionPaymentBottomSheet = ({
                 </View>
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={[styles.inputLabel, isDark && styles.inputLabelDark]}>
-                  Numéro de téléphone (MTN)
-                </Text>
-                <TextInput
-                  style={[styles.input, isDark && styles.inputDark]}
-                  placeholder="Ex: 650123456"
-                  placeholderTextColor={isDark ? theme.color.gray[500] : theme.color.gray[400]}
-                  keyboardType="phone-pad"
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                />
-              </View>
-
-
+              <PhoneNumberField
+                label="Numéro de téléphone (Mobile Money)"
+                localNumber={phoneNumber}
+                onChangeLocalNumber={setPhoneNumber}
+                country={country}
+                onChangeCountry={setCountry}
+                isDark={isDark}
+              />
 
               {errorMessage && (
                 <Text style={styles.errorText}>{errorMessage}</Text>
@@ -647,7 +657,7 @@ export const CompetitionPaymentBottomSheet = ({
                   color={isDark ? theme.color.gray[400] : theme.color.gray[600]}
                 />
                 <Text style={[styles.securePaymentText, isDark && styles.securePaymentTextDark]}>
-                  Paiement sécurisé via MTN Money
+                  Paiement sécurisé via Mobile Money
                 </Text>
               </View>
 

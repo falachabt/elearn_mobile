@@ -23,6 +23,8 @@ export interface PawaPayDepositParams {
   phoneNumber: string;
   amount: number;
   customerMessage?: string;
+  /** Dial code of the country picked on the payment screen (e.g. "237", "221"). */
+  callingCode?: string;
 }
 
 export interface PawaPayDepositResult {

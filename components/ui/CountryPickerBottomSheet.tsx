@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import Modal from 'react-native-modal';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '@/constants/theme';
 
 export type Country = {
@@ -224,6 +225,7 @@ export default function CountryPickerBottomSheet({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -276,7 +278,7 @@ export default function CountryPickerBottomSheet({
       avoidKeyboard={false}
       useNativeDriver
     >
-      <View style={[styles.sheet, { backgroundColor: bg, height: maxSheetHeight, marginBottom: keyboardHeight }]}>
+      <View style={[styles.sheet, { backgroundColor: bg, height: maxSheetHeight, marginBottom: keyboardHeight, paddingBottom: keyboardHeight ? 0 : insets.bottom }]}>
         {/* Handle */}
         <View style={[styles.handle, { backgroundColor: borderColor }]} />
 

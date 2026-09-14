@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Modal from 'react-native-modal';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '@/constants/theme';
 import { getCountries, countryFlagEmoji, type CountryOption } from '@/services/countries.service';
 
@@ -40,6 +41,7 @@ export default function CountrySelectBottomSheet({
   const [loading, setLoading] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!visible) {
@@ -85,7 +87,7 @@ export default function CountrySelectBottomSheet({
       avoidKeyboard={false}
       useNativeDriver
     >
-      <View style={[styles.sheet, { backgroundColor: bg, height: SCREEN_HEIGHT * 0.85 }]}>
+      <View style={[styles.sheet, { backgroundColor: bg, height: SCREEN_HEIGHT * 0.85, paddingBottom: insets.bottom }]}>
         <View style={[styles.handle, { backgroundColor: borderColor }]} />
 
         <View style={styles.header}>
