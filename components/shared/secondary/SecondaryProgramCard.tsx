@@ -59,8 +59,6 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
   const programTitle = `${program.class?.name || "Classe"} - ${
     program.serie?.name || "Série"
   }`;
-  const priceText = program.price ? `${program.price} FCFA` : "Gratuit";
-
 
   return (
     <Pressable
@@ -72,7 +70,7 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
       ]}
       accessible={true}
       accessibilityRole="button"
-      accessibilityLabel={`Programme ${programTitle}, ${priceText}`}
+      accessibilityLabel={`Programme ${programTitle}`}
       accessibilityHint="Appuyez pour voir les détails du programme"
     >
       <View style={styles.cardContent}>
@@ -102,16 +100,8 @@ const SecondaryProgramCard: React.FC<SecondaryProgramCardProps> = ({
                 <Text style={[styles.enrolledText, isDarkMode && styles.enrolledTextDark]}>
                   {enrolledCount} {enrolledCount > 1 ? "inscrits" : "inscrit"}
                 </Text>
-                <Text style={[styles.headerDot, isDarkMode && styles.headerDotDark]}>·</Text>
               </View>
             )}
-            <Text
-              style={[styles.price, isDarkMode && styles.priceDark]}
-              accessible={true}
-              accessibilityLabel={`Prix: ${priceText}`}
-            >
-              {priceText}
-            </Text>
           </View>
         </View>
 
