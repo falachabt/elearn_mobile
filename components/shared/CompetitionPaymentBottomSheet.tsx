@@ -15,6 +15,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Modal from 'react-native-modal';
 import LottieView from 'lottie-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import * as Crypto from 'expo-crypto';
 
@@ -88,6 +89,7 @@ export const CompetitionPaymentBottomSheet = ({
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   const { trigger } = useHaptics();
+  const insets = useSafeAreaInsets();
 
   const {
     paymentStatus,
@@ -235,6 +237,14 @@ export const CompetitionPaymentBottomSheet = ({
       if (paymentStatus === 'failed') {
         setProcessingState('failed');
         invalidateAccessCache(competitionId);
+        // This path (driven by the DB row's payment_status, via useCompetitionPayment)
+        // races with the direct PawaPay polling effect below and can win first --
+        // without this, the customer lands on "failed" with no reason shown at all.
+        if (currentTrxReference) {
+          PawaPayService.checkStatus(currentTrxReference).then((res) => {
+            setErrorMessage((prev) => prev ?? pawapayFailureMessage(res.failureCode));
+          });
+        }
       }
     }
   }, [paymentStatus, competitionId, processingState, shouldIgnoreOldStatus, currentTrxReference, latestPayment?.payment_reference, latestPayment?.has_seen_results, invalidateAccessCache, onPaymentSuccess, getLatestPayment]);
@@ -898,8 +908,9 @@ export const CompetitionPaymentBottomSheet = ({
       >
 
       <View style={[
-        styles.modalContent, 
+        styles.modalContent,
         isDark && styles.modalContentDark,
+        { paddingBottom: 20 + insets.bottom },
         keyboardHeight > 0 && { marginBottom: keyboardHeight }
       ]}>
 

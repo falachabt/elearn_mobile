@@ -104,11 +104,9 @@ export function formatLocalPrice(amount: number, currencyCode: string): string {
 /**
  * Single source of truth for "price to show on a payment screen" -- used by
  * every payment form so a country change always shows a price, not a silent
- * fallback. Falls back to the plain FCFA amount only when there's truly no
- * rate yet for that currency. When the converted amount is numerically
- * identical to the FCFA amount (XOF is pegged 1:1 to XAF -- both are
- * literally "Franc CFA"), the redundant "(N FCFA)" parenthetical is dropped
- * since it adds no information and reads as a duplicate/bug.
+ * fallback. Shows only the converted price in the customer's own currency,
+ * never an "(N FCFA)" reference alongside it -- falls back to the plain FCFA
+ * amount only when there's truly no rate yet for that currency.
  */
 export function formatPriceWithConversion(
   amountXaf: number,
@@ -119,7 +117,5 @@ export function formatPriceWithConversion(
   if (!hasRate) return `${amountXaf} FCFA`;
 
   const local = convertXafToLocal(amountXaf, currencyCode, rates);
-  const localLabel = formatLocalPrice(local, currencyCode);
-  if (currencyCode === 'XAF' || local === amountXaf) return localLabel;
-  return `${localLabel} (${amountXaf} FCFA)`;
+  return formatLocalPrice(local, currencyCode);
 }

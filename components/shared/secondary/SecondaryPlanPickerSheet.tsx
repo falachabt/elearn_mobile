@@ -12,8 +12,7 @@ import {
   secondaryPlanDescription,
 } from "@/types/secondaryPayment.types";
 import {
-  convertXafToLocal,
-  formatLocalPrice,
+  formatPriceWithConversion,
   getExchangeRates,
   ExchangeRate,
 } from "@/services/currency.service";
@@ -63,9 +62,7 @@ export const SecondaryPlanPickerSheet: React.FC<SecondaryPlanPickerSheetProps> =
   const localPriceLabel = (plan: SecondaryPlan) => {
     const priceXaf = plansConfig?.[plan]?.price_xaf;
     if (priceXaf === undefined) return "…";
-    if (currencyCode === "XAF") return `${priceXaf} FCFA`;
-    const local = convertXafToLocal(priceXaf, currencyCode, rates);
-    return `${formatLocalPrice(local, currencyCode)} (${priceXaf} FCFA)`;
+    return formatPriceWithConversion(priceXaf, currencyCode, rates);
   };
 
   const descriptionFor = (plan: SecondaryPlan) =>
