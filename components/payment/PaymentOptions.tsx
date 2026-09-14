@@ -27,7 +27,7 @@ import {
 import { UnsupportedCountryBanner } from "@/components/payment/UnsupportedCountryBanner";
 import type { Country } from "@/components/ui/CountryPickerBottomSheet";
 import { currencyForCountryName } from "@/constants/pawapayCountries";
-import { convertXafToLocal, formatLocalPrice } from "@/services/currency.service";
+import { formatPriceWithConversion } from "@/services/currency.service";
 import type { ExchangeRate } from "@/services/currency.service";
 
 interface PaymentOptionsProps {
@@ -86,12 +86,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
     return programPrice;
   };
 
-  const localPriceLabel = (amountXaf: number) => {
-    const hasRate = exchangeRates.some((r) => r.currency_code === currencyCode);
-    if (currencyCode === "XAF" || !hasRate) return `${amountXaf} FCFA`;
-    const local = convertXafToLocal(amountXaf, currencyCode, exchangeRates);
-    return `${formatLocalPrice(local, currencyCode)} (${amountXaf} FCFA)`;
-  };
+  const localPriceLabel = (amountXaf: number) => formatPriceWithConversion(amountXaf, currencyCode, exchangeRates);
 
   const verifyPromoCode = async () => {
     if (!promoCode.trim()) {

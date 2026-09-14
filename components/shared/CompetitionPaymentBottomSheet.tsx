@@ -25,7 +25,7 @@ import { useCompetitionPayment } from '@/hooks/useCompetitionPayment';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { CompetitionPaymentService } from '@/services/competition-payment.service';
 import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from '@/lib/pawapay';
-import { convertXafToLocal, formatLocalPrice, ExchangeRate, getExchangeRates } from '@/services/currency.service';
+import { formatPriceWithConversion, ExchangeRate, getExchangeRates } from '@/services/currency.service';
 import { currencyForCountryName } from '@/constants/pawapayCountries';
 import WhatsAppContact from '@/components/WhatsappSupport';
 import {
@@ -117,12 +117,7 @@ export const CompetitionPaymentBottomSheet = ({
   const subjectCountLabel = hasDocumentCount
     ? `${documentCount} ${documentCount === 1 ? 'sujet' : 'sujets'}`
     : 'tous les sujets disponibles';
-  const localPriceLabel = (amountXaf: number) => {
-    const hasRate = exchangeRates.some((r) => r.currency_code === currencyCode);
-    if (currencyCode === 'XAF' || !hasRate) return `${amountXaf} FCFA`;
-    const local = convertXafToLocal(amountXaf, currencyCode, exchangeRates);
-    return `${formatLocalPrice(local, currencyCode)} (${amountXaf} FCFA)`;
-  };
+  const localPriceLabel = (amountXaf: number) => formatPriceWithConversion(amountXaf, currencyCode, exchangeRates);
   const priceLabel = localPriceLabel(COMPETITION_PRICE);
   const paymentDescription = hasDocumentCount
     ? `Payez ${priceLabel} pour débloquer ${subjectCountLabel} du concours ${normalizedCompetitionName}.`

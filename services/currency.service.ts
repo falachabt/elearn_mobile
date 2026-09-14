@@ -11,8 +11,6 @@ export type ExchangeRate = {
   units_per_xaf: number;
 };
 
-const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
-
 export async function getExchangeRates(): Promise<ExchangeRate[]> {
   try {
     const { data, error } = await (supabase as any)
@@ -23,19 +21,16 @@ export async function getExchangeRates(): Promise<ExchangeRate[]> {
 
     const rows = (data ?? []) as (ExchangeRate & { updated_at: string })[];
 
-    // Refresh is lazy/on-demand: if the oldest rate is stale, kick off a
-    // refresh in the background (fire-and-forget) for next time -- never
-    // block the current price display on it.
-    const oldest = rows.reduce<string | null>((min, row) => {
-      if (!row.updated_at) return min;
-      return !min || row.updated_at < min ? row.updated_at : min;
-    }, null);
-
-    if (!oldest || Date.now() - new Date(oldest).getTime() > STALE_AFTER_MS) {
-      supabase.functions.invoke('refresh-exchange-rates', { method: 'POST' }).catch((err) => {
-        logger.warn('[currency] refresh-exchange-rates invoke failed (non-blocking):', err);
-      });
-    }
+    // Refresh is lazy/on-demand, fire-and-forget -- never block the current
+    // price display on it. The edge function does its own per-currency
+    // staleness/missing check server-side and returns fast (DB-only, no
+    // external API call) when there's nothing to do, so it's cheap to call
+    // every time rather than duplicating that check here against only the
+    // currencies that happen to already have a row (which used to miss any
+    // currency that was never fetched at all, e.g. a newly added one).
+    supabase.functions.invoke('refresh-exchange-rates', { method: 'POST' }).catch((err) => {
+      logger.warn('[currency] refresh-exchange-rates invoke failed (non-blocking):', err);
+    });
 
     return rows.map(({ currency_code, units_per_xaf }) => ({ currency_code, units_per_xaf }));
   } catch (err) {
@@ -79,6 +74,19 @@ const CURRENCY_LOCALE: Record<string, string> = {
   EUR: 'fr-FR',
   USD: 'en-US',
   GBP: 'en-GB',
+  CDF: 'fr-CD',
+  ETB: 'en-ET',
+  GHS: 'en-GH',
+  KES: 'en-KE',
+  LSL: 'en-LS',
+  MWK: 'en-MW',
+  MZN: 'pt-MZ',
+  NGN: 'en-NG',
+  RWF: 'fr-RW',
+  SLE: 'en-SL',
+  TZS: 'en-TZ',
+  UGX: 'en-UG',
+  ZMW: 'en-ZM',
 };
 
 export function formatLocalPrice(amount: number, currencyCode: string): string {
@@ -91,4 +99,27 @@ export function formatLocalPrice(amount: number, currencyCode: string): string {
   } catch {
     return `${Math.round(amount)} ${currencyCode}`;
   }
+}
+
+/**
+ * Single source of truth for "price to show on a payment screen" -- used by
+ * every payment form so a country change always shows a price, not a silent
+ * fallback. Falls back to the plain FCFA amount only when there's truly no
+ * rate yet for that currency. When the converted amount is numerically
+ * identical to the FCFA amount (XOF is pegged 1:1 to XAF -- both are
+ * literally "Franc CFA"), the redundant "(N FCFA)" parenthetical is dropped
+ * since it adds no information and reads as a duplicate/bug.
+ */
+export function formatPriceWithConversion(
+  amountXaf: number,
+  currencyCode: string,
+  rates: ExchangeRate[]
+): string {
+  const hasRate = currencyCode === 'XAF' || rates.some((r) => r.currency_code === currencyCode);
+  if (!hasRate) return `${amountXaf} FCFA`;
+
+  const local = convertXafToLocal(amountXaf, currencyCode, rates);
+  const localLabel = formatLocalPrice(local, currencyCode);
+  if (currencyCode === 'XAF' || local === amountXaf) return localLabel;
+  return `${localLabel} (${amountXaf} FCFA)`;
 }
