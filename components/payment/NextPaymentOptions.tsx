@@ -33,7 +33,7 @@ interface NextPaymentOptionsProps {
   isLoading: boolean;
   defaultCountryName?: string | null;
   exchangeRates?: ExchangeRate[];
-  onPayment: (phoneNumber: string, callingCode: string) => void;
+  onPayment: (phoneNumber: string, callingCode: string, currencyCode: string) => void;
 }
 
 export const NextPaymentOptions: FC<NextPaymentOptionsProps> = ({
@@ -55,7 +55,7 @@ export const NextPaymentOptions: FC<NextPaymentOptionsProps> = ({
   const localPriceLabel = (amountXaf: number) => formatPriceWithConversion(amountXaf, currencyCode, exchangeRates);
 
   const handlePayment = () => {
-    onPayment(phoneNumber, country.code.replace('+', ''));
+    onPayment(phoneNumber, country.code.replace('+', ''), currencyCode);
   };
 
   return (

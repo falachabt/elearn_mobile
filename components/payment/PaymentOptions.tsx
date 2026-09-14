@@ -41,6 +41,7 @@ interface PaymentOptionsProps {
   onPayment: (paymentData: {
     phoneNumber: string;
     callingCode: string;
+    currencyCode: string;
     promoCode: string;
     promoCodeDetails: PromoCode | null;
     isInstallment: boolean;
@@ -144,6 +145,7 @@ export const PaymentOptions: FC<PaymentOptionsProps> = ({
     onPayment({
       phoneNumber,
       callingCode: country.code.replace('+', ''),
+      currencyCode,
       promoCode,
       promoCodeDetails,
       isInstallment,

@@ -13,6 +13,7 @@ import { useSecondaryProgram } from "@/hooks/secondary/useSecondaryPrograms";
 import { logger } from "@/utils/logger";
 import { SecondaryPaymentService } from "@/services/secondary/secondary-payment.service";
 import { PawaPayService, pawapayFailureMessage } from "@/lib/pawapay";
+import { getExchangeRates, getPawaPayCharge, ExchangeRate } from "@/services/currency.service";
 import { PaymentProcessing } from "@/components/payment";
 import { SecondaryPlanOptions } from "@/components/payment/SecondaryPlanOptions";
 import WhatsAppContact from "@/components/WhatsappSupport";
@@ -44,6 +45,7 @@ const SecondaryPaymentPage = () => {
   const [paymentRowId, setPaymentRowId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const verificationMessages = [
@@ -59,6 +61,10 @@ const SecondaryPaymentPage = () => {
   useEffect(() => {
     if (!programLoading) setState((prev) => (prev === "loading" ? "plan_selection" : prev));
   }, [programLoading]);
+
+  useEffect(() => {
+    getExchangeRates().then(setExchangeRates);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -101,11 +107,13 @@ const SecondaryPaymentPage = () => {
   const handlePayment = async ({
     phoneNumber,
     callingCode,
+    currencyCode,
     plan,
     amountXaf,
   }: {
     phoneNumber: string;
     callingCode: string;
+    currencyCode: string;
     plan: SecondaryPlan;
     amountXaf: number;
   }) => {
@@ -116,6 +124,13 @@ const SecondaryPaymentPage = () => {
     try {
       const depositId = Crypto.randomUUID();
       const amount = __DEV__ ? DEV_TEST_AMOUNT : amountXaf;
+
+      const charge = getPawaPayCharge(amount, currencyCode, exchangeRates);
+      if (!charge) {
+        setErrorMessage("Devise temporairement indisponible pour ce pays. Réessayez dans un instant.");
+        setState("failed");
+        return;
+      }
 
       const payment = await SecondaryPaymentService.createPayment(
         programId,
@@ -130,7 +145,8 @@ const SecondaryPaymentPage = () => {
         depositId,
         phoneNumber,
         callingCode,
-        amount,
+        amount: charge.amount,
+        currency: charge.currency,
         customerMessage: "Elearn Prepa",
       });
 

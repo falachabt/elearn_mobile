@@ -20,7 +20,7 @@ import * as Crypto from "expo-crypto";
 
 import { ProgramPaymentService } from "@/services/program-payment.service";
 import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from "@/lib/pawapay";
-import { getExchangeRates, ExchangeRate } from "@/services/currency.service";
+import { getExchangeRates, getPawaPayCharge, ExchangeRate } from "@/services/currency.service";
 import { ProgramPayment, PaymentFlowState } from "@/types/payment.types";
 import { InstallmentDetails, NextPaymentOptions, PaymentProcessing } from "@/components/payment";
 import { useUser } from "@/contexts/useUserInfo";
@@ -137,7 +137,7 @@ const InstallmentPaymentPage = () => {
   };
 
   // Handle payment submission (next installment via PawaPay).
-  const handlePaymentSubmit = async (phoneNumber: string, callingCode: string) => {
+  const handlePaymentSubmit = async (phoneNumber: string, callingCode: string, currencyCode: string) => {
     if (!installmentPayment?.id || !programId) {
       setErrorMessage("Paiement non trouvé");
       return;
@@ -155,6 +155,13 @@ const InstallmentPaymentPage = () => {
       const baseAmount = Math.ceil(fullTotal / total);
       const amount = __DEV__ ? DEV_TEST_AMOUNT : baseAmount;
       const trueParentId = installmentPayment.parent_payment_id || installmentPayment.id;
+
+      const charge = getPawaPayCharge(amount, currencyCode, exchangeRates);
+      if (!charge) {
+        setErrorMessage("Devise temporairement indisponible pour ce pays. Réessayez dans un instant.");
+        setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
+        return;
+      }
 
       // 1. Create the next pending installment row (DB trigger extends the
       //    enrollment expiry when this payment becomes "completed").
@@ -176,7 +183,8 @@ const InstallmentPaymentPage = () => {
         depositId,
         phoneNumber,
         callingCode,
-        amount,
+        amount: charge.amount,
+        currency: charge.currency,
         customerMessage: "Elearn Prepa",
       });
 

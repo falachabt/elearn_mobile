@@ -1,7 +1,9 @@
 // services/currency.service.ts
-// Affichage des prix (FCFA -> devise du pays de l'utilisateur). Couche
-// d'affichage uniquement : le montant réellement débité via PawaPay reste
-// toujours en XAF, voir services/secondary/secondary-payment.service.ts.
+// Affichage des prix (FCFA -> devise du pays de l'utilisateur) ET conversion
+// du montant réellement débité via PawaPay (voir getPawaPayCharge ci-dessous).
+// PawaPay n'accepte QUE la devise locale de chaque pays (XOF pour le Bénin,
+// GHS pour le Ghana, etc.) -- jamais XAF en dehors de la zone CEMAC -- donc
+// forcer XAF partout fait échouer tous les dépôts hors Cameroun/Congo-Brazzaville.
 
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/utils/logger';
@@ -118,4 +120,24 @@ export function formatPriceWithConversion(
 
   const local = convertXafToLocal(amountXaf, currencyCode, rates);
   return formatLocalPrice(local, currencyCode);
+}
+
+/**
+ * The actual amount+currency to send to PawaPay for a deposit, given the
+ * program price in XAF and the country the customer picked. PawaPay only
+ * accepts a provider's own local currency (never XAF outside Cameroon/Congo-
+ * Brazzaville) -- sending XAF for e.g. a Bénin/Ghana/Kenya deposit gets
+ * rejected by PawaPay every time. Returns null when a non-XAF currency has
+ * no known rate yet, rather than guessing a wrong amount from a stale/absent
+ * conversion -- callers should show a "réessayez" error in that case.
+ */
+export function getPawaPayCharge(
+  amountXaf: number,
+  currencyCode: string,
+  rates: ExchangeRate[]
+): { amount: number; currency: string } | null {
+  if (currencyCode === 'XAF') return { amount: amountXaf, currency: 'XAF' };
+  const rate = rates.find((r) => r.currency_code === currencyCode);
+  if (!rate) return null;
+  return { amount: Math.round(amountXaf * rate.units_per_xaf), currency: currencyCode };
 }

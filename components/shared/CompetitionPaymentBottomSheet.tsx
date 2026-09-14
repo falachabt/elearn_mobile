@@ -26,7 +26,7 @@ import { useCompetitionPayment } from '@/hooks/useCompetitionPayment';
 import { HapticType, useHaptics } from '@/hooks/useHaptics';
 import { CompetitionPaymentService } from '@/services/competition-payment.service';
 import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from '@/lib/pawapay';
-import { formatPriceWithConversion, ExchangeRate, getExchangeRates } from '@/services/currency.service';
+import { formatPriceWithConversion, getPawaPayCharge, ExchangeRate, getExchangeRates } from '@/services/currency.service';
 import { currencyForCountryName } from '@/constants/pawapayCountries';
 import WhatsAppContact from '@/components/WhatsappSupport';
 import {
@@ -335,6 +335,13 @@ export const CompetitionPaymentBottomSheet = ({
     try {
       const depositId = Crypto.randomUUID();
 
+      const charge = getPawaPayCharge(COMPETITION_PAYMENT_AMOUNT, currencyCode, exchangeRates);
+      if (!charge) {
+        setErrorMessage('Devise temporairement indisponible pour ce pays. Réessayez dans un instant.');
+        setProcessingState('failed');
+        return;
+      }
+
       // 1. Create the payment intent row first (the server requires it before charging).
       const payment = await CompetitionPaymentService.createPayment(
         competitionId,
@@ -349,7 +356,8 @@ export const CompetitionPaymentBottomSheet = ({
         depositId,
         phoneNumber,
         callingCode: country.code.replace('+', ''),
-        amount: COMPETITION_PAYMENT_AMOUNT,
+        amount: charge.amount,
+        currency: charge.currency,
         customerMessage: 'Elearn Prepa',
       });
 

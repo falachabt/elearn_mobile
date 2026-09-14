@@ -25,6 +25,9 @@ export interface PawaPayDepositParams {
   customerMessage?: string;
   /** Dial code of the country picked on the payment screen (e.g. "237", "221"). */
   callingCode?: string;
+  /** ISO 4217 currency to charge in -- PawaPay only accepts a provider's own
+   * local currency (defaults to XAF server-side when omitted). */
+  currency?: string;
 }
 
 export interface PawaPayDepositResult {

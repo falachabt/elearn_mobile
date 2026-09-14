@@ -15,7 +15,7 @@ import { useUser } from "@/contexts/useUserInfo";
 import { logger } from "@/utils/logger";
 import { ProgramPaymentService } from "@/services/program-payment.service";
 import { PawaPayService, pawapayCheckoutUrl, pawapayFailureMessage } from "@/lib/pawapay";
-import { getExchangeRates, ExchangeRate } from "@/services/currency.service";
+import { getExchangeRates, getPawaPayCharge, ExchangeRate } from "@/services/currency.service";
 import {
   PaymentInstructions,
   PaymentOptions,
@@ -272,12 +272,13 @@ const ProgramPaymentPage = () => {
   const handlePayment = async (paymentData: {
     phoneNumber: string;
     callingCode: string;
+    currencyCode: string;
     promoCode: string;
     promoCodeDetails: PromoCodeDetails | null;
     isInstallment: boolean;
     totalInstallments: number;
   }) => {
-    const { phoneNumber, callingCode, promoCodeDetails, isInstallment, totalInstallments } = paymentData;
+    const { phoneNumber, callingCode, currencyCode, promoCodeDetails, isInstallment, totalInstallments } = paymentData;
 
     if (!programContext.programId) {
       setErrorMessage("Programme introuvable. Réessayez.");
@@ -296,6 +297,16 @@ const ProgramPaymentPage = () => {
       const baseAmount = isInstallment ? Math.ceil(fullPrice / totalInstallments) : fullPrice;
       const amount = __DEV__ ? DEV_TEST_AMOUNT : baseAmount;
       const totalAmount = isInstallment ? (__DEV__ ? DEV_TEST_AMOUNT * totalInstallments : fullPrice) : undefined;
+
+      // PawaPay only accepts a provider's own local currency (never XAF
+      // outside Cameroon/Congo-Brazzaville) -- check before creating a
+      // pending row we'd otherwise have to mark failed immediately after.
+      const charge = getPawaPayCharge(amount, currencyCode, exchangeRates);
+      if (!charge) {
+        setErrorMessage("Devise temporairement indisponible pour ce pays. Réessayez dans un instant.");
+        setCurrentState(PaymentFlowState.FAILED);
+        return;
+      }
 
       // 1. Create the pending payment row (server requires it before charging;
       //    the DB trigger turns a completed program payment into an enrollment).
@@ -317,7 +328,8 @@ const ProgramPaymentPage = () => {
         depositId,
         phoneNumber,
         callingCode,
-        amount,
+        amount: charge.amount,
+        currency: charge.currency,
         customerMessage: "Elearn Prepa",
       });
 
@@ -348,7 +360,7 @@ const ProgramPaymentPage = () => {
   };
 
   // Subsequent installment payment.
-  const handleNextPayment = async (phoneNumber: string, callingCode: string) => {
+  const handleNextPayment = async (phoneNumber: string, callingCode: string, currencyCode: string) => {
     const parent = programContext.installmentPayment;
 
     if (!parent || !programContext.programId) {
@@ -371,6 +383,13 @@ const ProgramPaymentPage = () => {
       const amount = __DEV__ ? DEV_TEST_AMOUNT : baseAmount;
       const trueParentId = parent.parent_payment_id || parent.id;
 
+      const charge = getPawaPayCharge(amount, currencyCode, exchangeRates);
+      if (!charge) {
+        setErrorMessage("Devise temporairement indisponible pour ce pays. Réessayez dans un instant.");
+        setCurrentState(PaymentFlowState.NEXT_PAYMENT_FAILED);
+        return;
+      }
+
       const payment = await ProgramPaymentService.createPayment(
         programContext.programId,
         phoneNumber,
@@ -389,7 +408,8 @@ const ProgramPaymentPage = () => {
         depositId,
         phoneNumber,
         callingCode,
-        amount,
+        amount: charge.amount,
+        currency: charge.currency,
         customerMessage: "Elearn Prepa",
       });
 

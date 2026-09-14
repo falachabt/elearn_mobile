@@ -43,7 +43,7 @@ interface SecondaryPlanOptionsProps {
   isDark: boolean;
   isLoading: boolean;
   defaultCountryName?: string | null;
-  onPayment: (data: { phoneNumber: string; callingCode: string; plan: SecondaryPlan; amountXaf: number }) => void;
+  onPayment: (data: { phoneNumber: string; callingCode: string; currencyCode: string; plan: SecondaryPlan; amountXaf: number }) => void;
   /** Si fourni, le plan a déjà été choisi (SecondaryPlanPickerSheet) -- on
    * saute le choix de plan et va direct au numéro de téléphone. */
   preselectedPlan?: SecondaryPlan;
@@ -84,7 +84,7 @@ export const SecondaryPlanOptions: FC<SecondaryPlanOptionsProps> = ({
   const handlePayment = () => {
     const amountXaf = priceXafFor(selectedPlan);
     if (amountXaf === undefined) return; // config pas encore chargée
-    onPayment({ phoneNumber, callingCode: country.code.replace('+', ''), plan: selectedPlan, amountXaf });
+    onPayment({ phoneNumber, callingCode: country.code.replace('+', ''), currencyCode, plan: selectedPlan, amountXaf });
   };
 
   return (
