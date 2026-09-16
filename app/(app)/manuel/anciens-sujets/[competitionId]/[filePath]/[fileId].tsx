@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Alert, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useSWR from 'swr';
@@ -10,8 +11,8 @@ import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
-import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer";
-import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer";
+import {FileViewer} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useCompetitionPayment } from "@/hooks/useCompetitionPayment";
 import { useArchiveData } from "@/hooks/useArchiveData";
@@ -120,6 +121,7 @@ export const FileViewerScreen = () => {
   const competitionId = params.competitionId as string;
 
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   const { user } = useAuth();
@@ -247,7 +249,7 @@ export const FileViewerScreen = () => {
       logger.error('Error toggling completion status:', toggleError);
       Alert.alert(
           'Erreur',
-          errorMessage || 'Impossible de mettre à jour le statut de complétion. Veuillez réessayer.'
+          errorMessage || 'Impossible de mettre ï¿½ jour le statut de complï¿½tion. Veuillez rï¿½essayer.'
       );
     } finally {
       setCompletedLoading(false);
@@ -279,7 +281,7 @@ export const FileViewerScreen = () => {
   if (!accessLoading && hasAccess === false) {
     return (
       <View style={[viewerStyles.container, isDark && viewerStyles.containerDark]}>
-        <View style={viewerStyles.header}>
+        <View style={[viewerStyles.header, { paddingTop: insets.top + 16 }]}>
           <View style={viewerStyles.headerLeft}>
             <TouchableOpacity onPress={handleBack} style={viewerStyles.backButton}>
               <MaterialCommunityIcons
@@ -298,10 +300,10 @@ export const FileViewerScreen = () => {
             color={isDark ? theme.color.primary[400] : theme.color.primary[500]}
           />
           <ThemedText style={viewerStyles.accessDeniedTitle}>
-            Accès restreint
+            Accï¿½s restreint
           </ThemedText>
           <ThemedText style={viewerStyles.accessDeniedDescription}>
-            {`Vous devez payer pour accéder à ce contenu. Débloquez ${
+            {`Vous devez payer pour accï¿½der ï¿½ ce contenu. Dï¿½bloquez ${
               competitionContext?.documentCount
                 ? `${competitionContext.documentCount} ${
                     competitionContext.documentCount === 1 ? 'document' : 'documents'
@@ -315,7 +317,7 @@ export const FileViewerScreen = () => {
           >
             <MaterialCommunityIcons name="lock-open" size={20} color="#FFFFFF" />
             <ThemedText style={viewerStyles.paymentButtonText}>
-              Débloquer maintenant
+              Dï¿½bloquer maintenant
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -334,7 +336,7 @@ export const FileViewerScreen = () => {
 
   return (
       <View style={[viewerStyles.container, isDark && viewerStyles.containerDark]}>
-        <View style={viewerStyles.header}>
+        <View style={[viewerStyles.header, { paddingTop: insets.top + 16 }]}>
           <View style={viewerStyles.headerLeft}>
             <TouchableOpacity onPress={handleBack} style={viewerStyles.backButton}>
               <MaterialCommunityIcons
@@ -371,7 +373,7 @@ export const FileViewerScreen = () => {
                             color="#FFFFFF"
                         />
                         <ThemedText style={viewerStyles.toggleButtonText}>
-                          {isCompleted ? "Terminé" : "Marquer terminé"}
+                          {isCompleted ? "Terminï¿½" : "Marquer terminï¿½"}
                         </ThemedText>
                       </>
                   )}

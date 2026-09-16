@@ -54,6 +54,7 @@ interface ExerciseDetails {
   id: string;
   title: string | null;
   correction: unknown;
+  correction_compressed: string | null;
   course_id: number | null;
   course: {
     id: number;
@@ -902,11 +903,11 @@ const SecondaryExercisePage = () => {
           <TouchableOpacity
             style={[
               styles.correctionButton,
-              !exercise.correction && styles.disabledButton,
+              !(exercise.correction || exercise.correction_compressed) && styles.disabledButton,
               !isEnrolled && { flex: 1 }, // Take full width if not enrolled
             ]}
             onPress={toggleCorrection}
-            disabled={!exercise.correction || correctionLoading || contentLoading}
+            disabled={!(exercise.correction || exercise.correction_compressed) || correctionLoading || contentLoading}
           >
             <Text
               style={[styles.correctionButtonText, isDark && styles.textDark]}
