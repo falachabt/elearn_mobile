@@ -1280,6 +1280,7 @@ export type Database = {
       courses_content: {
         Row: {
           content: Json | null
+          content_compressed: string | null
           courseId: number
           created_at: string
           id: number
@@ -1290,6 +1291,7 @@ export type Database = {
         }
         Insert: {
           content?: Json | null
+          content_compressed?: string | null
           courseId: number
           created_at?: string
           id?: number
@@ -1300,6 +1302,7 @@ export type Database = {
         }
         Update: {
           content?: Json | null
+          content_compressed?: string | null
           courseId?: number
           created_at?: string
           id?: number
@@ -1796,8 +1799,11 @@ export type Database = {
       exercices: {
         Row: {
           content: Json | null
+          content_compressed: string | null
           context: Json | null
+          context_compressed: string | null
           correction: Json | null
+          correction_compressed: string | null
           course_id: number | null
           created_at: string
           description: string | null
@@ -1806,8 +1812,11 @@ export type Database = {
         }
         Insert: {
           content?: Json | null
+          content_compressed?: string | null
           context?: Json | null
+          context_compressed?: string | null
           correction?: Json | null
+          correction_compressed?: string | null
           course_id?: number | null
           created_at?: string
           description?: string | null
@@ -1816,8 +1825,11 @@ export type Database = {
         }
         Update: {
           content?: Json | null
+          content_compressed?: string | null
           context?: Json | null
+          context_compressed?: string | null
           correction?: Json | null
+          correction_compressed?: string | null
           course_id?: number | null
           created_at?: string
           description?: string | null
@@ -3600,6 +3612,7 @@ export type Database = {
       quiz_questions: {
         Row: {
           content: Json | null
+          content_compressed: string | null
           correct: string[] | null
           created_at: string
           details: Json[] | null
@@ -3620,6 +3633,7 @@ export type Database = {
         }
         Insert: {
           content?: Json | null
+          content_compressed?: string | null
           correct?: string[] | null
           created_at?: string
           details?: Json[] | null
@@ -3640,6 +3654,7 @@ export type Database = {
         }
         Update: {
           content?: Json | null
+          content_compressed?: string | null
           correct?: string[] | null
           created_at?: string
           details?: Json[] | null
@@ -6407,7 +6422,10 @@ export type Database = {
           weekly_xp: number
         }[]
       }
-      get_my_weekly_like_cooldown_seconds: { Args: never; Returns: number }
+      get_my_weekly_like_cooldown_seconds: {
+        Args: { p_target_id: string }
+        Returns: number
+      }
       get_my_xp_history: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: {
