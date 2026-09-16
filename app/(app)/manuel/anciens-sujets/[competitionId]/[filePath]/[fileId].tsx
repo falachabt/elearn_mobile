@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Alert, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useSWR from 'swr';
@@ -121,7 +120,6 @@ export const FileViewerScreen = () => {
   const competitionId = params.competitionId as string;
 
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   const { user } = useAuth();
@@ -281,7 +279,7 @@ export const FileViewerScreen = () => {
   if (!accessLoading && hasAccess === false) {
     return (
       <View style={[viewerStyles.container, isDark && viewerStyles.containerDark]}>
-        <View style={[viewerStyles.header, { paddingTop: insets.top + 16 }]}>
+        <View style={viewerStyles.header}>
           <View style={viewerStyles.headerLeft}>
             <TouchableOpacity onPress={handleBack} style={viewerStyles.backButton}>
               <MaterialCommunityIcons
@@ -336,7 +334,7 @@ export const FileViewerScreen = () => {
 
   return (
       <View style={[viewerStyles.container, isDark && viewerStyles.containerDark]}>
-        <View style={[viewerStyles.header, { paddingTop: insets.top + 16 }]}>
+        <View style={viewerStyles.header}>
           <View style={viewerStyles.headerLeft}>
             <TouchableOpacity onPress={handleBack} style={viewerStyles.backButton}>
               <MaterialCommunityIcons
@@ -493,11 +491,12 @@ const viewerStyles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    flexShrink: 0,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 1,
   },
   backButton: {
     padding: 8,
