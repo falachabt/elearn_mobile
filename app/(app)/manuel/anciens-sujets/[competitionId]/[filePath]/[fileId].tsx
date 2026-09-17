@@ -343,61 +343,9 @@ export const FileViewerScreen = () => {
                   color={isDark ? theme.color.gray[400] : theme.color.gray[600]}
               />
             </TouchableOpacity>
-            {/* Hidden title per your latest update */}
-            {/* <ThemedText style={viewerStyles.title} numberOfLines={1}>
-            {archiveData?.name || ""}
-          </ThemedText> */}
-          </View>
-
-          <View style={viewerStyles.headerRight}>
-            {/* Mark as completed button */}
-            {archiveData && (
-                <TouchableOpacity
-                    onPress={toggleCompletedStatus}
-                    disabled={completedLoading}
-                    style={[
-                      viewerStyles.completedButton,
-                      isDark && viewerStyles.completedButtonDark,
-                      isCompleted && viewerStyles.completedButtonActive
-                    ]}
-                >
-                  {completedLoading ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                      <>
-                        <MaterialCommunityIcons
-                            name={isCompleted ? "check-circle" : "circle-outline"}
-                            size={18}
-                            color="#FFFFFF"
-                        />
-                        <ThemedText style={viewerStyles.toggleButtonText}>
-                          {isCompleted ? "Termin�" : "Marquer termin�"}
-                        </ThemedText>
-                      </>
-                  )}
-                </TouchableOpacity>
-            )}
-
-            {/* Toggle button between subject and correction */}
-            {correctionData && archiveData && (
-                <TouchableOpacity
-                    onPress={toggleView}
-                    style={[
-                      viewerStyles.toggleButton,
-                      isDark && viewerStyles.toggleButtonDark,
-                      isViewingCorrection ? viewerStyles.subjectButton : viewerStyles.correctionButton
-                    ]}
-                >
-                  <MaterialCommunityIcons
-                      name={isViewingCorrection ? "file-document-outline" : "check-circle-outline"}
-                      size={18}
-                      color="#FFFFFF"
-                  />
-                  <ThemedText style={viewerStyles.toggleButtonText}>
-                    {isViewingCorrection ? "Voir le sujet" : "Voir la correction"}
-                  </ThemedText>
-                </TouchableOpacity>
-            )}
+            <ThemedText style={viewerStyles.title} numberOfLines={1} ellipsizeMode="tail">
+              {archiveData?.name || ""}
+            </ThemedText>
           </View>
         </View>
 
@@ -429,6 +377,58 @@ export const FileViewerScreen = () => {
                 : null
 
         }
+
+        {/* Bottom actions bar */}
+        {!isLoading && currentFile && (archiveData || correctionData) && (
+          <View style={[viewerStyles.bottomActionsContainer, isDark && viewerStyles.bottomActionsContainerDark]}>
+            {archiveData && (
+                <TouchableOpacity
+                    onPress={toggleCompletedStatus}
+                    disabled={completedLoading}
+                    style={[
+                      viewerStyles.completedButton,
+                      isDark && viewerStyles.completedButtonDark,
+                      isCompleted && viewerStyles.completedButtonActive
+                    ]}
+                >
+                  {completedLoading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                      <>
+                        <MaterialCommunityIcons
+                            name={isCompleted ? "check-circle" : "circle-outline"}
+                            size={18}
+                            color="#FFFFFF"
+                        />
+                        <ThemedText style={viewerStyles.toggleButtonText}>
+                          {isCompleted ? "Termin�" : "Marquer termin�"}
+                        </ThemedText>
+                      </>
+                  )}
+                </TouchableOpacity>
+            )}
+
+            {correctionData && archiveData && (
+                <TouchableOpacity
+                    onPress={toggleView}
+                    style={[
+                      viewerStyles.toggleButton,
+                      isDark && viewerStyles.toggleButtonDark,
+                      isViewingCorrection ? viewerStyles.subjectButton : viewerStyles.correctionButton
+                    ]}
+                >
+                  <MaterialCommunityIcons
+                      name={isViewingCorrection ? "file-document-outline" : "check-circle-outline"}
+                      size={18}
+                      color="#FFFFFF"
+                  />
+                  <ThemedText style={viewerStyles.toggleButtonText}>
+                    {isViewingCorrection ? "Voir le sujet" : "Voir la correction"}
+                  </ThemedText>
+                </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
   );
 };
@@ -437,6 +437,7 @@ const viewerStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    marginBottom: 68,
   },
   containerDark: {
     backgroundColor: theme.color.dark.background.primary,
@@ -491,12 +492,7 @@ const viewerStyles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexShrink: 0,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexShrink: 1,
+    flex: 1,
   },
   backButton: {
     padding: 8,
@@ -512,11 +508,13 @@ const viewerStyles = StyleSheet.create({
     flex: 1,
   },
   toggleButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: theme.color.primary[500],
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderRadius: theme.border.radius.small,
     marginLeft: 8,
   },
@@ -536,11 +534,13 @@ const viewerStyles = StyleSheet.create({
     backgroundColor: theme.color.primary["600"],
   },
   completedButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: theme.color.gray[800],
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderRadius: theme.border.radius.small,
   },
   completedButtonDark: {
@@ -548,6 +548,18 @@ const viewerStyles = StyleSheet.create({
   },
   completedButtonActive: {
     backgroundColor: theme.color.primary["900"],
+  },
+  bottomActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: theme.color.border,
+    backgroundColor: '#FFFFFF',
+  },
+  bottomActionsContainerDark: {
+    backgroundColor: theme.color.dark.background.primary,
+    borderTopColor: theme.color.dark.border,
   },
   loader: {
     flex: 1,
