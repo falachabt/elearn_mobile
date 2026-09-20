@@ -27,6 +27,7 @@ import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useUser } from "@/contexts/useUserInfo";
 import { useCustomRouter } from "@/hooks/useCustomRouter";
 import { useQuizDetails, useQuizPins, useQuizAttempts } from "@/hooks/useQuizData";
+import { ShareToFeedButton } from "@/components/shared/feed/ShareToFeedButton";
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -750,6 +751,17 @@ export const QuizDetailView: React.FC<QuizDetailViewProps> = ({
                             </Pressable>
                         )}
                     </View>
+                    <ShareToFeedButton
+                        tag={{
+                            type: "quiz",
+                            id: quizId,
+                            label: quiz?.name ?? "Quiz",
+                            subtitle: null,
+                            route: `${basePath}/${programId}/quizzes/${quizId}`,
+                        }}
+                        isDarkMode={isDark}
+                        style={{ marginTop: 12 }}
+                    />
                 </View>
 
                 {/* Prerequisites Section */}

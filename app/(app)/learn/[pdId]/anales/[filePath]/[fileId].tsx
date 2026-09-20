@@ -11,7 +11,9 @@ import { logger } from '@/utils/logger';
 import { ThemedText } from "@/components/ThemedText";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth";
-import { FileViewer } from "@/components/shared/learn/anales/FileViewer/FileViewer";
+import { FileViewer } from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
+import { useLeaveDocumentIntercept } from "@/hooks/useLeaveDocumentIntercept";
+import { LeaveDocumentSheet } from "@/components/shared/documents/LeaveDocumentSheet";
 
 
 // Define TypeScript interfaces for our data
@@ -32,6 +34,18 @@ interface CorrectionData {
 interface CompletionData {
   id: number;
 }
+
+const fetchPinned: Fetcher<boolean, readonly [string, number]> = async ([userId, archiveId]) => {
+  const { data, error } = await supabase
+    .from('user_pinned_archive')
+    .select('is_pinned')
+    .eq('user_id', userId)
+    .eq('archive_id', archiveId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return !!data?.is_pinned;
+};
 
 const fetchArchive: Fetcher<ArchiveData, string> = async (id) => {
   const { data, error } = await supabase
@@ -163,6 +177,47 @@ export const FileViewerScreen = () => {
       fetchCompletion
   );
 
+  // Fetch pin status
+  const { data: isPinnedData, mutate: mutatePinned } = useSWR(
+      user?.id && archiveData?.id ? [user.id, archiveData.id, 'pinned'] as const : null,
+      ([userId, archiveId]) => fetchPinned([userId, archiveId] as const)
+  );
+
+  const togglePin = async () => {
+    if (!user?.id || !archiveData?.id) return;
+
+    const newState = !isPinnedData;
+    try {
+      await mutatePinned(newState, { revalidate: false });
+
+      const { data: existingPin, error: fetchError } = await supabase
+        .from('user_pinned_archive')
+        .select('id')
+        .eq('archive_id', archiveData.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (existingPin) {
+        const { error } = await supabase
+          .from('user_pinned_archive')
+          .update({ is_pinned: newState })
+          .eq('archive_id', archiveData.id)
+          .eq('user_id', user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('user_pinned_archive')
+          .insert({ archive_id: archiveData.id, user_id: user.id, is_pinned: newState });
+        if (error) throw error;
+      }
+    } catch (error) {
+      logger.error('Error toggling pin status:', error);
+      mutatePinned();
+    }
+  };
+
   const toggleView = () => {
     // Switch between viewing the original file and the correction
     setIsViewingCorrection(!isViewingCorrection);
@@ -229,7 +284,7 @@ export const FileViewerScreen = () => {
     } catch (error) {
       const message = error instanceof Error
         ? error.message
-        : 'Impossible de mettre ‡ jour le statut de complÈtion. Veuillez rÈessayer.';
+        : 'Impossible de mettre √† jour le statut de compl√©tion. Veuillez r√©essayer.';
       logger.error('Error toggling completion status:', error);
       Alert.alert(
           'Erreur',
@@ -254,6 +309,14 @@ export const FileViewerScreen = () => {
 
   // Determine if the archive is completed
   const isCompleted = !!completionData;
+
+  const isPinned = !!isPinnedData;
+
+  const { showSheet, handleMarkComplete, handlePin, handleDismiss } = useLeaveDocumentIntercept({
+    enabled: !isCompleted,
+    onMarkComplete: toggleCompletedStatus,
+    onPin: togglePin,
+  });
 
   return (
       <View style={[viewerStyles.container, isDark && viewerStyles.containerDark]}>
@@ -294,10 +357,31 @@ export const FileViewerScreen = () => {
                             color="#FFFFFF"
                         />
                         <ThemedText style={viewerStyles.toggleButtonText}>
-                          {isCompleted ? "TerminÈ" : "Marquer terminÈ"}
+                          {isCompleted ? "Termin√©" : "Marquer termin√©"}
                         </ThemedText>
                       </>
                   )}
+                </TouchableOpacity>
+            )}
+
+            {/* Pin for later button */}
+            {archiveData && (
+                <TouchableOpacity
+                    onPress={togglePin}
+                    style={[
+                      viewerStyles.completedButton,
+                      isDark && viewerStyles.completedButtonDark,
+                      isPinned && viewerStyles.completedButtonActive
+                    ]}
+                >
+                  <MaterialCommunityIcons
+                      name={isPinned ? "pin" : "pin-outline"}
+                      size={18}
+                      color="#FFFFFF"
+                  />
+                  <ThemedText style={viewerStyles.toggleButtonText}>
+                    {isPinned ? "√âpingl√©" : "√âpingler"}
+                  </ThemedText>
                 </TouchableOpacity>
             )}
 
@@ -342,6 +426,14 @@ export const FileViewerScreen = () => {
                 : null
 
         }
+
+        <LeaveDocumentSheet
+          visible={showSheet}
+          isDark={isDark}
+          onMarkComplete={handleMarkComplete}
+          onPin={handlePin}
+          onDismiss={handleDismiss}
+        />
       </View>
   );
 };

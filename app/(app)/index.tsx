@@ -38,13 +38,18 @@ import { useTabBarTourRefs } from "@/contexts/TabBarTourContext";
 import { SUIVI_SEEN_KEY } from "./suivi";
 import { getFeedPosts, getTrendingFeedPosts, deleteFeedPost, toggleLikePost, votePollOption, FeedPost, FEED_PAGE_SIZE } from "@/services/feed.service";
 import { PostCard } from "@/components/shared/feed/PostCard";
-import { CreatePostModal } from "@/components/shared/feed/CreatePostModal";
+import { useCreatePost } from "@/contexts/CreatePostContext";
 import { ImageViewerModal } from "@/components/shared/feed/ImageViewerModal";
 import { UserProfileBottomSheet } from "@/components/shared/feed/UserProfileBottomSheet";
 import { ConfirmDeleteBottomSheet } from "@/components/shared/feed/ConfirmDeleteBottomSheet";
 import CountrySelectBottomSheet from "@/components/ui/CountrySelectBottomSheet";
 import { type CountryOption } from "@/services/countries.service";
 import { supabase } from "@/lib/supabase";
+import { useFeatureFlag } from "posthog-react-native";
+import { DocumentsIntroBottomSheet } from "@/components/shared/documents/DocumentsIntroBottomSheet";
+import { hasSeenAnnouncement, markAnnouncementSeen } from "@/services/announcements.service";
+
+const DOCUMENTS_NIVEAU_INTRO_SEEN_KEY = "documents_niveau_intro_seen_v1";
 
 const HORIZONTAL_PADDING = 16;
 
@@ -78,7 +83,7 @@ export default function Index() {
   const [loadingMoreFeed, setLoadingMoreFeed] = useState<boolean>(false);
   const [hasMoreFeed, setHasMoreFeed] = useState<boolean>(true);
   const [feedMode, setFeedMode] = useState<'recent' | 'trending'>('recent');
-  const [createModalVisible, setCreateModalVisible] = useState<boolean>(false);
+  const { openCreatePost, lastPostCreatedAt } = useCreatePost();
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [imageViewerVisible, setImageViewerVisible] = useState<boolean>(false);
@@ -156,6 +161,13 @@ export default function Index() {
     loadFeed();
   }, [authUser?.authId, feedMode]);
 
+  // Le composer de post est monté globalement (CreatePostProvider) et peut
+  // être ouvert depuis n'importe quel écran — cet écran se rafraîchit donc
+  // sur ce compteur plutôt que sur un onSuccess local.
+  useEffect(() => {
+    if (lastPostCreatedAt > 0) loadFeed();
+  }, [lastPostCreatedAt]);
+
   // Recharge le feed à chaque retour sur l'onglet Home (app rouverte,
   // retour depuis le détail d'un post, etc.) sans attendre un pull manuel.
   useFocusEffect(
@@ -220,6 +232,35 @@ export default function Index() {
       cancelled = true;
     };
   }, [router]);
+
+  // Annonce "documents par niveau" (6e -> Terminale) : affichée une seule fois
+  // PAR UTILISATEUR (pas par appareil -- table user_seen_announcements, pas
+  // AsyncStorage, pour ne pas la réafficher après un changement de téléphone),
+  // seulement si la fonctionnalité est activée (feature flag PostHog).
+  const documentsParNiveauEnabled = useFeatureFlag("documents_par_niveau_enabled") === true;
+  const [showDocumentsIntro, setShowDocumentsIntro] = useState(false);
+
+  useEffect(() => {
+    if (!documentsParNiveauEnabled || !authUser?.id) return;
+    let cancelled = false;
+    hasSeenAnnouncement(authUser.id, DOCUMENTS_NIVEAU_INTRO_SEEN_KEY)
+      .then((seen) => {
+        if (!cancelled && !seen) {
+          setShowDocumentsIntro(true);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [documentsParNiveauEnabled, authUser?.id]);
+
+  const handleCloseDocumentsIntro = () => {
+    setShowDocumentsIntro(false);
+    if (authUser?.id) {
+      markAnnouncementSeen(authUser.id, DOCUMENTS_NIVEAU_INTRO_SEEN_KEY).catch(() => {});
+    }
+  };
 
   useEffect(() => {
     if (
@@ -430,7 +471,7 @@ export default function Index() {
       alignItems: 'center',
       gap: 8,
     }}
-    onPress={() => setCreateModalVisible(true)}
+    onPress={() => openCreatePost()}
   >
     <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
     <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>
@@ -438,16 +479,6 @@ export default function Index() {
     </Text>
   </TouchableOpacity>
 </View>
-)}
-
-{authUser?.id && (
-  <CreatePostModal
-    visible={createModalVisible}
-    onClose={() => setCreateModalVisible(false)}
-    onSuccess={loadFeed}
-    userId={authUser.authId}
-    isDarkMode={isDarkMode}
-  />
 )}
 
 {/* Modal de zoom/visualisation d'image */}
@@ -478,6 +509,13 @@ export default function Index() {
   visible={needsCountryPrompt}
   dismissable={false}
   onSelect={handleSelectCountry}
+/>
+
+<DocumentsIntroBottomSheet
+  visible={showDocumentsIntro}
+  onClose={handleCloseDocumentsIntro}
+  onFinish={() => router.push("/(app)/manuel" as Href)}
+  isDark={isDarkMode}
 />
 
         {/*/!* Learning Paths *!/*/}
@@ -513,9 +551,9 @@ export default function Index() {
       <TouchableOpacity
         activeOpacity={0.85}
         style={styles.fab}
-        onPress={() => setCreateModalVisible(true)}
+        onPress={() => openCreatePost()}
       >
-        <MaterialCommunityIcons name="plus" size={28} color="#FFFFFF" />
+        <MaterialCommunityIcons name="plus" size={24} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
   );
@@ -841,10 +879,10 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 65 + 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    bottom: 65 + 18,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: theme.color.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
@@ -857,7 +895,7 @@ const styles = StyleSheet.create({
   fabBackToTop: {
     position: 'absolute',
     right: 26,
-    bottom: 65 + 16 + 56 + 12,
+    bottom: 65 + 18 + 52 + 12,
     width: 44,
     height: 44,
     borderRadius: 22,

@@ -58,6 +58,10 @@ const TopBar: React.FC<TopBarProps> = ({userName, streaks, xp, onChangeProgram})
                 </View>
 
                 <View style={styles.rightIcons}>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/(app)/search' as Href)}>
+                        <MaterialCommunityIcons name="magnify" size={24} color="#FFF"/>
+                    </TouchableOpacity>
+
                     <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/leaderboard' as Href)}>
                         <MaterialCommunityIcons name="trophy-variant" size={24} color="#FFD700"/>
                     </TouchableOpacity>

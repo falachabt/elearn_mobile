@@ -167,6 +167,17 @@ export const Events = {
 
   // Search events
   SEARCH: 'Search',
+  SEARCH_ANYTHING_OPEN: 'Search Anything Open',
+  SEARCH_ANYTHING_QUERY: 'Search Anything Query',
+  SEARCH_ANYTHING_RESULT_TAP: 'Search Anything Result Tap',
+  SEARCH_ANYTHING_MODE_SWITCH: 'Search Anything Mode Switch',
+
+  // Feed content tagging events
+  FEED_CONTENT_TAGGED: 'Feed Content Tagged',
+
+  // Tour events
+  TOUR_STARTED: 'Tour Started',
+  TOUR_STEP_ACTION: 'Tour Step Action',
 
   // Chat events
   CHAT_OPENED: 'Chat Opened',

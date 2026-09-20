@@ -11,6 +11,7 @@ import {Accounts, UserXp} from '@/types/type'
 import { setUserId, resetPostHogUser } from '@/utils/analytics'
 import { registerForPushNotificationsAsync, setupNotifications } from '@/utils/pushNotifications'
 import { posthogService } from '@/utils/posthogService'
+import { posthog } from '@/lib/posthog'
 import { logger } from '@/utils/logger'
 
 interface UserStreak {
@@ -373,6 +374,10 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
           total_points: user.user_xp?.total_xp || 0,
           has_payment: user.active_trx ? true : false,
         });
+        // Les flags scopés par propriété personne (ex: email) peuvent avoir
+        // été évalués contre le distinct_id anonyme avant l'identify —
+        // on force un refetch pour qu'ils reflètent le compte identifié.
+        posthog.reloadFeatureFlags();
       }
     }, [session, user]);
 

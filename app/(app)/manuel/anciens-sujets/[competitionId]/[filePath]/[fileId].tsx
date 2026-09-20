@@ -15,6 +15,8 @@ import {FileViewer as FileViewerNative} from "@/components/shared/learn/anales/F
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
 import { useCompetitionPayment } from "@/hooks/useCompetitionPayment";
 import { useArchiveData } from "@/hooks/useArchiveData";
+import { useLeaveDocumentIntercept } from "@/hooks/useLeaveDocumentIntercept";
+import { LeaveDocumentSheet } from "@/components/shared/documents/LeaveDocumentSheet";
 import CompetitionPaymentBottomSheet from "@/components/shared/CompetitionPaymentBottomSheet";
 
 
@@ -130,7 +132,7 @@ export const FileViewerScreen = () => {
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
 
   // Use shared archive data hook
-  const { toggleCompleted } = useArchiveData(competitionId);
+  const { toggleCompleted, togglePin: toggleArchivePin, pinnedData } = useArchiveData(competitionId);
 
   // Competition payment hook
   const {
@@ -247,7 +249,7 @@ export const FileViewerScreen = () => {
       logger.error('Error toggling completion status:', toggleError);
       Alert.alert(
           'Erreur',
-          errorMessage || 'Impossible de mettre � jour le statut de compl�tion. Veuillez r�essayer.'
+          errorMessage || 'Impossible de mettre à jour le statut de complétion. Veuillez réessayer.'
       );
     } finally {
       setCompletedLoading(false);
@@ -268,6 +270,20 @@ export const FileViewerScreen = () => {
 
   // Determine if the archive is completed
   const isCompleted = !!completionData;
+
+  const isPinned = !!archiveData && pinnedData?.some(
+    (p) => p.archive_id === Number(archiveData.id) && p.is_pinned
+  );
+  const togglePin = () => {
+    if (!archiveData) return;
+    toggleArchivePin(Number(archiveData.id), !!isPinned);
+  };
+
+  const { showSheet, handleMarkComplete, handlePin, handleDismiss } = useLeaveDocumentIntercept({
+    enabled: !isCompleted,
+    onMarkComplete: toggleCompletedStatus,
+    onPin: togglePin,
+  });
 
   // Handle back navigation
   const handleBack = () => {
@@ -298,10 +314,10 @@ export const FileViewerScreen = () => {
             color={isDark ? theme.color.primary[400] : theme.color.primary[500]}
           />
           <ThemedText style={viewerStyles.accessDeniedTitle}>
-            Acc�s restreint
+            Accès restreint
           </ThemedText>
           <ThemedText style={viewerStyles.accessDeniedDescription}>
-            {`Vous devez payer pour acc�der � ce contenu. D�bloquez ${
+            {`Vous devez payer pour accéder à ce contenu. Débloquez ${
               competitionContext?.documentCount
                 ? `${competitionContext.documentCount} ${
                     competitionContext.documentCount === 1 ? 'document' : 'documents'
@@ -315,7 +331,7 @@ export const FileViewerScreen = () => {
           >
             <MaterialCommunityIcons name="lock-open" size={20} color="#FFFFFF" />
             <ThemedText style={viewerStyles.paymentButtonText}>
-              D�bloquer maintenant
+              Débloquer maintenant
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -401,10 +417,30 @@ export const FileViewerScreen = () => {
                             color="#FFFFFF"
                         />
                         <ThemedText style={viewerStyles.toggleButtonText}>
-                          {isCompleted ? "Termin�" : "Marquer termin�"}
+                          {isCompleted ? "Terminé" : "Marquer terminé"}
                         </ThemedText>
                       </>
                   )}
+                </TouchableOpacity>
+            )}
+
+            {archiveData && (
+                <TouchableOpacity
+                    onPress={togglePin}
+                    style={[
+                      viewerStyles.completedButton,
+                      isDark && viewerStyles.completedButtonDark,
+                      isPinned && viewerStyles.completedButtonActive
+                    ]}
+                >
+                  <MaterialCommunityIcons
+                      name={isPinned ? "pin" : "pin-outline"}
+                      size={18}
+                      color="#FFFFFF"
+                  />
+                  <ThemedText style={viewerStyles.toggleButtonText}>
+                    {isPinned ? "Épinglé" : "Épingler"}
+                  </ThemedText>
                 </TouchableOpacity>
             )}
 
@@ -429,6 +465,14 @@ export const FileViewerScreen = () => {
             )}
           </View>
         )}
+
+        <LeaveDocumentSheet
+          visible={showSheet}
+          isDark={isDark}
+          onMarkComplete={handleMarkComplete}
+          onPin={handlePin}
+          onDismiss={handleDismiss}
+        />
       </View>
   );
 };

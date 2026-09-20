@@ -9,9 +9,10 @@
 } from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useLocalSearchParams} from "expo-router";
+import {useFeatureFlag} from "posthog-react-native";
 import useSWR from "swr";
 import WebView from "react-native-webview"; // Ensure this is imported for mobile
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 
 import {supabase} from "@/lib/supabase";
 import {theme} from "@/constants/theme";
@@ -23,6 +24,8 @@ import {trackEvent, Events} from '@/utils/analytics';
 import {useCustomRouter} from "@/hooks/useCustomRouter";
 import {useAppConfig} from "@/contexts/useAppConfig";
 import { logger } from "@/utils/logger";
+import { ShareToFeedButton } from "@/components/shared/feed/ShareToFeedButton";
+import { useShareToFeedTour } from "@/hooks/useShareToFeedTour";
 
 interface ExerciseDetails {
     id: string;
@@ -54,6 +57,8 @@ const ExercisePage = () => {
     const {isLearningPathEnrolled} = useUser();
     const {getWebViewUrls} = useAppConfig();
     const webViewUrls = getWebViewUrls();
+    const shareButtonTourRef = useRef<View>(null);
+    const contentTaggingEnabled = useFeatureFlag("feed_content_tagging_enabled") === true;
 
     // Check if user is enrolled in this program
     useEffect(() => {
@@ -195,6 +200,13 @@ const ExercisePage = () => {
 
     const isPinned = pinData?.is_pinned || false;
     const isCompleted = completeData?.is_completed || false;
+
+    useShareToFeedTour({
+        targetRef: shareButtonTourRef,
+        userId: user?.id,
+        isDarkMode: isDark,
+        ready: !!exercise && !exerciseLoading && contentTaggingEnabled,
+    });
 
     // Track exercise start when component mounts
     useEffect(() => {
@@ -468,6 +480,18 @@ const ExercisePage = () => {
                     </View>
                 </View>
                 <View style={styles.actionButtonsContainer}>
+                    <ShareToFeedButton
+                        tag={{
+                            type: "exercise",
+                            id: exerciseIdParam ?? "",
+                            label: exercise.title ?? "Exercice",
+                            subtitle: exercise.course?.name ?? null,
+                            route: `/(app)/learn/${learningPathId}/exercices/${exerciseIdParam}`,
+                        }}
+                        isDarkMode={isDark}
+                        variant="icon"
+                        tourRef={shareButtonTourRef}
+                    />
                     <TouchableOpacity
                         style={styles.actionButton}
                         onPress={handleTogglePin}

@@ -20,7 +20,12 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFeatureFlag } from 'posthog-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TourStep, useTourPersistence } from '@wrack/react-native-tour-guide';
 import { theme } from '@/constants/theme';
+import { FEED_COMMENTS_TOUR_ID, getTourGuideConfig } from '@/constants/tourGuide';
+import { Events, trackEvent } from '@/utils/analytics';
 import {
   getPost,
   getPostComments,
@@ -33,6 +38,7 @@ import {
   PostComment,
   FeedPost,
   MentionCandidate,
+  TaggableContentResult,
 } from '@/services/feed.service';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
@@ -40,6 +46,8 @@ import { ImageViewerModal } from '@/components/shared/feed/ImageViewerModal';
 import { UserProfileBottomSheet } from '@/components/shared/feed/UserProfileBottomSheet';
 import { PollBlock } from '@/components/shared/feed/PollBlock';
 import { RichText } from '@/components/shared/feed/RichText';
+import { TaggedContentChip } from '@/components/shared/feed/TaggedContentChip';
+import FeedContentTagPicker from '@/components/shared/feed/FeedContentTagPicker';
 
 const TAB_BAR_HEIGHT = 65;
 const STICKY_HEADER_THRESHOLD = 160;
@@ -71,9 +79,16 @@ export default function PostDetailScreen() {
   const [profileSheetUserId, setProfileSheetUserId] = useState<string | null>(null);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [commentTaggedContents, setCommentTaggedContents] = useState<TaggableContentResult[]>([]);
+  const [commentTagPickerVisible, setCommentTagPickerVisible] = useState(false);
+  const contentTaggingEnabled = useFeatureFlag('feed_content_tagging_enabled') === true;
 
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
+  const likeTourRef = useRef<View>(null);
+  const tagCommentTourRef = useRef<View>(null);
+  const hasAttemptedCommentsTourRef = useRef(false);
+  const { startTour: startCommentsTour } = useTourPersistence(AsyncStorage);
 
   const fetchPostAndComments = async (userIdOverride?: string) => {
     if (!id) return;
@@ -103,6 +118,38 @@ export default function PostDetailScreen() {
   useEffect(() => {
     fetchInitialData();
   }, [id]);
+
+  // Tour "one-shot" like/votes/tag-en-commentaire — une fois le post chargé.
+  useEffect(() => {
+    if (loading || !post || hasAttemptedCommentsTourRef.current) return;
+    hasAttemptedCommentsTourRef.current = true;
+
+    const steps: TourStep[] = [
+      {
+        id: 'like',
+        targetRef: likeTourRef,
+        title: 'Aimer une publication',
+        description:
+          "Appuie sur le cœur pour montrer qu'un post t'a aidé — essaie, ça compte vraiment. Les flèches ▲▼ sur chaque réponse font pareil pour son classement.",
+        spotlightPadding: 8,
+        onSpotlightPress: () => { void handleToggleLike(); },
+      },
+      {
+        id: 'tag-comment',
+        targetRef: tagCommentTourRef,
+        title: 'Taguer un contenu dans ta réponse',
+        description:
+          "Rattache un cours, un exercice ou un quiz à ta réponse — essaie, ça ouvre vraiment le sélecteur.",
+        spotlightPadding: 8,
+        active: contentTaggingEnabled,
+        onSpotlightPress: () => setCommentTagPickerVisible(true),
+      },
+    ];
+
+    trackEvent(Events.TOUR_STARTED, { tour_id: FEED_COMMENTS_TOUR_ID });
+    void startCommentsTour(steps, getTourGuideConfig(isDarkMode, FEED_COMMENTS_TOUR_ID));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, post, contentTaggingEnabled, isDarkMode]);
 
   // Recharge post + commentaires à chaque retour sur l'écran (pas besoin de
   // fermer/rouvrir l'app pour voir un nouveau commentaire ou like).
@@ -136,13 +183,15 @@ export default function PostDetailScreen() {
         newCommentText.trim(),
         currentUserId,
         replyingTo?.id ?? null,
-        mentionedUserIds
+        mentionedUserIds,
+        commentTaggedContents
       );
       if (added) {
         setNewCommentText('');
         setMentionedUserIds([]);
         setMentionSuggestions([]);
         setReplyingTo(null);
+        setCommentTaggedContents([]);
         await refreshComments();
       } else {
         Alert.alert('Erreur', "Impossible d'ajouter le commentaire.");
@@ -359,6 +408,19 @@ export default function PostDetailScreen() {
                 style={[styles.commentText, isDarkMode && styles.subTextDark]}
                 content={comment.content}
               />
+              {comment.tagged_contents && comment.tagged_contents.length > 0 && (
+                <View style={styles.tagChipsRow}>
+                  {comment.tagged_contents.map((tag) => (
+                    <TaggedContentChip
+                      key={`${tag.type}-${tag.id}-${tag.route}`}
+                      type={tag.type}
+                      label={tag.label}
+                      route={tag.route}
+                      isDarkMode={isDarkMode}
+                    />
+                  ))}
+                </View>
+              )}
               <View style={styles.commentActionsRow}>
                 <TouchableOpacity onPress={() => startReply(comment)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
                   <Text style={styles.replyLink}>Répondre</Text>
@@ -522,6 +584,20 @@ export default function PostDetailScreen() {
               />
             )}
 
+            {post.tagged_contents && post.tagged_contents.length > 0 && (
+              <View style={styles.tagChipsRow}>
+                {post.tagged_contents.map((tag) => (
+                  <TaggedContentChip
+                    key={`${tag.type}-${tag.id}-${tag.route}`}
+                    type={tag.type}
+                    label={tag.label}
+                    route={tag.route}
+                    isDarkMode={isDarkMode}
+                  />
+                ))}
+              </View>
+            )}
+
             {post.media_urls && post.media_urls.length > 0 && (
               <View
                 style={styles.mediaContainer}
@@ -586,16 +662,18 @@ export default function PostDetailScreen() {
         {/* Barre d'interaction du post original : Like + Compteurs */}
         {post && (
           <View style={[styles.postInteractionBar, isDarkMode && styles.postInteractionBarDark]}>
-            <TouchableOpacity style={styles.postStatItem} onPress={handleToggleLike}>
-              <MaterialCommunityIcons
-                name={post.liked_by_me ? 'heart' : 'heart-outline'}
-                size={18}
-                color={post.liked_by_me ? '#EF4444' : '#64748B'}
-              />
-              <Text style={[styles.postStatText, post.liked_by_me && { color: '#EF4444' }]}>
-                {post.likes_count || 0}
-              </Text>
-            </TouchableOpacity>
+            <View ref={likeTourRef} collapsable={false}>
+              <TouchableOpacity style={styles.postStatItem} onPress={handleToggleLike}>
+                <MaterialCommunityIcons
+                  name={post.liked_by_me ? 'heart' : 'heart-outline'}
+                  size={18}
+                  color={post.liked_by_me ? '#EF4444' : '#64748B'}
+                />
+                <Text style={[styles.postStatText, post.liked_by_me && { color: '#EF4444' }]}>
+                  {post.likes_count || 0}
+                </Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.postStatItem}>
               <MaterialCommunityIcons name="comment-text-multiple-outline" size={18} color="#64748B" />
               <Text style={styles.postStatText}>
@@ -661,6 +739,18 @@ export default function PostDetailScreen() {
         </View>
       )}
 
+      {/* Bandeau contenus tagués sélectionnés pour le commentaire */}
+      {commentTaggedContents.length > 0 && (
+        <View style={[styles.replyingBanner, isDarkMode && styles.replyingBannerDark]}>
+          <Text style={styles.replyingBannerText} numberOfLines={1}>
+            Contenu tagué ({commentTaggedContents.length}) : {commentTaggedContents.map((t) => t.label).join(', ')}
+          </Text>
+          <TouchableOpacity onPress={() => setCommentTaggedContents([])} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <MaterialCommunityIcons name="close" size={16} color="#64748B" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Bandeau "réponse à ..." */}
       {replyingTo && (
         <View style={[styles.replyingBanner, isDarkMode && styles.replyingBannerDark]}>
@@ -701,6 +791,21 @@ export default function PostDetailScreen() {
           style={[styles.commentInput, isDarkMode && styles.commentInputDark]}
           multiline
         />
+        {contentTaggingEnabled && (
+          <View ref={tagCommentTourRef} collapsable={false}>
+            <TouchableOpacity
+              onPress={() => setCommentTagPickerVisible(true)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.tagCommentBtn}
+            >
+              <MaterialCommunityIcons
+                name="tag-outline"
+                size={22}
+                color={commentTaggedContents.length > 0 ? '#F59E0B' : theme.color.primary[500]}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
         <TouchableOpacity
           onPress={handleSendComment}
           disabled={submittingComment || !newCommentText.trim()}
@@ -732,11 +837,31 @@ export default function PostDetailScreen() {
         onClose={() => setProfileSheetUserId(null)}
         isDarkMode={isDarkMode}
       />
+
+      {/* Sélecteur de contenu à taguer dans le commentaire */}
+      <FeedContentTagPicker
+        visible={commentTagPickerVisible}
+        onClose={() => setCommentTagPickerVisible(false)}
+        initialSelected={commentTaggedContents}
+        onConfirm={(results) => {
+          setCommentTaggedContents(results);
+          setCommentTagPickerVisible(false);
+          if (results.length > 0) {
+            trackEvent(Events.FEED_CONTENT_TAGGED, { source: 'comment', content_type: results[0].type });
+          }
+        }}
+        isDark={isDarkMode}
+      />
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  tagChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -1189,6 +1314,9 @@ const styles = StyleSheet.create({
   },
   sendBtnDisabled: {
     opacity: 0.4,
+  },
+  tagCommentBtn: {
+    paddingHorizontal: 4,
   },
   postInteractionBar: {
     flexDirection: 'row',

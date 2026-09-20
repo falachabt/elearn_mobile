@@ -32,6 +32,9 @@ import { trackEvent, Events } from "@/utils/analytics";
 import { useCustomRouter } from "@/hooks/useCustomRouter";
 import { useAppConfig } from "@/contexts/useAppConfig";
 import { useNavigation } from "@/contexts/NavigationContext";
+import { ShareToFeedButton } from "@/components/shared/feed/ShareToFeedButton";
+import { useShareToFeedTour } from "@/hooks/useShareToFeedTour";
+import { useFeatureFlag } from "posthog-react-native";
 import { logger } from "@/utils/logger";
 import {
   findSecondaryDailyItemId,
@@ -101,7 +104,9 @@ const SecondaryExercisePage = () => {
   const correctionButtonTourRef = useRef<View>(null);
   const nextButtonTourRef = useRef<View>(null);
   const purchaseButtonTourRef = useRef<View>(null);
+  const shareButtonTourRef = useRef<View>(null);
   const hasAttemptedTourRef = useRef(false);
+  const contentTaggingEnabled = useFeatureFlag("feed_content_tagging_enabled") === true;
   const {
     activeTourId,
     isActive: isTourActive,
@@ -250,6 +255,13 @@ const SecondaryExercisePage = () => {
   const isPinned = pinData?.is_pinned || false;
   const isCompleted = completeData?.is_completed || false;
   const hasResolvedFooterTourTarget = !isEnrolled || nextExerciseId !== undefined;
+
+  useShareToFeedTour({
+    targetRef: shareButtonTourRef,
+    userId: user?.id,
+    isDarkMode: isDark,
+    ready: !!exercise && !exerciseLoading && contentTaggingEnabled && !bottomSheetVisible && !isTourActive,
+  });
 
   useEffect(() => {
     if (activeTourId !== EXERCISE_DETAIL_TOUR_ID || !isTourActive) {
@@ -697,6 +709,18 @@ const SecondaryExercisePage = () => {
           </View>
         </View>
         <View style={styles.actionButtonsContainer}>
+          <ShareToFeedButton
+            tag={{
+              type: "exercise",
+              id: exerciseIdParam ?? "",
+              label: exercise.title ?? "Exercice",
+              subtitle: exercise.course?.name ?? null,
+              route: `/(app)/secondary/program/${secondaryProgramId}/exercices/${exerciseIdParam}`,
+            }}
+            isDarkMode={isDark}
+            variant="icon"
+            tourRef={shareButtonTourRef}
+          />
           <View
             ref={pinButtonTourRef}
             collapsable={false}

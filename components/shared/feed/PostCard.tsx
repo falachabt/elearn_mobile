@@ -18,6 +18,7 @@ import type { FeedPost, PostComment } from '@/services/feed.service';
 import { voteOnComment } from '@/services/feed.service';
 import { PollBlock } from './PollBlock';
 import { RichText } from './RichText';
+import { TaggedContentChip } from './TaggedContentChip';
 
 const { width } = Dimensions.get('window');
 
@@ -34,6 +35,11 @@ interface PostCardProps {
   onPressAuthor?: (authorId: string) => void;
   onToggleLike?: (post: FeedPost) => void;
   onVotePoll?: (post: FeedPost, optionId: string) => void;
+  // Cibles optionnelles pour le tour guide feed (FEED_POST_INTRO_TOUR_ID) —
+  // seul le premier post rendu du fil les reçoit, cf. app/(app)/index.tsx.
+  likeButtonRef?: React.RefObject<View | null>;
+  commentButtonRef?: React.RefObject<View | null>;
+  commentVoteRef?: React.RefObject<View | null>;
 }
 
 export const PostCard: React.FC<PostCardProps> = ({
@@ -46,6 +52,9 @@ export const PostCard: React.FC<PostCardProps> = ({
   onPressAuthor,
   onToggleLike,
   onVotePoll,
+  likeButtonRef,
+  commentButtonRef,
+  commentVoteRef,
 }) => {
   const isOwner = currentUserId && post.author_id === currentUserId;
   const [previewComments, setPreviewComments] = useState<PostComment[]>(
@@ -202,6 +211,21 @@ export const PostCard: React.FC<PostCardProps> = ({
         </View>
       )}
 
+      {/* Contenus tagués (cours/exercice/quiz/document/classe) */}
+      {post.tagged_contents && post.tagged_contents.length > 0 && (
+        <View style={styles.tagChipsRow}>
+          {post.tagged_contents.map((tag) => (
+            <TaggedContentChip
+              key={`${tag.type}-${tag.id}-${tag.route}`}
+              type={tag.type}
+              label={tag.label}
+              route={tag.route}
+              isDarkMode={isDarkMode}
+            />
+          ))}
+        </View>
+      )}
+
       {/* Galerie Médias / Photos de brouillon avec badge HD */}
       {post.media_urls && post.media_urls.length > 0 && (
         <View
@@ -269,20 +293,25 @@ export const PostCard: React.FC<PostCardProps> = ({
       {/* Aperçu des 2-3 premières réponses */}
       {previewComments.length > 0 && (
         <View style={[styles.previewContainer, isDarkMode && styles.previewContainerDark]}>
-          {previewComments.map((comment) => {
+          {previewComments.map((comment, previewIndex) => {
             const isLong = comment.content.length > PREVIEW_MAX_CHARS;
             const previewText = isLong
               ? `${comment.content.slice(0, PREVIEW_MAX_CHARS).trim()}…`
               : comment.content;
             const commentAuthorName = comment.author?.full_name || 'Élève';
+            const commentAvatarUrl = comment.author?.avatar_url;
 
             return (
               <View key={comment.id} style={styles.previewRow}>
-                <View style={styles.previewAvatarPlaceholder}>
-                  <Text style={styles.previewAvatarText}>
-                    {commentAuthorName.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
+                {commentAvatarUrl ? (
+                  <Image source={{ uri: commentAvatarUrl }} style={styles.previewAvatarImage} />
+                ) : (
+                  <View style={styles.previewAvatarPlaceholder}>
+                    <Text style={styles.previewAvatarText}>
+                      {commentAuthorName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.previewTextCol}>
                   <View style={styles.previewAuthorRow}>
                     <Text style={[styles.previewAuthorName, isDarkMode && styles.textDark]}>
@@ -311,8 +340,25 @@ export const PostCard: React.FC<PostCardProps> = ({
                       </Text>
                     )}
                   </RichText>
+                  {comment.tagged_contents && comment.tagged_contents.length > 0 && (
+                    <View style={styles.tagChipsRow}>
+                      {comment.tagged_contents.map((tag) => (
+                        <TaggedContentChip
+                          key={`${tag.type}-${tag.id}-${tag.route}`}
+                          type={tag.type}
+                          label={tag.label}
+                          route={tag.route}
+                          isDarkMode={isDarkMode}
+                        />
+                      ))}
+                    </View>
+                  )}
                 </View>
-                <View style={styles.previewVoteCol}>
+                <View
+                  ref={previewIndex === 0 ? commentVoteRef : undefined}
+                  collapsable={false}
+                  style={styles.previewVoteCol}
+                >
                   <TouchableOpacity
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                     onPress={(e) => {
@@ -357,41 +403,45 @@ export const PostCard: React.FC<PostCardProps> = ({
 
       {/* Système d'Interaction : Like, Commentaires, Partage */}
       <View style={[styles.voteApprovalBar, isDarkMode && styles.voteApprovalBarDark]}>
-        <TouchableOpacity
-          style={styles.commentActionBtn}
-          onPress={(e) => {
-            e.stopPropagation();
-            onToggleLike?.(post);
-          }}
-        >
-          <MaterialCommunityIcons
-            name={post.liked_by_me ? 'heart' : 'heart-outline'}
-            size={18}
-            color={post.liked_by_me ? '#EF4444' : (isDarkMode ? '#94A3B8' : '#64748B')}
-          />
-          <Text
-            style={[
-              styles.commentActionText,
-              { color: post.liked_by_me ? '#EF4444' : (isDarkMode ? '#94A3B8' : '#64748B'), fontWeight: '500' },
-            ]}
+        <View ref={likeButtonRef} collapsable={false}>
+          <TouchableOpacity
+            style={styles.commentActionBtn}
+            onPress={(e) => {
+              e.stopPropagation();
+              onToggleLike?.(post);
+            }}
           >
-            {post.likes_count || 0}
-          </Text>
-        </TouchableOpacity>
+            <MaterialCommunityIcons
+              name={post.liked_by_me ? 'heart' : 'heart-outline'}
+              size={18}
+              color={post.liked_by_me ? '#EF4444' : (isDarkMode ? '#94A3B8' : '#64748B')}
+            />
+            <Text
+              style={[
+                styles.commentActionText,
+                { color: post.liked_by_me ? '#EF4444' : (isDarkMode ? '#94A3B8' : '#64748B'), fontWeight: '500' },
+              ]}
+            >
+              {post.likes_count || 0}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity
-          style={styles.commentActionBtn}
-          onPress={() => onPressPost?.(post)}
-        >
-          <MaterialCommunityIcons
-            name="comment-text-multiple-outline"
-            size={18}
-            color={theme.color.primary[500]}
-          />
-          <Text style={styles.commentActionText}>
-            {post.comments_count || 0} réponse{(post.comments_count || 0) > 1 ? 's' : ''}
-          </Text>
-        </TouchableOpacity>
+        <View ref={commentButtonRef} collapsable={false}>
+          <TouchableOpacity
+            style={styles.commentActionBtn}
+            onPress={() => onPressPost?.(post)}
+          >
+            <MaterialCommunityIcons
+              name="comment-text-multiple-outline"
+              size={18}
+              color={theme.color.primary[500]}
+            />
+            <Text style={styles.commentActionText}>
+              {post.comments_count || 0} réponse{(post.comments_count || 0) > 1 ? 's' : ''}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={styles.commentActionBtn}
@@ -423,6 +473,11 @@ export const PostCard: React.FC<PostCardProps> = ({
 };
 
 const styles = StyleSheet.create({
+  tagChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: theme.border.radius.small,
@@ -623,6 +678,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#94A3B8',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  previewAvatarImage: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
   },
   previewAvatarText: {
     color: '#FFFFFF',

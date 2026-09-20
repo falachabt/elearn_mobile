@@ -9,15 +9,19 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFeatureFlag } from "posthog-react-native";
 
 import { theme } from "@/constants/theme";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
+import { useLevels } from "@/hooks/secondary/useLevelDocuments";
 
 const ManuelScreen = () => {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme !== "light";
   const { trigger } = useHaptics();
+  const { levels } = useLevels();
+  const documentsParNiveauEnabled = useFeatureFlag("documents_par_niveau_enabled") === true;
 
   const handleNavigate = (route: string) => {
     trigger(HapticType.SELECTION);
@@ -27,11 +31,20 @@ const ManuelScreen = () => {
   const sections = [
     {
       id: "anciens-sujets",
-      title: "Anciens sujets",
+      title: "Anciens sujets de concours",
       description: "Consultez les anciens sujets de concours",
       icon: "file-document-outline",
       route: "/manuel/anciens-sujets",
     },
+    ...(documentsParNiveauEnabled
+      ? levels.map((level) => ({
+          id: `level-${level.id}`,
+          title: level.name,
+          description: level.description || "Cours et fiches classés par niveau",
+          icon: "folder-multiple-outline",
+          route: `/manuel/niveaux/${level.id}`,
+        }))
+      : []),
     // {
     //   id: "exercices",
     //   title: "Exercices",
@@ -57,7 +70,7 @@ const ManuelScreen = () => {
     >
       <View style={styles.header}>
         <Text style={[styles.headerTitle, isDarkMode && styles.textDark]}>
-          Manuel
+          Documents
         </Text>
       </View>
 
@@ -76,16 +89,16 @@ const ManuelScreen = () => {
               <View style={styles.sectionIconContainer}>
                 <MaterialCommunityIcons
                   name={section.icon as any}
-                  size={32}
+                  size={22}
                   color={theme.color.primary[500]}
                 />
               </View>
               <View style={styles.sectionContent}>
-                <Text style={[styles.sectionTitle, isDarkMode && styles.textDark]}>
+                <Text
+                  style={[styles.sectionTitle, isDarkMode && styles.textDark]}
+                  numberOfLines={1}
+                >
                   {section.title}
-                </Text>
-                <Text style={[styles.sectionDescription, isDarkMode && styles.textLightDark]}>
-                  {section.description}
                 </Text>
               </View>
               <MaterialCommunityIcons
@@ -131,14 +144,16 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     padding: 16,
+    paddingBottom: 110,
   },
   sectionsContainer: {
-    gap: 16,
+    gap: 12,
   },
   sectionCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     backgroundColor: "#FFFFFF",
     borderRadius: theme.border.radius.medium,
     shadowColor: "#000",
@@ -154,28 +169,22 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.dark.background.secondary,
   },
   sectionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: `${theme.color.primary[500]}20`,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 14,
   },
   sectionContent: {
     flex: 1,
   },
   sectionTitle: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "600",
     color: "#1A1A1A",
-    marginBottom: 4,
-  },
-  sectionDescription: {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    color: theme.color.gray[600],
   },
 });
 

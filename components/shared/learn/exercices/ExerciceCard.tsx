@@ -33,6 +33,7 @@ interface ExerciseCardProps {
         exercices_pin?: Array<any>;
         exercices_complete?: Array<any>;
     };
+    isLocked?: boolean;
     onPress: (exercise: any) => void;
     onPinPress: (e: any) => Promise<void>;
     onCompletePress: (e: any) => Promise<void>;
@@ -40,6 +41,7 @@ interface ExerciseCardProps {
 
 const ExerciseCard: React.FC<ExerciseCardProps> = ({
                                                        exercise,
+                                                       isLocked = false,
                                                        onPress,
                                                        onPinPress,
                                                        onCompletePress
@@ -77,6 +79,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     borderColor: categoryColor,
                     borderLeftWidth: 4,
                 },
+                isLocked && styles.cardLocked,
             ]}
             activeOpacity={0.7}
             onPress={() => onPress(exercise)}
@@ -108,47 +111,55 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     </Text>
                 </View>
 
-                <View style={styles.actionButtons}>
-                    <TouchableOpacity
-                        onPress={onPinPress}
-                        style={styles.actionButton}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                        <MaterialCommunityIcons
-                            name={exercise.is_pinned ? "pin" : "pin-outline"}
-                            size={18}
-                            color={
-                                exercise.is_pinned
-                                    ? "#FFC107"
-                                    : isDark
-                                        ? theme.color.gray[400]
-                                        : theme.color.gray[600]
-                            }
-                        />
-                    </TouchableOpacity>
+                {isLocked ? (
+                    <MaterialCommunityIcons
+                        name="lock-outline"
+                        size={20}
+                        color={isDark ? theme.color.gray[400] : theme.color.gray[600]}
+                    />
+                ) : (
+                    <View style={styles.actionButtons}>
+                        <TouchableOpacity
+                            onPress={onPinPress}
+                            style={styles.actionButton}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                            <MaterialCommunityIcons
+                                name={exercise.is_pinned ? "pin" : "pin-outline"}
+                                size={18}
+                                color={
+                                    exercise.is_pinned
+                                        ? "#FFC107"
+                                        : isDark
+                                            ? theme.color.gray[400]
+                                            : theme.color.gray[600]
+                                }
+                            />
+                        </TouchableOpacity>
 
-                    <TouchableOpacity
-                        onPress={onCompletePress}
-                        style={styles.actionButton}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                        <MaterialCommunityIcons
-                            name={
-                                exercise.is_completed
-                                    ? "check-circle"
-                                    : "check-circle-outline"
-                            }
-                            size={18}
-                            color={
-                                exercise.is_completed
-                                    ? theme.color.primary[500]
-                                    : isDark
-                                        ? theme.color.gray[400]
-                                        : theme.color.gray[600]
-                            }
-                        />
-                    </TouchableOpacity>
-                </View>
+                        <TouchableOpacity
+                            onPress={onCompletePress}
+                            style={styles.actionButton}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                            <MaterialCommunityIcons
+                                name={
+                                    exercise.is_completed
+                                        ? "check-circle"
+                                        : "check-circle-outline"
+                                }
+                                size={18}
+                                color={
+                                    exercise.is_completed
+                                        ? theme.color.primary[500]
+                                        : isDark
+                                            ? theme.color.gray[400]
+                                            : theme.color.gray[600]
+                                }
+                            />
+                        </TouchableOpacity>
+                    </View>
+                )}
             </View>
 
             {/* Main content */}
@@ -197,6 +208,9 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         elevation: 2,
         overflow: "hidden",
+    },
+    cardLocked: {
+        opacity: 0.55,
     },
     statusRow: {
         flexDirection: "row",

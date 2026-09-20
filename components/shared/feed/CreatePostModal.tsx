@@ -1,5 +1,5 @@
 // components/shared/feed/CreatePostModal.tsx
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -17,9 +17,15 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFeatureFlag } from 'posthog-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TourStep, useTourPersistence } from '@wrack/react-native-tour-guide';
 
 import { theme } from '@/constants/theme';
-import { createFeedPost, uploadPostImage } from '@/services/feed.service';
+import { createFeedPost, uploadPostImage, type TaggableContentResult } from '@/services/feed.service';
+import FeedContentTagPicker from '@/components/shared/feed/FeedContentTagPicker';
+import { CREATE_POST_FEATURES_TOUR_ID, getTourGuideConfig } from '@/constants/tourGuide';
+import { Events, trackEvent } from '@/utils/analytics';
 
 interface CreatePostModalProps {
   visible: boolean;
@@ -27,6 +33,9 @@ interface CreatePostModalProps {
   onSuccess: () => void;
   userId: string;
   isDarkMode?: boolean;
+  // Pré-remplit le contenu tagué — utilisé par le bouton "Partager sur le fil"
+  // des écrans de contenu (cours/leçon/quiz/exercice/document).
+  initialTaggedContent?: TaggableContentResult | null;
 }
 
 // Couleurs de fond disponibles pour un post "statut" (texte court, sans image)
@@ -43,6 +52,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
   onSuccess,
   userId,
   isDarkMode = false,
+  initialTaggedContent = null,
 }) => {
   const insets = useSafeAreaInsets();
   const [content, setContent] = useState('');
@@ -50,10 +60,70 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
   const [bgColor, setBgColor] = useState<string | null>(null);
   const [pollMode, setPollMode] = useState(false);
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
+  const [taggedContents, setTaggedContents] = useState<TaggableContentResult[]>(
+    initialTaggedContent ? [initialTaggedContent] : []
+  );
+  const [tagPickerVisible, setTagPickerVisible] = useState(false);
+  const contentTaggingEnabled = useFeatureFlag('feed_content_tagging_enabled') === true;
 
   const [loading, setLoading] = useState(false);
 
+  const tagButtonTourRef = useRef<View>(null);
+  const bgColorSectionTourRef = useRef<View>(null);
+  const pollButtonTourRef = useRef<View>(null);
+  const hasAttemptedComposerTourRef = useRef(false);
+  const { startTour: startComposerTour } = useTourPersistence(AsyncStorage);
+
+  React.useEffect(() => {
+    if (visible && initialTaggedContent) {
+      setTaggedContents([initialTaggedContent]);
+    }
+  }, [visible, initialTaggedContent]);
+
   const canUseBgColor = selectedImages.length === 0 && content.trim().length <= BG_COLOR_MAX_CHARS;
+
+  // Tour "one-shot" des fonctionnalités du composer (couleur/sondage/tag) —
+  // se lance une fois à l'ouverture, le tour lib gère la persistance "déjà vu".
+  React.useEffect(() => {
+    if (!visible || hasAttemptedComposerTourRef.current) return;
+    hasAttemptedComposerTourRef.current = true;
+
+    const steps: TourStep[] = [
+      {
+        id: 'bg-color',
+        targetRef: bgColorSectionTourRef,
+        title: 'Un post avec ou sans couleur',
+        description:
+          "Pour un texte court sans image, choisissez une couleur de fond façon \"statut\", ou laissez sans couleur pour un post classique.",
+        targetStyle: styles.tourSectionTarget,
+        spotlightPadding: 8,
+        delayBefore: 250,
+        active: canUseBgColor,
+      },
+      {
+        id: 'poll',
+        targetRef: pollButtonTourRef,
+        title: 'Créer un sondage',
+        description: 'Posez une question à choix multiples aux autres membres directement depuis un post — essayez, ça ouvre vraiment le sondage.',
+        targetStyle: styles.tourButtonTarget,
+        spotlightPadding: 8,
+        onSpotlightPress: () => togglePollMode(),
+      },
+      {
+        id: 'tag-content',
+        targetRef: tagButtonTourRef,
+        title: 'Taguer un contenu',
+        description:
+          "Rattachez un cours, un exercice, un quiz, un document ou une classe à votre post — les autres pourront l'ouvrir en un tap. Essayez, ça ouvre vraiment le sélecteur.",
+        targetStyle: styles.tourButtonTarget,
+        spotlightPadding: 8,
+        active: contentTaggingEnabled,
+        onSpotlightPress: () => setTagPickerVisible(true),
+      },
+    ];
+
+    void startComposerTour(steps, getTourGuideConfig(isDarkMode, CREATE_POST_FEATURES_TOUR_ID));
+  }, [visible, canUseBgColor, contentTaggingEnabled, isDarkMode, startComposerTour]);
 
   React.useEffect(() => {
     if (!canUseBgColor && bgColor) {
@@ -144,7 +214,8 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         mediaUrls,
         userId,
         mediaUrls.length === 0 ? bgColor : null,
-        pollMode ? cleanPollOptions : undefined
+        pollMode ? cleanPollOptions : undefined,
+        taggedContents
       );
 
       if (newPost) {
@@ -153,6 +224,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         setBgColor(null);
         setPollMode(false);
         setPollOptions(['', '']);
+        setTaggedContents([]);
         onSuccess();
         onClose();
       } else {
@@ -281,9 +353,29 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             </View>
           )}
 
+          {/* Contenus tagués (cours/exercice/quiz/document/classe) */}
+          {taggedContents.length > 0 && (
+            <View style={styles.tagChipRow}>
+              {taggedContents.map((tag) => (
+                <View key={`${tag.type}-${tag.id}-${tag.route}`} style={[styles.tagChip, isDarkMode && styles.tagChipDark]}>
+                  <MaterialCommunityIcons name="tag-outline" size={16} color={theme.color.primary[500]} />
+                  <Text style={[styles.tagChipText, isDarkMode && styles.textDark]} numberOfLines={1}>
+                    {tag.label}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setTaggedContents((prev) => prev.filter((t) => t !== tag))}
+                    hitSlop={8}
+                  >
+                    <MaterialCommunityIcons name="close" size={16} color={isDarkMode ? '#94A3B8' : '#64748B'} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* Sélecteur de couleur de fond (texte court, sans image uniquement) */}
           {canUseBgColor && (
-            <View style={styles.bgColorSection}>
+            <View ref={bgColorSectionTourRef} collapsable={false} style={styles.bgColorSection}>
               <Text style={[styles.bgColorLabel, isDarkMode && styles.textDark]}>
                 Couleur de fond
               </Text>
@@ -332,26 +424,60 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 size={24}
                 color={theme.color.primary[500]}
               />
-              <Text style={styles.toolBtnText}>Ajouter photo / brouillon</Text>
+              <Text style={styles.toolBtnText}>Image</Text>
             </TouchableOpacity>
           )}
           {selectedImages.length === 0 && (
-            <TouchableOpacity
-              style={styles.toolBtn}
-              onPress={togglePollMode}
-              disabled={loading}
-            >
-              <MaterialCommunityIcons
-                name="poll"
-                size={24}
-                color={pollMode ? '#EF4444' : theme.color.primary[500]}
-              />
-              <Text style={[styles.toolBtnText, pollMode && { color: '#EF4444' }]}>
-                {pollMode ? 'Annuler le sondage' : 'Créer un sondage'}
-              </Text>
-            </TouchableOpacity>
+            <View ref={pollButtonTourRef} collapsable={false} style={styles.tourButtonTarget}>
+              <TouchableOpacity
+                style={styles.toolBtn}
+                onPress={togglePollMode}
+                disabled={loading}
+              >
+                <MaterialCommunityIcons
+                  name="poll"
+                  size={24}
+                  color={pollMode ? '#EF4444' : theme.color.primary[500]}
+                />
+                <Text style={[styles.toolBtnText, pollMode && { color: '#EF4444' }]}>
+                  {pollMode ? 'Annuler' : 'Sondage'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {contentTaggingEnabled && !pollMode && (
+            <View ref={tagButtonTourRef} collapsable={false} style={styles.tourButtonTarget}>
+              <TouchableOpacity
+                style={styles.toolBtn}
+                onPress={() => setTagPickerVisible(true)}
+                disabled={loading}
+              >
+                <MaterialCommunityIcons
+                  name="tag-outline"
+                  size={24}
+                  color={taggedContents.length > 0 ? '#F59E0B' : theme.color.primary[500]}
+                />
+                <Text style={[styles.toolBtnText, taggedContents.length > 0 && { color: '#F59E0B' }]}>
+                  {taggedContents.length > 0 ? `Tagué (${taggedContents.length})` : 'Taguer'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
+
+        <FeedContentTagPicker
+          visible={tagPickerVisible}
+          onClose={() => setTagPickerVisible(false)}
+          initialSelected={taggedContents}
+          onConfirm={(results) => {
+            setTaggedContents(results);
+            setTagPickerVisible(false);
+            if (results.length > 0) {
+              trackEvent(Events.FEED_CONTENT_TAGGED, { source: 'post', content_type: results[0].type });
+            }
+          }}
+          isDark={isDarkMode}
+        />
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -453,7 +579,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 20,
+    gap: 16,
   },
   toolbarDark: {
     borderTopColor: '#1E293B',
@@ -516,6 +642,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: theme.color.primary[500],
+  },
+  tourButtonTarget: {
+    borderRadius: 16,
+  },
+  tourSectionTarget: {
+    borderRadius: 16,
+  },
+  tagChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 16,
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: '#F59E0B1A',
+    borderWidth: 1,
+    borderColor: '#F59E0B55',
+    maxWidth: '100%',
+  },
+  tagChipDark: {
+    backgroundColor: '#F59E0B26',
+  },
+  tagChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0F172A',
+    flexShrink: 1,
   },
   bgColorSection: {
     marginTop: 20,

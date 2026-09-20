@@ -524,9 +524,6 @@ const ProgramDetails = () => {
         {
           id: "courses",
           title: "Cours",
-          subtitle: isEnrolled
-            ? "Continuez votre apprentissage"
-            : "Accédez aux cours du programme",
           progress: isEnrolled
             ? {
                 current: courseProgress?.completed || 0,
@@ -551,23 +548,12 @@ const ProgramDetails = () => {
                 {courseProgress?.completed}/
                 {program.course_learningpath?.length || 0}
               </ThemedText>
-              <ThemedText
-                style={[
-                  styles.progressLabel,
-                  isDark && styles.progressLabelDark,
-                ]}
-              >
-                cours complétés
-              </ThemedText>
             </View>
           ) : undefined,
         },
         {
           id: "practice",
           title: "Quiz",
-          subtitle: isEnrolled
-            ? "Testez vos connaissances"
-            : "Accédez aux quiz d'évaluation",
           progress: isEnrolled
             ? {
                 current: quizProgress?.completed || 0,
@@ -592,23 +578,12 @@ const ProgramDetails = () => {
                 {quizProgress?.completed}/
                 {program.quiz_learningpath?.length || 0}
               </ThemedText>
-              <ThemedText
-                style={[
-                  styles.progressLabel,
-                  isDark && styles.progressLabelDark,
-                ]}
-              >
-                quiz complétés
-              </ThemedText>
             </View>
           ) : undefined,
         },
         {
           id: "exos",
           title: "Exercices de révision",
-          subtitle: isEnrolled
-            ? "Mémorisez efficacement"
-            : "Accédez aux exercices de révision",
           progress: isEnrolled
             ? {
                 current: exercisesProgress?.completed || 0,
@@ -632,23 +607,12 @@ const ProgramDetails = () => {
               >
                 {exercisesProgress?.completed}/{exercisesProgress?.total || 0}
               </ThemedText>
-              <ThemedText
-                style={[
-                  styles.progressLabel,
-                  isDark && styles.progressLabelDark,
-                ]}
-              >
-                exercices complétés
-              </ThemedText>
             </View>
           ) : undefined,
         },
         {
           id: "pastExams",
           title: "Anciens sujets",
-          subtitle: isEnrolled
-            ? "Sujets des années précédentes"
-            : "Accédez aux annales du concours",
           icon: (
             <MaterialCommunityIcons
               name="file-document-multiple"

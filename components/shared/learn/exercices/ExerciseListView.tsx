@@ -42,6 +42,7 @@ export interface ExerciseListItem {
   };
   isPinned?: boolean;
   isCompleted?: boolean;
+  isLocked?: boolean;
 }
 
 export interface Category {
@@ -68,6 +69,7 @@ export interface ExerciseListViewProps {
   onBack?: () => void;
   onPinToggle?: (exerciseId: number) => Promise<void>;
   onCompletionToggle?: (exerciseId: number) => Promise<void>;
+  onLockedPress?: () => void;
 }
 
 type FilterType = "all" | "pinned" | "uncompleted";
@@ -87,6 +89,7 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
   onBack,
   onPinToggle,
   onCompletionToggle,
+  onLockedPress,
 }) => {
   const router = useRouter();
   const { trigger } = useHaptics();
@@ -475,6 +478,8 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
             (cat) => cat.id === item.exercise.course?.category
           );
 
+          const isLocked = item.isLocked === true;
+
           return (
             <ExerciseCard
               exercise={{
@@ -492,18 +497,32 @@ export const ExerciseListView: React.FC<ExerciseListViewProps> = ({
                   } : undefined,
                 },
               }}
+              isLocked={isLocked}
               onPress={() => {
+                if (isLocked) {
+                  trigger(HapticType.ERROR);
+                  onLockedPress?.();
+                  return;
+                }
                 trigger(HapticType.LIGHT);
                 router.push(`${baseRoute}/${item.exercise.id}` as Href);
               }}
               onPinPress={async (e) => {
                 e?.stopPropagation();
+                if (isLocked) {
+                  onLockedPress?.();
+                  return;
+                }
                 if (onPinToggle) {
                   await onPinToggle(item.exercise.id);
                 }
               }}
               onCompletePress={async (e) => {
                 e?.stopPropagation();
+                if (isLocked) {
+                  onLockedPress?.();
+                  return;
+                }
                 if (onCompletionToggle) {
                   await onCompletionToggle(item.exercise.id);
                 }

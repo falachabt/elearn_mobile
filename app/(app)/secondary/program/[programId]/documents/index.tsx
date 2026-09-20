@@ -18,6 +18,8 @@ import { useSecondaryDocuments, useSecondaryDocumentBreadcrumb } from "@/hooks/s
 import { useSecondaryProgram } from "@/hooks/secondary/useSecondaryPrograms";
 import { ThemedText } from "@/components/ThemedText";
 import { useDocumentsStatus, DocumentFilter } from "@/hooks/secondary/useDocumentActions";
+import { useUser } from "@/contexts/useUserInfo";
+import { useCustomRouter } from "@/hooks/useCustomRouter";
 
 const SecondaryDocumentsScreen = () => {
   const { programId } = useLocalSearchParams<{ programId: string }>();
@@ -26,7 +28,10 @@ const SecondaryDocumentsScreen = () => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
+  const customRouter = useCustomRouter();
   const { trigger } = useHaptics();
+  const { isSecondaryProgramEnrolled } = useUser();
+  const hasPaidAccess = programId ? isSecondaryProgramEnrolled(programId) : false;
 
   // Fetch program data for header title
   const { program } = useSecondaryProgram(programId);
@@ -58,8 +63,10 @@ const SecondaryDocumentsScreen = () => {
 
   // Filtrer les documents selon le filtre sélectionné
   const filteredDocuments = useMemo(() => {
-    return documents.filter(doc => filteredDocumentIds.includes(doc.id));
-  }, [documents, filteredDocumentIds]);
+    return documents
+      .filter(doc => filteredDocumentIds.includes(doc.id))
+      .sort((a, b) => Number(pinnedIds.has(b.id)) - Number(pinnedIds.has(a.id)));
+  }, [documents, filteredDocumentIds, pinnedIds]);
 
   const handleFilterChange = (newFilter: DocumentFilter) => {
     trigger(HapticType.LIGHT);
@@ -281,6 +288,11 @@ const SecondaryDocumentsScreen = () => {
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
           const isFolder = "parent_folder_id" in item;
+          const isFirstFolder = isFolder && folders[0]?.id === item.id;
+          const isFirstDocument = !isFolder && filteredDocuments[0]?.id === item.id;
+          const isLocked =
+            !hasPaidAccess &&
+            ((isFolder && !isFirstFolder) || (!isFolder && !isFirstDocument));
           const icon = isFolder ? "folder" : "file-document-outline";
           const color = isFolder
             ? theme.color.primary[600]
@@ -293,12 +305,23 @@ const SecondaryDocumentsScreen = () => {
 
           return (
             <TouchableOpacity
-              style={[styles.item, isDark && styles.itemDark]}
-              onPress={() =>
+              style={[
+                styles.item,
+                isDark && styles.itemDark,
+                isCompleted && (isDark ? styles.itemCompletedDark : styles.itemCompleted),
+                !isCompleted && isPinned && (isDark ? styles.itemPinnedDark : styles.itemPinned),
+                isLocked && styles.itemLocked,
+              ]}
+              onPress={() => {
+                if (isLocked) {
+                  trigger(HapticType.ERROR);
+                  customRouter.navigateToSecondaryPayment(programId);
+                  return;
+                }
                 isFolder
                   ? handleFolderPress(item.id)
-                  : handleDocumentPress(item.id)
-              }
+                  : handleDocumentPress(item.id);
+              }}
             >
               <View
                 style={[
@@ -350,7 +373,7 @@ const SecondaryDocumentsScreen = () => {
                 )}
               </View>
               <MaterialCommunityIcons
-                name="chevron-right"
+                name={isLocked ? "lock-outline" : "chevron-right"}
                 size={20}
                 color={isDark ? "#6B7280" : "#9CA3AF"}
               />
@@ -553,6 +576,29 @@ const styles = StyleSheet.create({
   },
   itemDark: {
     backgroundColor: theme.color.dark.background.secondary,
+  },
+  itemLocked: {
+    opacity: 0.55,
+  },
+  itemCompleted: {
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  itemCompletedDark: {
+    backgroundColor: "#052E1655",
+    borderWidth: 1,
+    borderColor: "#059669",
+  },
+  itemPinned: {
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  itemPinnedDark: {
+    backgroundColor: "#78350F33",
+    borderWidth: 1,
+    borderColor: "#D97706",
   },
   iconContainer: {
     width: 40,

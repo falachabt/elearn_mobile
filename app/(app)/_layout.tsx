@@ -19,6 +19,10 @@ import {HapticType, useHaptics} from "@/hooks/useHaptics";
 import {useColorScheme} from '@/hooks/useColorScheme';
 import RatingModal from '@/components/RatingModal';
 import { TabBarTourContext } from "@/contexts/TabBarTourContext";
+import { CreatePostProvider } from "@/contexts/CreatePostContext";
+import { useFeatureFlag } from 'posthog-react-native';
+import FloatingSearchBar, { type FloatingSearchBarHandle } from '@/components/shared/FloatingSearchBar';
+import { useSearchFeatureTour } from '@/hooks/useSearchFeatureTour';
 
 export default function AppLayout() {
     const {session, isLoading, user, ensureSessionAccount, signOut} = useAuth();
@@ -26,6 +30,14 @@ export default function AppLayout() {
     const isDarkMode = colorScheme != 'light';
     const {mutate} = useSWRConfig();
     const {trigger} = useHaptics();
+    const floatingSearchBarEnabled = useFeatureFlag('floating_search_bar_enabled') === true;
+    const floatingSearchBarRef = useRef<FloatingSearchBarHandle>(null);
+    useSearchFeatureTour({
+        barRef: floatingSearchBarRef,
+        userId: user?.id,
+        isDarkMode,
+        enabled: floatingSearchBarEnabled,
+    });
     const homeTabRef = useRef<View>(null);
     const manuelTabRef = useRef<View>(null);
     const secondaryTabRef = useRef<View>(null);
@@ -82,6 +94,7 @@ export default function AppLayout() {
     const isProfileSyncFailed = !user && !isLoading;
 
     return (
+        <CreatePostProvider>
         <TabBarTourContext.Provider
             value={{
                 homeTabRef,
@@ -150,11 +163,11 @@ export default function AppLayout() {
                     }}
                 />
 
-                {/* Manuel tab */}
+                {/* Manuel tab (renamed "Documents" in UI) */}
                 <Tabs.Screen
                     name="manuel"
                     options={{
-                        title: "Manuel",
+                        title: "Documents",
                         tabBarIcon: ({color}) => (
                             <MaterialCommunityIcons
                                 name="book"
@@ -198,6 +211,10 @@ export default function AppLayout() {
                 />
                 <Tabs.Screen
                     name="leaderboard/index"
+                    options={{ href: null }}
+                />
+                <Tabs.Screen
+                    name="search"
                     options={{ href: null }}
                 />
 
@@ -263,8 +280,10 @@ export default function AppLayout() {
                     }}
                 />
                 </Tabs>
+                {floatingSearchBarEnabled && <FloatingSearchBar ref={floatingSearchBarRef}/>}
             </SafeAreaView>
         </TabBarTourContext.Provider>
+        </CreatePostProvider>
     );
 }
 
@@ -351,7 +370,7 @@ const styles = StyleSheet.create({
     },
     tabLabel: {
         fontFamily: theme.typography.fontFamily,
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: "500",
         marginTop: 5,
         marginBottom: 5,

@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -239,6 +259,38 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      archives_pin: {
+        Row: {
+          archive_id: number
+          id: string
+          is_pinned: boolean | null
+          pinned_at: string | null
+          user_id: string
+        }
+        Insert: {
+          archive_id: number
+          id?: string
+          is_pinned?: boolean | null
+          pinned_at?: string | null
+          user_id: string
+        }
+        Update: {
+          archive_id?: number
+          id?: string
+          is_pinned?: boolean | null
+          pinned_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "archives_pin_archive_id_fkey"
+            columns: ["archive_id"]
+            isOneToOne: false
+            referencedRelation: "concours_archives"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_logs: {
         Row: {
@@ -4394,6 +4446,204 @@ export type Database = {
           },
         ]
       }
+      secondary_level_document_folders: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          level_id: string
+          name: string
+          order_index: number | null
+          parent_folder_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          level_id: string
+          name: string
+          order_index?: number | null
+          parent_folder_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          level_id?: string
+          name?: string
+          order_index?: number | null
+          parent_folder_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "secondary_level_document_folders_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "secondary_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "secondary_level_document_folders_parent_folder_id_fkey"
+            columns: ["parent_folder_id"]
+            isOneToOne: false
+            referencedRelation: "secondary_level_document_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      secondary_level_documents: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          download_url: string
+          file_size: number | null
+          file_type: string | null
+          folder_id: string | null
+          id: string
+          name: string
+          order_index: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          download_url: string
+          file_size?: number | null
+          file_type?: string | null
+          folder_id?: string | null
+          id?: string
+          name: string
+          order_index?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          download_url?: string
+          file_size?: number | null
+          file_type?: string | null
+          folder_id?: string | null
+          id?: string
+          name?: string
+          order_index?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "secondary_level_documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "secondary_level_document_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      secondary_level_documents_complete: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          document_id: string
+          id: string
+          is_completed: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          document_id: string
+          id?: string
+          is_completed?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          document_id?: string
+          id?: string
+          is_completed?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "secondary_level_documents_complete_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "secondary_level_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      secondary_level_documents_pin: {
+        Row: {
+          created_at: string | null
+          document_id: string
+          id: string
+          is_pinned: boolean | null
+          pinned_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_id: string
+          id?: string
+          is_pinned?: boolean | null
+          pinned_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string
+          id?: string
+          is_pinned?: boolean | null
+          pinned_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "secondary_level_documents_pin_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "secondary_level_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      secondary_levels: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          level: number
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          level: number
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          level?: number
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       secondary_program_courses: {
         Row: {
           course_id: number | null
@@ -5290,6 +5540,62 @@ export type Database = {
         }
         Relationships: []
       }
+      user_level_documents_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          expiry_date: string
+          has_seen_results: boolean | null
+          id: string
+          level_id: string
+          payment_date: string | null
+          payment_provider: string | null
+          payment_reference: string | null
+          payment_status: string
+          phone_number: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          expiry_date: string
+          has_seen_results?: boolean | null
+          id?: string
+          level_id: string
+          payment_date?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          phone_number?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          expiry_date?: string
+          has_seen_results?: boolean | null
+          id?: string
+          level_id?: string
+          payment_date?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          phone_number?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_level_documents_payments_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "secondary_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_notification_history: {
         Row: {
           hours_remaining: number
@@ -5646,6 +5952,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_seen_announcements: {
+        Row: {
+          announcement_key: string
+          created_at: string | null
+          id: string
+          seen_at: string | null
+          user_id: string
+        }
+        Insert: {
+          announcement_key: string
+          created_at?: string | null
+          id?: string
+          seen_at?: string | null
+          user_id: string
+        }
+        Update: {
+          announcement_key?: string
+          created_at?: string | null
+          id?: string
+          seen_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_settings: {
         Row: {
@@ -6124,6 +6454,23 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_all_transactions: {
+        Row: {
+          amount: number | null
+          email: string | null
+          firstname: string | null
+          id: string | null
+          item_label: string | null
+          lastname: string | null
+          occurred_at: string | null
+          provider: string | null
+          reference: string | null
+          source: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       vw_available_secondary_programs: {
         Row: {
           class_name: string | null
@@ -6309,6 +6656,21 @@ export type Database = {
         Returns: {
           group_id: string
           unread_count: number
+        }[]
+      }
+      get_finance_stats: {
+        Args: {
+          p_from?: string
+          p_search?: string
+          p_sources?: string[]
+          p_to?: string
+        }
+        Returns: {
+          average_amount: number
+          paid_count: number
+          success_count: number
+          total_revenue: number
+          transaction_count: number
         }[]
       }
       get_instructor_group_overview: {
@@ -6705,12 +7067,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6734,11 +7096,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6759,11 +7121,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6784,11 +7146,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6801,11 +7163,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6815,6 +7177,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       image: ["url", "id", "path", "uploadthing_id"],
@@ -6823,3 +7188,4 @@ export const Constants = {
     },
   },
 } as const
+

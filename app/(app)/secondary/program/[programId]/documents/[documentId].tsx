@@ -18,10 +18,13 @@ import { useSecondaryDocument } from "@/hooks/secondary/useSecondaryDocuments";
 import {
   FileViewer,
   type FileViewerFile,
-} from "@/components/shared/learn/anales/FileViewer/FileViewer";
+} from "@/components/shared/learn/anales/FileViewer/FileViewer.native";
 import { useSecondaryProgram } from "@/hooks/secondary/useSecondaryPrograms";
 import { useDocumentActions } from "@/hooks/secondary/useDocumentActions";
 import { HapticType, useHaptics } from "@/hooks/useHaptics";
+import { useLeaveDocumentIntercept } from "@/hooks/useLeaveDocumentIntercept";
+import { ShareToFeedButton } from "@/components/shared/feed/ShareToFeedButton";
+import { LeaveDocumentSheet } from "@/components/shared/documents/LeaveDocumentSheet";
 
 const DocumentViewerScreen = () => {
   const { programId, documentId } = useLocalSearchParams<{ programId: string; documentId: string }>();
@@ -46,7 +49,13 @@ const DocumentViewerScreen = () => {
     isToggling,
   } = useDocumentActions(documentId);
 
-  // Programme pour afficher le header cohérent avec la liste
+  const { showSheet, handleMarkComplete, handlePin, handleDismiss } = useLeaveDocumentIntercept({
+    enabled: !isCompleted,
+    onMarkComplete: toggleComplete,
+    onPin: togglePin,
+  });
+
+  // Programme pour afficher le header cohÃ©rent avec la liste
   const { program } = useSecondaryProgram(programId);
   const programTitle = program?.class?.name && program?.serie?.name
     ? `${program.class.name} - ${program.serie.name}`
@@ -106,7 +115,7 @@ const DocumentViewerScreen = () => {
     download_url: activeDocument.download_url ?? undefined,
   };
 
-  // Vérifier que le document actif a un download_url
+  // VÃ©rifier que le document actif a un download_url
   if (!activeDocument.download_url) {
     return (
       <View style={[styles.container, isDark && styles.containerDark, styles.centered]}>
@@ -197,7 +206,7 @@ const DocumentViewerScreen = () => {
                 isDark && styles.actionButtonTextDark,
               ]}
             >
-              {isPinned ? "Épinglé" : "Épingler"}
+              {isPinned ? "Ã‰pinglÃ©" : "Ã‰pingler"}
             </ThemedText>
           </TouchableOpacity>
 
@@ -225,10 +234,22 @@ const DocumentViewerScreen = () => {
                 isDark && styles.actionButtonTextDark,
               ]}
             >
-              {isCompleted ? "Complété" : "Marquer comme complété"}
+              {isCompleted ? "ComplÃ©tÃ©" : "ComplÃ©ter"}
             </ThemedText>
           </TouchableOpacity>
         </View>
+
+        <ShareToFeedButton
+          tag={{
+            type: "document",
+            id: documentId,
+            label: activeDocument.name,
+            subtitle: programTitle ?? null,
+            route: `/(app)/secondary/program/${programId}/documents/${documentId}`,
+          }}
+          isDarkMode={isDark}
+          style={{ marginTop: 10 }}
+        />
       </View>
 
       {Platform.OS === "web" ? (
@@ -236,6 +257,14 @@ const DocumentViewerScreen = () => {
       ) : (
         <FileViewer file={viewerFile} />
       )}
+
+      <LeaveDocumentSheet
+        visible={showSheet}
+        isDark={isDark}
+        onMarkComplete={handleMarkComplete}
+        onPin={handlePin}
+        onDismiss={handleDismiss}
+      />
     </View>
   );
 };

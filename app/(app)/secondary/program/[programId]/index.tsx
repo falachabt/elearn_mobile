@@ -141,9 +141,6 @@ const SecondaryProgramDetails = () => {
       {
         id: "courses",
         title: "Cours",
-        subtitle: isEnrolled
-          ? "Continuez votre apprentissage"
-          : "Accédez aux cours du programme",
         progress: isEnrolled ? progression.courses : undefined,
         icon: (
           <MaterialCommunityIcons
@@ -161,20 +158,12 @@ const SecondaryProgramDetails = () => {
             >
               {progression.courses.current}/{program.course_count}
             </ThemedText>
-            <ThemedText
-              style={[styles.progressLabel, isDark && styles.progressLabelDark]}
-            >
-              cours complétés
-            </ThemedText>
           </View>
         ) : undefined,
       },
       {
         id: "quizzes",
         title: "Quiz",
-        subtitle: isEnrolled
-          ? "Testez vos connaissances"
-          : "Accédez aux quiz d'évaluation",
         progress: isEnrolled ? progression.quizzes : undefined,
         icon: (
           <MaterialCommunityIcons
@@ -192,20 +181,12 @@ const SecondaryProgramDetails = () => {
             >
               {progression.quizzes.current}/{program.quiz_count}
             </ThemedText>
-            <ThemedText
-              style={[styles.progressLabel, isDark && styles.progressLabelDark]}
-            >
-              quiz complétés
-            </ThemedText>
           </View>
         ) : undefined,
       },
       {
         id: "exercises",
         title: "Exercices",
-        subtitle: isEnrolled
-          ? "Pratiquez régulièrement"
-          : "Accédez aux exercices",
         progress: isEnrolled ? progression.exercises : undefined,
         icon: (
           <MaterialCommunityIcons
@@ -223,20 +204,12 @@ const SecondaryProgramDetails = () => {
             >
               {progression.exercises.current}/{program.exercise_count}
             </ThemedText>
-            <ThemedText
-              style={[styles.progressLabel, isDark && styles.progressLabelDark]}
-            >
-              exercices complétés
-            </ThemedText>
           </View>
         ) : undefined,
       },
       {
         id: "documents",
         title: "Documents",
-        subtitle: isEnrolled
-          ? "Consultez les ressources"
-          : "Accédez aux documents",
         progress: isEnrolled ? progression.documents : undefined,
         icon: (
           <MaterialCommunityIcons
@@ -253,11 +226,6 @@ const SecondaryProgramDetails = () => {
               style={[styles.progressText, isDark && styles.progressTextDark]}
             >
               {progression.documents.current}/{progression.documents.total}
-            </ThemedText>
-            <ThemedText
-              style={[styles.progressLabel, isDark && styles.progressLabelDark]}
-            >
-              documents consultés
             </ThemedText>
           </View>
         ) : undefined,

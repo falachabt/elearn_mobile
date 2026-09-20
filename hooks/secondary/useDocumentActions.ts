@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import useSWR, { mutate as globalMutate } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/auth';
@@ -17,6 +17,11 @@ import {
 export function useDocumentActions(documentId: string) {
   const { user } = useAuth();
   const [isToggling, setIsToggling] = useState(false);
+  // The app's SWRConfig uses a custom `provider` (asyncStorageProvider), so
+  // the bare `mutate` imported from 'swr' targets SWR's *default* cache, not
+  // the one every useSWR() in this app actually reads from -- it silently
+  // no-ops. useSWRConfig() returns the mutate bound to the real active cache.
+  const { mutate: globalMutate } = useSWRConfig();
 
   const {
     data: status,
@@ -35,14 +40,24 @@ export function useDocumentActions(documentId: string) {
   const toggleComplete = async () => {
     if (!user?.id || isToggling) return;
 
+    const newState = !isCompleted;
     setIsToggling(true);
     try {
-      if (isCompleted) {
-        await unmarkDocumentAsComplete(user.id, documentId);
-      } else {
+      // Optimistic: reflect the new state immediately, don't wait on network/revalidation
+      await mutate(
+        (current) => ({
+          completed: newState ? [{ document_id: documentId, is_completed: true }] : [],
+          pinned: current?.pinned ?? [],
+        }),
+        { revalidate: false }
+      );
+
+      if (newState) {
         await markDocumentAsComplete(user.id, documentId);
+      } else {
+        await unmarkDocumentAsComplete(user.id, documentId);
       }
-      await mutate();
+
       // Invalider tous les caches de statuts de documents pour rafraîchir la liste
       globalMutate(
         (key) => Array.isArray(key) && key[0] === 'documents-status',
@@ -57,6 +72,7 @@ export function useDocumentActions(documentId: string) {
       );
     } catch (error) {
       logger.error('Error toggling complete:', error);
+      mutate(); // revert to server truth on failure
     } finally {
       setIsToggling(false);
     }
@@ -65,14 +81,23 @@ export function useDocumentActions(documentId: string) {
   const togglePin = async () => {
     if (!user?.id || isToggling) return;
 
+    const newState = !isPinned;
     setIsToggling(true);
     try {
-      if (isPinned) {
-        await unpinDocument(user.id, documentId);
-      } else {
+      await mutate(
+        (current) => ({
+          completed: current?.completed ?? [],
+          pinned: newState ? [{ document_id: documentId, is_pinned: true }] : [],
+        }),
+        { revalidate: false }
+      );
+
+      if (newState) {
         await pinDocument(user.id, documentId);
+      } else {
+        await unpinDocument(user.id, documentId);
       }
-      await mutate();
+
       // Invalider tous les caches de statuts de documents pour rafraîchir la liste
       globalMutate(
         (key) => Array.isArray(key) && key[0] === 'documents-status',
@@ -87,6 +112,7 @@ export function useDocumentActions(documentId: string) {
       );
     } catch (error) {
       logger.error('Error toggling pin:', error);
+      mutate(); // revert to server truth on failure
     } finally {
       setIsToggling(false);
     }

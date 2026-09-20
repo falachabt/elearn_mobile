@@ -4,10 +4,19 @@ import { theme } from "@/constants/theme";
 
 export const EXERCISE_DETAIL_TOUR_ID = "secondary-exercise-detail-v1";
 export const HOME_MENU_TOUR_ID = "home-menu-tour-v2";
+export const FEED_POST_INTRO_TOUR_ID = "feed-post-intro-v1";
+export const CREATE_POST_FEATURES_TOUR_ID = "create-post-features-v2";
+export const SEARCH_FEATURE_TOUR_ID = "search-feature-tour-v3";
+export const FEED_COMMENTS_TOUR_ID = "feed-comments-tour-v1";
+// Base id du tour "Partager sur le fil" (écrans de contenu) — suffixé d'un
+// bucket temporel par useShareToFeedTour pour pouvoir le re-déclencher après
+// un mois si l'utilisateur n'a toujours jamais tagué de contenu.
+export const SHARE_TO_FEED_TOUR_ID = "share-to-feed-tour";
 
 export function getTourGuideConfig(
   isDarkMode: boolean,
   tourId = EXERCISE_DETAIL_TOUR_ID,
+  overrides?: Partial<TourGuideConfig>,
 ): TourGuideConfig {
   return {
     tourId,
@@ -42,5 +51,6 @@ export function getTourGuideConfig(
       pulseMinOpacity: 0.35,
       pulseMaxOpacity: 0.85,
     },
+    ...overrides,
   };
 }

@@ -36,6 +36,8 @@ import { useSecondaryDailyContent } from "@/hooks/secondary/useSecondaryDailyCon
 import { useCategories } from "@/hooks/global/useCategories";
 import { ExerciseListView } from "@/components/shared/learn/exercices/ExerciseListView";
 import { useAuth } from "@/contexts/auth";
+import { useUser } from "@/contexts/useUserInfo";
+import { useCustomRouter } from "@/hooks/useCustomRouter";
 import { supabase } from "@/lib/supabase";
 import { markSecondaryDailyItemCompleted } from "@/services/secondary/dailyContent.service";
 
@@ -62,6 +64,9 @@ interface ExerciseRow {
 export default function ExercisesList() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
   const { user } = useAuth();
+  const { isSecondaryProgramEnrolled } = useUser();
+  const router = useCustomRouter();
+  const hasPaidAccess = programId ? isSecondaryProgramEnrolled(programId) : false;
   const [page, setPage] = useState(0);
   const [allExercises, setAllExercises] = useState<ExerciseRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -170,6 +175,23 @@ export default function ExercisesList() {
       };
     }).filter(Boolean);
   }, [allExercises, dailyContent?.exercises, programId]);
+
+  // Free (non-paying) users only get 1 unlocked exercise per category — the rest are locked.
+  const exercisesWithLockState = useMemo(() => {
+    if (hasPaidAccess) return exercisesWithDetails;
+
+    const unlockedCategorySeen = new Set<string | number>();
+    return exercisesWithDetails.map((item) => {
+      if (!item) return item;
+      const categoryKey = item.exercise?.course?.category ?? "uncategorized";
+      let isLocked = true;
+      if (!unlockedCategorySeen.has(categoryKey)) {
+        unlockedCategorySeen.add(categoryKey);
+        isLocked = false;
+      }
+      return { ...item, isLocked };
+    });
+  }, [exercisesWithDetails, hasPaidAccess]);
 
   // Extract unique categories from exercises
   const categories = useMemo(() => {
@@ -298,7 +320,7 @@ export default function ExercisesList() {
 
   return (
     <ExerciseListView
-      exercises={exercisesWithDetails as never}
+      exercises={exercisesWithLockState as never}
       categories={categories as never}
       isLoading={isLoading}
       isLoadingMore={isLoadingExercises && page > 0}
@@ -312,6 +334,7 @@ export default function ExercisesList() {
       baseRoute={`/(app)/secondary/program/${programId}/exercices`}
       onPinToggle={handlePinToggle}
       onCompletionToggle={handleCompletionToggle}
+      onLockedPress={() => router.navigateToSecondaryPayment(programId)}
     />
   );
 }

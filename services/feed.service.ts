@@ -41,7 +41,25 @@ export type PollOption = {
   votes_count: number;
 };
 
-export type FeedPost = {
+// Type de contenu app pouvant être tagué dans un post/commentaire du feed —
+// masqué derrière le flag PostHog feed_content_tagging_enabled. Distinct du
+// TaggedContentType du chat de groupe (discussion.type.ts), qui ne couvre que
+// course|quiz|exercise sur un seul programme.
+export type TaggedFeedContentType = 'course' | 'quiz' | 'exercise' | 'document' | 'program';
+
+export type TaggedFeedContent = {
+  tagged_contents: TaggableContentResult[];
+};
+
+export type TaggableContentResult = {
+  type: TaggedFeedContentType;
+  id: string;
+  label: string;
+  subtitle: string | null;
+  route: string;
+};
+
+export type FeedPost = TaggedFeedContent & {
   id: string;
   author_id: string;
   content: string;
@@ -63,7 +81,7 @@ export type FeedPost = {
   best_comment_id?: string | null;
 };
 
-export type PostComment = {
+export type PostComment = TaggedFeedContent & {
   id: string;
   post_id: string;
   author_id: string;
@@ -173,7 +191,7 @@ export const FEED_PAGE_SIZE = 12;
 // Il faut donc nommer explicitement la contrainte à utiliser pour l'embed.
 const FEED_POST_SELECT = `
   *,
-  comments:post_comments!post_comments_post_id_fkey(id, post_id, author_id, content, score, parent_comment_id, created_at),
+  comments:post_comments!post_comments_post_id_fkey(id, post_id, author_id, content, score, parent_comment_id, created_at, tagged_contents),
   likes:post_likes(user_id)
 `;
 
@@ -362,7 +380,8 @@ export async function createFeedPost(
   mediaUrls: string[],
   authorId: string,
   bgColor?: string | null,
-  pollOptions?: string[]
+  pollOptions?: string[],
+  taggedContents?: TaggableContentResult[]
 ): Promise<FeedPost | null> {
   try {
     const { data, error } = await (supabase as any)
@@ -372,6 +391,7 @@ export async function createFeedPost(
         media_urls: mediaUrls,
         author_id: authorId,
         bg_color: bgColor ?? null,
+        tagged_contents: taggedContents ?? [],
       })
       .select('*')
       .single();
@@ -666,7 +686,8 @@ export async function addComment(
   content: string,
   authorId: string,
   parentCommentId?: string | null,
-  mentionedUserIds?: string[]
+  mentionedUserIds?: string[],
+  taggedContents?: TaggableContentResult[]
 ): Promise<PostComment | null> {
   try {
     const { data, error } = await (supabase as any)
@@ -677,6 +698,7 @@ export async function addComment(
         author_id: authorId,
         parent_comment_id: parentCommentId ?? null,
         mentioned_user_ids: mentionedUserIds ?? [],
+        tagged_contents: taggedContents ?? [],
       })
       .select('*')
       .single();
@@ -688,6 +710,59 @@ export async function addComment(
   } catch (err) {
     logger.error('addComment error:', err);
     return null;
+  }
+}
+
+/**
+ * Recherche unifiée de contenu taggable (cours/quiz/exercice/document/programme,
+ * secondaire + prépa) pour le tag picker du feed — cf. search_taggable_content
+ * (supabase/schemas/4_post.sql).
+ */
+export async function searchTaggableContent(
+  query: string,
+  type?: TaggedFeedContentType | null
+): Promise<TaggableContentResult[]> {
+  if (!query.trim()) return [];
+  try {
+    const { data, error } = await (supabase.rpc as any)('search_taggable_content', {
+      p_query: query.trim(),
+      p_type: type ?? null,
+      p_limit: 20,
+    });
+
+    if (error) throw error;
+    return (data ?? []) as TaggableContentResult[];
+  } catch (err) {
+    logger.error('searchTaggableContent error:', err);
+    return [];
+  }
+}
+
+/**
+ * A l'utilisateur déjà publié un post ou un commentaire avec au moins un
+ * contenu tagué ? Utilisé pour décider si on doit re-proposer le tour
+ * "Partager sur le fil" après un mois (cf. ShareToFeedButton / écrans
+ * d'exercice) — s'il l'a déjà fait, plus besoin de le lui remontrer.
+ */
+export async function hasEverTaggedContent(userId: string): Promise<boolean> {
+  try {
+    const [{ count: postCount }, { count: commentCount }] = await Promise.all([
+      (supabase as any)
+        .from('feed_posts')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_id', userId)
+        .neq('tagged_contents', '[]'),
+      (supabase as any)
+        .from('post_comments')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_id', userId)
+        .neq('tagged_contents', '[]'),
+    ]);
+
+    return (postCount ?? 0) > 0 || (commentCount ?? 0) > 0;
+  } catch (err) {
+    logger.error('hasEverTaggedContent error:', err);
+    return true; // en cas d'erreur, ne pas re-harceler l'utilisateur avec le tour
   }
 }
 
