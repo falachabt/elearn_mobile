@@ -46,3 +46,9 @@ supabase/
 app-example
 
 .vercel
+
+# Google service account keys (never commit)
+elear-*.json
+fcm.json
+gs.json
+*-adminsdk-*.json
