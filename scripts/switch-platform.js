@@ -1,22 +1,33 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
+
+// Files whose FileViewer import must follow the target platform. Keep this list
+// in sync with every screen that imports FileViewer: a single ".native" import
+// left behind makes the whole web bundle fail (react-native-pdf is native-only).
+const FILES = [
+  ["app", "(app)", "learn", "[pdId]", "anales", "[filePath]", "[fileId].tsx"],
+  ["app", "(app)", "manuel", "anciens-sujets", "[competitionId]", "[filePath]", "[fileId].tsx"],
+  ["app", "(app)", "manuel", "niveaux", "[levelId]", "[documentId].tsx"],
+  ["app", "(app)", "secondary", "program", "[programId]", "documents", "[documentId].tsx"],
+];
 
 // Function to process a file and update imports
 function processFile(filePath, platform) {
   try {
     // Read the file content
-    let content = fs.readFileSync(filePath, 'utf8');
-    
+    let content = fs.readFileSync(filePath, "utf8");
+
     // Rewrite only the module path suffix of any FileViewer import, leaving the
     // import shape intact (named, aliased, type-only, single- or multi-line).
     // Matches both bare imports (".../FileViewer") and suffixed ones
     // (".../FileViewer.web" | ".../FileViewer.native") and normalizes them to
     // the requested platform.
-    const importPathRegex = /(from\s+["']@\/components\/shared\/learn\/anales\/FileViewer\/FileViewer)(\.(web|native))?(["'])/g;
-    content = content.replace(importPathRegex, `$1.${platform}$4`);
-    
+    const importPathRegex =
+      /(from\s+["']@\/components\/shared\/learn\/anales\/FileViewer\/FileViewer)(\.(web|native))?(["'])/g;
+    const updated = content.replace(importPathRegex, `$1.${platform}$4`);
+
     // Write the updated content back to the file
-    fs.writeFileSync(filePath, content, 'utf8');
+    fs.writeFileSync(filePath, updated, "utf8");
     console.log(`Updated imports in ${filePath} for ${platform} platform`);
   } catch (error) {
     console.error(`Error processing file ${filePath}:`, error);
@@ -25,29 +36,27 @@ function processFile(filePath, platform) {
 
 // Main function
 function switchPlatform(platform) {
-  if (platform !== 'web' && platform !== 'native') {
+  if (platform !== "web" && platform !== "native") {
     console.error('Invalid platform. Use "web" or "native".');
     process.exit(1);
   }
-  
+
   console.log(`Switching imports to ${platform} platform...`);
-  
+
   // List of files to process
-  const filesToProcess = [
-    path.join(__dirname, '..', 'app', '(app)', 'learn', '[pdId]', 'anales', '[filePath]', '[fileId].tsx'),
-    path.join(__dirname, '..', 'app', '(app)', 'manuel', 'anciens-sujets', '[competitionId]', '[filePath]', '[fileId].tsx'),
-    path.join(__dirname, '..', 'app', '(app)', 'secondary', 'program', '[programId]', 'documents', '[documentId].tsx')
-  ];
-  
+  const filesToProcess = FILES.map((segments) =>
+    path.join(__dirname, "..", ...segments)
+  );
+
   // Process each file
-  filesToProcess.forEach(file => {
+  filesToProcess.forEach((file) => {
     if (fs.existsSync(file)) {
       processFile(file, platform);
     } else {
       console.warn(`File not found: ${file}`);
     }
   });
-  
+
   console.log(`Successfully switched imports to ${platform} platform.`);
 }
 
@@ -63,18 +72,18 @@ switchPlatform(process.argv[2]);
 
 // Execute remaining arguments as a command if provided
 if (process.argv.length > 3) {
-  const { spawn } = require('child_process');
+  const { spawn } = require("child_process");
   const command = process.argv[3];
   const args = process.argv.slice(4);
-  
-  console.log(`\nExecuting: ${command} ${args.join(' ')}\n`);
-  
+
+  console.log(`\nExecuting: ${command} ${args.join(" ")}\n`);
+
   const child = spawn(command, args, {
-    stdio: 'inherit',
-    shell: true
+    stdio: "inherit",
+    shell: true,
   });
-  
-  child.on('exit', (code) => {
+
+  child.on("exit", (code) => {
     process.exit(code);
   });
 }

@@ -1,5 +1,5 @@
 // app/(app)/post/[id].tsx
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -32,7 +32,6 @@ import {
   addComment,
   voteOnComment,
   toggleLikePost,
-  votePollOption,
   markBestAnswer,
   searchAccountsForMention,
   PostComment,
@@ -40,6 +39,7 @@ import {
   MentionCandidate,
   TaggableContentResult,
 } from '@/services/feed.service';
+import { usePollVoting } from '@/hooks/usePollVoting';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth';
 import { ImageViewerModal } from '@/components/shared/feed/ImageViewerModal';
@@ -305,24 +305,23 @@ export default function PostDetailScreen() {
     await toggleLikePost(post.id, currentUserId, wasLiked);
   };
 
-  const handleVotePoll = async (optionId: string) => {
-    if (!post || !currentUserId || post.poll_voted_option_id) return;
+  // Le hook de sondage travaille sur une liste : ici elle ne contient que le
+  // post affiché, et on renvoie son premier élément vers l'état de l'écran.
+  const postList = useMemo(() => (post ? [post] : []), [post]);
+  const setPostList = useCallback<
+    React.Dispatch<React.SetStateAction<FeedPost[]>>
+  >((update) => {
+    setPost((previous) => {
+      if (!previous) return previous;
+      const next =
+        typeof update === 'function'
+          ? (update as (value: FeedPost[]) => FeedPost[])([previous])
+          : update;
+      return next[0] ?? previous;
+    });
+  }, []);
 
-    setPost((prev) =>
-      prev
-        ? {
-            ...prev,
-            poll_voted_option_id: optionId,
-            poll_total_votes: (prev.poll_total_votes ?? 0) + 1,
-            poll_options: prev.poll_options?.map((o) =>
-              o.id === optionId ? { ...o, votes_count: o.votes_count + 1 } : o
-            ),
-          }
-        : prev
-    );
-
-    await votePollOption(post.id, optionId, currentUserId);
-  };
+  const { votePoll, revealPoll } = usePollVoting(postList, setPostList, currentUserId);
 
   const startReply = (comment: PostComment) => {
     setReplyingTo({ id: comment.id, authorName: comment.author?.full_name || 'Élève' });
@@ -653,7 +652,12 @@ export default function PostDetailScreen() {
                 totalVotes={post.poll_total_votes ?? 0}
                 votedOptionId={post.poll_voted_option_id}
                 isDarkMode={isDarkMode}
-                onVote={handleVotePoll}
+                revealAt={post.poll_reveal_at}
+                revealed={post.poll_revealed}
+                resultsVisible={post.poll_results_visible}
+                explanation={post.poll_explanation}
+                onVote={(optionId) => votePoll(post, optionId)}
+                onRevealDue={() => revealPoll(post)}
               />
             )}
           </View>

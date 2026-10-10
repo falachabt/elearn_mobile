@@ -36,7 +36,8 @@ import {
 } from "@/constants/tourGuide";
 import { useTabBarTourRefs } from "@/contexts/TabBarTourContext";
 import { SUIVI_SEEN_KEY } from "./suivi";
-import { getFeedPosts, getTrendingFeedPosts, deleteFeedPost, toggleLikePost, votePollOption, FeedPost, FEED_PAGE_SIZE } from "@/services/feed.service";
+import { getFeedPosts, getTrendingFeedPosts, deleteFeedPost, toggleLikePost, FeedPost, FEED_PAGE_SIZE } from "@/services/feed.service";
+import { usePollVoting } from "@/hooks/usePollVoting";
 import { PostCard } from "@/components/shared/feed/PostCard";
 import { useCreatePost } from "@/contexts/CreatePostContext";
 import { ImageViewerModal } from "@/components/shared/feed/ImageViewerModal";
@@ -135,27 +136,7 @@ export default function Index() {
     await toggleLikePost(post.id, authUser.authId, wasLiked);
   };
 
-  const handleVotePoll = async (post: FeedPost, optionId: string) => {
-    if (!authUser?.authId || post.poll_voted_option_id) return;
-
-    // Mise à jour optimiste : on marque le vote et incrémente l'option choisie
-    setFeedPosts((prev) =>
-      prev.map((p) =>
-        p.id === post.id
-          ? {
-              ...p,
-              poll_voted_option_id: optionId,
-              poll_total_votes: (p.poll_total_votes ?? 0) + 1,
-              poll_options: p.poll_options?.map((o) =>
-                o.id === optionId ? { ...o, votes_count: o.votes_count + 1 } : o
-              ),
-            }
-          : p
-      )
-    );
-
-    await votePollOption(post.id, optionId, authUser.authId);
-  };
+  const { votePoll, revealPoll } = usePollVoting(feedPosts, setFeedPosts, authUser?.authId);
 
   useEffect(() => {
     loadFeed();
@@ -421,7 +402,8 @@ export default function Index() {
         }}
         onPressAuthor={(authorId) => setProfileSheetUserId(authorId)}
         onToggleLike={handleToggleLike}
-        onVotePoll={handleVotePoll}
+        onVotePoll={votePoll}
+        onRevealPoll={revealPoll}
       />
     ))}
     {loadingMoreFeed && (

@@ -4,7 +4,25 @@
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/utils/logger';
 
-export type NotificationType = 'post_comment' | 'post_reply' | 'post_like';
+// Types créés côté serveur (contrainte notifications_type_check). Le centre de
+// notifications les affiche tous ; l'app en déclenche seulement quelques-uns.
+export type NotificationType =
+  | 'post_comment'
+  | 'post_reply'
+  | 'post_like'
+  | 'mention'
+  | 'profile_like'
+  | 'admin_message'
+  // « La bonne réponse du sondage est là » — envoyée par notify_poll_reveals()
+  // aux élèves qui avaient voté, avec data.post_id pour ouvrir le post.
+  | 'poll_revealed'
+  | 'credits_refilled'
+  | 'referral'
+  | 'reward'
+  | 'study_reminder'
+  | 'payment_confirmed'
+  | 'pass_ending'
+  | 'marketing';
 
 export type AppNotification = {
   id: string;

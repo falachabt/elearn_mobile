@@ -14,7 +14,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth';
-import { getUserPosts, deleteFeedPost, toggleLikePost, votePollOption, FeedPost } from '@/services/feed.service';
+import { getUserPosts, deleteFeedPost, toggleLikePost, FeedPost } from '@/services/feed.service';
+import { usePollVoting } from '@/hooks/usePollVoting';
 import { PostCard } from '@/components/shared/feed/PostCard';
 import { ImageViewerModal } from '@/components/shared/feed/ImageViewerModal';
 import { UserProfileBottomSheet } from '@/components/shared/feed/UserProfileBottomSheet';
@@ -78,24 +79,7 @@ export default function MyPostsScreen() {
     await toggleLikePost(post.id, authUser.authId, wasLiked);
   };
 
-  const handleVotePoll = async (post: FeedPost, optionId: string) => {
-    if (!authUser?.authId || post.poll_voted_option_id) return;
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === post.id
-          ? {
-              ...p,
-              poll_voted_option_id: optionId,
-              poll_total_votes: (p.poll_total_votes ?? 0) + 1,
-              poll_options: p.poll_options?.map((o) =>
-                o.id === optionId ? { ...o, votes_count: o.votes_count + 1 } : o
-              ),
-            }
-          : p
-      )
-    );
-    await votePollOption(post.id, optionId, authUser.authId);
-  };
+  const { votePoll, revealPoll } = usePollVoting(posts, setPosts, authUser?.authId);
 
   return (
     <View style={[styles.container, isDarkMode && styles.containerDark]}>
@@ -150,7 +134,8 @@ export default function MyPostsScreen() {
               }}
               onPressAuthor={(authorId) => setProfileSheetUserId(authorId)}
               onToggleLike={handleToggleLike}
-              onVotePoll={handleVotePoll}
+              onVotePoll={votePoll}
+              onRevealPoll={revealPoll}
             />
           ))
         ) : (

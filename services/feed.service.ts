@@ -39,6 +39,10 @@ export type PollOption = {
   id: string;
   label: string;
   votes_count: number;
+  // Option choisie par l'utilisateur connecté (sondage corrigé)
+  is_mine?: boolean;
+  // Bonne réponse — renseignée (true/false) uniquement après la révélation
+  is_correct?: boolean | null;
 };
 
 // Type de contenu app pouvant être tagué dans un post/commentaire du feed —
@@ -78,6 +82,19 @@ export type FeedPost = TaggedFeedContent & {
   poll_total_votes?: number;
   // Option choisie par l'utilisateur connecté, ou null s'il n'a pas encore voté
   poll_voted_option_id?: string | null;
+  // ─── Sondages corrigés (sondages du bot : correction révélée à une date) ───
+  // Date/heure de révélation de la bonne réponse ; null/absent = sondage
+  // d'opinion, sans correction. Toutes les options ci-dessus viennent du RPC
+  // poll_state, qui masque les résultats tant que l'élève n'a pas voté et cache
+  // la bonne réponse jusqu'à cette date.
+  poll_reveal_at?: string | null;
+  // Vrai quand la date de révélation est passée : résultats et correction visibles
+  poll_revealed?: boolean;
+  // Explication de la bonne réponse, fournie seulement après la révélation
+  poll_explanation?: string | null;
+  // Vrai quand les résultats (compteurs, %) peuvent être affichés : l'élève a
+  // voté, ou la correction est révélée. Sinon le serveur masque les voix.
+  poll_results_visible?: boolean;
   best_comment_id?: string | null;
 };
 
@@ -118,11 +135,62 @@ async function fetchAuthorsByIds(
 }
 
 /**
- * Attache les données de sondage (options + décompte de votes + vote de
- * l'utilisateur) à une liste de posts, en mutant chaque post en place.
- * Ne fait rien pour les posts qui n'ont pas d'options (posts normaux).
+ * Une ligne renvoyée par le RPC public.poll_state(p_post) — cf.
+ * supabase/schemas (migration « questions_sondages_non_lues »). Le serveur
+ * décide seul de ce qui est visible : `votes` et `total` sont NULL tant que
+ * l'élève n'a pas voté, `correct` et `explanation` restent NULL jusqu'à
+ * `reveal_at`.
  */
-async function attachPollData(posts: FeedPost[], currentUserId?: string): Promise<void> {
+type PollStateRow = {
+  option_id: string;
+  label: string;
+  position: number;
+  votes: number | null;
+  mine: boolean;
+  correct: boolean | null;
+  voted: boolean;
+  revealed: boolean;
+  total: number | null;
+  explanation: string | null;
+  reveal_at: string | null;
+};
+
+/**
+ * Applique l'état d'un sondage (une série de lignes poll_state) au post.
+ * La bonne réponse n'est exposée que lorsque le serveur l'a révélée ; les
+ * compteurs de voix restent à 0 tant que les résultats sont masqués pour
+ * éviter d'afficher un « 0 vote » trompeur.
+ */
+function applyPollState(post: FeedPost, rows: PollStateRow[]): void {
+  if (rows.length === 0) return;
+
+  const first = rows[0];
+  const resultsVisible = !!first.voted || !!first.revealed;
+
+  post.poll_options = rows.map((row) => ({
+    id: row.option_id,
+    label: row.label,
+    votes_count: row.votes ?? 0,
+    is_mine: !!row.mine,
+    is_correct: row.correct,
+  }));
+  post.poll_voted_option_id = rows.find((row) => row.mine)?.option_id ?? null;
+  post.poll_total_votes = first.total ?? 0;
+  post.poll_reveal_at = first.reveal_at;
+  post.poll_revealed = !!first.revealed;
+  post.poll_explanation = first.revealed ? first.explanation : null;
+  post.poll_results_visible = resultsVisible;
+}
+
+/**
+ * Repli si le RPC poll_state n'est pas disponible (base pas encore migrée) :
+ * les options et les votes bruts, comme avant — sans bonne réponse, pour ne
+ * jamais exposer la correction depuis le client.
+ */
+async function attachLegacyPollData(
+  posts: FeedPost[],
+  currentUserId?: string
+): Promise<void> {
   const postIds = posts.map((p) => p.id);
   if (postIds.length === 0) return;
 
@@ -153,18 +221,83 @@ async function attachPollData(posts: FeedPost[], currentUserId?: string): Promis
   const optionsByPost = new Map<string, PollOption[]>();
   options.forEach((o: any) => {
     const list = optionsByPost.get(o.post_id) ?? [];
-    list.push({ id: o.id, label: o.label, votes_count: votesByOption.get(o.id) ?? 0 });
+    list.push({
+      id: o.id,
+      label: o.label,
+      votes_count: votesByOption.get(o.id) ?? 0,
+      is_mine: myVoteByPost.get(o.post_id) === o.id,
+      is_correct: null,
+    });
     optionsByPost.set(o.post_id, list);
   });
 
   posts.forEach((post) => {
     const opts = optionsByPost.get(post.id);
-    if (opts) {
-      post.poll_options = opts;
-      post.poll_total_votes = opts.reduce((sum, o) => sum + o.votes_count, 0);
-      post.poll_voted_option_id = myVoteByPost.get(post.id) ?? null;
-    }
+    if (!opts) return;
+    post.poll_options = opts;
+    post.poll_total_votes = opts.reduce((sum, o) => sum + o.votes_count, 0);
+    post.poll_voted_option_id = myVoteByPost.get(post.id) ?? null;
+    post.poll_revealed = false;
+    post.poll_results_visible = !!myVoteByPost.get(post.id);
   });
+}
+
+/**
+ * Attache les données de sondage (options, résultats, mon vote, bonne réponse
+ * après révélation) à une liste de posts, en mutant chaque post en place.
+ * Passe par le RPC poll_state qui applique les règles de visibilité côté
+ * serveur (résultats après vote, correction après la date de révélation).
+ * Ne fait rien pour les posts qui n'ont pas d'options (posts normaux).
+ */
+async function attachPollData(posts: FeedPost[], currentUserId?: string): Promise<void> {
+  if (posts.length === 0) return;
+
+  const settled = await Promise.all(
+    posts.map(async (post) => {
+      const { data, error } = await (supabase.rpc as any)('poll_state', {
+        p_post: post.id,
+      });
+      return { post, rows: (data ?? []) as PollStateRow[], error };
+    })
+  );
+
+  const failed = settled.filter((s) => s.error);
+  const withPoll = settled.filter((s) => !s.error && s.rows.length > 0);
+  withPoll.forEach(({ post, rows }) => applyPollState(post, rows));
+
+  if (failed.length > 0) {
+    logger.error(
+      'attachPollData: poll_state indisponible, repli sur les votes bruts',
+      failed[0].error
+    );
+    await attachLegacyPollData(
+      failed.map((s) => s.post),
+      currentUserId
+    );
+  }
+}
+
+/**
+ * Relit l'état d'un seul sondage (après un vote, ou quand la date de
+ * révélation vient de passer) et l'applique au post fourni.
+ */
+export async function refreshPostPoll(post: FeedPost): Promise<FeedPost | null> {
+  try {
+    const { data, error } = await (supabase.rpc as any)('poll_state', {
+      p_post: post.id,
+    });
+    if (error) throw error;
+
+    const rows = (data ?? []) as PollStateRow[];
+    if (rows.length === 0) return null;
+
+    const updated = { ...post };
+    applyPollState(updated, rows);
+    return updated;
+  } catch (err) {
+    logger.error('refreshPostPoll error:', err);
+    return null;
+  }
 }
 
 /**
@@ -435,11 +568,6 @@ export async function createFeedPost(
 // ─── Sondages ─────────────────────────────────────────────────────────────────
 
 /**
- * Enregistre le vote d'un utilisateur sur une option de sondage.
- * Un seul vote par utilisateur et par post (contrainte unique côté DB) ;
- * le vote n'est jamais modifiable une fois posé.
- */
-/**
  * Marque (ou retire, si commentId est null) un commentaire comme "meilleure
  * réponse" du post. Réservé à l'auteur du post (vérifié côté serveur).
  */
@@ -461,22 +589,54 @@ export async function markBestAnswer(
   }
 }
 
+/**
+ * Enregistre le vote d'un utilisateur sur une option de sondage.
+ * Un seul vote par utilisateur et par post (contrainte unique côté DB) ;
+ * le vote n'est jamais modifiable une fois posé.
+ *
+ * Passe par le RPC vote_poll : c'est lui qui refuse un vote sur un sondage
+ * déjà corrigé (erreur 55000) et qui maintient les règles de visibilité.
+ * Repli sur l'insertion directe si le RPC n'est pas disponible.
+ */
 export async function votePollOption(
   postId: string,
   optionId: string,
   userId: string
 ): Promise<boolean> {
   try {
-    const { error } = await (supabase as any)
-      .from('poll_votes')
-      .insert({ post_id: postId, option_id: optionId, user_id: userId });
+    const { error } = await (supabase.rpc as any)('vote_poll', {
+      p_post: postId,
+      p_option: optionId,
+    });
 
     if (error) throw error;
     return true;
-  } catch (err) {
+  } catch (err: any) {
+    if (isPollLockedError(err)) return false;
+
     logger.error('votePollOption error:', err);
-    return false;
+    try {
+      const { error } = await (supabase as any)
+        .from('poll_votes')
+        .insert({ post_id: postId, option_id: optionId, user_id: userId });
+
+      if (error) throw error;
+      return true;
+    } catch (legacyErr) {
+      logger.error('votePollOption (repli) error:', legacyErr);
+      return false;
+    }
   }
+}
+
+/**
+ * Vrai si l'erreur signifie « sondage déjà corrigé » (SQLSTATE 55000) — le
+ * client doit alors rafraîchir l'affichage plutôt que de réessayer.
+ */
+export function isPollLockedError(error: any): boolean {
+  if (!error) return false;
+  const code = error.code ?? error?.error?.code;
+  return code === '55000';
 }
 
 /**

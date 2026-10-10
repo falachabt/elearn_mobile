@@ -23,6 +23,18 @@ const ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
   post_comment: 'comment-text-outline',
   post_reply: 'reply',
   post_like: 'heart',
+  mention: 'at',
+  profile_like: 'account-heart-outline',
+  // Correction d'un sondage révélée (notify_poll_reveals côté serveur)
+  poll_revealed: 'lightbulb-on-outline',
+  credits_refilled: 'wallet-outline',
+  referral: 'account-multiple-plus-outline',
+  reward: 'gift-outline',
+  study_reminder: 'bell-ring-outline',
+  payment_confirmed: 'check-decagram-outline',
+  pass_ending: 'calendar-alert',
+  admin_message: 'shield-account-outline',
+  marketing: 'bullhorn-outline',
 };
 
 export default function NotificationsScreen() {

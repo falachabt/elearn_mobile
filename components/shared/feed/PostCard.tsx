@@ -34,7 +34,10 @@ interface PostCardProps {
   onPressImage?: (images: string[], index: number) => void;
   onPressAuthor?: (authorId: string) => void;
   onToggleLike?: (post: FeedPost) => void;
-  onVotePoll?: (post: FeedPost, optionId: string) => void;
+  onVotePoll?: (post: FeedPost, optionId: string) => void | Promise<void>;
+  // Relit l'état d'un sondage : appui sur « Voir la correction », ou date de
+  // révélation atteinte pendant que l'écran est ouvert
+  onRevealPoll?: (post: FeedPost) => void | Promise<void>;
   // Cibles optionnelles pour le tour guide feed (FEED_POST_INTRO_TOUR_ID) —
   // seul le premier post rendu du fil les reçoit, cf. app/(app)/index.tsx.
   likeButtonRef?: React.RefObject<View | null>;
@@ -52,6 +55,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   onPressAuthor,
   onToggleLike,
   onVotePoll,
+  onRevealPoll,
   likeButtonRef,
   commentButtonRef,
   commentVoteRef,
@@ -279,14 +283,20 @@ export const PostCard: React.FC<PostCardProps> = ({
         </View>
       )}
 
-      {/* Sondage : options de vote en bas du post */}
+      {/* Sondage : options de vote en bas du post (date de révélation et
+          correction comprises pour les sondages corrigés de l'agent) */}
       {post.poll_options && post.poll_options.length > 0 && (
         <PollBlock
           options={post.poll_options}
           totalVotes={post.poll_total_votes ?? 0}
           votedOptionId={post.poll_voted_option_id}
           isDarkMode={isDarkMode}
+          revealAt={post.poll_reveal_at}
+          revealed={post.poll_revealed}
+          resultsVisible={post.poll_results_visible}
+          explanation={post.poll_explanation}
           onVote={(optionId) => onVotePoll?.(post, optionId)}
+          onRevealDue={() => onRevealPoll?.(post)}
         />
       )}
 
