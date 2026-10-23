@@ -2,12 +2,16 @@ import { supabase } from '@/lib/supabase';
 
 export const CourseProgressService = {
   async getCurrentProgress(userId: string, courseId: number) {
+    // maybeSingle : aucun résumé tant que le cours n'est pas commencé (la ligne est
+    // créée par un trigger au premier progrès). Avec .single(), PostgREST répondait
+    // 406 et chaque cours non commencé générait un log d'erreur côté API Gateway
+    // (1 353 réponses 406 sur 24 h relevées le 23/10/2026).
     const { data: summary } = await supabase
       .from('course_progress_summary')
       .select('*')
       .eq('user_id', userId)
       .eq('course_id', courseId)
-      .single();
+      .maybeSingle();
 
     return summary;
   },
